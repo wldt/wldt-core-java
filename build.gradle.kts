@@ -91,8 +91,8 @@ publishing {
             }
 
             scm {
-                connection = "scm:git:https://github.com/wldt/wldt-core.git"
-                url = "https://github.com/wldt/wldt-core"
+                connection = "scm:git:https://github.com/wldt/wldt-core-java.git"
+                url = "https://github.com/wldt/wldt-core-java"
             }
         }
     }
