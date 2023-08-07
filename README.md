@@ -802,6 +802,16 @@ protected void onDigitalTwinBound(Map<String, PhysicalAssetDescription> adapters
 }
 ```
 
+In particular the method ```observeDigitalActionEvents()``` should be called start the observation of digital actions and 
+to receive all incoming Digital Action through active Digital Adapters. 
+Without this call the Shadowing Function will not receive any notifications or callback about 
+incoming request to execute an exposed DT's Action. Of course, we have to call this method if we are mapping any digital 
+action in our DT. 
+
+Another fundamental method is ```notifyShadowingSync()``` used to notify the DT Core that 
+the Bounding phase has been correctly completed and the DT has evaluated its  internal status according 
+to what is available and declared through the Physical Adapters.
+
 As mentioned, in the previous example the Shadowing Function does not apply any control or check on the nature of declared 
 physical property. Of course in order to have a more granular control, it will be possible to use property ``Key`` or any other field or even
 the type of the instance through an ```instanceof``` check to implement different controls and behaviours.
@@ -918,11 +928,45 @@ Digital Adapter in charge of:
 - Handle incoming digital action and forward them to the Core in order to be validated and processed by the Shadowing Function
 
 The basic library class that we are going to extend is called ```DigitalAdapter``` and creating a new class 
-named ```TestDigitalAdapter``` the resulting code will be the following after implementing required 
-methods the basic constructor with the id String parameter.
-
-The DigitalTwinAdapter class can take as Generic Type the type of Configuration used to configure its behaviours.
+named ```TestDigitalAdapter```. The DigitalTwinAdapter class can take as Generic Type the type of Configuration used to configure its behaviours.
 In this simplified example we are defining a DigitalAdapter without any Configuration.
+
+The Digital Adapter class has e long list of callback and notification method to allow 
+the adapter to be updated about all the variation and changes on the twin.
+Available callbacks can be summarized as follows:
+
+- Digital Adapter Start/Stop:
+    - ```onAdapterStart()```
+    - ```onAdapterStop()```
+- Digital Twin Life Cycle Notifications:
+    - ```onDigitalTwinCreate()```
+    - ```onDigitalTwinStart()```
+    - ```onDigitalTwinSync(IDigitalTwinState digitalTwinState)```
+    - ```onDigitalTwinUnSync(IDigitalTwinState digitalTwinState)```
+    - ```onDigitalTwinStop()```
+    - ```onDigitalTwinDestroy()```
+- Digital Twin State Variation
+    - ```onStateChangePropertyCreated(DigitalTwinStateProperty digitalTwinStateProperty)```
+    - ```onStateChangePropertyUpdated(DigitalTwinStateProperty digitalTwinStateProperty)```
+    - ```onStateChangePropertyDeleted(DigitalTwinStateProperty digitalTwinStateProperty)```
+    - ```onStateChangeActionEnabled(DigitalTwinStateAction digitalTwinStateAction)```
+    - ```onStateChangeActionUpdated(DigitalTwinStateAction digitalTwinStateAction)```
+    - ```onStateChangeActionDisabled(DigitalTwinStateAction digitalTwinStateAction)```
+    - ```onStateChangeEventRegistered(DigitalTwinStateEvent digitalTwinStateEvent)```
+    - ```onStateChangeEventRegistrationUpdated(DigitalTwinStateEvent digitalTwinStateEvent)```
+    - ```onStateChangeEventUnregistered(DigitalTwinStateEvent digitalTwinStateEvent) ```
+    - ```onStateChangeRelationshipCreated(DigitalTwinStateRelationship digitalTwinStateRelationship)```
+    - ```onStateChangeRelationshipInstanceCreated(DigitalTwinStateRelationshipInstance digitalTwinStateRelationshipInstance)```
+    - ```onStateChangeRelationshipDeleted(DigitalTwinStateRelationship digitalTwinStateRelationship)```
+    - ```onStateChangeRelationshipInstanceDeleted(DigitalTwinStateRelationshipInstance digitalTwinStateRelationshipInstance)```
+- Single Property Variation
+    - ```onStatePropertyUpdated(DigitalTwinStateProperty digitalTwinStateProperty)```
+    - ```onStatePropertyDeleted(DigitalTwinStateProperty digitalTwinStateProperty)```
+- Single Event Notification
+    - ```onDigitalTwinStateEventNotificationReceived(DigitalTwinStateEventNotification digitalTwinStateEventNotification)``` 
+
+The resulting code will be the following after adding the required
+methods (still empty) and the basic constructor with the id String parameter is the following:
 
 ```java
 import it.wldt.adapter.digital.DigitalAdapter;
