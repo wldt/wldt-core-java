@@ -1340,9 +1340,44 @@ protected void onDigitalTwinStateEventNotificationReceived(DigitalTwinStateEvent
 }
 ```
 
+## Digital Twin Process
+
+Now that we have created the main fundamental element of a DT (Physical Adapter, Shadowing Function and Digital Adapter) we can create Class file with a main to create the WLDT Engine
+with the created components and start the DT. 
+
+Create a new Java file called ```TestDigitalTwin``` adding the following code: 
+ 
+```java
+import it.wldt.core.engine.WldtEngine;
+
+public class TestDigitalTwin {
+
+    public static void main(String[] args)  {
+        try{
+
+            WldtEngine digitalTwinEngine = new WldtEngine(new TestShadowingFunction("test-shadowing-function"), "test-digital-twin");
+            digitalTwinEngine.addPhysicalAdapter(new TestPhysicalAdapter("test-physical-adapter"));
+            digitalTwinEngine.addDigitalAdapter(new TestDigitalAdapter("test-digital-adapter"));
+            digitalTwinEngine.startLifeCycle();
+
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+}
+```
+
+As a first step we create an instance of the ```WldtEngine``` passing our ```TestShadowingFunction``` and the Id of our DT (e.g., test-digital-twin).
+Then we can use the created ```digitalTwinEngine``` variable to call the following methods: 
+
+- ```addPhysicalAdapter(...)```: To add a new Physical Adapter to the engine. In our case, we use the class ```TestPhysicalAdapter``` previously created 
+- ```addDigitalAdapter(...)```: To add a new Digital Adapter to the engine. In our case, we use the class ```TestDigitalAdapter``` previously created
+
+At the end we are ready to start the DT and we can call the method ```digitalTwinEngine.startLifeCycle()``` to start the engine together with all the defined and configured components.
+
 ## Digital Action Management
 
-In this demo implementation we are going to emulate an incoming Digital Action on the Digital Adapter in order to show how it can be handled by the adapter and 
+In this demo implementation, we are going to emulate an incoming Digital Action on the Digital Adapter in order to show how it can be handled by the adapter and 
 properly forwarded to the Shadowing Function for validation and the consequent interaction with the Physical Adapter and then with the physical twin.
 
 In order to add a demo Digital Action trigger on the Digital Adapter we add the following method to the ```TestDigitalAdapter``` class:
