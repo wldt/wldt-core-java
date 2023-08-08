@@ -498,7 +498,7 @@ public class TestPhysicalAdapter extends PhysicalAdapter {
 
     private final static String TEMPERATURE_PROPERTY_KEY = "temperature-property-key";
     private final static String OVERHEATING_EVENT_KEY = "overheating-event-key";
-    private final static String SET_TEMPERATURE_ACTION_KEY = "set-temperatura-action-key";
+    private final static String SET_TEMPERATURE_ACTION_KEY = "set-temperature-action-key";
 
     private final static int MESSAGE_UPDATE_TIME = 1000;
     private final static int MESSAGE_UPDATE_NUMBER = 10;
@@ -515,7 +515,7 @@ public class TestPhysicalAdapter extends PhysicalAdapter {
 
             if(physicalAssetActionWldtEvent != null
                     && physicalAssetActionWldtEvent.getActionKey().equals(SET_TEMPERATURE_ACTION_KEY)
-                    && physicalAssetActionWldtEvent.getBody() instanceof String) {
+                    && physicalAssetActionWldtEvent.getBody() instanceof Double) {
                 System.out.println("Received Action Request: " + physicalAssetActionWldtEvent.getActionKey()
                         + " with Body: " + physicalAssetActionWldtEvent.getBody());
             }
@@ -611,6 +611,43 @@ its shadowing function in charge of:
 - Handle received PAD from Physical Adapters in order to device which properties, events, relationships or actions available on connected physical twins should be mapped and managed into the DT State
 - Manage incoming notifications/callbacks associated to the variation of physical properties (e.g, temperature variation) or the generation of physical event (e.g., overheating) 
 - Process action requests from the digital world that should be validated and forward to the correct Physical Adapter in order to trigger the associated actions on the physical world 
+
+The Shadowing Function has the responsibility to build and maintain the updated state of the Digital Twin.
+The Interface used to do that is ```IDigitalTwinState``` and the operational implementation is called ```DefaultDigitalTwinState```.
+The Shadowing Function has direct access (reading and writing) to the Digital Twin State through the variable called: ```digitalTwinState```.
+Available main methods on that class instance are: 
+
+- Properties: 
+  - ```getProperty(String propertyKey)```: Retrieves if present the target DigitalTwinStateProperty by Key
+  - ```containsProperty(String propertyKey)```: Checks if a target Property Key is already available in the current Digital Twin's State
+  - ```getPropertyList()```: Loads the list of available Properties (described by the class DigitalTwinStateProperty) available on the Digital Twin's State
+  - ```createProperty(DigitalTwinStateProperty<?> dtStateProperty)```: Allows the creation of a new Property on the Digital Twin's State through the class DigitalTwinStateProperty
+  - ```readProperty(String propertyKey)```: Retrieves if present the target DigitalTwinStateProperty by Key
+  - ```updateProperty(DigitalTwinStateProperty<?> dtStateProperty)```: Updates the target property using the DigitalTwinStateProperty and the associated Property Key field
+  - ```deleteProperty(String propertyKey)```: Deletes the target property identified by the specified key
+- Actions: 
+  - ```containsAction(String actionKey)```: Checks if a Digital Twin State Action with the specified key is correctly registered
+  - ```getAction(String actionKey)```: Loads the target DigitalTwinStateAction by key
+  - ```getActionList()```: Gets the list of available Actions registered on the Digital Twin's State
+  - ```enableAction(DigitalTwinStateAction digitalTwinStateAction)```: Enables and registers the target Action described through an instance of the DigitalTwinStateAction class
+  - ```updateAction(DigitalTwinStateAction digitalTwinStateAction)```: Update the already registered target Action described through an instance of the DigitalTwinStateAction class
+  - ```disableAction(String actionKey)```: Disables and unregisters the target Action described through an instance of the DigitalTwinStateAction class
+- Events:
+  - ```containsEvent(String eventKey)```: Check if a Digital Twin State Event with the specified key is correctly registered
+  - ```getEvent(String eventKey)```: Return the description of a registered Digital Twin State Event according to its Key
+  - ```getEventList()```: Return the list of existing and registered Digital Twin State Events
+  - ```registerEvent(DigitalTwinStateEvent digitalTwinStateEvent)```: Register a new Digital Twin State Event
+  - ```updateRegisteredEvent(DigitalTwinStateEvent digitalTwinStateEvent)```: Update the registration and signature of an existing Digital Twin State Event
+  - ```unRegisterEvent(String eventKey)```: Un-register a Digital Twin State Event
+  - ```notifyDigitalTwinStateEvent(DigitalTwinStateEventNotification<?> digitalTwinStateEventNotification)```: Method to notify the occurrence of the target Digital Twin State Event
+- Relationships:
+  - ```containsRelationship(String relationshipName)```: Checks if a Relationship Name is already available in the current Digital Twin's State
+  - ```createRelationship(DigitalTwinStateRelationship<?> relationship)```: Creates a new Relationships (described by the class DigitalTwinStateRelationship) in the Digital Twin's State
+  - ```addRelationshipInstance(String name, DigitalTwinStateRelationshipInstance<?> instance)```: Adds a new Relationship instance described through the class DigitalTwinStateRelationshipInstance and identified through its name
+  - ```getRelationshipList()```: Loads the list of existing relationships on the Digital Twin's State through a list of DigitalTwinStateRelationship
+  - ```getRelationship(String name)```: Gets a target Relationship identified through its name and described through the class DigitalTwinStateRelationship
+  - ```deleteRelationship(String name)```: Deletes a target Relationship identified through its name
+  - ```deleteRelationshipInstance(String relationshipName, String instanceKey)```: Deletes the target Relationship Instance using relationship name and instance Key
 
 The basic library class that we are going to extend is called ```ShadowingModelFunction``` and creating a new class named ```TestShadowingFunction``` the resulting 
 code is the same after implementing required methods the basic constructor with the id String parameter. 
@@ -733,10 +770,7 @@ protected void onDigitalTwinBound(Map<String, PhysicalAssetDescription> adapters
             adaptersPhysicalAssetDescriptionMap.values().forEach(pad -> {
                 pad.getProperties().forEach(property -> {
                 try {
-        
-                    //Instantiate a new DT State Property of the right type, the same key and initial value
-                    DigitalTwinStateProperty<Double> dtStateProperty = new DigitalTwinStateProperty<Double>(property.getKey(),(Double) property.getInitialValue());
-            
+                    
                     //Create and write the property on the DT's State
                     this.digitalTwinState.createProperty(new DigitalTwinStateProperty<>(property.getKey(),(Double) property.getInitialValue()));
             
@@ -931,39 +965,91 @@ The basic library class that we are going to extend is called ```DigitalAdapter`
 named ```TestDigitalAdapter```. The DigitalTwinAdapter class can take as Generic Type the type of Configuration used to configure its behaviours.
 In this simplified example we are defining a DigitalAdapter without any Configuration.
 
+A Digital Adapter has direct access to the current DT's State through callbacks or directly in a synchronous way using the 
+internal variable called: ```digitalTwinState```. Through it is possibile to navigate all the fields currently composing the state of our Digital Twin.
+
 The Digital Adapter class has e long list of callback and notification method to allow 
 the adapter to be updated about all the variation and changes on the twin.
 Available callbacks can be summarized as follows:
 
 - Digital Adapter Start/Stop:
-    - ```onAdapterStart()```
-    - ```onAdapterStop()```
+    - ```onAdapterStart()```: Feedback when the Digital Adapter correctly starts 
+    - ```onAdapterStop()```: Feedback when the Digital Adapter has been stopped
 - Digital Twin Life Cycle Notifications:
-    - ```onDigitalTwinCreate()```
-    - ```onDigitalTwinStart()```
-    - ```onDigitalTwinSync(IDigitalTwinState digitalTwinState)```
-    - ```onDigitalTwinUnSync(IDigitalTwinState digitalTwinState)```
-    - ```onDigitalTwinStop()```
-    - ```onDigitalTwinDestroy()```
-- Digital Twin State Variation
-    - ```onStateChangePropertyCreated(DigitalTwinStateProperty digitalTwinStateProperty)```
-    - ```onStateChangePropertyUpdated(DigitalTwinStateProperty digitalTwinStateProperty)```
-    - ```onStateChangePropertyDeleted(DigitalTwinStateProperty digitalTwinStateProperty)```
-    - ```onStateChangeActionEnabled(DigitalTwinStateAction digitalTwinStateAction)```
-    - ```onStateChangeActionUpdated(DigitalTwinStateAction digitalTwinStateAction)```
-    - ```onStateChangeActionDisabled(DigitalTwinStateAction digitalTwinStateAction)```
-    - ```onStateChangeEventRegistered(DigitalTwinStateEvent digitalTwinStateEvent)```
-    - ```onStateChangeEventRegistrationUpdated(DigitalTwinStateEvent digitalTwinStateEvent)```
-    - ```onStateChangeEventUnregistered(DigitalTwinStateEvent digitalTwinStateEvent) ```
-    - ```onStateChangeRelationshipCreated(DigitalTwinStateRelationship digitalTwinStateRelationship)```
-    - ```onStateChangeRelationshipInstanceCreated(DigitalTwinStateRelationshipInstance digitalTwinStateRelationshipInstance)```
-    - ```onStateChangeRelationshipDeleted(DigitalTwinStateRelationship digitalTwinStateRelationship)```
-    - ```onStateChangeRelationshipInstanceDeleted(DigitalTwinStateRelationshipInstance digitalTwinStateRelationshipInstance)```
+    - ```onDigitalTwinCreate()```: The DT has been created
+    - ```onDigitalTwinStart()```: The DT started
+    - ```onDigitalTwinSync(IDigitalTwinState digitalTwinState)```: The DT is Synchronized with its physical counterpart. 
+    The current DigitalTwinState is passed as parameter to allow the Digital Adapter to know the current state and consequently
+    implement its behaviour
+    - ```onDigitalTwinUnSync(IDigitalTwinState digitalTwinState)```: The DT is not synchronized anymore with its physical counterpart.
+      The last current DigitalTwinState is passed as parameter to allow the Digital Adapter to know the last state and consequently
+      implement its behaviour
+    - ```onDigitalTwinStop()```: The DT is stopped
+    - ```onDigitalTwinDestroy()```: The DT has been destroyed and the application stopped
+- Digital Twin State Description Variation
+    - ```onStateChangePropertyCreated(DigitalTwinStateProperty digitalTwinStateProperty)```: A Property has been created on the DT's State. The property is passed as parameter to the method.
+    - ```onStateChangePropertyUpdated(DigitalTwinStateProperty digitalTwinStateProperty)```: A Property has been updated on the DT's State. The property is passed as parameter to the method.
+    - ```onStateChangePropertyDeleted(DigitalTwinStateProperty digitalTwinStateProperty)```: A Property has been deleted on the DT's State. The last value of the property is passed as parameter to the method.
+    - ```onStateChangeActionEnabled(DigitalTwinStateAction digitalTwinStateAction)```: An Action has been enabled on the DT's State. The action is passed as parameter to the method.
+    - ```onStateChangeActionUpdated(DigitalTwinStateAction digitalTwinStateAction)```: An Action has been updated on the DT's State. The action is passed as parameter to the method.
+    - ```onStateChangeActionDisabled(DigitalTwinStateAction digitalTwinStateAction)```: An Action has been disabled on the DT's State. The action is passed as parameter to the method.
+    - ```onStateChangeEventRegistered(DigitalTwinStateEvent digitalTwinStateEvent)```: An Event has been registered on the DT's State. The event description is passed as parameter to the method.
+    - ```onStateChangeEventRegistrationUpdated(DigitalTwinStateEvent digitalTwinStateEvent)```: An Event registration has been updated on the DT's State. The event description is passed as parameter to the method.
+    - ```onStateChangeEventUnregistered(DigitalTwinStateEvent digitalTwinStateEvent) ```: An Event has been unregistered from the DT's State. The last event description is passed as parameter to the method.
+    - ```onStateChangeRelationshipCreated(DigitalTwinStateRelationship digitalTwinStateRelationship)```: A Relationship description has been added to the DT's State. The Relationship is passed to the method.
+    - ```onStateChangeRelationshipInstanceCreated(DigitalTwinStateRelationshipInstance digitalTwinStateRelationshipInstance)```: A Relationship Instance has been added to the DT's State. The Relationship Instance is passed to the method.
+    - ```onStateChangeRelationshipDeleted(DigitalTwinStateRelationship digitalTwinStateRelationship)```: A Relationship has been removed from the DT's State. The last Relationship is passed to the method.
+    - ```onStateChangeRelationshipInstanceDeleted(DigitalTwinStateRelationshipInstance digitalTwinStateRelationshipInstance)```: A Relationship Instance has been removed from the DT's State. The last Relationship Instance is passed to the method.
 - Single Property Variation
-    - ```onStatePropertyUpdated(DigitalTwinStateProperty digitalTwinStateProperty)```
-    - ```onStatePropertyDeleted(DigitalTwinStateProperty digitalTwinStateProperty)```
+    - ```onStatePropertyUpdated(DigitalTwinStateProperty digitalTwinStateProperty)```: Callback to receive a notification when a Property changes. The new property value is passed as parameter.
+    - ```onStatePropertyDeleted(DigitalTwinStateProperty digitalTwinStateProperty)```: Callback to receive a notification when a Property has been deleted. The last property value is passed as parameter.
 - Single Event Notification
     - ```onDigitalTwinStateEventNotificationReceived(DigitalTwinStateEventNotification digitalTwinStateEventNotification)``` 
+
+
+The core method where a Digital Adapter receive the description of the DT'State is ```onDigitalTwinSync(IDigitalTwinState digitalTwinState)```. 
+The Adapter using the parameter ```digitalTwinState``` can analyze available properties, actions, events and relationships and decide how to implement its internal behaviour with the methods presented in [ShadowingFunction](#shadowing-function).
+For Properties, Events, Relationships, and Actions a Digital Adapter has the following method to trigger their observation management: 
+
+- Properties:
+  - ```observeDigitalTwinStateProperties()```: Enable the observation of all the Digital Twin State properties, when they are created, updated and deleted. 
+  With respect to properties an update contains the new value and no additional observations are required.
+  - ```unObserveDigitalTwinStateProperties()```: Cancel the observation of all the Digital Twin State properties, when they are created, updated and deleted.
+  - ```observeTargetDigitalTwinProperties(List<String> propertyList)```: Enable the observation of a specific list of Digital Twin State properties, when they are updated and/or deleted. With respect to properties an update contains the new value and no additional observations are required
+  - ```unObserveTargetDigitalTwinProperties(List<String> propertyList)```: Cancel the observation of a target list of properties
+  - ```observeDigitalTwinProperty(String propertyKe)```: Enable the observation of a single Digital Twin State properties, when it is updated and/or deleted. With respect to properties an update contains the new value and no additional observations are required
+  - ```unObserveDigitalTwinProperty(String propertyKey)```: Cancel the observation of a single target property
+- Actions:
+  - ```observeDigitalTwinStateActionsAvailability() ```: Enable the observation of available Digital Twin State Actions.
+  Callbacks will be received when an action is enabled, updated or disable.
+  The update of an action is associated to the variation of its signature and declaration and it is not associated
+  to any attached payload or value.
+  - ```unObserveDigitalTwinStateActionsAvailability()```: Cancel the observation of Digital Twin State Actions
+- Events:
+  - ```observeDigitalTwinStateEventsAvailability()```: Enable the observation of available Digital Twin State Events.
+  Callbacks will be received when an event is registered, updated or unregistered.
+  The update of an event is associated to the variation of its signature and declaration and it is not associated
+  to any attached payload or value.
+  - ```unObserveDigitalTwinStateEventsAvailability()```: Cancel the observation of Digital Twin State Events
+  - ```observeDigitalTwinEventsNotifications(List<String> eventsList)```: Enable the observation of the notification associated to a specific list of Digital Twin State events.
+  With respect to event a notification contains the new associated value
+  - ```unObserveDigitalTwinEventsNotifications(List<String> eventsList)```: Cancel the observation of a target list of properties
+  - ```observeDigitalTwinEventNotification(String eventKey)```: Enable the observation of the notification associated to a single Digital Twin State event.
+  With respect to event a notification contains the new associated value
+  - ```unObserveDigitalTwinEventNotification(String eventKey)```: Cancel the observation of a single target event.
+- Relationships:
+  - ```observeDigitalTwinRelationshipsAvailability() ```: Enable the observation of available Digital Twin State Relationships.
+    Callbacks will be received when a relationship is registered or unregistered.
+    The update of a relationship is associated to the variation of its signature and declaration, and it is not associated
+    to any attached payload or value.
+  - ```unObserveDigitalTwinRelationshipsAvailability()```: Cancel the observation of a single target relationship.
+  - ```observeDigitalTwinRelationship(String relationshipName)```: Enable the observation of a single relationship. The update of a relationship is associated to the variation of its signature and declaration, and it is not associated
+    to any attached payload or value.
+  - ```unObserveDigitalTwinRelationship(String relationshipName)```: Cancel the observation of a single target relationship.
+  - ```observeDigitalTwinRelationships(List<String> relationshipList)```: Enable the observation of a list of relationship. 
+  - The update of a relationship is associated to the variation of its signature and declaration, and it is not associated
+    to any attached payload or value.
+  - ```unObserveDigitalTwinRelationships(List<String> relationshipList)```: Cancel the observation of a list of relationship.
 
 The resulting code will be the following after adding the required
 methods (still empty) and the basic constructor with the id String parameter is the following:
@@ -1190,12 +1276,200 @@ public class TestDigitalAdapter extends DigitalAdapter<Void> {
 }
 ```
 
+By default, a Digital Adapter observes all the variation on the DT's State in terms of Properties, Relationships, Actions and Events.
+As previously mentioned the observation of DT's State Properties allows to receive also properties variation on the method ```onStateChangePropertyUpdated``` since a property is natively composed by its description (e.g., type) and its 
+current value. On the opposite the observation on DT's State Action, Relationships and Events allow ONLY to receive callbacks when a new entity is added or an update is occurred without receiving updates on values variation. 
+To be notified for events and relationships value variations we should directly call ```observeDigitalTwinEventsNotifications(List<String> eventsList)``` and ```observeDigitalTwinRelationships(List<String> relationshipList)``` (or their version with a single target).
+
+Using this default observation we obtain: 
+
+- Automatic observation of all state variation in terms of the description of Properties, Events, Relationships and Actions
+- Automatic callbacks for Properties values updates on the callback method: ```onStateChangePropertyCreated(DigitalTwinStateProperty digitalTwinStateProperty) ```
+
+The only thing that we should add in the ```onDigitalTwinSync(IDigitalTwinState currentDigitalTwinState)``` callback is the direct observation for Events and Relationships values.
+(We will talk about relationships management in the next Section)
+
+Following this approach we can change our Digital Adapter in the following methods: 
+
+In ```onDigitalTwinSync``` we observe in this first simple implementation only the incoming values for declared Events in the DT'State.
+As previously mentioned the observation of any variation of the State structure together with Properties Values are by default observed by any Digital Adapter.
+In this method we use the internal variable ```digitalTwinState``` to access the DT's state and find available Events declaration that we would like to observe.
+
+````java
+public void onDigitalTwinSync(IDigitalTwinState currentDigitalTwinState) {
+
+      try {
+          
+          //Retrieve the list of available events and observe all variations
+          digitalTwinState.getEventList()
+                  .map(eventList -> eventList.stream()
+                          .map(DigitalTwinStateEvent::getKey)
+                          .collect(Collectors.toList()))
+                  .ifPresent(eventKeys -> {
+                      try {
+                          observeDigitalTwinEventsNotifications(eventKeys);
+                      } catch (EventBusException e) {
+                          e.printStackTrace();
+                      }
+                  });
+
+      } catch (Exception e) {
+          e.printStackTrace();
+      }
+
+  }
+````
+
+Since the observation of the state if active by default, we can implement the following method to receive variation on DT'State Properties. 
+In this simple case our implementation is just a Log on the console, but of course it can be changed to enable to communication of the Digital Twin 
+with the external world for example sending the received data on a specific protocol and with a target data format.
+
+```java
+@Override
+protected void onStateChangePropertyUpdated(DigitalTwinStateProperty digitalTwinStateProperty) {
+    System.out.println("[TestDigitalAdapter] -> onStateChangePropertyUpdated(): " + digitalTwinStateProperty);
+}
+```
+
+Following the same approach we implement the following method to be notified about incoming Events from the DT's Core.
+
+```java
+@Override
+protected void onDigitalTwinStateEventNotificationReceived(DigitalTwinStateEventNotification<?> digitalTwinStateEventNotification) {
+    System.out.println("Event notification received - Event: " + digitalTwinStateEventNotification.getDigitalEventKey() + " body: " + digitalTwinStateEventNotification.getBody());
+}
+```
+
+## Digital Action Management
+
+In this demo implementation we are going to emulate an incoming Digital Action on the Digital Adapter in order to show how it can be handled by the adapter and 
+properly forwarded to the Shadowing Function for validation and the consequent interaction with the Physical Adapter and then with the physical twin.
+
+In order to add a demo Digital Action trigger on the Digital Adapter we add the following method to the ```TestDigitalAdapter``` class:
+
+```java
+private Runnable emulateIncomingDigitalAction(){
+    return () -> {
+        try {
+
+            System.out.println("Sleeping before Emulating Incoming Digital Action ...");
+            Thread.sleep(5000);
+            Random random = new Random();
+
+            //Emulate the generation on 'n' temperature measurements
+            for(int i = 0; i < 10; i++){
+
+                //Sleep to emulate sensor measurement
+                Thread.sleep(1000);
+
+                double randomTemperature = 25.0 + (30.0 - 25.0) * random.nextDouble();
+                publishDigitalActionWldtEvent("set-temperature-action-key", randomTemperature);
+
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    };
+}
+```
+
+This method uses the Digital Adapter internal function denoted as ```publishDigitalActionWldtEvent(String actionKey, T body)``` allowing the adapter 
+to send a notification to the DT's Core (and consequently the Shadowing Function) about the arrival of a Digital Action with a specific ```key``` and ```body```.
+In our case the ```key``` is ```set-temperature-action-key``` as declared in the Physical Adapter and in the PAD and the value is a simple Double with the new temperature value. 
+
+Then we call this method in the following way at the end ot the ```onDigitalTwinSync(IDigitalTwinState currentDigitalTwinState)``` method.
+
+```java
+//Start Digital Action Emulation
+new Thread(emulateIncomingDigitalAction()).start();
+```
+
+Now the Shadowing Function should be updated in order to handle the incoming Action request from the Digital Adapter.
+In our case the shadowing function does not apply any validation or check and just forward to action to the Physical Adapter
+in order to be then forwarded to the physical twin. Of course advanced implementation can be introduced for example to 
+validate action, adapt payload and data-formats or to augment functionalities (e.g., trigger multiple physical actions from a single digital request).
+
+In our simple demo implementation the updated Shadowing Function method ```onDigitalActionEvent(DigitalActionWldtEvent<?> digitalActionWldtEvent)``` results as follows:
+
+```java
+@Override
+protected void onDigitalActionEvent(DigitalActionWldtEvent<?> digitalActionWldtEvent) {
+    try {
+        this.publishPhysicalAssetActionWldtEvent(digitalActionWldtEvent.getActionKey(), digitalActionWldtEvent.getBody());
+    } catch (Exception e) {
+        e.printStackTrace();
+    }
+}
+```
+
+This forwarding of the action triggers the corresponding Physical Adapter method ```onIncomingPhysicalAction(PhysicalAssetActionWldtEvent<?> physicalAssetActionWldtEvent)```
+that in our case is emulated just with a Log on the console. Also in that case advanced Physical Adapter implementation can be introduced
+for example to adapt the request from a high-level (and potentially standard) DT action description to the custom requirements of the 
+specific physical twin managed by the adapter.
+
+```java
+@Override
+public void onIncomingPhysicalAction(PhysicalAssetActionWldtEvent<?> physicalAssetActionWldtEvent) {
+    try{
+
+        if(physicalAssetActionWldtEvent != null
+                && physicalAssetActionWldtEvent.getActionKey().equals(SET_TEMPERATURE_ACTION_KEY)
+                && physicalAssetActionWldtEvent.getBody() instanceof Double) {
+            System.out.println("Received Action Request: " + physicalAssetActionWldtEvent.getActionKey()
+                    + " with Body: " + physicalAssetActionWldtEvent.getBody());
+        }
+        else
+            System.err.println("Wrong Action Received !");
+
+    }catch (Exception e){
+        e.printStackTrace();
+    }
+}
+```
+
 ## Handling Physical & Digital Relationships
 
-TODO ...
+The same management that we have illustrated for Properties, Events and Action can be applied also to Digital Twin Relationships.
+Relationships represent the links that exist between the modeled physical assets and other physical entity 
+of the organizations through links to their corresponding Digital Twins. 
+Like properties, relationships can be observed, dynamically created, and change over time, 
+but unlike properties, they are not properly part of the PA's state but of its operational context 
+(e.g., a DT of a robot within a production line).
+
+It is necessary to distinguish between two concepts: i) ```Relationship```; and ii) ```Relationship Instance```. 
+The first one models the relationship from a semantic point of view, 
+defining its ```name``` and target ```type```. 
+The second one represents an instantiation of the concept in reality. 
+For example, in the context of a Smart Home, 
+the Home Digital Twin (DT) will define a Relationship called ```has_room``` 
+which has possible targets represented by DTs that represent different rooms of the house. 
+The actual link between the Home DT and the Bedroom DT 
+will be modeled by a specific Relationship Instance of the ```has_room``` relationship.
+
+Within the state of the DT, it is necessary to 
+differentiate between the concept of a relationship and that of an instance of a relationship. 
+In the first case, we refer to a semantic concept where each relationship, 
+through its ```name``` and the semantic ```type``` of its target, 
+determines the different type of link that the DT can establish. 
+On the other hand, an ```instanc``` of a relationship represents the concrete 
+link present between the DT that establishes it and the target DT. 
+For instance, in the case of a Smart Home, 
+the Bedroom DT may have two relationships in its model: one named ```is_room_of``` and another called ```has_device```. 
+An instance of the first type of relationship could, for example, 
+have the Home DT as its target, while the ```has_device``` relationship could have 
+multiple instances, one for each device present in the room. 
+An example of a possible instance is one targeting the Air Conditioner DT.
+
+From an implementation perspective, in the Physical Adapter and in particular where we handle the definition of the PAD we can also 
+specify the existing relationships. In our case, since the Relationship is useful also to define its future instance we 
+keep a reference of the relationship as in internal variable called ```insideInRelationship```.
+
+Then we can update the code as follows:
 
 ```java
 private PhysicalAssetRelationship<String> insideInRelationship = null;
+
 @Override
 public void onIncomingPhysicalAction(PhysicalAssetActionWldtEvent<?> physicalAssetActionWldtEvent) {
     try{
@@ -1214,7 +1488,11 @@ public void onIncomingPhysicalAction(PhysicalAssetActionWldtEvent<?> physicalAss
 }
 ```
 
-TODO ...
+Of course always in the Physical Adapter we need to publish an effective instance of the definite Relationship.
+To do that, we have defined a dedicated method that we can call inside the adapter to notify the DT's Core and in 
+particular the Shadowing Function on the presence of a new Relationship. 
+
+The following method can be added for example at the beginning of the Device Emulation: 
 
 ```java
 private void publishPhysicalRelationshipInstance() {
@@ -1237,7 +1515,10 @@ private void publishPhysicalRelationshipInstance() {
 }
 ```
 
-TODO ...
+On the other hand, as already done for all the other Properties, Actions and Events we have to handle them on the
+Shadowing Function and in particular updating the ```onDigitalTwinBound(...)``` method managing Relationship declaration.
+Also for the Relationships there is the method denoted as ```observePhysicalAssetRelationship(relationship)``` to observe the variation
+of the target entity.
 
 ```java
 @Override
@@ -1265,14 +1546,7 @@ protected void onDigitalTwinBound(Map<String, PhysicalAssetDescription> adapters
 
         });
 
-        //Start observation to receive all incoming Digital Action through active Digital Adapter
-        //Without this call the Shadowing Function will not receive any notifications or callback about
-        //incoming request to execute an exposed DT's Action
-        observeDigitalActionEvents();
-
-        //Notify the DT Core that the Bounding phase has been correctly completed and the DT has evaluated its
-        //internal status according to what is available and declared through the Physical Adapters
-        notifyShadowingSync();
+        [...]
 
     }catch (Exception e){
         e.printStackTrace();
@@ -1280,7 +1554,14 @@ protected void onDigitalTwinBound(Map<String, PhysicalAssetDescription> adapters
 }
 ```
 
-TODO ..
+When an Instance for a target observed Relationship has been notified by the Physical Adapter, we will receive a call back on the 
+Shadowing Function method called: ```onPhysicalAssetRelationshipEstablished(PhysicalAssetRelationshipInstanceCreatedWldtEvent<?> physicalAssetRelationshipInstanceCreatedWldtEvent)```.
+The object ```PhysicalAssetRelationshipInstanceCreatedWldtEvent``` describes the events and contains an object ```PhysicalAssetRelationshipInstance``` 
+with all the information about the new Relationship Instance.
+
+The Shadowing Function analyzes the instance and create the corresponding Digital Relationship instance on the DT'State
+through the class ```DigitalTwinStateRelationshipInstance``` and the method ```this.digitalTwinState.addRelationshipInstance(relName, instance);```.
+The resulting implemented method is the following: 
 
 ```java
 //// Physical Relationships Notification Callbacks ////
@@ -1312,5 +1593,53 @@ protected void onPhysicalAssetRelationshipEstablished(PhysicalAssetRelationshipI
 @Override
 protected void onPhysicalAssetRelationshipDeleted(PhysicalAssetRelationshipInstanceDeletedWldtEvent<?> physicalAssetRelationshipInstanceDeletedWldtEvent) {
 
+}
+```
+
+At the end the new DT's Relationships and the associated instances can be managed on a Digital Adapter using the ```onDigitalTwinSync(IDigitalTwinState currentDigitalTwinState)``` method and 
+the following callback methods:
+
+- ```onStateChangeRelationshipCreated(DigitalTwinStateRelationship digitalTwinStateRelationship)```: A Relationship description has been added to the DT's State. The Relationship is passed to the method.
+- ```onStateChangeRelationshipInstanceCreated(DigitalTwinStateRelationshipInstance digitalTwinStateRelationshipInstance)```: A Relationship Instance has been added to the DT's State. The Relationship Instance is passed to the method.
+- ```onStateChangeRelationshipDeleted(DigitalTwinStateRelationship digitalTwinStateRelationship)```: A Relationship has been removed from the DT's State. The last Relationship is passed to the method.
+- ```onStateChangeRelationshipInstanceDeleted(DigitalTwinStateRelationshipInstance digitalTwinStateRelationshipInstance)```: A Relationship Instance has been removed from the DT's State. The last Relationship Instance is passed to the method.
+
+For example a simple implementation logging on the console can be:
+
+```java
+/**
+ * Notification that a new Relationship has been created on the DT State
+ * @param digitalTwinStateRelationship
+ */
+@Override
+protected void onStateChangeRelationshipCreated(DigitalTwinStateRelationship digitalTwinStateRelationship) {
+    System.out.println("[TestDigitalAdapter] -> onStateChangeRelationshipCreated(): " + digitalTwinStateRelationship);
+}
+
+/**
+ * Notification that a new Relationship Instance has been created on the DT State
+ * @param digitalTwinStateRelationshipInstance
+ */
+@Override
+protected void onStateChangeRelationshipInstanceCreated(DigitalTwinStateRelationshipInstance digitalTwinStateRelationshipInstance) {
+    System.out.println("[TestDigitalAdapter] -> onStateChangeRelationshipInstanceCreated(): " + digitalTwinStateRelationshipInstance);
+}
+
+/**
+ * Notification that an existing Relationship has been removed from the DT State
+ * @param digitalTwinStateRelationship
+ */
+@Override
+protected void onStateChangeRelationshipDeleted(DigitalTwinStateRelationship digitalTwinStateRelationship) {
+    System.out.println("[TestDigitalAdapter] -> onStateChangeRelationshipDeleted(): " + digitalTwinStateRelationship);
+}
+
+/**
+ * Notification that an existing Relationships Instance has been removed
+ * @param digitalTwinStateRelationshipInstance
+ */
+@Override
+protected void onStateChangeRelationshipInstanceDeleted(DigitalTwinStateRelationshipInstance digitalTwinStateRelationshipInstance) {
+    System.out.println("[TestDigitalAdapter] -> onStateChangeRelationshipInstanceDeleted(): " + digitalTwinStateRelationshipInstance);
 }
 ```
