@@ -7,14 +7,14 @@ import org.slf4j.LoggerFactory;
 import java.util.Objects;
 
 /**
- * Author: Marco Picone, Ph.D. (picone.m@gmail.com)
+ * Author:
+ *          Marco Picone, Ph.D. (picone.m@gmail.com)
  * Date: 20/06/2020
  * Project: White Label Digital Twin Java Framework - (whitelabel-digitaltwin)
  *
  * This class define a generic action associated to the Digital Twin State.
  * Each action is by a key, an action type and a content type used to identify the expected input required by the action.
  * The type of the can be directly changed by the developer to associate it to a specific ontology or data type.
- *
  */
 public class DigitalTwinStateAction {
 

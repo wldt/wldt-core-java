@@ -1,11 +1,11 @@
 package it.wldt.metrics;
 
 /**
- * Author: Marco Picone, Ph.D. (marco.picone@unimore.it)
- * Date: 30/03/2020
- * Project: White Label Digital Twin Java Framework - (whitelabel-digitaltwin)
+ * Author:
+ *      Marco Picone, Ph.D. (picone.m@gmail.com)
+ * Date: 01/03/2023
  *
- * Singleton used to monitor application metrics. Current implementation using Dropwizard Metrics Library
+ * Project: White Label Digital Twin Java Framework - (whitelabel-digitaltwin)
  */
 public class WldtMetricsManager {
 

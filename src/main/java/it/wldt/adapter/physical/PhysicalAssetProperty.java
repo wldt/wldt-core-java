@@ -6,8 +6,9 @@ import org.slf4j.LoggerFactory;
 import java.util.Objects;
 
 /**
- * Author: Marco Picone, Ph.D. (picone.m@gmail.com)
- * Date: 20/06/2020
+ * Author:
+ *          Marco Picone, Ph.D. (picone.m@gmail.com)
+ * Date: 24/08/2022
  * Project: White Label Digital Twin Java Framework - (whitelabel-digitaltwin)
  *
  * This class define a generic property associated to the Physical Asset.

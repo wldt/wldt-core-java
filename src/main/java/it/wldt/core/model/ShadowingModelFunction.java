@@ -24,9 +24,18 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Author: Marco Picone, Ph.D. (marco.picone@unimore.it)
- * Date: 27/03/2020
+ * Authors:
+ *          Marco Picone, Ph.D. (picone.m@gmail.com)
+ * Date: 01/02/2023
  * Project: White Label Digital Twin Java Framework - (whitelabel-digitaltwin)
+ *
+ * This class implement the shadowing process (also known as replication of digitalization) responsible to keep the
+ * Digital Twin State synchronized with that of the corresponding physical resource
+ * according to what is defined by the Model. It handles:
+ *  - Physical Asset Description Management
+ *  - Digital Twin State Management
+ *  - Life Cycle Management
+ *  - Incoming and outgoing events of both Physical and Digital Adapters
  */
 public abstract class ShadowingModelFunction implements WldtEventListener {
 

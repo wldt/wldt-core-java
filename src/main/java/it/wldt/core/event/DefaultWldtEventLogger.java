@@ -3,6 +3,15 @@ package it.wldt.core.event;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Authors:
+ *          Marco Picone, Ph.D. (picone.m@gmail.com)
+ * Date: 01/02/2023
+ * Project: White Label Digital Twin Java Framework - (whitelabel-digitaltwin)
+ *
+ * Default Event Logger to print of standard output all the received and sent event passing through the
+ * WLDT Event Bus
+ */
 public class DefaultWldtEventLogger implements IWldtEventLogger {
 
     private static final Logger logger = LoggerFactory.getLogger(DefaultWldtEventLogger.class);

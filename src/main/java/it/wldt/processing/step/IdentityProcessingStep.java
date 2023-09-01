@@ -9,6 +9,13 @@ import org.slf4j.LoggerFactory;
 import javax.inject.Named;
 import java.util.Optional;
 
+/**
+ * Author:
+ *      Marco Picone, Ph.D. (picone.m@gmail.com)
+ * Date: 01/03/2023
+ *
+ * Project: White Label Digital Twin Java Framework - (whitelabel-digitaltwin)
+ */
 @Named("IdentityProcessingStep")
 public class IdentityProcessingStep implements ProcessingStep {
 

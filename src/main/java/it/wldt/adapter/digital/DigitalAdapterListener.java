@@ -3,6 +3,7 @@ package it.wldt.adapter.digital;
 /**
  * Authors:
  *          Marco Picone, Ph.D. (picone.m@gmail.com)
+ *
  * Date: 01/02/2023
  * Project: White Label Digital Twin Java Framework - (whitelabel-digitaltwin)
  *

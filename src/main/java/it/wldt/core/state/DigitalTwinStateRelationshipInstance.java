@@ -8,6 +8,7 @@ import java.util.Map;
  *          Marco Picone, Ph.D. (picone.m@gmail.com)
  *          Marta Spadoni (marta.spadoni2@studio.unibo.it)
  *          Samuele Burattini (samuele.burattini@unibo.it)
+ *
  * Date: 01/02/2023
  * Project: White Label Digital Twin Java Framework - (whitelabel-digitaltwin)
  *

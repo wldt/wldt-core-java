@@ -5,6 +5,15 @@ import it.wldt.exception.EventBusException;
 
 import java.util.Map;
 
+/**
+ * Authors:
+ *          Marco Picone, Ph.D. (picone.m@gmail.com)
+ * Date: 01/02/2023
+ * Project: White Label Digital Twin Java Framework - (whitelabel-digitaltwin)
+ *
+ * An Action targeting the DT received on the Digital Interface and that should reach the Shadowing Function
+ * for its management
+ */
 public class DigitalActionWldtEvent<T> extends WldtEvent<T> {
 
     public static final String EVENT_BASIC_TYPE = "dt.digital.event.action";

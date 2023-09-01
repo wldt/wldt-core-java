@@ -11,6 +11,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Deprecated
+/**
+ * Author:
+ *      Marco Picone, Ph.D. (picone.m@gmail.com)
+ * Date: 01/03/2023
+ *
+ * Project: White Label Digital Twin Java Framework - (whitelabel-digitaltwin)
+ */
 public class ProcessingStepLoader {
 
     private String DEFAULT_PACKAGE_NAME = "it.unimore.dipi.iot.wldt.processing.step";

@@ -4,6 +4,14 @@ import it.wldt.adapter.physical.PhysicalAssetDescription;
 
 import java.util.Map;
 
+/**
+ * Authors:
+ *          Marco Picone, Ph.D. (picone.m@gmail.com)
+ * Date: 01/02/2023
+ * Project: White Label Digital Twin Java Framework - (whitelabel-digitaltwin)
+ *
+ * Internal Listener to monitor the DT Life Cycle
+ */
 public interface DigitalAdapterLifeCycleListener {
     void onPhysicalAdapterBound(String adapterId, PhysicalAssetDescription physicalAssetDescription);
 

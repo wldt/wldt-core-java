@@ -15,9 +15,13 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Author: Marco Picone, Ph.D. (marco.picone@unimore.it)
- * Date: 24/03/2020
+ * Authors:
+ *          Marco Picone, Ph.D. (picone.m@gmail.com)
+ * Date: 01/02/2023
  * Project: White Label Digital Twin Java Framework - (whitelabel-digitaltwin)
+ *
+ * This a fundamental core component responsible to handle the Model associated to the DT instance
+ * maintaining its internal state and executing/coordinating its shadowing function
  */
 public class ModelEngine extends WldtWorker implements LifeCycleListener {
 

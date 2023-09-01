@@ -6,7 +6,7 @@ package it.wldt.adapter.physical;
  * Date: 01/02/2023
  * Project: White Label Digital Twin Java Framework - (whitelabel-digitaltwin)
  *
- * Internal Listener to monitor the Life Cycle of a Physical Adapter
+ * Internal Listener to monitor the Life Cycle of a Physical Adapter.
  */
 public interface PhysicalAdapterListener {
 

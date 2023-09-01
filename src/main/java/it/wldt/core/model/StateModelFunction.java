@@ -14,7 +14,8 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Author: Marco Picone, Ph.D. (marco.picone@unimore.it)
+ * Author:
+ *          Marco Picone, Ph.D. (marco.picone@unimore.it)
  * Date: 27/03/2020
  * Project: White Label Digital Twin Java Framework - (whitelabel-digitaltwin)
  */

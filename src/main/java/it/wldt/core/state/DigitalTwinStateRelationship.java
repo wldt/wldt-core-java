@@ -11,7 +11,7 @@ import java.util.*;
  *
  * Structures and describes a Relationship in the Digital Twins's State.
  * This is just the description of the relationships while the effective values/instances are described through the
- * other class DigitalTwinStateRelationshipInstance.
+ * other class DigitalTwinStateRelationshipInstance
  */
 public class DigitalTwinStateRelationship<T> {
     private final String name;

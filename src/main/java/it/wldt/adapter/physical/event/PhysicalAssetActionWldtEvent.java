@@ -4,6 +4,14 @@ import it.wldt.exception.EventBusException;
 
 import java.util.Map;
 
+/**
+ * Authors:
+ *          Marco Picone, Ph.D. (picone.m@gmail.com)
+ * Date: 01/02/2023
+ * Project: White Label Digital Twin Java Framework - (whitelabel-digitaltwin)
+ *
+ * An Action that has as target the Physical Adapter to trigger something on the physical asset
+ */
 public class PhysicalAssetActionWldtEvent<T> extends PhysicalAssetWldtEvent<T> {
 
     public static final String EVENT_BASIC_TYPE = "dt.physical.event.action";

@@ -6,7 +6,8 @@ import org.slf4j.LoggerFactory;
 import java.util.Objects;
 
 /**
- * Author: Marco Picone, Ph.D. (picone.m@gmail.com)
+ * Author:
+ *          Marco Picone, Ph.D. (picone.m@gmail.com)
  * Date: 24/08/2022
  * Project: White Label Digital Twin Java Framework - (whitelabel-digitaltwin)
  *

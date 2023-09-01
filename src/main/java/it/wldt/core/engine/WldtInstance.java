@@ -8,6 +8,15 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Authors:
+ *          Marco Picone, Ph.D. (picone.m@gmail.com)
+ * Date: 01/02/2023
+ * Project: White Label Digital Twin Java Framework - (whitelabel-digitaltwin)
+ *
+ * Instance of the DT with its adapters, id and digitalized assets.
+ * This class is used in the WLDT Engine for coordination and execution purposes.
+ */
 public class WldtInstance {
 
     private final String wldtId;

@@ -5,6 +5,14 @@ import it.wldt.core.state.IDigitalTwinState;
 
 import java.util.Map;
 
+/**
+ * Authors:
+ *          Marco Picone, Ph.D. (picone.m@gmail.com)
+ * Date: 01/02/2023
+ * Project: White Label Digital Twin Java Framework - (whitelabel-digitaltwin)
+ *
+ * Interface modeling the callbacks associated to the Digital Twin Life Cycle Evolution.
+ */
 public interface LifeCycleListener {
 
     public void onCreate();

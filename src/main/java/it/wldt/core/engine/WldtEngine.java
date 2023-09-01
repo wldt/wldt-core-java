@@ -29,9 +29,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * Author: Marco Picone, Ph.D. (marco.picone@unimore.it)
- * Date: 24/03/2020
+ * Authors:
+ *          Marco Picone, Ph.D. (picone.m@gmail.com)
+ * Date: 01/02/2023
  * Project: White Label Digital Twin Java Framework - (whitelabel-digitaltwin)
+ *
+ * Core Engine of the library responsible for coordinating adapter execution and their life cycle.
  */
 public class WldtEngine implements ShadowingModelListener, PhysicalAdapterListener, DigitalAdapterListener {
 

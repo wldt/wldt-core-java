@@ -16,8 +16,10 @@ import java.util.Map;
  * other class PhysicalAssetRelationshipInstance.
  */
 public class PhysicalAssetRelationship<T> {
+
     //TODO: add the type of the target of the relationship
     //TODO: add list of properties
+
     private final String name;
 
     public PhysicalAssetRelationship(String name) {

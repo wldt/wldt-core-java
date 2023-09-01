@@ -5,6 +5,14 @@ import it.wldt.exception.EventBusException;
 
 import java.util.Map;
 
+/**
+ * Authors:
+ *          Marco Picone, Ph.D. (picone.m@gmail.com)
+ * Date: 01/02/2023
+ * Project: White Label Digital Twin Java Framework - (whitelabel-digitaltwin)
+ *
+ * A Digital Event that can be used by the Digital Adapter
+ */
 public class DigitalWldtEvent<T> extends WldtEvent<T> {
 
     public static final String DIGITAL_EVENT_BASIC_TYPE = "dt.digital.event";

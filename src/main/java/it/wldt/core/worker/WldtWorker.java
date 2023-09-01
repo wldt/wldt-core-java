@@ -5,9 +5,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Author: Marco Picone, Ph.D. (marco.picone@unimore.it)
+ * Author:
+ *          Marco Picone, Ph.D. (picone.m@gmail.com)
  * Date: 27/03/2020
  * Project: White Label Digital Twin Java Framework - (whitelabel-digitaltwin)
+ *
+ * Execution unit on the WLDT Engine used to execute adapters and any other active component in the
+ * WLDT instance.
+ *
  */
 public abstract class WldtWorker implements Runnable {
 

@@ -6,6 +6,15 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
+/**
+ * Authors:
+ *          Marco Picone, Ph.D. (picone.m@gmail.com)
+ * Date: 01/02/2023
+ * Project: White Label Digital Twin Java Framework - (whitelabel-digitaltwin)
+ *
+ * WLDT Event Bus implementation exposing all the method to publish and subscribe to specific event on an active
+ * instance of the WLDT Engine.
+ */
 public class WldtEventBus {
 
     private static final Logger logger = LoggerFactory.getLogger(WldtEventBus.class);

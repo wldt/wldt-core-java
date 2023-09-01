@@ -5,6 +5,15 @@ import it.wldt.exception.EventBusException;
 
 import java.util.Map;
 
+/**
+ * Authors:
+ *          Marco Picone, Ph.D. (picone.m@gmail.com)
+ * Date: 01/02/2023
+ * Project: White Label Digital Twin Java Framework - (whitelabel-digitaltwin)
+ *
+ * Abstract WLDTEvent used to describe and characterize any physical occurrence detected on the physical asset by
+ * a Physical Adapter
+ */
 public abstract class PhysicalAssetWldtEvent<T> extends WldtEvent<T> {
     public PhysicalAssetWldtEvent(String type) throws EventBusException {
         super(type);
