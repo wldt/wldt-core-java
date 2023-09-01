@@ -36,7 +36,20 @@ The Digital Twin represents and reflects its physical twin and remains its virtu
 ```
 Main Scientific references supporting these definition are the following: 
 
-TODO
+```
+@article{PICONE2021100661,
+    title = {WLDT: A general purpose library to build IoT digital twins},
+    journal = {SoftwareX},
+    volume = {13},
+    pages = {100661},
+    year = {2021},
+    issn = {2352-7110},
+    doi = {https://doi.org/10.1016/j.softx.2021.100661},
+    url = {https://www.sciencedirect.com/science/article/pii/S2352711021000066},
+    author = {Marco Picone and Marco Mamei and Franco Zambonelli},
+    keywords = {Internet of Things, Digital twin, Library, Software agent}
+}
+```
 
 ### Digital Twin Abstraction & Model 
 
