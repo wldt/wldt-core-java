@@ -16,7 +16,7 @@ import java.util.Map;
  * This is effective description of a relationship while its generic declaration is described through the class
  * DigitalTwinStateRelationship.
  */
-public class DigitalTwinStateRelationshipInstance<T> {
+public class DigitalTwinStateRelationshipInstance<T> extends DigitalTwinStateResource {
 
     private final String relationshipName;
     private final T targetId;

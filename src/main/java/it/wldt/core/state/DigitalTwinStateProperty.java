@@ -19,7 +19,7 @@ import java.util.Objects;
  *
  * @param <T>
  */
-public class DigitalTwinStateProperty<T> {
+public class DigitalTwinStateProperty<T> extends DigitalTwinStateResource {
 
     private static final Logger logger = LoggerFactory.getLogger(DigitalTwinStateProperty.class);
 
@@ -68,6 +68,20 @@ public class DigitalTwinStateProperty<T> {
         this.key = key;
         this.value = value;
         this.type = value.getClass().getName();
+    }
+
+    public DigitalTwinStateProperty(String key, T value, String type) throws WldtDigitalTwinStateException {
+
+        if(key == null || value == null)
+            throw new WldtDigitalTwinStateException("Error creating DigitalTwinStateProperty ! Key or Value = Null !");
+
+        this.key = key;
+        this.value = value;
+
+        if(type == null)
+            this.type = value.getClass().getName();
+        else
+            this.type = type;
     }
 
     public DigitalTwinStateProperty(String key, T value, boolean readable, boolean writable) throws WldtDigitalTwinStateException {
@@ -146,9 +160,10 @@ public class DigitalTwinStateProperty<T> {
 
     @Override
     public String toString() {
-        final StringBuilder sb = new StringBuilder("DigitalTwinStateProperty{");
+        final StringBuffer sb = new StringBuffer("DigitalTwinStateProperty{");
         sb.append("key='").append(key).append('\'');
         sb.append(", value=").append(value);
+        sb.append(", type='").append(type).append('\'');
         sb.append(", readable=").append(readable);
         sb.append(", writable=").append(writable);
         sb.append(", exposed=").append(exposed);

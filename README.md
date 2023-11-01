@@ -368,7 +368,7 @@ In our test Physical Adapter example we are going to emulate the communication w
 
 - A Temperature Sensor generating data about new measurements
 - The possibility to generate OVER-HEATING events
-- An action to set the target desired temperature value
+- An action to set the target desired temperature resource
 
 The first step will be to generate and publish the ``PhysicalAssetDescription`` (PAD) to describe the capabilities and the characteristics of our object allowing 
 the Shadowing Function to decide how to digitalize its physical counterpart.
@@ -392,7 +392,7 @@ public void onAdapterStart() {
         //Create an empty PAD
         PhysicalAssetDescription pad = new PhysicalAssetDescription();
         
-        //Add a new Property associated to the target PAD with a key and a default value
+        //Add a new Property associated to the target PAD with a key and a default resource
         PhysicalAssetProperty<Double> temperatureProperty = new PhysicalAssetProperty<Double>(TEMPERATURE_PROPERTY_KEY, 0.0);
         pad.getProperties().add(temperatureProperty);
         
@@ -546,7 +546,7 @@ public class TestPhysicalAdapter extends PhysicalAdapter {
             //Create an empty PAD
             PhysicalAssetDescription pad = new PhysicalAssetDescription();
 
-            //Add a new Property associated to the target PAD with a key and a default value
+            //Add a new Property associated to the target PAD with a key and a default resource
             PhysicalAssetProperty<Double> temperatureProperty = new PhysicalAssetProperty<Double>(TEMPERATURE_PROPERTY_KEY, 0.0);
             pad.getProperties().add(temperatureProperty);
 
@@ -771,7 +771,7 @@ Through the following method we implement the following behaviour:
 
 The possibility to manually observe Physical Properties and Event has been introduced to allow the Shadowing Function to decide what 
 to do according to the nature of the property or of the target event. For example in some cases with static properties it will not be necessary 
-to observe any variation and it will be enough to read the initial value to build the digital replica of that specific property.
+to observe any variation and it will be enough to read the initial resource to build the digital replica of that specific property.
 
 ```java
 @Override
@@ -878,7 +878,7 @@ pad.getProperties().forEach(property -> {
                 && property.getInitialValue() != null
                 &&  property.getInitialValue() instanceof Double) {
 
-            //Instantiate a new DT State Property of the right type, the same key and initial value
+            //Instantiate a new DT State Property of the right type, the same key and initial resource
             DigitalTwinStateProperty<Double> dtStateProperty = new DigitalTwinStateProperty<Double>(property.getKey(),(Double) property.getInitialValue());
 
             //Create and write the property on the DT's State
@@ -909,7 +909,7 @@ containing all the field of the generated physical event.
 The method receive as parameter an instance of the WLDT Event class ```DigitalActionWldtEvent<?> digitalActionWldtEvent``` describing the target digital action request and the associated
 body.
 
-For the ```onPhysicalAssetPropertyVariation``` a simple implementation in charge ONLY of mapping the new Physical Property value 
+For the ```onPhysicalAssetPropertyVariation``` a simple implementation in charge ONLY of mapping the new Physical Property resource 
 into the corresponding DT'State property can be implemented as follows: 
 
 ```java
@@ -925,7 +925,7 @@ protected void onPhysicalAssetPropertyVariation(PhysicalAssetPropertyWldtEvent<?
 
 In this case as reported in the code, we call the method ```this.digitalTwinState.updateProperty``` on the Shadowing Function 
 in order to update an existing DT'State property (previously created in the ```onDigitalTwinBound``` method). 
-To update the value we directly use the received data on the ```PhysicalAssetPropertyWldtEvent``` without any additional check 
+To update the resource we directly use the received data on the ```PhysicalAssetPropertyWldtEvent``` without any additional check 
 or change that might be instead needed in advanced examples.
 
 Following the same principle, a simplified digital mapping between physical and digital state upon the receving of a physical event variation can be the following: 
@@ -1005,7 +1005,7 @@ Available callbacks can be summarized as follows:
 - Digital Twin State Description Variation
     - ```onStateChangePropertyCreated(DigitalTwinStateProperty digitalTwinStateProperty)```: A Property has been created on the DT's State. The property is passed as parameter to the method.
     - ```onStateChangePropertyUpdated(DigitalTwinStateProperty digitalTwinStateProperty)```: A Property has been updated on the DT's State. The property is passed as parameter to the method.
-    - ```onStateChangePropertyDeleted(DigitalTwinStateProperty digitalTwinStateProperty)```: A Property has been deleted on the DT's State. The last value of the property is passed as parameter to the method.
+    - ```onStateChangePropertyDeleted(DigitalTwinStateProperty digitalTwinStateProperty)```: A Property has been deleted on the DT's State. The last resource of the property is passed as parameter to the method.
     - ```onStateChangeActionEnabled(DigitalTwinStateAction digitalTwinStateAction)```: An Action has been enabled on the DT's State. The action is passed as parameter to the method.
     - ```onStateChangeActionUpdated(DigitalTwinStateAction digitalTwinStateAction)```: An Action has been updated on the DT's State. The action is passed as parameter to the method.
     - ```onStateChangeActionDisabled(DigitalTwinStateAction digitalTwinStateAction)```: An Action has been disabled on the DT's State. The action is passed as parameter to the method.
@@ -1017,8 +1017,8 @@ Available callbacks can be summarized as follows:
     - ```onStateChangeRelationshipDeleted(DigitalTwinStateRelationship digitalTwinStateRelationship)```: A Relationship has been removed from the DT's State. The last Relationship is passed to the method.
     - ```onStateChangeRelationshipInstanceDeleted(DigitalTwinStateRelationshipInstance digitalTwinStateRelationshipInstance)```: A Relationship Instance has been removed from the DT's State. The last Relationship Instance is passed to the method.
 - Single Property Variation
-    - ```onStatePropertyUpdated(DigitalTwinStateProperty digitalTwinStateProperty)```: Callback to receive a notification when a Property changes. The new property value is passed as parameter.
-    - ```onStatePropertyDeleted(DigitalTwinStateProperty digitalTwinStateProperty)```: Callback to receive a notification when a Property has been deleted. The last property value is passed as parameter.
+    - ```onStatePropertyUpdated(DigitalTwinStateProperty digitalTwinStateProperty)```: Callback to receive a notification when a Property changes. The new property resource is passed as parameter.
+    - ```onStatePropertyDeleted(DigitalTwinStateProperty digitalTwinStateProperty)```: Callback to receive a notification when a Property has been deleted. The last property resource is passed as parameter.
 - Single Event Notification
     - ```onDigitalTwinStateEventNotificationReceived(DigitalTwinStateEventNotification digitalTwinStateEventNotification)``` 
 
@@ -1029,42 +1029,42 @@ For Properties, Events, Relationships, and Actions a Digital Adapter has the fol
 
 - Properties:
   - ```observeDigitalTwinStateProperties()```: Enable the observation of all the Digital Twin State properties, when they are created, updated and deleted. 
-  With respect to properties an update contains the new value and no additional observations are required.
+  With respect to properties an update contains the new resource and no additional observations are required.
   - ```unObserveDigitalTwinStateProperties()```: Cancel the observation of all the Digital Twin State properties, when they are created, updated and deleted.
-  - ```observeTargetDigitalTwinProperties(List<String> propertyList)```: Enable the observation of a specific list of Digital Twin State properties, when they are updated and/or deleted. With respect to properties an update contains the new value and no additional observations are required
+  - ```observeTargetDigitalTwinProperties(List<String> propertyList)```: Enable the observation of a specific list of Digital Twin State properties, when they are updated and/or deleted. With respect to properties an update contains the new resource and no additional observations are required
   - ```unObserveTargetDigitalTwinProperties(List<String> propertyList)```: Cancel the observation of a target list of properties
-  - ```observeDigitalTwinProperty(String propertyKe)```: Enable the observation of a single Digital Twin State properties, when it is updated and/or deleted. With respect to properties an update contains the new value and no additional observations are required
+  - ```observeDigitalTwinProperty(String propertyKe)```: Enable the observation of a single Digital Twin State properties, when it is updated and/or deleted. With respect to properties an update contains the new resource and no additional observations are required
   - ```unObserveDigitalTwinProperty(String propertyKey)```: Cancel the observation of a single target property
 - Actions:
   - ```observeDigitalTwinStateActionsAvailability() ```: Enable the observation of available Digital Twin State Actions.
   Callbacks will be received when an action is enabled, updated or disable.
   The update of an action is associated to the variation of its signature and declaration and it is not associated
-  to any attached payload or value.
+  to any attached payload or resource.
   - ```unObserveDigitalTwinStateActionsAvailability()```: Cancel the observation of Digital Twin State Actions
 - Events:
   - ```observeDigitalTwinStateEventsAvailability()```: Enable the observation of available Digital Twin State Events.
   Callbacks will be received when an event is registered, updated or unregistered.
   The update of an event is associated to the variation of its signature and declaration and it is not associated
-  to any attached payload or value.
+  to any attached payload or resource.
   - ```unObserveDigitalTwinStateEventsAvailability()```: Cancel the observation of Digital Twin State Events
   - ```observeDigitalTwinEventsNotifications(List<String> eventsList)```: Enable the observation of the notification associated to a specific list of Digital Twin State events.
-  With respect to event a notification contains the new associated value
+  With respect to event a notification contains the new associated resource
   - ```unObserveDigitalTwinEventsNotifications(List<String> eventsList)```: Cancel the observation of a target list of properties
   - ```observeDigitalTwinEventNotification(String eventKey)```: Enable the observation of the notification associated to a single Digital Twin State event.
-  With respect to event a notification contains the new associated value
+  With respect to event a notification contains the new associated resource
   - ```unObserveDigitalTwinEventNotification(String eventKey)```: Cancel the observation of a single target event.
 - Relationships:
   - ```observeDigitalTwinRelationshipsAvailability() ```: Enable the observation of available Digital Twin State Relationships.
     Callbacks will be received when a relationship is registered or unregistered.
     The update of a relationship is associated to the variation of its signature and declaration, and it is not associated
-    to any attached payload or value.
+    to any attached payload or resource.
   - ```unObserveDigitalTwinRelationshipsAvailability()```: Cancel the observation of a single target relationship.
   - ```observeDigitalTwinRelationship(String relationshipName)```: Enable the observation of a single relationship. The update of a relationship is associated to the variation of its signature and declaration, and it is not associated
-    to any attached payload or value.
+    to any attached payload or resource.
   - ```unObserveDigitalTwinRelationship(String relationshipName)```: Cancel the observation of a single target relationship.
   - ```observeDigitalTwinRelationships(List<String> relationshipList)```: Enable the observation of a list of relationship. 
   - The update of a relationship is associated to the variation of its signature and declaration, and it is not associated
-    to any attached payload or value.
+    to any attached payload or resource.
   - ```unObserveDigitalTwinRelationships(List<String> relationshipList)```: Cancel the observation of a list of relationship.
 
 The resulting code will be the following after adding the required
@@ -1124,7 +1124,7 @@ public class TestDigitalAdapter extends DigitalAdapter<Void> {
     }
 
     /**
-     * Notification about a variation on the DT State with an existing Property's value updated (passed as Parameter)
+     * Notification about a variation on the DT State with an existing Property's resource updated (passed as Parameter)
      * @param digitalTwinStateProperty
      */
     @Override
@@ -1294,15 +1294,15 @@ public class TestDigitalAdapter extends DigitalAdapter<Void> {
 
 By default, a Digital Adapter observes all the variation on the DT's State in terms of Properties, Relationships, Actions and Events.
 As previously mentioned the observation of DT's State Properties allows to receive also properties variation on the method ```onStateChangePropertyUpdated``` since a property is natively composed by its description (e.g., type) and its 
-current value. On the opposite the observation on DT's State Action, Relationships and Events allow ONLY to receive callbacks when a new entity is added or an update is occurred without receiving updates on values variation. 
-To be notified for events and relationships value variations we should directly call ```observeDigitalTwinEventsNotifications(List<String> eventsList)``` and ```observeDigitalTwinRelationships(List<String> relationshipList)``` (or their version with a single target).
+current resource. On the opposite the observation on DT's State Action, Relationships and Events allow ONLY to receive callbacks when a new entity is added or an update is occurred without receiving updates on values variation. 
+To be notified for events and relationships resource variations we should directly call ```observeDigitalTwinEventsNotifications(List<String> eventsList)``` and ```observeDigitalTwinRelationships(List<String> relationshipList)``` (or their version with a single target).
 
 Using this default observation we obtain: 
 
 - Automatic observation of all state variation in terms of the description of Properties, Events, Relationships and Actions
 - Automatic callbacks for Properties values updates on the callback method: ```onStateChangePropertyCreated(DigitalTwinStateProperty digitalTwinStateProperty) ```
 
-The only thing that we should add in the ```onDigitalTwinSync(IDigitalTwinState currentDigitalTwinState)``` callback is the direct observation for Events and Relationships values.
+The only thing that we should add in the ```onDigitalTwinSync(IDigitalTwinState startDigitalTwinState)``` callback is the direct observation for Events and Relationships values.
 (We will talk about relationships management in the next Section)
 
 Following this approach we can change our Digital Adapter in the following methods: 
@@ -1312,7 +1312,7 @@ As previously mentioned the observation of any variation of the State structure 
 In this method we use the internal variable ```digitalTwinState``` to access the DT's state and find available Events declaration that we would like to observe.
 
 ````java
-public void onDigitalTwinSync(IDigitalTwinState currentDigitalTwinState) {
+public void onDigitalTwinSync(IDigitalTwinState startDigitalTwinState) {
 
       try {
           
@@ -1430,9 +1430,9 @@ private Runnable emulateIncomingDigitalAction(){
 
 This method uses the Digital Adapter internal function denoted as ```publishDigitalActionWldtEvent(String actionKey, T body)``` allowing the adapter 
 to send a notification to the DT's Core (and consequently the Shadowing Function) about the arrival of a Digital Action with a specific ```key``` and ```body```.
-In our case the ```key``` is ```set-temperature-action-key``` as declared in the Physical Adapter and in the PAD and the value is a simple Double with the new temperature value. 
+In our case the ```key``` is ```set-temperature-action-key``` as declared in the Physical Adapter and in the PAD and the resource is a simple Double with the new temperature resource. 
 
-Then we call this method in the following way at the end ot the ```onDigitalTwinSync(IDigitalTwinState currentDigitalTwinState)``` method.
+Then we call this method in the following way at the end ot the ```onDigitalTwinSync(IDigitalTwinState startDigitalTwinState)``` method.
 
 ```java
 //Start Digital Action Emulation
@@ -1650,7 +1650,7 @@ protected void onPhysicalAssetRelationshipDeleted(PhysicalAssetRelationshipInsta
 }
 ```
 
-At the end the new DT's Relationships and the associated instances can be managed on a Digital Adapter using the ```onDigitalTwinSync(IDigitalTwinState currentDigitalTwinState)``` method and 
+At the end the new DT's Relationships and the associated instances can be managed on a Digital Adapter using the ```onDigitalTwinSync(IDigitalTwinState startDigitalTwinState)``` method and 
 the following callback methods:
 
 - ```onStateChangeRelationshipCreated(DigitalTwinStateRelationship digitalTwinStateRelationship)```: A Relationship description has been added to the DT's State. The Relationship is passed to the method.

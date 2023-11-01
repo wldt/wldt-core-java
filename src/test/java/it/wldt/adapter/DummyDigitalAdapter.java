@@ -20,7 +20,7 @@ public class DummyDigitalAdapter extends DigitalAdapter<DummyDigitalAdapterConfi
 
     private List<DigitalTwinStateEventNotification<?>> receivedDigitalTwinStateEventNotificationList = null;
 
-    private List<IDigitalTwinState> receivedDigitalAdapterSyncDigitalTwinStateList = null;
+    private List<IDigitalTwinStateManager> receivedDigitalAdapterSyncDigitalTwinStateList = null;
 
     public DummyDigitalAdapter(String id, DummyDigitalAdapterConfiguration configuration) {
         super(id, configuration);
@@ -31,7 +31,7 @@ public class DummyDigitalAdapter extends DigitalAdapter<DummyDigitalAdapterConfi
                                List<DigitalTwinStateProperty<?>> receivedDigitalTwinPropertyUpdateMessageList,
                                List<DigitalTwinStateProperty<?>> receivedDigitalTwinPropertyDeletedMessageList,
                                List<DigitalTwinStateEventNotification<?>> receivedDigitalTwinStateEventNotificationList,
-                               List<IDigitalTwinState> receivedDigitalAdapterSyncDigitalTwinStateList
+                               List<IDigitalTwinStateManager> receivedDigitalAdapterSyncDigitalTwinStateList
                                ) {
 
         super(id, configuration);
@@ -54,7 +54,7 @@ public class DummyDigitalAdapter extends DigitalAdapter<DummyDigitalAdapterConfi
     }
 
     @Override
-    public void onDigitalTwinSync(IDigitalTwinState digitalTwinState) {
+    public void onDigitalTwinSync(IDigitalTwinStateManager digitalTwinState) {
 
         logger.info("DummyDigitalTwinAdapter -> onDigitalTwinSync() - DT State: {}", digitalTwinState);
 
@@ -72,7 +72,7 @@ public class DummyDigitalAdapter extends DigitalAdapter<DummyDigitalAdapterConfi
     }
 
     @Override
-    public void onDigitalTwinUnSync(IDigitalTwinState digitalTwinState) {
+    public void onDigitalTwinUnSync(IDigitalTwinStateManager digitalTwinState) {
         logger.info("DummyDigitalTwinAdapter -> onDigitalTwinUnSync() - DT State: {}", digitalTwinState);
     }
 
@@ -184,7 +184,7 @@ public class DummyDigitalAdapter extends DigitalAdapter<DummyDigitalAdapterConfi
         return receivedDigitalTwinPropertyDeletedMessageList;
     }
 
-    public List<IDigitalTwinState> getReceivedDigitalAdapterSyncDigitalTwinStateList() {
+    public List<IDigitalTwinStateManager> getReceivedDigitalAdapterSyncDigitalTwinStateList() {
         return receivedDigitalAdapterSyncDigitalTwinStateList;
     }
 }

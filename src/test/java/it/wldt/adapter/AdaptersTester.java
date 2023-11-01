@@ -14,7 +14,6 @@ import it.wldt.core.state.DigitalTwinStateEvent;
 import it.wldt.core.model.ShadowingModelFunction;
 import it.wldt.core.state.DigitalTwinStateAction;
 import it.wldt.core.state.DigitalTwinStateProperty;
-import it.wldt.core.state.IDigitalTwinState;
 import it.wldt.exception.*;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.TestMethodOrder;
@@ -52,7 +51,7 @@ public class AdaptersTester {
 
     private static List<DigitalTwinStateEventNotification<?>> receivedDigitalTwinStateEventNotificationList = null;
 
-    private static List<IDigitalTwinState> receivedDigitalAdapterSyncDigitalTwinStateList = null;
+    private static List<IDigitalTwinStateManager> receivedDigitalAdapterSyncDigitalTwinStateList = null;
 
     private WldtEngine buildWldtEngine(boolean physicalTelemetryOn) throws WldtConfigurationException, ModelException, WldtRuntimeException, EventBusException {
 
@@ -117,15 +116,15 @@ public class AdaptersTester {
 
                            //In that simple case the Digital Twin shadow all the properties and actions available in the physical asset
                            for(PhysicalAssetProperty<?> physicalAssetProperty : physicalAssetDescription.getProperties())
-                               this.digitalTwinState.createProperty(new DigitalTwinStateProperty<>(physicalAssetProperty.getKey(), physicalAssetProperty.getInitialValue()));
+                               this.digitalTwinStateManager.createProperty(new DigitalTwinStateProperty<>(physicalAssetProperty.getKey(), physicalAssetProperty.getInitialValue()));
 
                            for(PhysicalAssetAction physicalAssetAction : physicalAssetDescription.getActions())
-                               this.digitalTwinState.enableAction(new DigitalTwinStateAction(physicalAssetAction.getKey(),
+                               this.digitalTwinStateManager.enableAction(new DigitalTwinStateAction(physicalAssetAction.getKey(),
                                        physicalAssetAction.getType(),
                                        physicalAssetAction.getContentType()));
 
                            for(PhysicalAssetEvent physicalAssetEvent: physicalAssetDescription.getEvents())
-                               this.digitalTwinState.registerEvent(new DigitalTwinStateEvent(physicalAssetEvent.getKey(), physicalAssetEvent.getType()));
+                               this.digitalTwinStateManager.registerEvent(new DigitalTwinStateEvent(physicalAssetEvent.getKey(), physicalAssetEvent.getType()));
                        }
 
                        //Notify Shadowing Completed
@@ -214,7 +213,7 @@ public class AdaptersTester {
                             logger.info("CORRECT PhysicalEvent Received -> Type: {} Message: {}", physicalPropertyEventMessage.getType(), physicalPropertyEventMessage);
 
                             //Update Digital Twin Status
-                            this.digitalTwinState.updateProperty(
+                            this.digitalTwinStateManager.updateProperty(
                                     new DigitalTwinStateProperty<>(
                                             physicalPropertyEventMessage.getPhysicalPropertyId(),
                                             physicalPropertyEventMessage.getBody()));
@@ -242,7 +241,7 @@ public class AdaptersTester {
                     receivedPhysicalEventEventMessageList.add(physicalAssetEventWldtEvent);
 
                     //Handle the received physical event notification and map into a digital notification for digital adapters
-                    this.digitalTwinState.notifyDigitalTwinStateEvent(
+                    this.digitalTwinStateManager.notifyDigitalTwinStateEvent(
                             new DigitalTwinStateEventNotification<String>(
                                     physicalAssetEventWldtEvent.getPhysicalEventKey(),
                                     (String)physicalAssetEventWldtEvent.getBody(), System.currentTimeMillis()));

@@ -47,19 +47,19 @@ public class PhysicalAdapterRelationshipsDefinitionTester {
         dt.startLifeCycle();
         syncLatch.await(3000, TimeUnit.MILLISECONDS);
         assertNotNull(lifeCycleListener.getPhysicalAssetDescription());
-        assertNotNull(lifeCycleListener.getDigitalTwinState());
+        assertNotNull(lifeCycleListener.getDigitalTwinStateManager());
         assertEquals(2, lifeCycleListener.getPhysicalAssetDescription().getRelationships().size());
         List<String> relationshipsName = lifeCycleListener.getPhysicalAssetDescription().getRelationships().stream()
                 .map(PhysicalAssetRelationship::getName).collect(Collectors.toList());
         assertTrue(relationshipsName.contains(RelationshipPhysicalAdapter.RELATIONSHIP_CONTAINS_NAME));
         assertTrue(relationshipsName.contains(RelationshipPhysicalAdapter.RELATIONSHIP_OPERATOR_NAME));
-        assertTrue(lifeCycleListener.getDigitalTwinState().containsRelationship(RelationshipPhysicalAdapter.RELATIONSHIP_CONTAINS_NAME));
-        assertTrue(lifeCycleListener.getDigitalTwinState().containsRelationship(RelationshipPhysicalAdapter.RELATIONSHIP_OPERATOR_NAME));
-        assertTrue(lifeCycleListener.getDigitalTwinState().getRelationshipList().isPresent());
-        assertEquals(2, lifeCycleListener.getDigitalTwinState().getRelationshipList().get().size());
+        assertTrue(lifeCycleListener.getDigitalTwinStateManager().containsRelationship(RelationshipPhysicalAdapter.RELATIONSHIP_CONTAINS_NAME));
+        assertTrue(lifeCycleListener.getDigitalTwinStateManager().containsRelationship(RelationshipPhysicalAdapter.RELATIONSHIP_OPERATOR_NAME));
+        assertTrue(lifeCycleListener.getDigitalTwinStateManager().getRelationshipList().isPresent());
+        assertEquals(2, lifeCycleListener.getDigitalTwinStateManager().getRelationshipList().get().size());
         //At the beginning each relationship has no instances
-        assertEquals(0, lifeCycleListener.getDigitalTwinState().getRelationshipList().get().get(0).getInstances().size());
-        assertEquals(0, lifeCycleListener.getDigitalTwinState().getRelationshipList().get().get(1).getInstances().size());
+        assertEquals(0, lifeCycleListener.getDigitalTwinStateManager().getRelationshipList().get().get(0).getInstances().size());
+        assertEquals(0, lifeCycleListener.getDigitalTwinStateManager().getRelationshipList().get().get(1).getInstances().size());
         dt.stopLifeCycle();
     }
 
@@ -76,7 +76,7 @@ public class PhysicalAdapterRelationshipsDefinitionTester {
         dt.startLifeCycle();
         physicalAdapter.simulateRelationshipInstanceEvent(RelationshipPhysicalAdapter.RELATIONSHIP_CONTAINS_NAME, DT_TARGET1_NAME, true);
         relationshipLatch.await(3000, TimeUnit.MILLISECONDS);
-        DigitalTwinStateRelationship<String> containsRelationship = (DigitalTwinStateRelationship<String>) lifeCycleListener.getDigitalTwinState().getRelationship(RelationshipPhysicalAdapter.RELATIONSHIP_CONTAINS_NAME).get();
+        DigitalTwinStateRelationship<String> containsRelationship = (DigitalTwinStateRelationship<String>) lifeCycleListener.getDigitalTwinStateManager().getRelationship(RelationshipPhysicalAdapter.RELATIONSHIP_CONTAINS_NAME).get();
         assertEquals(1, containsRelationship.getInstances().size());
         assertEquals(DT_TARGET1_NAME, containsRelationship.getInstances().get(0).getTargetId());
 
@@ -97,8 +97,8 @@ public class PhysicalAdapterRelationshipsDefinitionTester {
         physicalAdapter.simulateRelationshipInstanceEvent(RelationshipPhysicalAdapter.RELATIONSHIP_CONTAINS_NAME, DT_TARGET2_NAME, true);
         physicalAdapter.simulateRelationshipInstanceEvent(RelationshipPhysicalAdapter.RELATIONSHIP_OPERATOR_NAME, DT_TARGET1_NAME, true);
         relationshipLatch.await(3000, TimeUnit.MILLISECONDS);
-        DigitalTwinStateRelationship<String> containsRelationship = (DigitalTwinStateRelationship<String>) lifeCycleListener.getDigitalTwinState().getRelationship(RelationshipPhysicalAdapter.RELATIONSHIP_CONTAINS_NAME).get();
-        DigitalTwinStateRelationship<String> operatorRelationship = (DigitalTwinStateRelationship<String>) lifeCycleListener.getDigitalTwinState().getRelationship(RelationshipPhysicalAdapter.RELATIONSHIP_OPERATOR_NAME).get();
+        DigitalTwinStateRelationship<String> containsRelationship = (DigitalTwinStateRelationship<String>) lifeCycleListener.getDigitalTwinStateManager().getRelationship(RelationshipPhysicalAdapter.RELATIONSHIP_CONTAINS_NAME).get();
+        DigitalTwinStateRelationship<String> operatorRelationship = (DigitalTwinStateRelationship<String>) lifeCycleListener.getDigitalTwinStateManager().getRelationship(RelationshipPhysicalAdapter.RELATIONSHIP_OPERATOR_NAME).get();
         assertEquals(2, containsRelationship.getInstances().size());
         assertEquals(1, operatorRelationship.getInstances().size());
     }
@@ -117,7 +117,7 @@ public class PhysicalAdapterRelationshipsDefinitionTester {
         Thread.sleep(3000);
         physicalAdapter.simulateRelationshipInstanceEvent(RelationshipPhysicalAdapter.RELATIONSHIP_CONTAINS_NAME, DT_TARGET1_NAME, false);
         relationshipLatch.await(3000, TimeUnit.MILLISECONDS);
-        DigitalTwinStateRelationship<String> containsRelationship = (DigitalTwinStateRelationship<String>) lifeCycleListener.getDigitalTwinState().getRelationship(RelationshipPhysicalAdapter.RELATIONSHIP_CONTAINS_NAME).get();
+        DigitalTwinStateRelationship<String> containsRelationship = (DigitalTwinStateRelationship<String>) lifeCycleListener.getDigitalTwinStateManager().getRelationship(RelationshipPhysicalAdapter.RELATIONSHIP_CONTAINS_NAME).get();
         assertEquals(0, containsRelationship.getInstances().size());
     }
 

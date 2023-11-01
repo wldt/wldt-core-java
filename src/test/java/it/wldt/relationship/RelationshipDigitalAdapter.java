@@ -8,7 +8,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.stream.Collectors;
 
 public class RelationshipDigitalAdapter extends DigitalAdapter<String> {
-    private IDigitalTwinState digitalTwinState;
+    private DigitalTwinState digitalTwinState;
     private final List<DigitalTwinStateRelationshipInstance<?>> instancesNotification;
     private CountDownLatch relationshipNotificationLatch;
 
@@ -110,7 +110,7 @@ public class RelationshipDigitalAdapter extends DigitalAdapter<String> {
     }
 
     @Override
-    public void onDigitalTwinSync(IDigitalTwinState digitalTwinState) {
+    public void onDigitalTwinSync(IDigitalTwinStateManager digitalTwinState) {
         this.digitalTwinState = digitalTwinState;
         if(digitalTwinState.getRelationshipList().isPresent())
             observeDigitalTwinRelationships(digitalTwinState.getRelationshipList().get().stream()
@@ -119,7 +119,7 @@ public class RelationshipDigitalAdapter extends DigitalAdapter<String> {
     }
 
     @Override
-    public void onDigitalTwinUnSync(IDigitalTwinState digitalTwinState) {
+    public void onDigitalTwinUnSync(IDigitalTwinStateManager digitalTwinState) {
 
     }
 
@@ -143,7 +143,7 @@ public class RelationshipDigitalAdapter extends DigitalAdapter<String> {
 
     }
 
-    public IDigitalTwinState getDigitalTwinState() {
+    public DigitalTwinState getDigitalTwinState() {
         return digitalTwinState;
     }
 

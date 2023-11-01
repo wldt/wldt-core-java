@@ -64,15 +64,15 @@ public class DummyShadowingFunction extends ShadowingModelFunction {
 
                     //In that simple case the Digital Twin shadow all the properties and actions available in the physical asset
                     for(PhysicalAssetProperty<?> physicalAssetProperty : physicalAssetDescription.getProperties())
-                        this.digitalTwinState.createProperty(new DigitalTwinStateProperty<>(physicalAssetProperty.getKey(), physicalAssetProperty.getInitialValue()));
+                        this.digitalTwinStateManager.createProperty(new DigitalTwinStateProperty<>(physicalAssetProperty.getKey(), physicalAssetProperty.getInitialValue()));
 
                     for(PhysicalAssetAction physicalAssetAction : physicalAssetDescription.getActions())
-                        this.digitalTwinState.enableAction(new DigitalTwinStateAction(physicalAssetAction.getKey(),
+                        this.digitalTwinStateManager.enableAction(new DigitalTwinStateAction(physicalAssetAction.getKey(),
                                 physicalAssetAction.getType(),
                                 physicalAssetAction.getContentType()));
 
                     for(PhysicalAssetEvent physicalAssetEvent: physicalAssetDescription.getEvents())
-                        this.digitalTwinState.registerEvent(new DigitalTwinStateEvent(physicalAssetEvent.getKey(), physicalAssetEvent.getType()));
+                        this.digitalTwinStateManager.registerEvent(new DigitalTwinStateEvent(physicalAssetEvent.getKey(), physicalAssetEvent.getType()));
                 }
 
                 //Notify Shadowing Completed
@@ -158,7 +158,7 @@ public class DummyShadowingFunction extends ShadowingModelFunction {
                     logger.info("CORRECT PhysicalEvent Received -> Type: {} Message: {}", physicalPropertyEventMessage.getType(), physicalPropertyEventMessage);
 
                     //Update Digital Twin Status
-                    this.digitalTwinState.updateProperty(
+                    this.digitalTwinStateManager.updateProperty(
                             new DigitalTwinStateProperty<>(
                                     physicalPropertyEventMessage.getPhysicalPropertyId(),
                                     physicalPropertyEventMessage.getBody()));
@@ -179,7 +179,7 @@ public class DummyShadowingFunction extends ShadowingModelFunction {
             logger.info("ShadowingModelFunction Physical Asset Event Notification - Event Received: {}", physicalAssetEventWldtEvent);
 
             //Handle the received physical event notification and map into a digital notification for digital adapters
-            this.digitalTwinState.notifyDigitalTwinStateEvent(
+            this.digitalTwinStateManager.notifyDigitalTwinStateEvent(
                     new DigitalTwinStateEventNotification<String>(
                             physicalAssetEventWldtEvent.getPhysicalEventKey(),
                             (String)physicalAssetEventWldtEvent.getBody(),

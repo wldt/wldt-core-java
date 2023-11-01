@@ -1,8 +1,7 @@
 package it.wldt.state;
 
-import it.wldt.core.state.DefaultDigitalTwinState;
+import it.wldt.core.state.DigitalTwinStateManager;
 import it.wldt.core.state.DigitalTwinStateAction;
-import it.wldt.core.state.IDigitalTwinState;
 import it.wldt.exception.WldtDigitalTwinStateActionConflictException;
 import it.wldt.exception.WldtDigitalTwinStateActionException;
 import it.wldt.exception.WldtDigitalTwinStateActionNotFoundException;
@@ -11,7 +10,6 @@ import it.wldt.exception.WldtDigitalTwinStateException;
 import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
 
 public class DigitalTwinStateActionManagementTester {
 
@@ -21,9 +19,9 @@ public class DigitalTwinStateActionManagementTester {
     private final static String ACTION_CONTENT_TYPE = "application/json";
     private final static String ACTION_CONTENT_TYPE_UPDATED = "text/plain";
 
-    private IDigitalTwinState createDigitalTwinState() throws WldtDigitalTwinStateException, WldtDigitalTwinStateActionConflictException, WldtDigitalTwinStateActionException {
+    private IDigitalTwinStateManager createDigitalTwinState() throws WldtDigitalTwinStateException, WldtDigitalTwinStateActionConflictException, WldtDigitalTwinStateActionException {
         DigitalTwinStateAction action = new DigitalTwinStateAction(ACTION_KEY_1, ACTION_TYPE, ACTION_CONTENT_TYPE);
-        IDigitalTwinState digitalTwinState = new DefaultDigitalTwinState();
+        IDigitalTwinStateManager digitalTwinState = new DigitalTwinStateManager();
         digitalTwinState.enableAction(action);
         return digitalTwinState;
     }
@@ -31,7 +29,7 @@ public class DigitalTwinStateActionManagementTester {
 
     @Test
     public void enableAction() throws WldtDigitalTwinStateActionConflictException, WldtDigitalTwinStateException, WldtDigitalTwinStateActionException {
-        IDigitalTwinState digitalTwinState = createDigitalTwinState();
+        IDigitalTwinStateManager digitalTwinState = createDigitalTwinState();
         assertTrue(digitalTwinState.containsAction(ACTION_KEY_1));
         assertTrue(digitalTwinState.getAction(ACTION_KEY_1).isPresent());
         assertEquals(ACTION_TYPE, digitalTwinState.getAction(ACTION_KEY_1).get().getType());
@@ -41,7 +39,7 @@ public class DigitalTwinStateActionManagementTester {
 
     @Test
     public void updateAction() throws WldtDigitalTwinStateActionConflictException, WldtDigitalTwinStateException, WldtDigitalTwinStateActionException, WldtDigitalTwinStateActionNotFoundException {
-        IDigitalTwinState digitalTwinState = createDigitalTwinState();
+        IDigitalTwinStateManager digitalTwinState = createDigitalTwinState();
         assertTrue(digitalTwinState.getAction(ACTION_KEY_1).isPresent());
         assertEquals(ACTION_CONTENT_TYPE, digitalTwinState.getAction(ACTION_KEY_1).get().getContentType());
         digitalTwinState.updateAction(new DigitalTwinStateAction(ACTION_KEY_1, ACTION_TYPE, ACTION_CONTENT_TYPE_UPDATED));
@@ -50,7 +48,7 @@ public class DigitalTwinStateActionManagementTester {
 
     @Test
     public void disableAction() throws WldtDigitalTwinStateActionConflictException, WldtDigitalTwinStateException, WldtDigitalTwinStateActionException, WldtDigitalTwinStateActionNotFoundException {
-        IDigitalTwinState digitalTwinState = createDigitalTwinState();
+        IDigitalTwinStateManager digitalTwinState = createDigitalTwinState();
         digitalTwinState.disableAction(ACTION_KEY_1);
         assertFalse(digitalTwinState.containsAction(ACTION_KEY_1));
         assertFalse(digitalTwinState.getAction(ACTION_KEY_1).isPresent());
@@ -59,7 +57,7 @@ public class DigitalTwinStateActionManagementTester {
 
     @Test
     public void completeActionManagement() throws WldtDigitalTwinStateActionConflictException, WldtDigitalTwinStateException, WldtDigitalTwinStateActionException, WldtDigitalTwinStateActionNotFoundException {
-        IDigitalTwinState digitalTwinState = createDigitalTwinState();
+        IDigitalTwinStateManager digitalTwinState = createDigitalTwinState();
         digitalTwinState.enableAction(new DigitalTwinStateAction(ACTION_KEY_2, ACTION_TYPE, ACTION_CONTENT_TYPE));
         assertTrue(digitalTwinState.containsAction(ACTION_KEY_1));
         assertTrue(digitalTwinState.containsAction(ACTION_KEY_2));

@@ -13,7 +13,7 @@ import java.util.*;
  * This is just the description of the relationships while the effective values/instances are described through the
  * other class DigitalTwinStateRelationshipInstance
  */
-public class DigitalTwinStateRelationship<T> {
+public class DigitalTwinStateRelationship<T> extends DigitalTwinStateResource {
     private final String name;
     private final String type;
     private final Map<String, DigitalTwinStateRelationshipInstance<T>> instances = new HashMap<>();

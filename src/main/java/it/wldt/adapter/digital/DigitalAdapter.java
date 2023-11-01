@@ -14,10 +14,7 @@ import it.wldt.exception.WldtRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * Authors:
@@ -64,7 +61,7 @@ public abstract class DigitalAdapter<C> extends WldtWorker implements WldtEventL
 
     private boolean observeDigitalTwinState = true;
 
-    protected IDigitalTwinState digitalTwinState = null;
+    protected DigitalTwinState digitalTwinState = null;
 
     private DigitalAdapterListener digitalAdapterListener;
 
@@ -86,73 +83,21 @@ public abstract class DigitalAdapter<C> extends WldtWorker implements WldtEventL
 
             logger.debug("{} - Digital Adapter - Received Event: {}", getId(), wldtEvent);
 
-            ///////// DT STATE PROPERTY MANAGEMENT ///////////
-            if(wldtEvent != null && wldtEvent.getBody() != null && (wldtEvent.getBody() instanceof DigitalTwinStateProperty)){
-                DigitalTwinStateProperty<?> digitalTwinStateProperty = (DigitalTwinStateProperty<?>) wldtEvent.getBody();
+            //DT State Events Management
+            if(wldtEvent != null
+                    && wldtEvent.getType().equals(DigitalTwinStateManager.getStatusUpdatesWldtEventMessageType())
+                    && wldtEvent.getBody() != null
+                    && (wldtEvent.getBody() instanceof DigitalTwinState)){
 
-                if(wldtEvent.getType().equals(DefaultDigitalTwinState.DT_STATE_PROPERTY_CREATED))
-                    onStateChangePropertyCreated(digitalTwinStateProperty);
+                //Retrieve DT's State Update
+                DigitalTwinState newDigitalTwinState = (DigitalTwinState)wldtEvent.getBody();
 
-                if(wldtEvent.getType().equals(DefaultDigitalTwinState.DT_STATE_PROPERTY_UPDATED))
-                    onStateChangePropertyUpdated(digitalTwinStateProperty);
-
-                if(wldtEvent.getType().equals(DefaultDigitalTwinState.DT_STATE_PROPERTY_DELETED))
-                    onStateChangePropertyDeleted(digitalTwinStateProperty);
-            }
-
-            ///////// DT STATE ACTIONS MANAGEMENT ///////////
-            if(wldtEvent != null && wldtEvent.getBody() != null && (wldtEvent.getBody() instanceof DigitalTwinStateAction)) {
-
-                DigitalTwinStateAction digitalTwinStateAction = (DigitalTwinStateAction) wldtEvent.getBody();
-
-                if(wldtEvent.getType().equals(DefaultDigitalTwinState.DT_STATE_ACTION_ENABLED))
-                    onStateChangeActionEnabled(digitalTwinStateAction);
-
-                if(wldtEvent.getType().equals(DefaultDigitalTwinState.DT_STATE_ACTION_UPDATED))
-                    onStateChangeActionUpdated(digitalTwinStateAction);
-
-                if(wldtEvent.getType().equals(DefaultDigitalTwinState.DT_STATE_ACTION_DISABLED))
-                    onStateChangeActionDisabled(digitalTwinStateAction);
-            }
-
-            ///////// DT STATE EVENTS AVAILABILITY MANAGEMENT ///////////
-            if(wldtEvent != null && wldtEvent.getBody() != null && (wldtEvent.getBody() instanceof DigitalTwinStateEvent)) {
-
-                DigitalTwinStateEvent digitalTwinStateEvent = (DigitalTwinStateEvent) wldtEvent.getBody();
-
-                if(wldtEvent.getType().equals(DefaultDigitalTwinState.DT_STATE_EVENT_REGISTERED))
-                    onStateChangeEventRegistered(digitalTwinStateEvent);
-
-                if(wldtEvent.getType().equals(DefaultDigitalTwinState.DT_STATE_EVENT_REGISTRATION_UPDATED))
-                    onStateChangeEventRegistrationUpdated(digitalTwinStateEvent);
-
-                if(wldtEvent.getType().equals(DefaultDigitalTwinState.DT_STATE_EVENT_UNREGISTERED))
-                    onStateChangeEventUnregistered(digitalTwinStateEvent);
             }
 
             ///////// DT STATE EVENTS NOTIFICATION MANAGEMENT ///////////
             if(wldtEvent != null && wldtEvent.getBody() != null && (wldtEvent.getBody() instanceof DigitalTwinStateEventNotification)) {
                 DigitalTwinStateEventNotification<?> digitalTwinStateEventNotification = (DigitalTwinStateEventNotification<?>) wldtEvent.getBody();
                 onDigitalTwinStateEventNotificationReceived(digitalTwinStateEventNotification);
-            }
-
-            ///////// DT STATE RELATIONSHIPS MANAGEMENT ///////////
-            if(wldtEvent != null && wldtEvent.getBody() != null && (wldtEvent.getBody() instanceof DigitalTwinStateRelationship)){
-                DigitalTwinStateRelationship<?> digitalTwinStateRelationship = (DigitalTwinStateRelationship<?>) wldtEvent.getBody();
-                if(wldtEvent.getType().equals(DefaultDigitalTwinState.DT_STATE_RELATIONSHIP_CREATED)){
-                    onStateChangeRelationshipCreated(digitalTwinStateRelationship);
-                }else if(wldtEvent.getType().equals(DefaultDigitalTwinState.DT_STATE_RELATIONSHIP_DELETED)){
-                    onStateChangeRelationshipDeleted(digitalTwinStateRelationship);
-                }
-            }
-
-            if(wldtEvent != null && wldtEvent.getBody() != null && (wldtEvent.getBody() instanceof DigitalTwinStateRelationshipInstance)){
-                DigitalTwinStateRelationshipInstance<?> digitalTwinStateRelationshipInstance = (DigitalTwinStateRelationshipInstance<?>) wldtEvent.getBody();
-                if(wldtEvent.getType().contains(DefaultDigitalTwinState.CREATED_STRING)){
-                    onStateChangeRelationshipInstanceCreated(digitalTwinStateRelationshipInstance);
-                }else if(wldtEvent.getType().contains(DefaultDigitalTwinState.DELETED_STRING)){
-                    onStateChangeRelationshipInstanceDeleted(digitalTwinStateRelationshipInstance);
-                }
             }
 
         }
@@ -181,9 +126,9 @@ public abstract class DigitalAdapter<C> extends WldtWorker implements WldtEventL
 
         //Define EventFilter and add the target topic
         WldtEventFilter wldtEventFilter = new WldtEventFilter();
-        wldtEventFilter.add(DefaultDigitalTwinState.DT_STATE_PROPERTY_CREATED);
-        wldtEventFilter.add(DefaultDigitalTwinState.DT_STATE_PROPERTY_UPDATED);
-        wldtEventFilter.add(DefaultDigitalTwinState.DT_STATE_PROPERTY_DELETED);
+        wldtEventFilter.add(DigitalTwinStateManager.DT_STATE_PROPERTY_CREATED);
+        wldtEventFilter.add(DigitalTwinStateManager.DT_STATE_PROPERTY_UPDATED);
+        wldtEventFilter.add(DigitalTwinStateManager.DT_STATE_PROPERTY_DELETED);
 
         //Save the adopted EventFilter
         this.statePropertiesWldtEventFilter = wldtEventFilter;
@@ -199,9 +144,9 @@ public abstract class DigitalAdapter<C> extends WldtWorker implements WldtEventL
 
         //Define EventFilter and add the target topic
         WldtEventFilter wldtEventFilter = new WldtEventFilter();
-        wldtEventFilter.add(DefaultDigitalTwinState.DT_STATE_PROPERTY_CREATED);
-        wldtEventFilter.add(DefaultDigitalTwinState.DT_STATE_PROPERTY_UPDATED);
-        wldtEventFilter.add(DefaultDigitalTwinState.DT_STATE_PROPERTY_DELETED);
+        wldtEventFilter.add(DigitalTwinStateManager.DT_STATE_PROPERTY_CREATED);
+        wldtEventFilter.add(DigitalTwinStateManager.DT_STATE_PROPERTY_UPDATED);
+        wldtEventFilter.add(DigitalTwinStateManager.DT_STATE_PROPERTY_DELETED);
 
         //Save the adopted EventFilter
         this.statePropertiesWldtEventFilter = wldtEventFilter;
@@ -315,9 +260,9 @@ public abstract class DigitalAdapter<C> extends WldtWorker implements WldtEventL
 
         //Define EventFilter and add the target topic
         WldtEventFilter wldtEventFilter = new WldtEventFilter();
-        wldtEventFilter.add(DefaultDigitalTwinState.DT_STATE_ACTION_ENABLED);
-        wldtEventFilter.add(DefaultDigitalTwinState.DT_STATE_ACTION_UPDATED);
-        wldtEventFilter.add(DefaultDigitalTwinState.DT_STATE_ACTION_DISABLED);
+        wldtEventFilter.add(DigitalTwinStateManager.DT_STATE_ACTION_ENABLED);
+        wldtEventFilter.add(DigitalTwinStateManager.DT_STATE_ACTION_UPDATED);
+        wldtEventFilter.add(DigitalTwinStateManager.DT_STATE_ACTION_DISABLED);
 
         //Save the adopted EventFilter
         this.stateActionsWldtEventFilter = wldtEventFilter;
@@ -333,9 +278,9 @@ public abstract class DigitalAdapter<C> extends WldtWorker implements WldtEventL
 
         //Define EventFilter and add the target topic
         WldtEventFilter wldtEventFilter = new WldtEventFilter();
-        wldtEventFilter.add(DefaultDigitalTwinState.DT_STATE_ACTION_ENABLED);
-        wldtEventFilter.add(DefaultDigitalTwinState.DT_STATE_ACTION_UPDATED);
-        wldtEventFilter.add(DefaultDigitalTwinState.DT_STATE_ACTION_DISABLED);
+        wldtEventFilter.add(DigitalTwinStateManager.DT_STATE_ACTION_ENABLED);
+        wldtEventFilter.add(DigitalTwinStateManager.DT_STATE_ACTION_UPDATED);
+        wldtEventFilter.add(DigitalTwinStateManager.DT_STATE_ACTION_DISABLED);
 
         //Save the adopted EventFilter
         this.stateActionsWldtEventFilter = wldtEventFilter;
@@ -369,9 +314,9 @@ public abstract class DigitalAdapter<C> extends WldtWorker implements WldtEventL
 
         //Define EventFilter and add the target topic
         WldtEventFilter wldtEventFilter = new WldtEventFilter();
-        wldtEventFilter.add(DefaultDigitalTwinState.DT_STATE_EVENT_REGISTERED);
-        wldtEventFilter.add(DefaultDigitalTwinState.DT_STATE_EVENT_REGISTRATION_UPDATED);
-        wldtEventFilter.add(DefaultDigitalTwinState.DT_STATE_EVENT_UNREGISTERED);
+        wldtEventFilter.add(DigitalTwinStateManager.DT_STATE_EVENT_REGISTERED);
+        wldtEventFilter.add(DigitalTwinStateManager.DT_STATE_EVENT_REGISTRATION_UPDATED);
+        wldtEventFilter.add(DigitalTwinStateManager.DT_STATE_EVENT_UNREGISTERED);
 
         //Save the adopted EventFilter
         this.stateEventsAvailabilityWldtEventFilter = wldtEventFilter;
@@ -387,9 +332,9 @@ public abstract class DigitalAdapter<C> extends WldtWorker implements WldtEventL
 
         //Define EventFilter and add the target topic
         WldtEventFilter wldtEventFilter = new WldtEventFilter();
-        wldtEventFilter.add(DefaultDigitalTwinState.DT_STATE_EVENT_REGISTERED);
-        wldtEventFilter.add(DefaultDigitalTwinState.DT_STATE_EVENT_REGISTRATION_UPDATED);
-        wldtEventFilter.add(DefaultDigitalTwinState.DT_STATE_EVENT_UNREGISTERED);
+        wldtEventFilter.add(DigitalTwinStateManager.DT_STATE_EVENT_REGISTERED);
+        wldtEventFilter.add(DigitalTwinStateManager.DT_STATE_EVENT_REGISTRATION_UPDATED);
+        wldtEventFilter.add(DigitalTwinStateManager.DT_STATE_EVENT_UNREGISTERED);
 
         //Save the adopted EventFilter
         this.stateEventsAvailabilityWldtEventFilter = wldtEventFilter;
@@ -484,8 +429,8 @@ public abstract class DigitalAdapter<C> extends WldtWorker implements WldtEventL
     protected void observeDigitalTwinRelationshipsAvailability() throws EventBusException {
         //Define EventFilter and add the target topic
         WldtEventFilter wldtEventFilter = new WldtEventFilter();
-        wldtEventFilter.add(DefaultDigitalTwinState.DT_STATE_RELATIONSHIP_CREATED);
-        wldtEventFilter.add(DefaultDigitalTwinState.DT_STATE_RELATIONSHIP_DELETED);
+        wldtEventFilter.add(DigitalTwinStateManager.DT_STATE_RELATIONSHIP_CREATED);
+        wldtEventFilter.add(DigitalTwinStateManager.DT_STATE_RELATIONSHIP_DELETED);
 
         //Save the adopted EventFilter
         this.stateRelationshipsWldtEventFilter = wldtEventFilter;
@@ -557,47 +502,15 @@ public abstract class DigitalAdapter<C> extends WldtWorker implements WldtEventL
             getDigitalAdapterListener().onDigitalAdapterBound(getId());
     }
 
-
-    //////////////////////// PROPERTIES VARIATIONS CALLBACKS /////////////////////////////////////////////////////
-    abstract protected void onStateChangePropertyCreated(DigitalTwinStateProperty<?> digitalTwinStateProperty);
-
-    abstract protected void onStateChangePropertyUpdated(DigitalTwinStateProperty<?> digitalTwinStateProperty);
-
-    abstract protected void onStateChangePropertyDeleted(DigitalTwinStateProperty<?> digitalTwinStateProperty);
-
-    abstract protected void onStatePropertyUpdated(DigitalTwinStateProperty<?> digitalTwinStateProperty);
-
-    abstract protected void onStatePropertyDeleted(DigitalTwinStateProperty<?> digitalTwinStateProperty);
-
-
-    //////////////////////// ACTIONS VARIATIONS CALLBACKS /////////////////////////////////////////////////////
-    abstract protected void onStateChangeActionEnabled(DigitalTwinStateAction digitalTwinStateAction);
-
-    abstract protected void onStateChangeActionUpdated(DigitalTwinStateAction digitalTwinStateAction);
-
-    abstract protected void onStateChangeActionDisabled(DigitalTwinStateAction digitalTwinStateAction);
-
-
-    //////////////////////// EVENTS VARIATIONS CALLBACKS /////////////////////////////////////////////////////
-    abstract protected void onStateChangeEventRegistered(DigitalTwinStateEvent digitalTwinStateEvent);
-
-    abstract protected void onStateChangeEventRegistrationUpdated(DigitalTwinStateEvent digitalTwinStateEvent);
-
-    abstract protected void onStateChangeEventUnregistered(DigitalTwinStateEvent digitalTwinStateEvent);
+    //////////////////////// DIGITAL TWIN STATE UPDATE  //////////////////////////////////////////////////////////
+    abstract protected void onStateUpdate(DigitalTwinState newDigitalTwinState,
+                                          DigitalTwinState previousDigitalTwinState,
+                                          ArrayList<DigitalTwinStateChange> digitalTwinStateChangeList);
 
 
     //////////////////////// EVENTS NOTIFICATION CALLBACK /////////////////////////////////////////////////////
     abstract protected void onDigitalTwinStateEventNotificationReceived(DigitalTwinStateEventNotification<?> digitalTwinStateEventNotification);
 
-    //////////////////////// RELATIONSHIPS CALLBACKS /////////////////////////////////////////////////////
-
-    abstract protected void onStateChangeRelationshipCreated(DigitalTwinStateRelationship<?> digitalTwinStateRelationship);
-
-    abstract protected void onStateChangeRelationshipInstanceCreated(DigitalTwinStateRelationshipInstance<?> digitalTwinStateRelationshipInstance);
-
-    abstract protected void onStateChangeRelationshipDeleted(DigitalTwinStateRelationship<?> digitalTwinStateRelationship);
-
-    abstract protected void onStateChangeRelationshipInstanceDeleted(DigitalTwinStateRelationshipInstance<?> digitalTwinStateRelationshipInstance);
 
     //////////////////////// ADAPTER CALLBACKS /////////////////////////////////////////////////////
     public abstract void onAdapterStart();
@@ -606,9 +519,9 @@ public abstract class DigitalAdapter<C> extends WldtWorker implements WldtEventL
 
 
     //////////////////////// DT CALLBACKS /////////////////////////////////////////////////////
-    public abstract void onDigitalTwinSync(IDigitalTwinState digitalTwinState);
+    public abstract void onDigitalTwinSync(DigitalTwinState digitalTwinState);
 
-    public abstract void onDigitalTwinUnSync(IDigitalTwinState digitalTwinState);
+    public abstract void onDigitalTwinUnSync(DigitalTwinState digitalTwinState);
 
     public abstract void onDigitalTwinCreate();
 
@@ -717,7 +630,7 @@ public abstract class DigitalAdapter<C> extends WldtWorker implements WldtEventL
     }
 
     @Override
-    public void onSync(IDigitalTwinState digitalTwinState) {
+    public void onSync(IDigitalTwinStateManager digitalTwinState) {
 
         logger.info("Digital Adapter ({}) Received DT onSync callback ! Ready to start ...", this.id);
 
@@ -738,7 +651,7 @@ public abstract class DigitalAdapter<C> extends WldtWorker implements WldtEventL
     }
 
     @Override
-    public void onUnSync(IDigitalTwinState digitalTwinState) {
+    public void onUnSync(IDigitalTwinStateManager digitalTwinState) {
         logger.debug("Digital Adapter ({}) Received DT unSync callback ...", this.id);
         onDigitalTwinUnSync(digitalTwinState);
         this.digitalTwinState = null;

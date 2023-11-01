@@ -11,9 +11,9 @@ import it.wldt.core.event.WldtEvent;
 import it.wldt.core.event.WldtEventBus;
 import it.wldt.core.event.WldtEventFilter;
 import it.wldt.core.event.WldtEventListener;
+import it.wldt.core.state.DigitalTwinStateManager;
 import it.wldt.exception.EventBusException;
 import it.wldt.exception.ModelException;
-import it.wldt.core.state.IDigitalTwinState;
 import it.wldt.adapter.physical.event.*;
 
 import org.slf4j.Logger;
@@ -45,7 +45,7 @@ public abstract class ShadowingModelFunction implements WldtEventListener {
 
     private WldtEventFilter physicalEventsFilter = null;
 
-    protected IDigitalTwinState digitalTwinState = null;
+    protected DigitalTwinStateManager digitalTwinStateManager = null;
 
     private ShadowingModelListener shadowingModelListener;
 
@@ -352,8 +352,8 @@ public abstract class ShadowingModelFunction implements WldtEventListener {
 
     }
 
-    protected void init(IDigitalTwinState digitalTwinState){
-        this.digitalTwinState = digitalTwinState;
+    protected void init(DigitalTwinStateManager digitalTwinState){
+        this.digitalTwinStateManager = digitalTwinState;
     }
 
     abstract protected void onCreate();
@@ -400,12 +400,12 @@ public abstract class ShadowingModelFunction implements WldtEventListener {
 
     protected void notifyShadowingSync(){
         if(getShadowingModelListener() != null)
-            getShadowingModelListener().onShadowingSync(digitalTwinState);
+            getShadowingModelListener().onShadowingSync(digitalTwinStateManager.getDigitalTwinState());
     }
 
     protected void notifyShadowingOutOfSync(){
         if(getShadowingModelListener() != null)
-            getShadowingModelListener().onShadowingOutOfSync(digitalTwinState);
+            getShadowingModelListener().onShadowingOutOfSync(digitalTwinStateManager.getDigitalTwinState());
     }
 
     @Override

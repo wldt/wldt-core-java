@@ -11,8 +11,8 @@ import it.wldt.core.event.WldtEventBus;
 import it.wldt.core.model.ModelEngine;
 import it.wldt.core.model.ShadowingModelFunction;
 import it.wldt.core.model.ShadowingModelListener;
-import it.wldt.core.state.DefaultDigitalTwinState;
-import it.wldt.core.state.IDigitalTwinState;
+import it.wldt.core.state.DigitalTwinState;
+import it.wldt.core.state.DigitalTwinStateManager;
 import it.wldt.exception.EventBusException;
 import it.wldt.exception.ModelException;
 import it.wldt.exception.WldtConfigurationException;
@@ -64,7 +64,7 @@ public class WldtEngine implements ShadowingModelListener, PhysicalAdapterListen
      */
     private Map<String, Boolean> digitalAdaptersBoundStatusMap = null;
 
-    private IDigitalTwinState digitalTwinState = null;
+    private DigitalTwinStateManager digitalTwinStateManager = null;
 
     private ModelEngine modelEngine = null;
 
@@ -94,7 +94,7 @@ public class WldtEngine implements ShadowingModelListener, PhysicalAdapterListen
         this.digitalAdaptersBoundStatusMap = new HashMap<>();
 
         //Initialize the Digital Twin State
-        this.digitalTwinState = new DefaultDigitalTwinState();
+        this.digitalTwinStateManager = new DigitalTwinStateManager();
 
         //Setup EventBus Logger
         WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
@@ -105,7 +105,7 @@ public class WldtEngine implements ShadowingModelListener, PhysicalAdapterListen
         //Set ShadowingListener, Init Model Engine & Add to the List of Workers
         this.shadowingModelFunction = shadowingModelFunction;
         this.shadowingModelFunction.setShadowingModelListener(this);
-        this.modelEngine = new ModelEngine(this.digitalTwinState, this.shadowingModelFunction);
+        this.modelEngine = new ModelEngine(this.digitalTwinStateManager, this.shadowingModelFunction);
 
         //Save the Model Engine as Digital Twin Life Cycle Listener
         addLifeCycleListener(this.modelEngine);
@@ -173,12 +173,12 @@ public class WldtEngine implements ShadowingModelListener, PhysicalAdapterListen
             listener.onDigitalAdapterUnBound(adapterId, errorMessage);
     }
 
-    private void notifyLifeCycleOnSync(IDigitalTwinState digitalTwinState){
+    private void notifyLifeCycleOnSync(DigitalTwinState digitalTwinState){
         for(LifeCycleListener listener : this.lifeCycleListenerList)
             listener.onSync(digitalTwinState);
     }
 
-    private void notifyLifeCycleOnUnSync(IDigitalTwinState digitalTwinState){
+    private void notifyLifeCycleOnUnSync(DigitalTwinState digitalTwinState){
         for(LifeCycleListener listener : this.lifeCycleListenerList)
             listener.onUnSync(digitalTwinState);
     }
@@ -370,12 +370,12 @@ public class WldtEngine implements ShadowingModelListener, PhysicalAdapterListen
     }
 
     @Override
-    public void onShadowingSync(IDigitalTwinState digitalTwinState) {
+    public void onShadowingSync(DigitalTwinState digitalTwinState) {
         notifyLifeCycleOnSync(digitalTwinState);
     }
 
     @Override
-    public void onShadowingOutOfSync(IDigitalTwinState digitalTwinState) {
+    public void onShadowingOutOfSync(DigitalTwinState digitalTwinState) {
         notifyLifeCycleOnUnSync(digitalTwinState);
     }
 

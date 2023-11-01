@@ -2,13 +2,14 @@ package it.wldt.relationship;
 
 import it.wldt.adapter.physical.PhysicalAssetDescription;
 import it.wldt.core.engine.LifeCycleListener;
-import it.wldt.core.state.IDigitalTwinState;
+import it.wldt.core.state.DigitalTwinState;
+import it.wldt.core.state.DigitalTwinStateManager;
 
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
 public class RelationshipsLifeCycleListener implements LifeCycleListener {
-    private IDigitalTwinState digitalTwinState;
+    private DigitalTwinState digitalTwinState;
     private PhysicalAssetDescription physicalAssetDescription;
     private final CountDownLatch syncLatch;
 
@@ -62,13 +63,13 @@ public class RelationshipsLifeCycleListener implements LifeCycleListener {
     }
 
     @Override
-    public void onSync(IDigitalTwinState digitalTwinState) {
+    public void onSync(DigitalTwinState digitalTwinState) {
         this.digitalTwinState = digitalTwinState;
         this.syncLatch.countDown();
     }
 
     @Override
-    public void onUnSync(IDigitalTwinState digitalTwinState) {
+    public void onUnSync(DigitalTwinState digitalTwinState) {
 
     }
 
@@ -82,11 +83,11 @@ public class RelationshipsLifeCycleListener implements LifeCycleListener {
 
     }
 
-    public IDigitalTwinState getDigitalTwinState() {
+    public DigitalTwinState getDigitalTwinState() {
         return digitalTwinState;
     }
 
-    public PhysicalAssetDescription getPhysicalAssetDescription() {
-        return physicalAssetDescription;
+    public void setDigitalTwinState(DigitalTwinState digitalTwinState) {
+        this.digitalTwinState = digitalTwinState;
     }
 }

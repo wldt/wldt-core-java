@@ -193,12 +193,12 @@ public class DigitalActionsTester {
         }
 
         @Override
-        public void onDigitalTwinSync(IDigitalTwinState digitalTwinState) {
+        public void onDigitalTwinSync(IDigitalTwinStateManager digitalTwinState) {
 
         }
 
         @Override
-        public void onDigitalTwinUnSync(IDigitalTwinState digitalTwinState) {
+        public void onDigitalTwinUnSync(IDigitalTwinStateManager digitalTwinState) {
 
         }
 

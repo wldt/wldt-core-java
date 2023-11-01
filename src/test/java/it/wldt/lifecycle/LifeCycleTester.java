@@ -14,7 +14,6 @@ import it.wldt.core.event.WldtEventBus;
 import it.wldt.adapter.physical.event.PhysicalAssetEventWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetPropertyWldtEvent;
 import it.wldt.core.model.ShadowingModelFunction;
-import it.wldt.core.state.IDigitalTwinState;
 import it.wldt.adapter.DummyDigitalAdapterConfiguration;
 import it.wldt.exception.*;
 import org.junit.jupiter.api.MethodOrderer;
@@ -208,12 +207,12 @@ public class LifeCycleTester {
             }
 
             @Override
-            public void onSync(IDigitalTwinState digitalTwinState) {
+            public void onSync(DigitalTwinStateManager digitalTwinState) {
                 logger.debug("LifeCycleListener - onSync() - DT State: {}", digitalTwinState);
             }
 
             @Override
-            public void onUnSync(IDigitalTwinState digitalTwinState) {
+            public void onUnSync(DigitalTwinStateManager digitalTwinState) {
                 logger.debug("LifeCycleListener - onUnSync() - DT State: {}", digitalTwinState);
             }
 

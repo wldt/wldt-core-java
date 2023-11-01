@@ -177,12 +177,12 @@ public class DigitalAdapterCallbacksTester {
             }
 
             @Override
-            public void onDigitalTwinSync(IDigitalTwinState digitalTwinState) {
+            public void onDigitalTwinSync(IDigitalTwinStateManager digitalTwinState) {
                 receivedCallbacks.add(ON_DT_SYNC);
             }
 
             @Override
-            public void onDigitalTwinUnSync(IDigitalTwinState digitalTwinState) {
+            public void onDigitalTwinUnSync(IDigitalTwinStateManager digitalTwinState) {
                 receivedCallbacks.add(ON_DT_UN_SYNC);
             }
 

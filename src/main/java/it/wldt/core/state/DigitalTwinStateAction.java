@@ -16,7 +16,7 @@ import java.util.Objects;
  * Each action is by a key, an action type and a content type used to identify the expected input required by the action.
  * The type of the can be directly changed by the developer to associate it to a specific ontology or data type.
  */
-public class DigitalTwinStateAction {
+public class DigitalTwinStateAction extends DigitalTwinStateResource{
 
     private static final Logger logger = LoggerFactory.getLogger(DigitalTwinStateAction.class);
 

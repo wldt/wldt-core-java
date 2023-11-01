@@ -12,7 +12,7 @@ import it.wldt.adapter.physical.event.PhysicalAssetEventWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetPropertyWldtEvent;
 import it.wldt.core.event.*;
 import it.wldt.core.model.ShadowingModelFunction;
-import it.wldt.core.state.DefaultDigitalTwinState;
+import it.wldt.core.state.DigitalTwinStateManager;
 import it.wldt.core.state.DigitalTwinStateProperty;
 import it.wldt.adapter.DummyDigitalAdapter;
 import it.wldt.adapter.DummyDigitalAdapterConfiguration;
@@ -43,9 +43,9 @@ public class ShadowingFunctionTester {
 
         //Define EventFilter and add the target topic
         WldtEventFilter wldtEventFilter = new WldtEventFilter();
-        wldtEventFilter.add(DefaultDigitalTwinState.DT_STATE_PROPERTY_CREATED);
-        wldtEventFilter.add(DefaultDigitalTwinState.DT_STATE_PROPERTY_UPDATED);
-        wldtEventFilter.add(DefaultDigitalTwinState.DT_STATE_PROPERTY_DELETED);
+        wldtEventFilter.add(DigitalTwinStateManager.DT_STATE_PROPERTY_CREATED);
+        wldtEventFilter.add(DigitalTwinStateManager.DT_STATE_PROPERTY_UPDATED);
+        wldtEventFilter.add(DigitalTwinStateManager.DT_STATE_PROPERTY_DELETED);
 
         WldtEventBus.getInstance().subscribe("demo-state-observer", wldtEventFilter, new WldtEventListener() {
             @Override
@@ -115,9 +115,9 @@ public class ShadowingFunctionTester {
                             logger.info("New Physical Property Detected ! Key: {} Type: {} InstanceType: {}", physicalPropertyKey, physicalPropertyType, physicalAssetProperty.getClass());
 
                             //Update Digital Twin State creating the new Property
-                            if(!this.digitalTwinState.containsProperty(physicalPropertyKey)) {
+                            if(!this.digitalTwinStateManager.containsProperty(physicalPropertyKey)) {
 
-                                this.digitalTwinState.createProperty(new DigitalTwinStateProperty<>(
+                                this.digitalTwinStateManager.createProperty(new DigitalTwinStateProperty<>(
                                                 physicalPropertyKey,
                                                 physicalAssetProperty.getInitialValue()));
 
@@ -167,14 +167,14 @@ public class ShadowingFunctionTester {
                     if(physicalPropertyEventMessage != null
                             && getPhysicalEventsFilter().contains(physicalPropertyEventMessage.getType())
                             && physicalPropertyEventMessage.getPhysicalPropertyId() != null
-                            && this.digitalTwinState.containsProperty(physicalPropertyEventMessage.getPhysicalPropertyId())
+                            && this.digitalTwinStateManager.containsProperty(physicalPropertyEventMessage.getPhysicalPropertyId())
                             && physicalPropertyEventMessage.getBody() instanceof Double
                     ){
 
                         logger.info("CORRECT PhysicalEvent Received -> Type: {} Message: {}", physicalPropertyEventMessage.getType(), physicalPropertyEventMessage);
 
                         //Update DT State Property
-                        this.digitalTwinState.updateProperty(
+                        this.digitalTwinStateManager.updateProperty(
                                 new DigitalTwinStateProperty<Double>(
                                         physicalPropertyEventMessage.getPhysicalPropertyId(),
                                         (Double) physicalPropertyEventMessage.getBody()));

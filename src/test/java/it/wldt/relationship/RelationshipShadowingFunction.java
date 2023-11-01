@@ -44,7 +44,7 @@ public class RelationshipShadowingFunction extends ShadowingModelFunction {
         adaptersPhysicalAssetDescriptionMap.values().forEach(d -> {
             d.getRelationships().forEach(par -> {
                 try {
-                    this.digitalTwinState.createRelationship(new DigitalTwinStateRelationship<String>(par.getName(), "test-type"));
+                    this.digitalTwinStateManager.createRelationship(new DigitalTwinStateRelationship<String>(par.getName(), "test-type"));
                 } catch (WldtDigitalTwinStateRelationshipException e) {
                     e.printStackTrace();
                 }
@@ -84,7 +84,7 @@ public class RelationshipShadowingFunction extends ShadowingModelFunction {
         String relationshipName = physicalAssetRelationshipInstance.getRelationship().getName();
         DigitalTwinStateRelationshipInstance<?> instance = new DigitalTwinStateRelationshipInstance<>(relationshipName, physicalAssetRelationshipInstance.getTargetId(), physicalAssetRelationshipInstance.getKey());
         try {
-            this.digitalTwinState.addRelationshipInstance(relationshipName, instance);
+            this.digitalTwinStateManager.addRelationshipInstance(relationshipName, instance);
             if(this.relationshipLatch != null)
                 this.relationshipLatch.countDown();
         } catch (WldtDigitalTwinStateRelationshipException e) {
@@ -97,7 +97,7 @@ public class RelationshipShadowingFunction extends ShadowingModelFunction {
         PhysicalAssetRelationshipInstance<?> physicalAssetRelationshipInstance = physicalAssetRelationshipWldtEvent.getBody();
         String relationshipName = physicalAssetRelationshipInstance.getRelationship().getName();
         try {
-            this.digitalTwinState.deleteRelationshipInstance(relationshipName, physicalAssetRelationshipInstance.getKey());
+            this.digitalTwinStateManager.deleteRelationshipInstance(relationshipName, physicalAssetRelationshipInstance.getKey());
             if(this.relationshipLatch != null)
                 this.relationshipLatch.countDown();
         } catch (WldtDigitalTwinStateRelationshipException e) {
