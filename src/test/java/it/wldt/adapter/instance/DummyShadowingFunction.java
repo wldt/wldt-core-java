@@ -1,4 +1,4 @@
-package it.wldt.adapter;
+package it.wldt.adapter.instance;
 
 import it.wldt.adapter.digital.event.DigitalActionWldtEvent;
 import it.wldt.adapter.physical.PhysicalAssetAction;
@@ -57,6 +57,9 @@ public class DummyShadowingFunction extends ShadowingModelFunction {
 
                 isShadowed = true;
 
+                //Start DT State Change Transaction
+                this.digitalTwinStateManager.startStateTransaction();
+
                 for(Map.Entry<String, PhysicalAssetDescription> entry : adaptersPhysicalAssetDescriptionMap.entrySet()){
 
                     String adapterId = entry.getKey();
@@ -74,6 +77,9 @@ public class DummyShadowingFunction extends ShadowingModelFunction {
                     for(PhysicalAssetEvent physicalAssetEvent: physicalAssetDescription.getEvents())
                         this.digitalTwinStateManager.registerEvent(new DigitalTwinStateEvent(physicalAssetEvent.getKey(), physicalAssetEvent.getType()));
                 }
+
+                //Commit DT State Change Transaction to apply the changes on the DT State and notify about the change
+                this.digitalTwinStateManager.commitStateTransaction();
 
                 //Notify Shadowing Completed
                 notifyShadowingSync();
@@ -158,10 +164,12 @@ public class DummyShadowingFunction extends ShadowingModelFunction {
                     logger.info("CORRECT PhysicalEvent Received -> Type: {} Message: {}", physicalPropertyEventMessage.getType(), physicalPropertyEventMessage);
 
                     //Update Digital Twin Status
+                    this.digitalTwinStateManager.startStateTransaction();
                     this.digitalTwinStateManager.updateProperty(
                             new DigitalTwinStateProperty<>(
                                     physicalPropertyEventMessage.getPhysicalPropertyId(),
                                     physicalPropertyEventMessage.getBody()));
+                    this.digitalTwinStateManager.commitStateTransaction();
                 }
             }
             else

@@ -1,4 +1,4 @@
-package it.wldt.adapter;
+package it.wldt.adapter.instance;
 
 public class DummyDigitalAdapterConfiguration {
 

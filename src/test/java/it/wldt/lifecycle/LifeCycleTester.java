@@ -1,8 +1,8 @@
 package it.wldt.lifecycle;
 
-import it.wldt.adapter.DummyDigitalAdapter;
-import it.wldt.adapter.DummyPhysicalAdapter;
-import it.wldt.adapter.DummyPhysicalAdapterConfiguration;
+import it.wldt.adapter.instance.DummyDigitalAdapter;
+import it.wldt.adapter.instance.DummyPhysicalAdapter;
+import it.wldt.adapter.instance.DummyPhysicalAdapterConfiguration;
 import it.wldt.adapter.digital.event.DigitalActionWldtEvent;
 import it.wldt.adapter.physical.PhysicalAssetDescription;
 import it.wldt.adapter.physical.event.PhysicalAssetRelationshipInstanceCreatedWldtEvent;
@@ -14,7 +14,7 @@ import it.wldt.core.event.WldtEventBus;
 import it.wldt.adapter.physical.event.PhysicalAssetEventWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetPropertyWldtEvent;
 import it.wldt.core.model.ShadowingModelFunction;
-import it.wldt.adapter.DummyDigitalAdapterConfiguration;
+import it.wldt.adapter.instance.DummyDigitalAdapterConfiguration;
 import it.wldt.core.state.DigitalTwinState;
 import it.wldt.exception.*;
 import org.junit.jupiter.api.MethodOrderer;

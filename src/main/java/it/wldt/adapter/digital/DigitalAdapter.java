@@ -408,10 +408,18 @@ public abstract class DigitalAdapter<C> extends WldtWorker implements WldtEventL
 
             //Retrieve DT's State Update
             DigitalTwinState newDigitalTwinState = (DigitalTwinState)wldtEvent.getBody();
+            DigitalTwinState previsousDigitalTwinState = null;
+            ArrayList<DigitalTwinStateChange> digitalTwinStateChangeList = null;
+            Optional<?> prevDigitalTwinStateOptional = wldtEvent.getMetadata(DigitalTwinStateManager.DT_STATE_UPDATE_METADATA_PREVIOUS_STATE);
+            Optional<?> digitalTwinStateChangeListOptional = wldtEvent.getMetadata(DigitalTwinStateManager.DT_STATE_UPDATE_METADATA_CHANGE_LIST);
 
-            logger.debug("Received DT State: {}", newDigitalTwinState);
+            if(prevDigitalTwinStateOptional.isPresent() && prevDigitalTwinStateOptional.get() instanceof DigitalTwinState)
+                previsousDigitalTwinState = (DigitalTwinState) prevDigitalTwinStateOptional.get();
 
-            //TODO retrieve previous state and list of changes and then call the correct callback
+            if(digitalTwinStateChangeListOptional.isPresent())
+                digitalTwinStateChangeList = (ArrayList<DigitalTwinStateChange>) digitalTwinStateChangeListOptional.get();
+
+            onStateUpdate(newDigitalTwinState, previsousDigitalTwinState, digitalTwinStateChangeList);
         }
 
         ///////// DT STATE EVENTS NOTIFICATION MANAGEMENT ///////////

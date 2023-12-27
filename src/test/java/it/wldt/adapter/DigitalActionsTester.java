@@ -1,5 +1,7 @@
 package it.wldt.adapter;
 
+import it.wldt.adapter.instance.DummyShadowingFunction;
+import it.wldt.adapter.instance.SwitchDigitalAdapter;
 import it.wldt.adapter.physical.PhysicalAdapter;
 import it.wldt.adapter.physical.PhysicalAssetAction;
 import it.wldt.adapter.physical.PhysicalAssetDescription;

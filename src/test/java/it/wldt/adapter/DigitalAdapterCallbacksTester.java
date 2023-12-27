@@ -2,6 +2,7 @@ package it.wldt.adapter;
 
 import it.wldt.adapter.digital.DigitalAdapter;
 import it.wldt.adapter.digital.DigitalAdapterLifeCycleListener;
+import it.wldt.adapter.instance.DummyShadowingFunction;
 import it.wldt.adapter.physical.PhysicalAdapter;
 import it.wldt.adapter.physical.PhysicalAssetDescription;
 import it.wldt.adapter.physical.PhysicalAssetProperty;

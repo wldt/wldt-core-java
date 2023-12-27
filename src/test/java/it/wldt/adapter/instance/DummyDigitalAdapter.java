@@ -1,4 +1,4 @@
-package it.wldt.adapter;
+package it.wldt.adapter.instance;
 
 import it.wldt.adapter.digital.DigitalAdapter;
 import it.wldt.core.state.*;
@@ -46,9 +46,6 @@ public class DummyDigitalAdapter extends DigitalAdapter<DummyDigitalAdapterConfi
     public void onDigitalTwinSync(DigitalTwinState digitalTwinState) {
 
         logger.info("DummyDigitalTwinAdapter -> onDigitalTwinSync() - DT State: {}", digitalTwinState);
-
-        if(this.receivedDigitalTwinStateUpdateList != null)
-            this.receivedDigitalTwinStateUpdateList.add(digitalTwinState);
 
         //Observe for notification of all the available events
         try {

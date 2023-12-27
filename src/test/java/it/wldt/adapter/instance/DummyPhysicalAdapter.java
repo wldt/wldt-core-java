@@ -1,4 +1,4 @@
-package it.wldt.adapter;
+package it.wldt.adapter.instance;
 
 import it.wldt.adapter.physical.*;
 import it.wldt.core.event.WldtEventBus;

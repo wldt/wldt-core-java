@@ -1,4 +1,4 @@
-package it.wldt.adapter;
+package it.wldt.adapter.instance;
 
 import it.wldt.adapter.digital.DigitalAdapter;
 import it.wldt.core.state.DigitalTwinState;
