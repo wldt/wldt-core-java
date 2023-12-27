@@ -86,8 +86,8 @@ public class DigitalTwinState {
             throw new WldtDigitalTwinStatePropertyException(e.getLocalizedMessage());
         }
     }
-    
-    public void createProperty(DigitalTwinStateProperty<?> dtStateProperty) throws WldtDigitalTwinStatePropertyException, WldtDigitalTwinStatePropertyConflictException, WldtDigitalTwinStatePropertyBadRequestException {
+
+    protected void createProperty(DigitalTwinStateProperty<?> dtStateProperty) throws WldtDigitalTwinStatePropertyException, WldtDigitalTwinStatePropertyConflictException, WldtDigitalTwinStatePropertyBadRequestException {
 
         if (this.properties == null)
             throw new WldtDigitalTwinStatePropertyException("DigitalTwinStateManager: Properties Map = Null !");
@@ -133,8 +133,8 @@ public class DigitalTwinState {
 
     }
 
-    
-    public void updateProperty(DigitalTwinStateProperty<?> dtStateProperty) throws WldtDigitalTwinStatePropertyException, WldtDigitalTwinStatePropertyBadRequestException, WldtDigitalTwinStatePropertyNotFoundException {
+
+    protected void updateProperty(DigitalTwinStateProperty<?> dtStateProperty) throws WldtDigitalTwinStatePropertyException, WldtDigitalTwinStatePropertyBadRequestException, WldtDigitalTwinStatePropertyNotFoundException {
 
         if (this.properties == null)
             throw new WldtDigitalTwinStatePropertyException("DigitalTwinStateManager: Properties Map = Null !");
@@ -155,7 +155,7 @@ public class DigitalTwinState {
         }
     }
 
-    public void updatePropertyValue(String propertyKey, Object propertyValue) throws WldtDigitalTwinStatePropertyException, WldtDigitalTwinStatePropertyBadRequestException, WldtDigitalTwinStatePropertyNotFoundException {
+    protected void updatePropertyValue(String propertyKey, Object propertyValue) throws WldtDigitalTwinStatePropertyException, WldtDigitalTwinStatePropertyBadRequestException, WldtDigitalTwinStatePropertyNotFoundException {
 
         if (this.properties == null)
             throw new WldtDigitalTwinStatePropertyException("DigitalTwinStateManager: Properties Map = Null !");
@@ -175,7 +175,7 @@ public class DigitalTwinState {
             if(currentProperty == null)
                 throw new Exception(String.format("Wrong Type between Property Value Type: %s and the provided new value type: %s", currentProperty.getValue().getClass(), propertyValue.getClass()));
             else if(currentProperty.getValue().getClass().equals(propertyValue.getClass())) {
-                currentProperty.setType(propertyKey);
+                currentProperty.setValueObject(propertyValue);
                 this.properties.put(propertyKey, currentProperty);
             }
             else
@@ -184,8 +184,8 @@ public class DigitalTwinState {
             throw new WldtDigitalTwinStatePropertyException(e.getLocalizedMessage());
         }
     }
-    
-    public void deleteProperty(String propertyKey) throws WldtDigitalTwinStatePropertyException, WldtDigitalTwinStatePropertyBadRequestException, WldtDigitalTwinStatePropertyNotFoundException {
+
+    protected void deleteProperty(String propertyKey) throws WldtDigitalTwinStatePropertyException, WldtDigitalTwinStatePropertyBadRequestException, WldtDigitalTwinStatePropertyNotFoundException {
 
         if (this.properties == null)
             throw new WldtDigitalTwinStatePropertyException("DigitalTwinStateManager: Properties Map = Null !");
@@ -238,7 +238,7 @@ public class DigitalTwinState {
     }
 
     
-    public void enableAction(DigitalTwinStateAction digitalTwinStateAction) throws WldtDigitalTwinStateActionException, WldtDigitalTwinStateActionConflictException {
+    protected void enableAction(DigitalTwinStateAction digitalTwinStateAction) throws WldtDigitalTwinStateActionException, WldtDigitalTwinStateActionConflictException {
 
         if (this.actions == null)
             throw new WldtDigitalTwinStateActionException("DigitalTwinStateManager: Action Map = Null !");
@@ -256,8 +256,8 @@ public class DigitalTwinState {
         }
     }
 
-    
-    public void updateAction(DigitalTwinStateAction digitalTwinStateAction) throws WldtDigitalTwinStateActionException, WldtDigitalTwinStateActionNotFoundException {
+
+    protected void updateAction(DigitalTwinStateAction digitalTwinStateAction) throws WldtDigitalTwinStateActionException, WldtDigitalTwinStateActionNotFoundException {
 
         if (this.actions == null)
             throw new WldtDigitalTwinStateActionException("DigitalTwinStateManager: Action Map = Null !");
@@ -276,8 +276,8 @@ public class DigitalTwinState {
 
     }
 
-    
-    public void disableAction(String actionKey) throws WldtDigitalTwinStateActionException, WldtDigitalTwinStateActionNotFoundException {
+
+    protected void disableAction(String actionKey) throws WldtDigitalTwinStateActionException, WldtDigitalTwinStateActionNotFoundException {
 
         if (this.actions == null)
             throw new WldtDigitalTwinStateActionException("DigitalTwinStateManager: Action Map = Null !");
@@ -343,8 +343,8 @@ public class DigitalTwinState {
         }
     }
 
-    
-    public void registerEvent(DigitalTwinStateEvent digitalTwinStateEvent) throws WldtDigitalTwinStateEventException, WldtDigitalTwinStateEventConflictException {
+
+    protected void registerEvent(DigitalTwinStateEvent digitalTwinStateEvent) throws WldtDigitalTwinStateEventException, WldtDigitalTwinStateEventConflictException {
 
         if (this.events == null)
             throw new WldtDigitalTwinStateEventException("DigitalTwinStateManager: Events Map = Null !");
@@ -362,8 +362,8 @@ public class DigitalTwinState {
         }
     }
 
-    
-    public void updateRegisteredEvent(DigitalTwinStateEvent digitalTwinStateEvent) throws WldtDigitalTwinStateEventException {
+
+    protected void updateRegisteredEvent(DigitalTwinStateEvent digitalTwinStateEvent) throws WldtDigitalTwinStateEventException {
 
         if (this.events == null)
             throw new WldtDigitalTwinStateEventException("DigitalTwinStateManager: Events Map = Null !");
@@ -381,8 +381,8 @@ public class DigitalTwinState {
         }
     }
 
-    
-    public void unRegisterEvent(String eventKey) throws WldtDigitalTwinStateEventException {
+
+    protected void unRegisterEvent(String eventKey) throws WldtDigitalTwinStateEventException {
 
         if (this.events == null)
             throw new WldtDigitalTwinStateEventException("DigitalTwinStateManager: Events Map = Null !");
@@ -402,20 +402,25 @@ public class DigitalTwinState {
         }
     }
 
+    //////////////////////////// RELATIONSHIP MANAGEMENT //////////////////////////////////////////////////////////
     
     public boolean containsRelationship(String relationshipName) {
         return relationshipName != null && !relationshipName.isEmpty() && this.relationships.containsKey(relationshipName);
     }
 
-    
-    public void createRelationship(DigitalTwinStateRelationship<?> relationship) throws WldtDigitalTwinStateRelationshipException {
+    public boolean containsRelationshipInstance(String relationshipName, String instanceKey) {
+        return instanceKey != null && !instanceKey.isEmpty() && this.relationships.containsKey(relationshipName) && this.relationships.get(relationshipName).containsInstance(instanceKey);
+    }
+
+
+    protected void createRelationship(DigitalTwinStateRelationship<?> relationship) throws WldtDigitalTwinStateRelationshipException {
         if(relationship == null || relationship.getName() == null || relationship.getName().isEmpty())
             throw new WldtDigitalTwinStateRelationshipException("DigitalTwinStateRelationship cannot be null or have empty or null name");
         this.relationships.put(relationship.getName(), relationship);
     }
 
-    
-    public void addRelationshipInstance(String name, DigitalTwinStateRelationshipInstance<?> instance) throws WldtDigitalTwinStateRelationshipException {
+
+    protected void addRelationshipInstance(String name, DigitalTwinStateRelationshipInstance<?> instance) throws WldtDigitalTwinStateRelationshipException {
         if(name == null || name.isEmpty() || instance == null)
             throw new WldtDigitalTwinStateRelationshipException("DigitalTwinState provided relationship name or instance are null");
         if(containsRelationship(name)){
@@ -433,8 +438,8 @@ public class DigitalTwinState {
         return containsRelationship(name) ? Optional.of(this.relationships.get(name)) : Optional.empty();
     }
 
-    
-    public void deleteRelationship(String name) throws WldtDigitalTwinStateRelationshipException {
+
+    protected void deleteRelationship(String name) throws WldtDigitalTwinStateRelationshipException {
         if(name == null || name.isEmpty())
             throw new WldtDigitalTwinStateRelationshipException("DigitalTwinState: Error deleting relationship because name is null or empty");
         Optional<DigitalTwinStateRelationship<?>> relationship = getRelationship(name);
@@ -443,8 +448,8 @@ public class DigitalTwinState {
         });
     }
 
-    
-    public void deleteRelationshipInstance(String relationshipName, String instanceKey) throws WldtDigitalTwinStateRelationshipException {
+
+    protected void deleteRelationshipInstance(String relationshipName, String instanceKey) throws WldtDigitalTwinStateRelationshipException {
         if(relationshipName == null || relationshipName.isEmpty() || instanceKey == null || instanceKey.isEmpty())
             throw new WldtDigitalTwinStateRelationshipException("DigitalTwinState: Error deleting relationship instance because name or instanceKey are null or empty");
         getRelationship(relationshipName).ifPresent(relationship -> {
@@ -459,7 +464,7 @@ public class DigitalTwinState {
         return evaluationInstant;
     }
 
-    public void setEvaluationInstant(Instant evaluationInstant) {
+    protected void setEvaluationInstant(Instant evaluationInstant) {
         this.evaluationInstant = evaluationInstant;
     }
 

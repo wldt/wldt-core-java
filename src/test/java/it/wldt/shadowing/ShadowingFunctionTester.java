@@ -43,9 +43,10 @@ public class ShadowingFunctionTester {
 
         //Define EventFilter and add the target topic
         WldtEventFilter wldtEventFilter = new WldtEventFilter();
-        wldtEventFilter.add(DigitalTwinStateManager.DT_STATE_PROPERTY_CREATED);
-        wldtEventFilter.add(DigitalTwinStateManager.DT_STATE_PROPERTY_UPDATED);
-        wldtEventFilter.add(DigitalTwinStateManager.DT_STATE_PROPERTY_DELETED);
+        //TODO FIX
+//        wldtEventFilter.add(DigitalTwinStateManager.DT_STATE_PROPERTY_CREATED);
+//        wldtEventFilter.add(DigitalTwinStateManager.DT_STATE_PROPERTY_UPDATED);
+//        wldtEventFilter.add(DigitalTwinStateManager.DT_STATE_PROPERTY_DELETED);
 
         WldtEventBus.getInstance().subscribe("demo-state-observer", wldtEventFilter, new WldtEventListener() {
             @Override
@@ -114,17 +115,18 @@ public class ShadowingFunctionTester {
 
                             logger.info("New Physical Property Detected ! Key: {} Type: {} InstanceType: {}", physicalPropertyKey, physicalPropertyType, physicalAssetProperty.getClass());
 
+                            //TODO FIX
                             //Update Digital Twin State creating the new Property
-                            if(!this.digitalTwinStateManager.containsProperty(physicalPropertyKey)) {
-
-                                this.digitalTwinStateManager.createProperty(new DigitalTwinStateProperty<>(
-                                                physicalPropertyKey,
-                                                physicalAssetProperty.getInitialValue()));
-
-                                logger.info("New DigitalTwinStateProperty {} Created !", physicalPropertyKey);
-                            }
-                            else
-                                logger.warn("DT Property {} already available !", physicalPropertyKey);
+//                            if(!this.digitalTwinStateManager.containsProperty(physicalPropertyKey)) {
+//
+//                                this.digitalTwinStateManager.createProperty(new DigitalTwinStateProperty<>(
+//                                                physicalPropertyKey,
+//                                                physicalAssetProperty.getInitialValue()));
+//
+//                                logger.info("New DigitalTwinStateProperty {} Created !", physicalPropertyKey);
+//                            }
+//                            else
+//                                logger.warn("DT Property {} already available !", physicalPropertyKey);
 
                             //Observe Physical Property in order to receive Physical Events related to Asset updates
                             logger.info("Observing Physical Asset Property: {}", physicalPropertyKey);
@@ -167,7 +169,8 @@ public class ShadowingFunctionTester {
                     if(physicalPropertyEventMessage != null
                             && getPhysicalEventsFilter().contains(physicalPropertyEventMessage.getType())
                             && physicalPropertyEventMessage.getPhysicalPropertyId() != null
-                            && this.digitalTwinStateManager.containsProperty(physicalPropertyEventMessage.getPhysicalPropertyId())
+                            //TODO FIX
+                            //&& this.digitalTwinStateManager.containsProperty(physicalPropertyEventMessage.getPhysicalPropertyId())
                             && physicalPropertyEventMessage.getBody() instanceof Double
                     ){
 

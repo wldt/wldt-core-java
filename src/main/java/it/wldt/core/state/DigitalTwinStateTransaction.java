@@ -80,20 +80,24 @@ public class DigitalTwinStateTransaction {
 
             //Apply Digital Twin State Changes added to the Transaction
             for(DigitalTwinStateChange digitalTwinStateChange : this.digitalTwinStateChangeList){
-                if(digitalTwinStateChange.getResourceType().equals(DigitalTwinStateChange.ResourceType.PROPERTY) && digitalTwinStateChange.getResource() instanceof DigitalTwinStateProperty)
-                    handlePropertyChange(digitalTwinStateChange.getOperation(), (DigitalTwinStateProperty)digitalTwinStateChange.getResource());
+                if((digitalTwinStateChange.getResourceType().equals(DigitalTwinStateChange.ResourceType.PROPERTY) || digitalTwinStateChange.getResourceType().equals(DigitalTwinStateChange.ResourceType.PROPERTY_VALUE) ) && digitalTwinStateChange.getResource() instanceof DigitalTwinStateProperty)
+                    handlePropertyChange(digitalTwinStateChange.getOperation(), (DigitalTwinStateProperty<?>)digitalTwinStateChange.getResource());
                 else if(digitalTwinStateChange.getResourceType().equals(DigitalTwinStateChange.ResourceType.EVENT) && digitalTwinStateChange.getResource() instanceof DigitalTwinStateEvent)
                     handleEventChange(digitalTwinStateChange.getOperation(), (DigitalTwinStateEvent)digitalTwinStateChange.getResource());
                 else if(digitalTwinStateChange.getResourceType().equals(DigitalTwinStateChange.ResourceType.ACTION) && digitalTwinStateChange.getResource() instanceof DigitalTwinStateAction)
                     handleActionChange(digitalTwinStateChange.getOperation(), (DigitalTwinStateAction)digitalTwinStateChange.getResource());
                 else if(digitalTwinStateChange.getResourceType().equals(DigitalTwinStateChange.ResourceType.RELATIONSHIP) && digitalTwinStateChange.getResource() instanceof DigitalTwinStateRelationship)
-                    handleRelationshipChange(digitalTwinStateChange.getOperation(), (DigitalTwinStateRelationship)digitalTwinStateChange.getResource());
+                    handleRelationshipChange(digitalTwinStateChange.getOperation(), (DigitalTwinStateRelationship<?>)digitalTwinStateChange.getResource());
                 else if(digitalTwinStateChange.getResourceType().equals(DigitalTwinStateChange.ResourceType.RELATIONSHIP_INSTANCE) && digitalTwinStateChange.getResource() instanceof DigitalTwinStateRelationshipInstance)
-                    handleRelationshipInstanceChange(digitalTwinStateChange.getOperation(), (DigitalTwinStateRelationshipInstance)digitalTwinStateChange.getResource());
+                    handleRelationshipInstanceChange(digitalTwinStateChange.getOperation(), (DigitalTwinStateRelationshipInstance<?>)digitalTwinStateChange.getResource());
             }
 
             //Update Digital Twin State evaluation Instant
             this.endDigitalTwinState.setEvaluationInstant(Instant.now());
+
+            //Update the commit status to True
+            this.isCommitted = true;
+
         } catch (Exception e){
             String errorMsg = String.format("Exception handling Digital Twin State Transaction Changes ! Error: %s", e.getLocalizedMessage());
             logger.error(errorMsg);

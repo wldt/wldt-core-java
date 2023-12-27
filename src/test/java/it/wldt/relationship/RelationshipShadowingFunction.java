@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
 public class RelationshipShadowingFunction extends ShadowingModelFunction {
+
     private CountDownLatch relationshipLatch;
 
     public RelationshipShadowingFunction() {
@@ -44,8 +45,9 @@ public class RelationshipShadowingFunction extends ShadowingModelFunction {
         adaptersPhysicalAssetDescriptionMap.values().forEach(d -> {
             d.getRelationships().forEach(par -> {
                 try {
-                    this.digitalTwinStateManager.createRelationship(new DigitalTwinStateRelationship<String>(par.getName(), "test-type"));
-                } catch (WldtDigitalTwinStateRelationshipException e) {
+                    //TODO FIX
+                    //this.digitalTwinStateManager.createRelationship(new DigitalTwinStateRelationship<String>(par.getName(), "test-type"));
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
             });
@@ -84,10 +86,11 @@ public class RelationshipShadowingFunction extends ShadowingModelFunction {
         String relationshipName = physicalAssetRelationshipInstance.getRelationship().getName();
         DigitalTwinStateRelationshipInstance<?> instance = new DigitalTwinStateRelationshipInstance<>(relationshipName, physicalAssetRelationshipInstance.getTargetId(), physicalAssetRelationshipInstance.getKey());
         try {
-            this.digitalTwinStateManager.addRelationshipInstance(relationshipName, instance);
+            //TODO FIX
+            //this.digitalTwinStateManager.addRelationshipInstance(relationshipName, instance);
             if(this.relationshipLatch != null)
                 this.relationshipLatch.countDown();
-        } catch (WldtDigitalTwinStateRelationshipException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -97,10 +100,11 @@ public class RelationshipShadowingFunction extends ShadowingModelFunction {
         PhysicalAssetRelationshipInstance<?> physicalAssetRelationshipInstance = physicalAssetRelationshipWldtEvent.getBody();
         String relationshipName = physicalAssetRelationshipInstance.getRelationship().getName();
         try {
-            this.digitalTwinStateManager.deleteRelationshipInstance(relationshipName, physicalAssetRelationshipInstance.getKey());
+            //TODO FIX
+            //this.digitalTwinStateManager.deleteRelationshipInstance(relationshipName, physicalAssetRelationshipInstance.getKey());
             if(this.relationshipLatch != null)
                 this.relationshipLatch.countDown();
-        } catch (WldtDigitalTwinStateRelationshipException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }

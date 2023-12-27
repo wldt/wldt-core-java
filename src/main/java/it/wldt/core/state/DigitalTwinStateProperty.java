@@ -113,6 +113,11 @@ public class DigitalTwinStateProperty<T> extends DigitalTwinStateResource {
         this.value = value;
     }
 
+    public void setValueObject(Object valueObject){
+        if(this.value.getClass().equals(valueObject.getClass()))
+            this.value = (T) valueObject;
+    }
+
     public boolean isReadable() {
         return readable;
     }
@@ -148,9 +153,9 @@ public class DigitalTwinStateProperty<T> extends DigitalTwinStateResource {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (!(o instanceof DigitalTwinStateProperty)) return false;
         DigitalTwinStateProperty<?> that = (DigitalTwinStateProperty<?>) o;
-        return readable == that.readable && writable == that.writable && exposed == that.exposed && key.equals(that.key) && value.equals(that.value);
+        return readable == that.readable && writable == that.writable && exposed == that.exposed && Objects.equals(key, that.key) && Objects.equals(value, that.value) && Objects.equals(type, that.type);
     }
 
     @Override

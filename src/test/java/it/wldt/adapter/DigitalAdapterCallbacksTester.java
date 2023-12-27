@@ -84,84 +84,15 @@ public class DigitalAdapterCallbacksTester {
     }
     private DigitalAdapter<String> createDigitalAdapter(String id , List<DigitalAdapterCallbacks> receivedCallbacks){
 
-        return new DigitalAdapter<String>(id, true) {
+        return new DigitalAdapter<String>(id) {
+
             @Override
-            protected void onStateChangePropertyCreated(DigitalTwinStateProperty<?> digitalTwinStateProperty) {
+            protected void onStateUpdate(DigitalTwinState newDigitalTwinState, DigitalTwinState previousDigitalTwinState, ArrayList<DigitalTwinStateChange> digitalTwinStateChangeList) {
 
             }
 
             @Override
-            protected void onStateChangePropertyUpdated(DigitalTwinStateProperty<?> digitalTwinStateProperty) {
-
-            }
-
-            @Override
-            protected void onStateChangePropertyDeleted(DigitalTwinStateProperty<?> digitalTwinStateProperty) {
-
-            }
-
-            @Override
-            protected void onStatePropertyUpdated(DigitalTwinStateProperty<?> digitalTwinStateProperty) {
-
-            }
-
-            @Override
-            protected void onStatePropertyDeleted(DigitalTwinStateProperty<?> digitalTwinStateProperty) {
-
-            }
-
-            @Override
-            protected void onStateChangeActionEnabled(DigitalTwinStateAction digitalTwinStateAction) {
-
-            }
-
-            @Override
-            protected void onStateChangeActionUpdated(DigitalTwinStateAction digitalTwinStateAction) {
-
-            }
-
-            @Override
-            protected void onStateChangeActionDisabled(DigitalTwinStateAction digitalTwinStateAction) {
-
-            }
-
-            @Override
-            protected void onStateChangeEventRegistered(DigitalTwinStateEvent digitalTwinStateEvent) {
-
-            }
-
-            @Override
-            protected void onStateChangeEventRegistrationUpdated(DigitalTwinStateEvent digitalTwinStateEvent) {
-
-            }
-
-            @Override
-            protected void onStateChangeEventUnregistered(DigitalTwinStateEvent digitalTwinStateEvent) {
-
-            }
-
-            @Override
-            protected void onDigitalTwinStateEventNotificationReceived(DigitalTwinStateEventNotification<?> digitalTwinStateEventNotification) {
-
-            }
-
-            @Override
-            protected void onStateChangeRelationshipCreated(DigitalTwinStateRelationship<?> digitalTwinStateRelationship) {
-
-            }
-
-            @Override
-            protected void onStateChangeRelationshipInstanceCreated(DigitalTwinStateRelationshipInstance<?> digitalTwinStateRelationshipInstance) {
-
-            }
-
-            @Override
-            protected void onStateChangeRelationshipDeleted(DigitalTwinStateRelationship<?> digitalTwinStateRelationship) {
-
-            }
-
-            @Override
-            protected void onStateChangeRelationshipInstanceDeleted(DigitalTwinStateRelationshipInstance<?> digitalTwinStateRelationshipInstance) {
+            protected void onEventNotificationReceived(DigitalTwinStateEventNotification<?> digitalTwinStateEventNotification) {
 
             }
 
@@ -177,12 +108,12 @@ public class DigitalAdapterCallbacksTester {
             }
 
             @Override
-            public void onDigitalTwinSync(IDigitalTwinStateManager digitalTwinState) {
+            public void onDigitalTwinSync(DigitalTwinState digitalTwinState) {
                 receivedCallbacks.add(ON_DT_SYNC);
             }
 
             @Override
-            public void onDigitalTwinUnSync(IDigitalTwinStateManager digitalTwinState) {
+            public void onDigitalTwinUnSync(DigitalTwinState digitalTwinState) {
                 receivedCallbacks.add(ON_DT_UN_SYNC);
             }
 

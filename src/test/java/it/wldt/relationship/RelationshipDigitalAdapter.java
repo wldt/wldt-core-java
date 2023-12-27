@@ -3,11 +3,13 @@ package it.wldt.relationship;
 import it.wldt.adapter.digital.DigitalAdapter;
 import it.wldt.core.state.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.stream.Collectors;
 
 public class RelationshipDigitalAdapter extends DigitalAdapter<String> {
+
     private DigitalTwinState digitalTwinState;
     private final List<DigitalTwinStateRelationshipInstance<?>> instancesNotification;
     private CountDownLatch relationshipNotificationLatch;
@@ -17,87 +19,31 @@ public class RelationshipDigitalAdapter extends DigitalAdapter<String> {
         this.instancesNotification = instancesNotification;
     }
 
+
     @Override
-    protected void onStateChangePropertyCreated(DigitalTwinStateProperty<?> digitalTwinStateProperty) {
+    protected void onStateUpdate(DigitalTwinState newDigitalTwinState, DigitalTwinState previousDigitalTwinState, ArrayList<DigitalTwinStateChange> digitalTwinStateChangeList) {
 
     }
 
     @Override
-    protected void onStateChangePropertyUpdated(DigitalTwinStateProperty<?> digitalTwinStateProperty) {
+    protected void onEventNotificationReceived(DigitalTwinStateEventNotification<?> digitalTwinStateEventNotification) {
 
     }
 
-    @Override
-    protected void onStateChangePropertyDeleted(DigitalTwinStateProperty<?> digitalTwinStateProperty) {
 
-    }
-
-    @Override
-    protected void onStatePropertyUpdated(DigitalTwinStateProperty<?> digitalTwinStateProperty) {
-
-    }
-
-    @Override
-    protected void onStatePropertyDeleted(DigitalTwinStateProperty<?> digitalTwinStateProperty) {
-
-    }
-
-    @Override
-    protected void onStateChangeActionEnabled(DigitalTwinStateAction digitalTwinStateAction) {
-
-    }
-
-    @Override
-    protected void onStateChangeActionUpdated(DigitalTwinStateAction digitalTwinStateAction) {
-
-    }
-
-    @Override
-    protected void onStateChangeActionDisabled(DigitalTwinStateAction digitalTwinStateAction) {
-
-    }
-
-    @Override
-    protected void onStateChangeEventRegistered(DigitalTwinStateEvent digitalTwinStateEvent) {
-
-    }
-
-    @Override
-    protected void onStateChangeEventRegistrationUpdated(DigitalTwinStateEvent digitalTwinStateEvent) {
-
-    }
-
-    @Override
-    protected void onStateChangeEventUnregistered(DigitalTwinStateEvent digitalTwinStateEvent) {
-
-    }
-
-    @Override
-    protected void onDigitalTwinStateEventNotificationReceived(DigitalTwinStateEventNotification<?> digitalTwinStateEventNotification) {
-
-    }
-
-    @Override
-    protected void onStateChangeRelationshipCreated(DigitalTwinStateRelationship<?> digitalTwinStateRelationship) {
-
-    }
-
-    @Override
-    protected void onStateChangeRelationshipInstanceCreated(DigitalTwinStateRelationshipInstance<?> digitalTwinStateRelationshipInstance) {
-        System.out.println("DA receive instance notification");
-        this.instancesNotification.add(digitalTwinStateRelationshipInstance);
-    }
-
-    @Override
-    protected void onStateChangeRelationshipDeleted(DigitalTwinStateRelationship<?> digitalTwinStateRelationship) {
-
-    }
-
-    @Override
-    protected void onStateChangeRelationshipInstanceDeleted(DigitalTwinStateRelationshipInstance<?> digitalTwinStateRelationshipInstance) {
-        System.out.println("DA RECEIVE DELETE EVENT");
-        this.instancesNotification.removeIf(r -> r.getKey().equals(digitalTwinStateRelationshipInstance.getKey()));
-    }
+    //TODO FIX
+//    @Override
+//    protected void onStateChangeRelationshipInstanceCreated(DigitalTwinStateRelationshipInstance<?> digitalTwinStateRelationshipInstance) {
+//        System.out.println("DA receive instance notification");
+//        this.instancesNotification.add(digitalTwinStateRelationshipInstance);
+//    }
+//
+//
+//    @Override
+//    protected void onStateChangeRelationshipInstanceDeleted(DigitalTwinStateRelationshipInstance<?> digitalTwinStateRelationshipInstance) {
+//        System.out.println("DA RECEIVE DELETE EVENT");
+//        this.instancesNotification.removeIf(r -> r.getKey().equals(digitalTwinStateRelationshipInstance.getKey()));
+//    }
 
     @Override
     public void onAdapterStart() {
@@ -110,16 +56,18 @@ public class RelationshipDigitalAdapter extends DigitalAdapter<String> {
     }
 
     @Override
-    public void onDigitalTwinSync(IDigitalTwinStateManager digitalTwinState) {
+    public void onDigitalTwinSync(DigitalTwinState digitalTwinState) {
+
         this.digitalTwinState = digitalTwinState;
-        if(digitalTwinState.getRelationshipList().isPresent())
-            observeDigitalTwinRelationships(digitalTwinState.getRelationshipList().get().stream()
-                    .map(DigitalTwinStateRelationship::getName)
-                    .collect(Collectors.toList()));
+        //TODO FIX
+//        if(digitalTwinState.getRelationshipList().isPresent())
+//            observeDigitalTwinRelationships(digitalTwinState.getRelationshipList().get().stream()
+//                    .map(DigitalTwinStateRelationship::getName)
+//                    .collect(Collectors.toList()));
     }
 
     @Override
-    public void onDigitalTwinUnSync(IDigitalTwinStateManager digitalTwinState) {
+    public void onDigitalTwinUnSync(DigitalTwinState digitalTwinState) {
 
     }
 

@@ -2,7 +2,7 @@ package it.wldt.adapter;
 
 import it.wldt.adapter.digital.event.DigitalActionWldtEvent;
 import it.wldt.adapter.physical.event.*;
-import it.wldt.core.state.DigitalTwinStateEventNotification;
+import it.wldt.core.state.*;
 import it.wldt.adapter.physical.PhysicalAssetAction;
 import it.wldt.adapter.physical.PhysicalAssetDescription;
 import it.wldt.adapter.physical.PhysicalAssetEvent;
@@ -10,10 +10,7 @@ import it.wldt.adapter.physical.PhysicalAssetProperty;
 import it.wldt.core.engine.WldtEngine;
 import it.wldt.core.event.DefaultWldtEventLogger;
 import it.wldt.core.event.WldtEventBus;
-import it.wldt.core.state.DigitalTwinStateEvent;
 import it.wldt.core.model.ShadowingModelFunction;
-import it.wldt.core.state.DigitalTwinStateAction;
-import it.wldt.core.state.DigitalTwinStateProperty;
 import it.wldt.exception.*;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.TestMethodOrder;
@@ -43,15 +40,9 @@ public class AdaptersTester {
 
     private static List<PhysicalAssetPropertyWldtEvent<String>> receivedPhysicalSwitchEventMessageList = null;
 
-    private static List<DigitalTwinStateProperty<?>> receivedDigitalAdapterPropertyCreatedMessageList = null;
+    private static List<DigitalTwinStateEventNotification<?>> receivedEventNotificationList = null;
 
-    private static List<DigitalTwinStateProperty<?>> receivedDigitalAdapterPropertyUpdateMessageList = null;
-
-    private static List<DigitalTwinStateProperty<?>> receivedDigitalAdapterPropertyDeletedMessageList = null;
-
-    private static List<DigitalTwinStateEventNotification<?>> receivedDigitalTwinStateEventNotificationList = null;
-
-    private static List<IDigitalTwinStateManager> receivedDigitalAdapterSyncDigitalTwinStateList = null;
+    private static List<DigitalTwinState> receivedDigitalTwinStateUpdateList = null;
 
     private WldtEngine buildWldtEngine(boolean physicalTelemetryOn) throws WldtConfigurationException, ModelException, WldtRuntimeException, EventBusException {
 
@@ -60,11 +51,8 @@ public class AdaptersTester {
 
         //Create Digital Adapter
         DummyDigitalAdapter dummyDigitalAdapter = new DummyDigitalAdapter("dummy-digital-adapter", new DummyDigitalAdapterConfiguration(),
-                receivedDigitalAdapterPropertyCreatedMessageList,
-                receivedDigitalAdapterPropertyUpdateMessageList,
-                receivedDigitalAdapterPropertyDeletedMessageList,
-                receivedDigitalTwinStateEventNotificationList,
-                receivedDigitalAdapterSyncDigitalTwinStateList
+                receivedDigitalTwinStateUpdateList,
+                receivedEventNotificationList
         );
 
         //Init the Engine
@@ -277,11 +265,8 @@ public class AdaptersTester {
         receivedPhysicalTelemetryEventMessageList = new ArrayList<>();
         receivedPhysicalEventEventMessageList = new ArrayList<>();
 
-        receivedDigitalAdapterPropertyCreatedMessageList = new ArrayList<>();
-        receivedDigitalAdapterPropertyUpdateMessageList = new ArrayList<>();
-        receivedDigitalAdapterPropertyDeletedMessageList = new ArrayList<>();
-        receivedDigitalAdapterSyncDigitalTwinStateList = new ArrayList<>();
-        receivedDigitalTwinStateEventNotificationList = new ArrayList<>();
+        receivedDigitalTwinStateUpdateList = new ArrayList<>();
+        receivedEventNotificationList = new ArrayList<>();
 
         wldtEventsLock = new CountDownLatch(DummyPhysicalAdapter.TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES + DummyPhysicalAdapter.TARGET_PHYSICAL_ASSET_EVENT_UPDATES);
 
@@ -302,11 +287,11 @@ public class AdaptersTester {
         //Check Received Physical Asset Events Availability correctly received by the Shadowing Function
         assertEquals(DummyPhysicalAdapter.TARGET_PHYSICAL_ASSET_EVENT_UPDATES, receivedPhysicalEventEventMessageList.size());
 
-        //Check Correct Digital Twin State Property Update Events have been received on the Digital Adapter
-        assertEquals(DummyPhysicalAdapter.TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES, receivedDigitalAdapterPropertyUpdateMessageList.size());
+        //Check Correct Digital Twin State Property Update Events have been received on the Digital Adapter through DT State Updates
+        assertEquals(DummyPhysicalAdapter.TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES, receivedDigitalTwinStateUpdateList.size());
 
         //Check if Digital Twin State Events Notifications have been correctly received by the Digital Adapter after passing through the Shadowing Function
-        assertEquals(DummyPhysicalAdapter.TARGET_PHYSICAL_ASSET_EVENT_UPDATES, receivedDigitalTwinStateEventNotificationList.size());
+        assertEquals(DummyPhysicalAdapter.TARGET_PHYSICAL_ASSET_EVENT_UPDATES, receivedEventNotificationList.size());
 
         Thread.sleep(2000);
 

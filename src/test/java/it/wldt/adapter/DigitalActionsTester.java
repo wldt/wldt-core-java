@@ -1,12 +1,10 @@
 package it.wldt.adapter;
 
-import it.wldt.adapter.digital.DigitalAdapter;
 import it.wldt.adapter.physical.PhysicalAdapter;
 import it.wldt.adapter.physical.PhysicalAssetAction;
 import it.wldt.adapter.physical.PhysicalAssetDescription;
 import it.wldt.adapter.physical.event.PhysicalAssetActionWldtEvent;
 import it.wldt.core.engine.WldtEngine;
-import it.wldt.core.state.*;
 import it.wldt.exception.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -94,141 +92,6 @@ public class DigitalActionsTester {
                 .collect(Collectors.toList()).containsAll(Arrays.asList("foo", "bar")));
         physicalAssetActionEventReceived.clear();
         dtEngine.stopLifeCycle();
-    }
-
-    private static class SwitchDigitalAdapter extends DigitalAdapter<String>{
-
-        public SwitchDigitalAdapter() {
-            super("test-digital-actions-adapter", "");
-        }
-
-        @Override
-        protected void onStateChangePropertyCreated(DigitalTwinStateProperty<?> digitalTwinStateProperty) {
-
-        }
-
-        @Override
-        protected void onStateChangePropertyUpdated(DigitalTwinStateProperty<?> digitalTwinStateProperty) {
-
-        }
-
-        @Override
-        protected void onStateChangePropertyDeleted(DigitalTwinStateProperty<?> digitalTwinStateProperty) {
-
-        }
-
-        @Override
-        protected void onStatePropertyUpdated(DigitalTwinStateProperty<?> digitalTwinStateProperty) {
-
-        }
-
-        @Override
-        protected void onStatePropertyDeleted(DigitalTwinStateProperty<?> digitalTwinStateProperty) {
-
-        }
-
-        @Override
-        protected void onStateChangeActionEnabled(DigitalTwinStateAction digitalTwinStateAction) {
-
-        }
-
-        @Override
-        protected void onStateChangeActionUpdated(DigitalTwinStateAction digitalTwinStateAction) {
-
-        }
-
-        @Override
-        protected void onStateChangeActionDisabled(DigitalTwinStateAction digitalTwinStateAction) {
-
-        }
-
-        @Override
-        protected void onStateChangeEventRegistered(DigitalTwinStateEvent digitalTwinStateEvent) {
-
-        }
-
-        @Override
-        protected void onStateChangeEventRegistrationUpdated(DigitalTwinStateEvent digitalTwinStateEvent) {
-
-        }
-
-        @Override
-        protected void onStateChangeEventUnregistered(DigitalTwinStateEvent digitalTwinStateEvent) {
-
-        }
-
-        @Override
-        protected void onDigitalTwinStateEventNotificationReceived(DigitalTwinStateEventNotification<?> digitalTwinStateEventNotification) {
-
-        }
-
-        @Override
-        protected void onStateChangeRelationshipCreated(DigitalTwinStateRelationship<?> digitalTwinStateRelationship) {
-
-        }
-
-        @Override
-        protected void onStateChangeRelationshipInstanceCreated(DigitalTwinStateRelationshipInstance<?> digitalTwinStateRelationshipInstance) {
-
-        }
-
-        @Override
-        protected void onStateChangeRelationshipDeleted(DigitalTwinStateRelationship<?> digitalTwinStateRelationship) {
-
-        }
-
-        @Override
-        protected void onStateChangeRelationshipInstanceDeleted(DigitalTwinStateRelationshipInstance<?> digitalTwinStateRelationshipInstance) {
-
-        }
-
-        @Override
-        public void onAdapterStart() {
-
-        }
-
-        @Override
-        public void onAdapterStop() {
-
-        }
-
-        @Override
-        public void onDigitalTwinSync(IDigitalTwinStateManager digitalTwinState) {
-
-        }
-
-        @Override
-        public void onDigitalTwinUnSync(IDigitalTwinStateManager digitalTwinState) {
-
-        }
-
-        @Override
-        public void onDigitalTwinCreate() {
-
-        }
-
-        @Override
-        public void onDigitalTwinStart() {
-
-        }
-
-        @Override
-        public void onDigitalTwinStop() {
-
-        }
-
-        @Override
-        public void onDigitalTwinDestroy() {
-
-        }
-
-        public <T> void invokeAction(String actionKey, T body){
-            try {
-                publishDigitalActionWldtEvent(actionKey, body);
-            } catch (EventBusException e) {
-                e.printStackTrace();
-            }
-        }
     }
 
 }
