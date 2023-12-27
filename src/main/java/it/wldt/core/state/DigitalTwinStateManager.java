@@ -539,10 +539,10 @@ public class DigitalTwinStateManager {
                             DigitalTwinStateChange.ResourceType.RELATIONSHIP_INSTANCE,
                             digitalTwinStateRelationship.getInstance(instanceKey)));
                 else
-                    throw new WldtDigitalTwinStateException(String.format("Relationship with Name:%s Not Found !", relationshipName));
+                    throw new WldtDigitalTwinStateException(String.format("Relationship Instance with Key:%s and Relationship Name:%s Not Found !", instanceKey, relationshipName));
             }
             else
-                throw new WldtDigitalTwinStateException(String.format("Relationship Instance with Key:%s Not Found !", instanceKey));
+                throw new WldtDigitalTwinStateException(String.format("Relationship with Name:%s Not Found !", relationshipName));
 
         } catch (Exception e){
             String errorMsg = String.format("Exception deleting relationship ! Error: %s", e.getLocalizedMessage());
