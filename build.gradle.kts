@@ -21,7 +21,7 @@ dependencies {
     api("org.apache.commons:commons-lang3:3.9")
     api("ch.qos.logback:logback-classic:1.4.6")
     api("javax.inject:javax.inject:1")
-    testImplementation("org.junit.jupiter:junit-jupiter-engine:5.8.1")
+    testImplementation("org.junit.jupiter:junit-jupiter-engine:5.10.1")
 }
 
 java {

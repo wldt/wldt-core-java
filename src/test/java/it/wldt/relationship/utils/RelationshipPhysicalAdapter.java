@@ -1,4 +1,4 @@
-package it.wldt.relationship;
+package it.wldt.relationship.utils;
 
 import it.wldt.adapter.physical.PhysicalAdapter;
 import it.wldt.adapter.physical.PhysicalAssetDescription;

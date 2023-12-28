@@ -7,16 +7,18 @@ import it.wldt.adapter.physical.PhysicalAssetEvent;
 import it.wldt.adapter.physical.PhysicalAssetProperty;
 import it.wldt.adapter.physical.event.PhysicalAssetRelationshipInstanceCreatedWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetRelationshipInstanceDeletedWldtEvent;
+import it.wldt.adapter.physical.TestPhysicalAdapter;
+import it.wldt.adapter.physical.TestPhysicalAdapterConfiguration;
 import it.wldt.core.engine.WldtEngine;
 import it.wldt.adapter.physical.event.PhysicalAssetEventWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetPropertyWldtEvent;
 import it.wldt.core.event.*;
 import it.wldt.core.model.ShadowingModelFunction;
+import it.wldt.core.state.DigitalTwinState;
+import it.wldt.core.state.DigitalTwinStateManager;
 import it.wldt.core.state.DigitalTwinStateProperty;
-import it.wldt.adapter.instance.DummyDigitalAdapter;
-import it.wldt.adapter.instance.DummyDigitalAdapterConfiguration;
-import it.wldt.adapter.instance.DummyPhysicalAdapter;
-import it.wldt.adapter.instance.DummyPhysicalAdapterConfiguration;
+import it.wldt.adapter.digital.TestDigitalAdapter;
+import it.wldt.adapter.digital.TestDigitalAdapterConfiguration;
 import it.wldt.exception.*;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.TestMethodOrder;
@@ -42,10 +44,7 @@ public class ShadowingFunctionTester {
 
         //Define EventFilter and add the target topic
         WldtEventFilter wldtEventFilter = new WldtEventFilter();
-        //TODO FIX
-//        wldtEventFilter.add(DigitalTwinStateManager.DT_STATE_PROPERTY_CREATED);
-//        wldtEventFilter.add(DigitalTwinStateManager.DT_STATE_PROPERTY_UPDATED);
-//        wldtEventFilter.add(DigitalTwinStateManager.DT_STATE_PROPERTY_DELETED);
+        wldtEventFilter.add(DigitalTwinStateManager.getStatusUpdatesWldtEventMessageType());
 
         WldtEventBus.getInstance().subscribe("demo-state-observer", wldtEventFilter, new WldtEventListener() {
             @Override
@@ -61,7 +60,12 @@ public class ShadowingFunctionTester {
             @Override
             public void onEvent(WldtEvent<?> wldtEvent) {
 
-                if(wldtEvent != null && wldtEvent.getBody() != null && (wldtEvent.getBody() instanceof DigitalTwinStateProperty)) {
+                //DT State Events Management
+                if(wldtEvent != null
+                        && wldtEvent.getType().equals(DigitalTwinStateManager.getStatusUpdatesWldtEventMessageType())
+                        && wldtEvent.getBody() != null
+                        && (wldtEvent.getBody() instanceof DigitalTwinState)){
+
                     logger.info("DT-State-Observer - onEvent(): Type: {} Event:{}", wldtEvent.getType(), wldtEvent);
                     receivedStateWldtEventList.add(wldtEvent);
                     testCountDownLatch.countDown();
@@ -114,18 +118,19 @@ public class ShadowingFunctionTester {
 
                             logger.info("New Physical Property Detected ! Key: {} Type: {} InstanceType: {}", physicalPropertyKey, physicalPropertyType, physicalAssetProperty.getClass());
 
-                            //TODO FIX
                             //Update Digital Twin State creating the new Property
-//                            if(!this.digitalTwinStateManager.containsProperty(physicalPropertyKey)) {
-//
-//                                this.digitalTwinStateManager.createProperty(new DigitalTwinStateProperty<>(
-//                                                physicalPropertyKey,
-//                                                physicalAssetProperty.getInitialValue()));
-//
-//                                logger.info("New DigitalTwinStateProperty {} Created !", physicalPropertyKey);
-//                            }
-//                            else
-//                                logger.warn("DT Property {} already available !", physicalPropertyKey);
+                            if(!this.digitalTwinStateManager.getDigitalTwinState().containsProperty(physicalPropertyKey)) {
+
+                                this.digitalTwinStateManager.startStateTransaction();
+                                this.digitalTwinStateManager.createProperty(new DigitalTwinStateProperty<>(
+                                                physicalPropertyKey,
+                                                physicalAssetProperty.getInitialValue()));
+                                this.digitalTwinStateManager.commitStateTransaction();
+
+                                logger.info("New DigitalTwinStateProperty {} Created !", physicalPropertyKey);
+                            }
+                            else
+                                logger.warn("DT Property {} already available !", physicalPropertyKey);
 
                             //Observe Physical Property in order to receive Physical Events related to Asset updates
                             logger.info("Observing Physical Asset Property: {}", physicalPropertyKey);
@@ -168,18 +173,19 @@ public class ShadowingFunctionTester {
                     if(physicalPropertyEventMessage != null
                             && getPhysicalEventsFilter().contains(physicalPropertyEventMessage.getType())
                             && physicalPropertyEventMessage.getPhysicalPropertyId() != null
-                            //TODO FIX
-                            //&& this.digitalTwinStateManager.containsProperty(physicalPropertyEventMessage.getPhysicalPropertyId())
+                            && this.digitalTwinStateManager.getDigitalTwinState().containsProperty(physicalPropertyEventMessage.getPhysicalPropertyId())
                             && physicalPropertyEventMessage.getBody() instanceof Double
                     ){
 
                         logger.info("CORRECT PhysicalEvent Received -> Type: {} Message: {}", physicalPropertyEventMessage.getType(), physicalPropertyEventMessage);
 
                         //Update DT State Property
+                        this.digitalTwinStateManager.startStateTransaction();
                         this.digitalTwinStateManager.updateProperty(
                                 new DigitalTwinStateProperty<Double>(
                                         physicalPropertyEventMessage.getPhysicalPropertyId(),
                                         (Double) physicalPropertyEventMessage.getBody()));
+                        this.digitalTwinStateManager.commitStateTransaction();
 
                         if(!isShadowed){
                             isShadowed = true;
@@ -225,7 +231,7 @@ public class ShadowingFunctionTester {
 
         receivedStateWldtEventList = new ArrayList<>();
 
-        testCountDownLatch = new CountDownLatch(DummyPhysicalAdapter.TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES);
+        testCountDownLatch = new CountDownLatch(TestPhysicalAdapter.TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES);
 
         //Set EventBus Logger
         WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
@@ -234,24 +240,24 @@ public class ShadowingFunctionTester {
         createDigitalTwinStateObserver();
 
         //Create Physical Adapter
-        DummyPhysicalAdapter dummyPhysicalAdapter = new DummyPhysicalAdapter("dummy-physical-adapter", new DummyPhysicalAdapterConfiguration(), true);
+        TestPhysicalAdapter testPhysicalAdapter = new TestPhysicalAdapter("dummy-physical-adapter", new TestPhysicalAdapterConfiguration(), true);
 
         //Create Digital Adapter
-        DummyDigitalAdapter dummyDigitalAdapter = new DummyDigitalAdapter("dummy-digital-adapter", new DummyDigitalAdapterConfiguration());
+        TestDigitalAdapter testDigitalAdapter = new TestDigitalAdapter("dummy-digital-adapter", new TestDigitalAdapterConfiguration());
 
         //Init the Engine
         WldtEngine wldtEngine = new WldtEngine(getTargetShadowingFunction(), "shadowing-tester-dt");
-        wldtEngine.addPhysicalAdapter(dummyPhysicalAdapter);
-        wldtEngine.addDigitalAdapter(dummyDigitalAdapter);
+        wldtEngine.addPhysicalAdapter(testPhysicalAdapter);
+        wldtEngine.addDigitalAdapter(testDigitalAdapter);
         wldtEngine.startLifeCycle();
 
         //Wait until all the messages have been received
-        testCountDownLatch.await((DummyPhysicalAdapter.MESSAGE_SLEEP_PERIOD_MS
-                        + (DummyPhysicalAdapter.TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES *DummyPhysicalAdapter.MESSAGE_SLEEP_PERIOD_MS)),
+        testCountDownLatch.await((TestPhysicalAdapter.MESSAGE_SLEEP_PERIOD_MS
+                        + (TestPhysicalAdapter.TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES * TestPhysicalAdapter.MESSAGE_SLEEP_PERIOD_MS)),
                 TimeUnit.MILLISECONDS);
 
         assertNotNull(receivedStateWldtEventList);
-        assertEquals(DummyPhysicalAdapter.TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES, receivedStateWldtEventList.size());
+        assertEquals(TestPhysicalAdapter.TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES, receivedStateWldtEventList.size());
 
         Thread.sleep(2000);
 

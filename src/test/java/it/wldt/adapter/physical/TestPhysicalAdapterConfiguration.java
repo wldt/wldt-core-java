@@ -1,19 +1,19 @@
-package it.wldt.adapter.instance;
+package it.wldt.adapter.physical;
 
-public class DummyDigitalAdapterConfiguration {
+public class TestPhysicalAdapterConfiguration {
 
     private String brokerIp = "127.0.0.1";
 
-    private int brokerPort = 1884;
+    private int brokerPort = 1883;
 
     private String username = "demo";
 
     private String password = "demo";
 
-    public DummyDigitalAdapterConfiguration() {
+    public TestPhysicalAdapterConfiguration() {
     }
 
-    public DummyDigitalAdapterConfiguration(String brokerIp, int brokerPort, String username, String password) {
+    public TestPhysicalAdapterConfiguration(String brokerIp, int brokerPort, String username, String password) {
         this.brokerIp = brokerIp;
         this.brokerPort = brokerPort;
         this.username = username;
@@ -54,7 +54,7 @@ public class DummyDigitalAdapterConfiguration {
 
     @Override
     public String toString() {
-        final StringBuilder sb = new StringBuilder("DummyPhysicalAdapterConfiguration{");
+        final StringBuilder sb = new StringBuilder("TestPhysicalAdapterConfiguration{");
         sb.append("brokerIp='").append(brokerIp).append('\'');
         sb.append(", brokerPort=").append(brokerPort);
         sb.append(", username='").append(username).append('\'');

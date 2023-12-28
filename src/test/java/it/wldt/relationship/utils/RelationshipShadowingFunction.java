@@ -1,4 +1,4 @@
-package it.wldt.relationship;
+package it.wldt.relationship.utils;
 
 import it.wldt.adapter.digital.event.DigitalActionWldtEvent;
 import it.wldt.adapter.physical.PhysicalAssetDescription;
@@ -42,22 +42,29 @@ public class RelationshipShadowingFunction extends ShadowingModelFunction {
 
     @Override
     protected void onDigitalTwinBound(Map<String, PhysicalAssetDescription> adaptersPhysicalAssetDescriptionMap) {
-        adaptersPhysicalAssetDescriptionMap.values().forEach(d -> {
-            d.getRelationships().forEach(par -> {
+        try{
+
+            this.digitalTwinStateManager.startStateTransaction();
+            adaptersPhysicalAssetDescriptionMap.values().forEach(d -> {
+                d.getRelationships().forEach(par -> {
+                    try {
+                        this.digitalTwinStateManager.createRelationship(new DigitalTwinStateRelationship<String>(par.getName(), "test-type"));
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                });
                 try {
-                    //TODO FIX
-                    //this.digitalTwinStateManager.createRelationship(new DigitalTwinStateRelationship<String>(par.getName(), "test-type"));
-                } catch (Exception e) {
+                    this.observePhysicalAssetRelationships(d.getRelationships());
+                } catch (ModelException | EventBusException e) {
                     e.printStackTrace();
                 }
             });
-            try {
-                this.observePhysicalAssetRelationships(d.getRelationships());
-            } catch (ModelException | EventBusException e) {
-                e.printStackTrace();
-            }
-        });
-        notifyShadowingSync();
+            this.digitalTwinStateManager.commitStateTransaction();
+            notifyShadowingSync();
+
+        }catch (Exception e){
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -82,14 +89,19 @@ public class RelationshipShadowingFunction extends ShadowingModelFunction {
 
     @Override
     protected void onPhysicalAssetRelationshipEstablished(PhysicalAssetRelationshipInstanceCreatedWldtEvent<?> physicalAssetRelationshipWldtEvent) {
+
         PhysicalAssetRelationshipInstance<?> physicalAssetRelationshipInstance = physicalAssetRelationshipWldtEvent.getBody();
         String relationshipName = physicalAssetRelationshipInstance.getRelationship().getName();
         DigitalTwinStateRelationshipInstance<?> instance = new DigitalTwinStateRelationshipInstance<>(relationshipName, physicalAssetRelationshipInstance.getTargetId(), physicalAssetRelationshipInstance.getKey());
         try {
-            //TODO FIX
-            //this.digitalTwinStateManager.addRelationshipInstance(relationshipName, instance);
+
+            this.digitalTwinStateManager.startStateTransaction();
+            this.digitalTwinStateManager.addRelationshipInstance(instance);
+            this.digitalTwinStateManager.commitStateTransaction();
+
             if(this.relationshipLatch != null)
                 this.relationshipLatch.countDown();
+
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -100,8 +112,11 @@ public class RelationshipShadowingFunction extends ShadowingModelFunction {
         PhysicalAssetRelationshipInstance<?> physicalAssetRelationshipInstance = physicalAssetRelationshipWldtEvent.getBody();
         String relationshipName = physicalAssetRelationshipInstance.getRelationship().getName();
         try {
-            //TODO FIX
-            //this.digitalTwinStateManager.deleteRelationshipInstance(relationshipName, physicalAssetRelationshipInstance.getKey());
+
+            this.digitalTwinStateManager.startStateTransaction();
+            this.digitalTwinStateManager.deleteRelationshipInstance(relationshipName, physicalAssetRelationshipInstance.getKey());
+            this.digitalTwinStateManager.commitStateTransaction();
+
             if(this.relationshipLatch != null)
                 this.relationshipLatch.countDown();
         } catch (Exception e) {

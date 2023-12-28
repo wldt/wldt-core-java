@@ -1,31 +1,28 @@
 package it.wldt.adapter;
 
+import it.wldt.adapter.digital.TestDigitalAdapter;
+import it.wldt.adapter.digital.TestDigitalAdapterConfiguration;
 import it.wldt.adapter.digital.event.DigitalActionWldtEvent;
-import it.wldt.adapter.instance.*;
+import it.wldt.adapter.physical.*;
 import it.wldt.adapter.physical.event.*;
 import it.wldt.core.state.*;
-import it.wldt.adapter.physical.PhysicalAssetAction;
-import it.wldt.adapter.physical.PhysicalAssetDescription;
-import it.wldt.adapter.physical.PhysicalAssetEvent;
-import it.wldt.adapter.physical.PhysicalAssetProperty;
 import it.wldt.core.engine.WldtEngine;
 import it.wldt.core.event.DefaultWldtEventLogger;
 import it.wldt.core.event.WldtEventBus;
 import it.wldt.core.model.ShadowingModelFunction;
 import it.wldt.exception.*;
-import org.junit.jupiter.api.MethodOrderer;
-import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.jupiter.api.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import org.junit.jupiter.api.Test;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 
 
-@TestMethodOrder(MethodOrderer.MethodName.class)
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class AdaptersTester {
 
     private static final Logger logger = LoggerFactory.getLogger(AdaptersTester.class);
@@ -44,60 +41,89 @@ public class AdaptersTester {
 
     private static List<DigitalTwinState> receivedDigitalTwinStateUpdateList = null;
 
-    private WldtEngine buildWldtEngine(boolean physicalTelemetryOn) throws WldtConfigurationException, ModelException, WldtRuntimeException, EventBusException {
+    private static TestDigitalAdapter testDigitalAdapter;
+
+    private static TestPhysicalAdapter testPhysicalAdapter;
+
+    private static WldtEngine wldtEngine;
+
+    @BeforeEach
+    public void setUp() {
+        logger.info("Setting up Test Environment ...");
+
+        receivedPhysicalTelemetryEventMessageList = new ArrayList<>();
+        receivedPhysicalEventEventMessageList = new ArrayList<>();
+        receivedPhysicalSwitchEventMessageList = new ArrayList<>();
+        receivedEventNotificationList = new ArrayList<>();
+        receivedDigitalTwinStateUpdateList = new ArrayList<>();
+
+        //Our target is to received two event changes associated to switch changes
+        actionLock = new CountDownLatch(2);
+        wldtEventsLock = new CountDownLatch(TestPhysicalAdapter.TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES + TestPhysicalAdapter.TARGET_PHYSICAL_ASSET_EVENT_UPDATES);
+
+    }
+
+    @AfterEach
+    public void tearDown() {
+        logger.info("Cleaning up Test Environment ...");
+
+        receivedPhysicalTelemetryEventMessageList = null;
+        receivedPhysicalEventEventMessageList = null;
+        receivedPhysicalSwitchEventMessageList = null;
+        receivedEventNotificationList = null;
+        receivedDigitalTwinStateUpdateList = null;
+
+        actionLock = null;
+        wldtEventsLock = null;
+
+        wldtEngine = null;
+        testPhysicalAdapter = null;
+        testDigitalAdapter = null;
+    }
+
+    private void buildWldtEngine(boolean physicalTelemetryOn) throws WldtConfigurationException, ModelException, WldtRuntimeException, EventBusException {
 
         //Create Physical Adapter
-        DummyPhysicalAdapter dummyPhysicalAdapter = new DummyPhysicalAdapter("dummy-physical-adapter", new DummyPhysicalAdapterConfiguration(), physicalTelemetryOn);
+        testPhysicalAdapter = new TestPhysicalAdapter("dummy-physical-adapter", new TestPhysicalAdapterConfiguration(), physicalTelemetryOn);
 
         //Create Digital Adapter
-        DummyDigitalAdapter dummyDigitalAdapter = new DummyDigitalAdapter("dummy-digital-adapter", new DummyDigitalAdapterConfiguration(),
+        testDigitalAdapter = new TestDigitalAdapter("dummy-digital-adapter", new TestDigitalAdapterConfiguration(),
                 receivedDigitalTwinStateUpdateList,
                 receivedEventNotificationList
         );
 
-        //DummyShadowingFunction dummyShadowingFunction = new DummyShadowingFunction();
-
         //Init the Engine
-        WldtEngine wldtEngine = new WldtEngine(getTargetShadowingFunction(), "adapters-tester-digital-twin");
-        wldtEngine.addPhysicalAdapter(dummyPhysicalAdapter);
-        wldtEngine.addDigitalAdapter(dummyDigitalAdapter);
-
-        return wldtEngine;
+        wldtEngine = new WldtEngine(getTargetShadowingFunction(), "adapters-tester-digital-twin");
+        wldtEngine.addPhysicalAdapter(testPhysicalAdapter);
+        wldtEngine.addDigitalAdapter(testDigitalAdapter);
     }
 
     @Test
-    public void testPhysicalAdapterEvents() throws WldtConfigurationException, EventBusException, ModelException, ModelFunctionException, InterruptedException, WldtRuntimeException {
-
-        receivedPhysicalTelemetryEventMessageList = new ArrayList<>();
-        receivedPhysicalEventEventMessageList = new ArrayList<>();
-
-        receivedDigitalTwinStateUpdateList = new ArrayList<>();
-        receivedEventNotificationList = new ArrayList<>();
-
-        wldtEventsLock = new CountDownLatch(DummyPhysicalAdapter.TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES + DummyPhysicalAdapter.TARGET_PHYSICAL_ASSET_EVENT_UPDATES);
+    @Order(1)
+    public void testPhysicalAdapterEvents() throws WldtConfigurationException, EventBusException, ModelException, InterruptedException, WldtRuntimeException {
 
         //Set EventBus Logger
         WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
 
-        WldtEngine wldtEngine = buildWldtEngine(true);
+        buildWldtEngine(true);
         wldtEngine.startLifeCycle();
 
         //Wait until all the messages have been received
-        wldtEventsLock.await((DummyPhysicalAdapter.MESSAGE_SLEEP_PERIOD_MS + ((DummyPhysicalAdapter.TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES + DummyPhysicalAdapter.TARGET_PHYSICAL_ASSET_EVENT_UPDATES) * DummyPhysicalAdapter.MESSAGE_SLEEP_PERIOD_MS)), TimeUnit.MILLISECONDS);
+        wldtEventsLock.await((TestPhysicalAdapter.MESSAGE_SLEEP_PERIOD_MS + ((TestPhysicalAdapter.TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES + TestPhysicalAdapter.TARGET_PHYSICAL_ASSET_EVENT_UPDATES) * TestPhysicalAdapter.MESSAGE_SLEEP_PERIOD_MS)), TimeUnit.MILLISECONDS);
 
         assertNotNull(receivedPhysicalTelemetryEventMessageList);
 
         //Check Received Physical Event on the Shadowing Function
-        assertEquals(DummyPhysicalAdapter.TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES, receivedPhysicalTelemetryEventMessageList.size());
+        assertEquals(TestPhysicalAdapter.TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES, receivedPhysicalTelemetryEventMessageList.size());
 
         //Check Received Physical Asset Events Availability correctly received by the Shadowing Function
-        assertEquals(DummyPhysicalAdapter.TARGET_PHYSICAL_ASSET_EVENT_UPDATES, receivedPhysicalEventEventMessageList.size());
+        assertEquals(TestPhysicalAdapter.TARGET_PHYSICAL_ASSET_EVENT_UPDATES, receivedPhysicalEventEventMessageList.size());
 
         //Check Correct Digital Twin State Property Update Events have been received on the Digital Adapter through DT State Updates
-        assertEquals(DummyPhysicalAdapter.TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES, receivedDigitalTwinStateUpdateList.size());
+        assertEquals(TestPhysicalAdapter.TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES, receivedDigitalTwinStateUpdateList.size());
 
         //Check if Digital Twin State Events Notifications have been correctly received by the Digital Adapter after passing through the Shadowing Function
-        assertEquals(DummyPhysicalAdapter.TARGET_PHYSICAL_ASSET_EVENT_UPDATES, receivedEventNotificationList.size());
+        assertEquals(TestPhysicalAdapter.TARGET_PHYSICAL_ASSET_EVENT_UPDATES, receivedEventNotificationList.size());
 
         Thread.sleep(2000);
 
@@ -105,30 +131,26 @@ public class AdaptersTester {
     }
 
     @Test
+    @Order(2)
     public void testPhysicalAdapterActions() throws WldtConfigurationException, EventBusException, ModelException, ModelFunctionException, InterruptedException, WldtRuntimeException {
-
-        receivedPhysicalSwitchEventMessageList = new ArrayList<>();
-
-        //Our target is to received two event changes associated to switch changes
-        actionLock = new CountDownLatch(2);
 
         //Set EventBus Logger
         WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
 
-        WldtEngine wldtEngine = buildWldtEngine(false);
+        buildWldtEngine(false);
         wldtEngine.startLifeCycle();
 
         logger.info("WLDT Started ! Sleeping (5s) before sending actions ...");
         Thread.sleep(5000);
 
         //Send a Demo OFF PhysicalAction to the Adapter
-        PhysicalAssetActionWldtEvent<String> switchOffPhysicalActionEvent = new PhysicalAssetActionWldtEvent<String>(DummyPhysicalAdapter.SWITCH_OFF_ACTION_KEY, "OFF");
+        PhysicalAssetActionWldtEvent<String> switchOffPhysicalActionEvent = new PhysicalAssetActionWldtEvent<String>(TestPhysicalAdapter.SWITCH_OFF_ACTION_KEY, "OFF");
         WldtEventBus.getInstance().publishEvent("demo-action-tester", switchOffPhysicalActionEvent);
         logger.info("Physical Action OFF Sent ! Sleeping (5s) ...");
         Thread.sleep(5000);
 
         //Send a Demo OFF PhysicalAction to the Adapter
-        PhysicalAssetActionWldtEvent<String> switchOnPhysicalActionEvent = new PhysicalAssetActionWldtEvent<String>(DummyPhysicalAdapter.SWITCH_ON_ACTION_KEY, "ON");
+        PhysicalAssetActionWldtEvent<String> switchOnPhysicalActionEvent = new PhysicalAssetActionWldtEvent<String>(TestPhysicalAdapter.SWITCH_ON_ACTION_KEY, "ON");
         WldtEventBus.getInstance().publishEvent("demo-action-tester", switchOnPhysicalActionEvent);
         logger.info("Physical Action ON Sent ! Sleeping (5s) ...");
 
@@ -144,7 +166,7 @@ public class AdaptersTester {
     }
 
 
-    private ShadowingModelFunction getTargetShadowingFunction(){
+    private static ShadowingModelFunction getTargetShadowingFunction(){
 
         return new ShadowingModelFunction("demo-shadowing-model-function") {
 
@@ -269,7 +291,7 @@ public class AdaptersTester {
                     if(physicalPropertyEventMessage != null && getPhysicalEventsFilter().contains(physicalPropertyEventMessage.getType())){
 
                         //Check if it is a switch change
-                        if(PhysicalAssetPropertyWldtEvent.buildEventType(PhysicalAssetPropertyWldtEvent.PHYSICAL_EVENT_BASIC_TYPE, DummyPhysicalAdapter.SWITCH_PROPERTY_KEY).equals(physicalPropertyEventMessage.getType())
+                        if(PhysicalAssetPropertyWldtEvent.buildEventType(PhysicalAssetPropertyWldtEvent.PHYSICAL_EVENT_BASIC_TYPE, TestPhysicalAdapter.SWITCH_PROPERTY_KEY).equals(physicalPropertyEventMessage.getType())
                                 && physicalPropertyEventMessage.getBody() instanceof String){
 
                             logger.info("CORRECT PhysicalEvent Received -> Type: {} Message: {}", physicalPropertyEventMessage.getType(), physicalPropertyEventMessage);
@@ -312,7 +334,8 @@ public class AdaptersTester {
                 try {
 
                     logger.info("ShadowingModelFunction Physical Asset Event Notification - Event Received: {}", physicalAssetEventWldtEvent);
-                    receivedPhysicalEventEventMessageList.add(physicalAssetEventWldtEvent);
+                    if(receivedPhysicalEventEventMessageList != null)
+                        receivedPhysicalEventEventMessageList.add(physicalAssetEventWldtEvent);
 
                     //Handle the received physical event notification and map into a digital notification for digital adapters
                     this.digitalTwinStateManager.notifyDigitalTwinStateEvent(

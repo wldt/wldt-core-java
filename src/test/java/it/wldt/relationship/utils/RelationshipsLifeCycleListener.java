@@ -1,10 +1,8 @@
-package it.wldt.relationship;
+package it.wldt.relationship.utils;
 
 import it.wldt.adapter.physical.PhysicalAssetDescription;
 import it.wldt.core.engine.LifeCycleListener;
 import it.wldt.core.state.DigitalTwinState;
-import it.wldt.core.state.DigitalTwinStateManager;
-
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
@@ -89,5 +87,9 @@ public class RelationshipsLifeCycleListener implements LifeCycleListener {
 
     public void setDigitalTwinState(DigitalTwinState digitalTwinState) {
         this.digitalTwinState = digitalTwinState;
+    }
+
+    public PhysicalAssetDescription getPhysicalAssetDescription() {
+        return physicalAssetDescription;
     }
 }

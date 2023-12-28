@@ -1,8 +1,8 @@
 package it.wldt.lifecycle;
 
-import it.wldt.adapter.instance.DummyDigitalAdapter;
-import it.wldt.adapter.instance.DummyPhysicalAdapter;
-import it.wldt.adapter.instance.DummyPhysicalAdapterConfiguration;
+import it.wldt.adapter.digital.TestDigitalAdapter;
+import it.wldt.adapter.physical.TestPhysicalAdapter;
+import it.wldt.adapter.physical.TestPhysicalAdapterConfiguration;
 import it.wldt.adapter.digital.event.DigitalActionWldtEvent;
 import it.wldt.adapter.physical.PhysicalAssetDescription;
 import it.wldt.adapter.physical.event.PhysicalAssetRelationshipInstanceCreatedWldtEvent;
@@ -14,7 +14,7 @@ import it.wldt.core.event.WldtEventBus;
 import it.wldt.adapter.physical.event.PhysicalAssetEventWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetPropertyWldtEvent;
 import it.wldt.core.model.ShadowingModelFunction;
-import it.wldt.adapter.instance.DummyDigitalAdapterConfiguration;
+import it.wldt.adapter.digital.TestDigitalAdapterConfiguration;
 import it.wldt.core.state.DigitalTwinState;
 import it.wldt.exception.*;
 import org.junit.jupiter.api.MethodOrderer;
@@ -49,13 +49,13 @@ public class LifeCycleTester {
 
         this.receivedPhysicalTelemetryEventMessageList = new ArrayList<>();
 
-        lock = new CountDownLatch(DummyPhysicalAdapter.TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES);
+        lock = new CountDownLatch(TestPhysicalAdapter.TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES);
 
         //Set EventBus Logger
         WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
 
         //Create Physical Adapter
-        DummyPhysicalAdapter dummyPhysicalAdapter = new DummyPhysicalAdapter("dummy-physical-adapter", new DummyPhysicalAdapterConfiguration(), true);
+        TestPhysicalAdapter testPhysicalAdapter = new TestPhysicalAdapter("dummy-physical-adapter", new TestPhysicalAdapterConfiguration(), true);
 
         //Init the Engine
         WldtEngine wldtEngine = new WldtEngine(new ShadowingModelFunction("test-shadowing-function") {
@@ -154,13 +154,12 @@ public class LifeCycleTester {
             @Override
             protected void onPhysicalAssetEventNotification(PhysicalAssetEventWldtEvent<?> physicalAssetEventWldtEvent) {
                 logger.info("ShadowingModelFunction Physical Asset Event - Event Received: {}", physicalAssetEventWldtEvent);
-                //TODO Handle Event MANAGEMENT ON THE DT
             }
 
         }, "life-cycle-tester-dt");
 
-        wldtEngine.addPhysicalAdapter(dummyPhysicalAdapter);
-        wldtEngine.addDigitalAdapter(new DummyDigitalAdapter("test-digital-adapter", new DummyDigitalAdapterConfiguration()));
+        wldtEngine.addPhysicalAdapter(testPhysicalAdapter);
+        wldtEngine.addDigitalAdapter(new TestDigitalAdapter("test-digital-adapter", new TestDigitalAdapterConfiguration()));
         wldtEngine.addLifeCycleListener(new LifeCycleListener() {
             @Override
             public void onCreate() {
@@ -231,12 +230,12 @@ public class LifeCycleTester {
         wldtEngine.startLifeCycle();
 
         //Wait until all the messages have been received
-        lock.await((DummyPhysicalAdapter.MESSAGE_SLEEP_PERIOD_MS + 100
-                        + (DummyPhysicalAdapter.TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES *DummyPhysicalAdapter.MESSAGE_SLEEP_PERIOD_MS)),
+        lock.await((TestPhysicalAdapter.MESSAGE_SLEEP_PERIOD_MS + 100
+                        + (TestPhysicalAdapter.TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES * TestPhysicalAdapter.MESSAGE_SLEEP_PERIOD_MS)),
                 TimeUnit.MILLISECONDS);
 
         assertNotNull(receivedPhysicalTelemetryEventMessageList);
-        assertEquals(DummyPhysicalAdapter.TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES, receivedPhysicalTelemetryEventMessageList.size());
+        assertEquals(TestPhysicalAdapter.TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES, receivedPhysicalTelemetryEventMessageList.size());
 
         Thread.sleep(2000);
 

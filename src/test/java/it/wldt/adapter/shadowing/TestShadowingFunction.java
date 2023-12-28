@@ -1,10 +1,7 @@
-package it.wldt.adapter.instance;
+package it.wldt.adapter.shadowing;
 
 import it.wldt.adapter.digital.event.DigitalActionWldtEvent;
-import it.wldt.adapter.physical.PhysicalAssetAction;
-import it.wldt.adapter.physical.PhysicalAssetDescription;
-import it.wldt.adapter.physical.PhysicalAssetEvent;
-import it.wldt.adapter.physical.PhysicalAssetProperty;
+import it.wldt.adapter.physical.*;
 import it.wldt.adapter.physical.event.PhysicalAssetEventWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetPropertyWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetRelationshipInstanceCreatedWldtEvent;
@@ -20,13 +17,13 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
-public class DummyShadowingFunction extends ShadowingModelFunction {
+public class TestShadowingFunction extends ShadowingModelFunction {
 
-    private static final Logger logger = LoggerFactory.getLogger(DummyShadowingFunction.class);
+    private static final Logger logger = LoggerFactory.getLogger(TestShadowingFunction.class);
 
     private boolean isShadowed = false;
 
-    public DummyShadowingFunction() {
+    public TestShadowingFunction() {
         super("dummy-shadowing-function");
     }
 
@@ -153,7 +150,7 @@ public class DummyShadowingFunction extends ShadowingModelFunction {
             if(physicalPropertyEventMessage != null && getPhysicalEventsFilter().contains(physicalPropertyEventMessage.getType())){
 
                 //Check if it is a switch change
-                if(physicalPropertyEventMessage.getPhysicalPropertyId().equals(DummyPhysicalAdapter.SWITCH_PROPERTY_KEY)
+                if(physicalPropertyEventMessage.getPhysicalPropertyId().equals(TestPhysicalAdapter.SWITCH_PROPERTY_KEY)
                         && physicalPropertyEventMessage.getBody() instanceof String){
 
                     logger.info("CORRECT PhysicalEvent Received -> Type: {} Message: {}", physicalPropertyEventMessage.getType(), physicalPropertyEventMessage);

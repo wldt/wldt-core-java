@@ -1,6 +1,5 @@
-package it.wldt.adapter.instance;
+package it.wldt.adapter.physical;
 
-import it.wldt.adapter.physical.*;
 import it.wldt.core.event.WldtEventBus;
 import it.wldt.adapter.physical.event.PhysicalAssetActionWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetEventWldtEvent;
@@ -10,9 +9,9 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Random;
 
-public class DummyPhysicalAdapter extends ConfigurablePhysicalAdapter<DummyPhysicalAdapterConfiguration> {
+public class TestPhysicalAdapter extends ConfigurablePhysicalAdapter<TestPhysicalAdapterConfiguration> {
 
-    private static final Logger logger = LoggerFactory.getLogger(DummyPhysicalAdapter.class);
+    private static final Logger logger = LoggerFactory.getLogger(TestPhysicalAdapter.class);
 
     public static final int TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES = 10;
 
@@ -34,11 +33,11 @@ public class DummyPhysicalAdapter extends ConfigurablePhysicalAdapter<DummyPhysi
 
     private Random random = new Random();
 
-    public DummyPhysicalAdapter(String id, DummyPhysicalAdapterConfiguration configuration) {
+    public TestPhysicalAdapter(String id, TestPhysicalAdapterConfiguration configuration) {
         super(id, configuration);
     }
 
-    public DummyPhysicalAdapter(String id, DummyPhysicalAdapterConfiguration configuration, boolean isTelemetryOn) {
+    public TestPhysicalAdapter(String id, TestPhysicalAdapterConfiguration configuration, boolean isTelemetryOn) {
         super(id, configuration);
         this.isTelemetryOn = isTelemetryOn;
     }
@@ -121,6 +120,6 @@ public class DummyPhysicalAdapter extends ConfigurablePhysicalAdapter<DummyPhysi
 
     @Override
     public void onAdapterStop() {
-        logger.info("DummyPhysicalAdapter Stopped !");
+        logger.info("TestPhysicalAdapter Stopped !");
     }
 }

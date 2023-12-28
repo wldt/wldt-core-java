@@ -1,6 +1,5 @@
-package it.wldt.adapter.instance;
+package it.wldt.adapter.digital;
 
-import it.wldt.adapter.digital.DigitalAdapter;
 import it.wldt.core.state.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -9,27 +8,27 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class DummyDigitalAdapter extends DigitalAdapter<DummyDigitalAdapterConfiguration> {
+public class TestDigitalAdapter extends DigitalAdapter<TestDigitalAdapterConfiguration> {
 
-    private static final Logger logger = LoggerFactory.getLogger(DummyDigitalAdapter.class);
+    private static final Logger logger = LoggerFactory.getLogger(TestDigitalAdapter.class);
 
     private List<DigitalTwinStateEventNotification<?>> receivedEventNotificationList = null;
 
     private List<DigitalTwinState> receivedDigitalTwinStateUpdateList = null;
 
-    public DummyDigitalAdapter(String id, DummyDigitalAdapterConfiguration configuration) {
+    public TestDigitalAdapter(String id, TestDigitalAdapterConfiguration configuration) {
         super(id, configuration);
     }
 
-    public DummyDigitalAdapter(String id, DummyDigitalAdapterConfiguration configuration,
-                               List<DigitalTwinState> receivedDigitalTwinStateUpdateList,
-                               List<DigitalTwinStateEventNotification<?>> receivedEventNotificationList
+    public TestDigitalAdapter(String id, TestDigitalAdapterConfiguration configuration,
+                              List<DigitalTwinState> receivedDigitalTwinStateUpdateList,
+                              List<DigitalTwinStateEventNotification<?>> receivedEventNotificationList
                                ) {
 
         super(id, configuration);
 
-        this.receivedEventNotificationList = receivedEventNotificationList;
         this.receivedDigitalTwinStateUpdateList = receivedDigitalTwinStateUpdateList;
+        this.receivedEventNotificationList = receivedEventNotificationList;
     }
 
     @Override
@@ -98,8 +97,11 @@ public class DummyDigitalAdapter extends DigitalAdapter<DummyDigitalAdapterConfi
     protected void onEventNotificationReceived(DigitalTwinStateEventNotification<?> digitalTwinStateEventNotification) {
         logger.info("DummyDigitalTwinAdapter -> onDigitalTwinStateEventNotification() - EVENT NOTIFICATION RECEIVED: {}", digitalTwinStateEventNotification);
 
-        if(receivedEventNotificationList != null)
+        if(receivedEventNotificationList != null){
+            logger.info("DummyDigitalTwinAdapter -> onDigitalTwinStateEventNotification() - ADDING TO LIST: {}", receivedEventNotificationList);
             receivedEventNotificationList.add(digitalTwinStateEventNotification);
+            logger.info("DummyDigitalTwinAdapter -> onDigitalTwinStateEventNotification() - ADDED TO LIST: {}", receivedEventNotificationList);
+        }
     }
 
     public List<DigitalTwinStateEventNotification<?>> getReceivedEventNotificationList() {

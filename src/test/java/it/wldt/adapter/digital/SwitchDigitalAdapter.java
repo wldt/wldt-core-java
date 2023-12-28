@@ -1,21 +1,20 @@
-package it.wldt.adapter.instance;
+package it.wldt.adapter.digital;
 
 import it.wldt.adapter.digital.DigitalAdapter;
-import it.wldt.core.state.DigitalTwinState;
-import it.wldt.core.state.DigitalTwinStateChange;
-import it.wldt.core.state.DigitalTwinStateEventNotification;
+import it.wldt.core.state.*;
+import it.wldt.exception.EventBusException;
 
 import java.util.ArrayList;
 
 /**
  * @author Marco Picone, Ph.D. - picone.m@gmail.com
  * @project wldt-core
- * @created 27/12/2023 - 11:08
+ * @created 27/12/2023 - 11:28
  */
-public class DemoDigitalAdapter extends DigitalAdapter<String> {
+public class SwitchDigitalAdapter extends DigitalAdapter<String> {
 
-    public DemoDigitalAdapter(String id, String configuration) {
-        super(id, configuration);
+    public SwitchDigitalAdapter() {
+        super("test-digital-actions-adapter", "");
     }
 
     @Override
@@ -67,4 +66,14 @@ public class DemoDigitalAdapter extends DigitalAdapter<String> {
     public void onDigitalTwinDestroy() {
 
     }
+
+    public <T> void invokeAction(String actionKey, T body){
+        try {
+            System.out.println("INVOKING ACTION: " + actionKey);
+            publishDigitalActionWldtEvent(actionKey, body);
+        } catch (EventBusException e) {
+            e.printStackTrace();
+        }
+    }
+
 }
