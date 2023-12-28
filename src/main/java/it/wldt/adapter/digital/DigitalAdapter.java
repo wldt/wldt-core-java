@@ -10,11 +10,14 @@ import it.wldt.core.event.WldtEventListener;
 import it.wldt.core.state.*;
 import it.wldt.core.worker.WldtWorker;
 import it.wldt.exception.EventBusException;
+import it.wldt.exception.WldtDigitalTwinStateEventException;
+import it.wldt.exception.WldtDigitalTwinStateException;
 import it.wldt.exception.WldtRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Authors:
@@ -148,32 +151,26 @@ public abstract class DigitalAdapter<C> extends WldtWorker implements WldtEventL
      * Enable the observation of available Digital Twin State Events Notifications.
      * @throws EventBusException
      */
-    protected void observeAllDigitalTwinEventsNotifications() throws EventBusException {
+    protected void observeAllDigitalTwinEventsNotifications(DigitalTwinState digitalTwinState) throws EventBusException, WldtDigitalTwinStateEventException {
 
-        //Define EventFilter and add the target topic
-        WldtEventFilter wldtEventFilter = new WldtEventFilter();
-        wldtEventFilter.add(DigitalTwinStateManager.getAllEventNotificationWldtEventMessageType());
-
-        //Save the adopted EventFilter
-        this.stateEventsAvailabilityWldtEventFilter = wldtEventFilter;
-
-        WldtEventBus.getInstance().subscribe(this.id, wldtEventFilter, this);
+        if(digitalTwinState != null && digitalTwinState.getEventList().isPresent()){
+            this.observeDigitalTwinEventsNotifications(digitalTwinState.getEventList().get().stream().map(DigitalTwinStateEvent::getKey).collect(Collectors.toList()));
+        }
+        else
+            throw new WldtDigitalTwinStateEventException("Error observing All DT Event Notifications ! Provided DT State = null !");
     }
 
     /**
      * Cancel the observation of Digital Twin State Events Notifications
      * @throws EventBusException
      */
-    protected void unObserveAllDigitalTwinEventsNotifications() throws EventBusException {
+    protected void unObserveAllDigitalTwinEventsNotifications(DigitalTwinState digitalTwinState) throws EventBusException, WldtDigitalTwinStateEventException {
 
-        //Define EventFilter and add the target topic
-        WldtEventFilter wldtEventFilter = new WldtEventFilter();
-        wldtEventFilter.add(DigitalTwinStateManager.getAllEventNotificationWldtEventMessageType());
-
-        //Save the adopted EventFilter
-        this.stateEventsAvailabilityWldtEventFilter = wldtEventFilter;
-
-        WldtEventBus.getInstance().unSubscribe(this.id, wldtEventFilter, this);
+        if(digitalTwinState != null && digitalTwinState.getEventList().isPresent()){
+            this.unObserveDigitalTwinEventsNotifications(digitalTwinState.getEventList().get().stream().map(DigitalTwinStateEvent::getKey).collect(Collectors.toList()));
+        }
+        else
+            throw new WldtDigitalTwinStateEventException("Error observing All DT Event Notifications ! Provided DT State = null !");
     }
 
     /**

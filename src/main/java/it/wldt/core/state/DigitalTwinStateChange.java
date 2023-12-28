@@ -5,12 +5,18 @@ import it.wldt.exception.WldtDigitalTwinStateException;
 import java.util.Objects;
 
 /**
+ *
+ * Represents a change in the state of a Digital Twin.
+ *
  * @author Marco Picone, Ph.D. - picone.m@gmail.com
  * @project wldt-core
  * @created 18/10/2023 - 15:35
  */
 public class DigitalTwinStateChange {
 
+    /**
+     * Enum representing different types of operations on the Digital Twin state.
+     */
     public static enum Operation {
         OPERATION_UPDATE("update_resource"),
         OPERATION_UPDATE_VALUE("update_resource_value"),
@@ -32,6 +38,9 @@ public class DigitalTwinStateChange {
         }
     }
 
+    /**
+     * Enum representing different types of resources affected by a state change.
+     */
     public static enum ResourceType {
 
         PROPERTY("property"),
@@ -63,10 +72,21 @@ public class DigitalTwinStateChange {
 
     private DigitalTwinStateResource resource;
 
+    /**
+     * Private constructor to prevent direct instantiation without required parameters.
+     */
     private DigitalTwinStateChange(){
 
     }
 
+    /**
+     * Creates a new instance of DigitalTwinStateChange with the specified parameters.
+     *
+     * @param operation     The operation performed on the state (e.g., update, add, remove).
+     * @param resourceType  The type of resource affected by the state change.
+     * @param resource      The specific resource involved in the state change.
+     * @throws WldtDigitalTwinStateException If any of the provided parameters is null.
+     */
     public DigitalTwinStateChange(Operation operation,
                                   ResourceType resourceType,
                                   DigitalTwinStateResource resource) throws WldtDigitalTwinStateException {

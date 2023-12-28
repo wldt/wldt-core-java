@@ -48,8 +48,14 @@ public class TestDigitalAdapter extends DigitalAdapter<TestDigitalAdapterConfigu
 
         //Observe for notification of all the available events
         try {
+
+            //Option 1 Observe all Physical Event Notification through direct call
             if(digitalTwinState != null && digitalTwinState.getEventList().isPresent())
                 this.observeDigitalTwinEventsNotifications(digitalTwinState.getEventList().get().stream().map(DigitalTwinStateEvent::getKey).collect(Collectors.toList()));
+
+            //Option 2 Observe all Physical Event Notification through direct call
+            //this.observeAllDigitalTwinEventsNotifications(digitalTwinState);
+
         }catch (Exception e){
             //logger.error("ERROR OBSERVING TARGET EVENT LIST ! Error: {}", e.getLocalizedMessage());
             e.printStackTrace();

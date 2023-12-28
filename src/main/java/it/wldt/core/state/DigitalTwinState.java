@@ -8,6 +8,9 @@ import java.time.Instant;
 import java.util.*;
 
 /**
+ * Represents the state of a digital twin, including properties, actions, events, and relationships.
+ * Manages the lifecycle and operations on these components.
+ *
  * @author Marco Picone, Ph.D. - picone.m@gmail.com
  * @project wldt-core
  * @created 18/10/2023 - 15:14
@@ -16,16 +19,18 @@ public class DigitalTwinState {
 
     private static final Logger logger = LoggerFactory.getLogger(DigitalTwinState.class);
 
+    // Maps to store properties, actions, events, and relationships
     private Map<String, DigitalTwinStateProperty<?>> properties;
-
     private Map<String, DigitalTwinStateAction> actions;
-
     private Map<String, DigitalTwinStateEvent> events;
-
     private Map<String, DigitalTwinStateRelationship<?>> relationships;
 
+    // Timestamp representing the evaluation instant of the digital twin state
     private Instant evaluationInstant;
 
+    /**
+     * Default constructor initializes maps and sets the evaluation instant to the current timestamp.
+     */
     public DigitalTwinState() {
         this.properties = new HashMap<>();
         this.actions = new HashMap<>();
@@ -34,6 +39,14 @@ public class DigitalTwinState {
         this.evaluationInstant = Instant.now();
     }
 
+    /**
+     * Parameterized constructor to set properties, actions, events, and relationships, and initialize the evaluation instant.
+     *
+     * @param properties      Map of properties
+     * @param actions         Map of actions
+     * @param events          Map of events
+     * @param relationships   Map of relationships
+     */
     public DigitalTwinState(Map<String, DigitalTwinStateProperty<?>> properties,
                             Map<String, DigitalTwinStateAction> actions,
                             Map<String, DigitalTwinStateEvent> events,
@@ -46,7 +59,14 @@ public class DigitalTwinState {
     }
 
     //////////////////////////// PROPERTY MANAGEMENT //////////////////////////////////////////////////////////
-    
+
+    /**
+     * Checks if the digital twin state contains a property with the given key.
+     *
+     * @param propertyKey The key of the property to check.
+     * @return True if the property is present, false otherwise.
+     * @throws WldtDigitalTwinStatePropertyException If an exception occurs during the check.
+     */
     public boolean containsProperty(String propertyKey) throws WldtDigitalTwinStatePropertyException {
         try {
 
@@ -60,6 +80,13 @@ public class DigitalTwinState {
         }
     }
 
+    /**
+     * Retrieves the property with the given key.
+     *
+     * @param propertyKey The key of the property to retrieve.
+     * @return An Optional containing the property if found, empty otherwise.
+     * @throws WldtDigitalTwinStatePropertyException If an exception occurs during the retrieval.
+     */
     public Optional<DigitalTwinStateProperty<?>> getProperty(String propertyKey) throws WldtDigitalTwinStatePropertyException {
         try {
 
@@ -73,6 +100,17 @@ public class DigitalTwinState {
         }
     }
 
+    /**
+     * Retrieves a list of all properties associated with the digital twin state.
+     *
+     * This method returns an Optional containing a List of DigitalTwinStateProperty objects if properties
+     * are present. If the properties map is null or empty, it returns an empty Optional.
+     *
+     * @return An Optional containing a List of DigitalTwinStateProperty objects if properties are present,
+     *         empty Optional otherwise.
+     * @throws WldtDigitalTwinStatePropertyException If an exception occurs during the retrieval of properties.
+     *         The exception wraps the original cause and provides a descriptive error message.
+     */
     public Optional<List<DigitalTwinStateProperty<?>>> getPropertyList() throws WldtDigitalTwinStatePropertyException {
 
         try {
