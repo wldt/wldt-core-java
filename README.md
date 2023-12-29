@@ -675,7 +675,7 @@ import it.wldt.adapter.physical.event.PhysicalAssetEventWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetPropertyWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetRelationshipInstanceCreatedWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetRelationshipInstanceDeletedWldtEvent;
-import it.wldt.core.model.ShadowingModelFunction;
+import it.wldt.core.model.ShadowingFunction;
 import java.util.Map;
 
 public class TestShadowingFunction extends ShadowingModelFunction {
@@ -1367,7 +1367,7 @@ with the created components and start the DT.
 Create a new Java file called ```TestDigitalTwin``` adding the following code: 
  
 ```java
-import it.wldt.core.engine.WldtEngine;
+import it.wldt.core.twin.DigitalTwin;
 
 public class TestDigitalTwin {
 

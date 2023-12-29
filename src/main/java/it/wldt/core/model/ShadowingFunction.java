@@ -37,9 +37,9 @@ import java.util.Objects;
  *  - Life Cycle Management
  *  - Incoming and outgoing events of both Physical and Digital Adapters
  */
-public abstract class ShadowingModelFunction implements WldtEventListener {
+public abstract class ShadowingFunction implements WldtEventListener {
 
-    private static final Logger logger = LoggerFactory.getLogger(ShadowingModelFunction.class);
+    private static final Logger logger = LoggerFactory.getLogger(ShadowingFunction.class);
 
     private String id = null;
 
@@ -49,7 +49,7 @@ public abstract class ShadowingModelFunction implements WldtEventListener {
 
     private ShadowingModelListener shadowingModelListener;
 
-    public ShadowingModelFunction(String id){
+    public ShadowingFunction(String id){
         this.id = id;
         this.physicalEventsFilter = new WldtEventFilter();
     }
@@ -412,7 +412,7 @@ public abstract class ShadowingModelFunction implements WldtEventListener {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        ShadowingModelFunction that = (ShadowingModelFunction) o;
+        ShadowingFunction that = (ShadowingFunction) o;
         return id.equals(that.id);
     }
 

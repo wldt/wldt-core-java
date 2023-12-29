@@ -9,11 +9,11 @@ import it.wldt.adapter.physical.event.PhysicalAssetRelationshipInstanceCreatedWl
 import it.wldt.adapter.physical.event.PhysicalAssetRelationshipInstanceDeletedWldtEvent;
 import it.wldt.core.adapter.physical.TestPhysicalAdapter;
 import it.wldt.core.adapter.physical.TestPhysicalAdapterConfiguration;
-import it.wldt.core.engine.WldtEngine;
+import it.wldt.core.twin.DigitalTwin;
 import it.wldt.adapter.physical.event.PhysicalAssetEventWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetPropertyWldtEvent;
 import it.wldt.core.event.*;
-import it.wldt.core.model.ShadowingModelFunction;
+import it.wldt.core.model.ShadowingFunction;
 import it.wldt.core.state.DigitalTwinState;
 import it.wldt.core.state.DigitalTwinStateManager;
 import it.wldt.core.state.DigitalTwinStateProperty;
@@ -76,9 +76,9 @@ public class ShadowingFunctionTester {
         });
     }
 
-    private ShadowingModelFunction getTargetShadowingFunction(){
+    private ShadowingFunction getTargetShadowingFunction(){
 
-        return new ShadowingModelFunction("demo-shadowing-model-function") {
+        return new ShadowingFunction("demo-shadowing-model-function") {
 
             private boolean isShadowed = false;
 
@@ -168,7 +168,7 @@ public class ShadowingFunctionTester {
 
                 try{
 
-                    logger.info("ShadowingModelFunction Physical Asset Property Event Received: {}", physicalPropertyEventMessage);
+                    logger.info("ShadowingFunction Physical Asset Property Event Received: {}", physicalPropertyEventMessage);
 
                     if(physicalPropertyEventMessage != null
                             && getPhysicalEventsFilter().contains(physicalPropertyEventMessage.getType())
@@ -219,7 +219,7 @@ public class ShadowingFunctionTester {
             @Override
             protected void onPhysicalAssetEventNotification(PhysicalAssetEventWldtEvent<?> physicalAssetEventWldtEvent) {
 
-                logger.info("ShadowingModelFunction Physical Asset Event - Event Received: {}", physicalAssetEventWldtEvent);
+                logger.info("ShadowingFunction Physical Asset Event - Event Received: {}", physicalAssetEventWldtEvent);
 
                 //TODO Handle Event MANAGEMENT ON THE DT
             }
@@ -246,10 +246,10 @@ public class ShadowingFunctionTester {
         TestDigitalAdapter testDigitalAdapter = new TestDigitalAdapter("dummy-digital-adapter", new TestDigitalAdapterConfiguration());
 
         //Init the Engine
-        WldtEngine wldtEngine = new WldtEngine(getTargetShadowingFunction(), "shadowing-tester-dt");
-        wldtEngine.addPhysicalAdapter(testPhysicalAdapter);
-        wldtEngine.addDigitalAdapter(testDigitalAdapter);
-        wldtEngine.startLifeCycle();
+        DigitalTwin digitalTwin = new DigitalTwin(getTargetShadowingFunction(), "shadowing-tester-dt");
+        digitalTwin.addPhysicalAdapter(testPhysicalAdapter);
+        digitalTwin.addDigitalAdapter(testDigitalAdapter);
+        digitalTwin.startLifeCycle();
 
         //Wait until all the messages have been received
         testCountDownLatch.await((TestPhysicalAdapter.MESSAGE_SLEEP_PERIOD_MS
@@ -261,7 +261,7 @@ public class ShadowingFunctionTester {
 
         Thread.sleep(2000);
 
-        wldtEngine.stopLifeCycle();
+        digitalTwin.stopLifeCycle();
     }
 
 }

@@ -1,7 +1,7 @@
 package it.wldt.core.relationship;
 
 import it.wldt.adapter.physical.PhysicalAssetRelationship;
-import it.wldt.core.engine.WldtEngine;
+import it.wldt.core.twin.DigitalTwin;
 import it.wldt.core.relationship.utils.RelationshipDigitalAdapter;
 import it.wldt.core.relationship.utils.RelationshipPhysicalAdapter;
 import it.wldt.core.relationship.utils.RelationshipShadowingFunction;
@@ -29,7 +29,7 @@ public class PhysicalAdapterRelationshipsDefinitionTester {
 
     private final String DT_TARGET1_NAME = "dt.target1";
     private final String DT_TARGET2_NAME = "dt.target2";
-    private WldtEngine dt;
+    private DigitalTwin dt;
 
     private CountDownLatch syncLatch;
     private RelationshipShadowingFunction shadowingFunction;
@@ -57,7 +57,7 @@ public class PhysicalAdapterRelationshipsDefinitionTester {
 
         lifeCycleListener = new RelationshipsLifeCycleListener(syncLatch);
 
-        dt = new WldtEngine(shadowingFunction, "relationship-dt");
+        dt = new DigitalTwin(shadowingFunction, "relationship-dt");
         dt.addPhysicalAdapter(physicalAdapter);
         dt.addDigitalAdapter(digitalAdapter);
         dt.addLifeCycleListener(lifeCycleListener);
@@ -79,7 +79,7 @@ public class PhysicalAdapterRelationshipsDefinitionTester {
 
 
     /**The aim of this test is to verify that if a PhysicalAdapter adds one or more PhysicalAssetRelationships to its PhysicalAssetDescription,
-     * the ShadowingModelFunction is able to create the corresponding DigitalTwinStateRelationships and add them to the DigitalTwinState
+     * the ShadowingFunction is able to create the corresponding DigitalTwinStateRelationships and add them to the DigitalTwinState
      * */
 
     @Test

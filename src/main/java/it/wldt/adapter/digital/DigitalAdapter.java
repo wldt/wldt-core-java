@@ -2,7 +2,7 @@ package it.wldt.adapter.digital;
 
 import it.wldt.adapter.digital.event.DigitalActionWldtEvent;
 import it.wldt.adapter.physical.PhysicalAssetDescription;
-import it.wldt.core.engine.LifeCycleListener;
+import it.wldt.core.twin.LifeCycleListener;
 import it.wldt.core.event.WldtEvent;
 import it.wldt.core.event.WldtEventBus;
 import it.wldt.core.event.WldtEventFilter;
@@ -11,7 +11,6 @@ import it.wldt.core.state.*;
 import it.wldt.core.worker.WldtWorker;
 import it.wldt.exception.EventBusException;
 import it.wldt.exception.WldtDigitalTwinStateEventException;
-import it.wldt.exception.WldtDigitalTwinStateException;
 import it.wldt.exception.WldtRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

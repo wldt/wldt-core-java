@@ -7,8 +7,8 @@ import it.wldt.adapter.physical.PhysicalAdapter;
 import it.wldt.adapter.physical.PhysicalAssetDescription;
 import it.wldt.adapter.physical.PhysicalAssetProperty;
 import it.wldt.adapter.physical.event.PhysicalAssetActionWldtEvent;
-import it.wldt.core.engine.WldtEngine;
-import it.wldt.core.model.ShadowingModelFunction;
+import it.wldt.core.twin.DigitalTwin;
+import it.wldt.core.model.ShadowingFunction;
 import it.wldt.core.state.*;
 import it.wldt.exception.*;
 import org.slf4j.Logger;
@@ -25,8 +25,8 @@ public class DigitalAdapterCallbacksTester {
 
     private static final Logger logger = LoggerFactory.getLogger(DigitalAdapterCallbacksTester.class);
 
-    private WldtEngine createDigitalTwin(ShadowingModelFunction shadowingFunction, List<PhysicalAdapter> paAdapters, List<DigitalAdapter<?>> daAdapters) throws WldtConfigurationException, ModelException, WldtRuntimeException, EventBusException {
-        WldtEngine dt = new WldtEngine(shadowingFunction, "da-tester-dt");
+    private DigitalTwin createDigitalTwin(ShadowingFunction shadowingFunction, List<PhysicalAdapter> paAdapters, List<DigitalAdapter<?>> daAdapters) throws WldtConfigurationException, ModelException, WldtRuntimeException, EventBusException {
+        DigitalTwin dt = new DigitalTwin(shadowingFunction, "da-tester-dt");
         paAdapters.forEach(pa -> {
             try {
                 dt.addPhysicalAdapter(pa);
@@ -176,7 +176,7 @@ public class DigitalAdapterCallbacksTester {
         TestShadowingFunction shadowingFunction = new TestShadowingFunction();
         DigitalAdapter<String> da = createDigitalAdapter("test-digital-adapter", receivedCallbacks);
         da.setDigitalAdapterLifeCycleListener(createDigitalAdapterLifeCycleLister(receivedCallbacks));
-        WldtEngine dt = createDigitalTwin(shadowingFunction,
+        DigitalTwin dt = createDigitalTwin(shadowingFunction,
                 Collections.singletonList(createPhysicalAdapter("test-pa", new ArrayList<>(Arrays.asList("temperature", "volume")))),
                 Collections.singletonList(da));
         List<DigitalAdapterCallbacks> expected = new LinkedList<>(Arrays.asList(ON_DT_CREATE, ON_DT_START, ON_DT_SYNC, ON_DT_BOUND));
@@ -198,7 +198,7 @@ public class DigitalAdapterCallbacksTester {
         List<DigitalAdapterCallbacks> receivedCallbacks = new LinkedList<>();
         DigitalAdapter<String> da = createDigitalAdapter("test-digital-adapter", receivedCallbacks);
         da.setDigitalAdapterLifeCycleListener(createDigitalAdapterLifeCycleLister(receivedCallbacks));
-        WldtEngine dt = createDigitalTwin(new TestShadowingFunction(),
+        DigitalTwin dt = createDigitalTwin(new TestShadowingFunction(),
                 Arrays.asList(createPhysicalAdapter("test-physical-adapter-1", new ArrayList<>(Collections.singletonList("temperature"))),
                         createPhysicalAdapter("test-physical-adapter-2", new ArrayList<>(Collections.singletonList("volume"))),
                         createPhysicalAdapter("test-physical-adapter-3", new ArrayList<>(Collections.singletonList("air-quality")))),
@@ -224,7 +224,7 @@ public class DigitalAdapterCallbacksTester {
         da2.setDigitalAdapterLifeCycleListener(createDigitalAdapterLifeCycleLister(receivedCallbacks2));
         DigitalAdapter<String> da3 = createDigitalAdapter("test-digital-adapter3", receivedCallbacks3);
         da3.setDigitalAdapterLifeCycleListener(createDigitalAdapterLifeCycleLister(receivedCallbacks3));
-        WldtEngine dt = createDigitalTwin(new TestShadowingFunction(),
+        DigitalTwin dt = createDigitalTwin(new TestShadowingFunction(),
                 Collections.singletonList(createPhysicalAdapter("test-physical-adapter", new ArrayList<>(Collections.singletonList("temperature")))),
                 Arrays.asList(da1, da2, da3));
         dt.startLifeCycle();

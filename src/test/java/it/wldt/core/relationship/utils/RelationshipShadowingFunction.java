@@ -7,17 +7,16 @@ import it.wldt.adapter.physical.event.PhysicalAssetEventWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetPropertyWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetRelationshipInstanceCreatedWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetRelationshipInstanceDeletedWldtEvent;
-import it.wldt.core.model.ShadowingModelFunction;
+import it.wldt.core.model.ShadowingFunction;
 import it.wldt.core.state.DigitalTwinStateRelationship;
 import it.wldt.core.state.DigitalTwinStateRelationshipInstance;
 import it.wldt.exception.EventBusException;
 import it.wldt.exception.ModelException;
-import it.wldt.exception.WldtDigitalTwinStateRelationshipException;
 
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
-public class RelationshipShadowingFunction extends ShadowingModelFunction {
+public class RelationshipShadowingFunction extends ShadowingFunction {
 
     private CountDownLatch relationshipLatch;
 

@@ -1,7 +1,7 @@
 package it.wldt.core.model;
 
 import it.wldt.adapter.physical.PhysicalAssetDescription;
-import it.wldt.core.engine.LifeCycleListener;
+import it.wldt.core.twin.LifeCycleListener;
 import it.wldt.core.state.DigitalTwinState;
 import it.wldt.core.state.DigitalTwinStateManager;
 import it.wldt.exception.EventBusException;
@@ -26,19 +26,19 @@ public class ModelEngine extends WldtWorker implements LifeCycleListener {
 
     private static final Logger logger = LoggerFactory.getLogger(ModelEngine.class);
 
-    private ShadowingModelFunction shadowingModelFunction;
+    private ShadowingFunction shadowingFunction;
 
-    public ModelEngine(DigitalTwinStateManager digitalTwinStateManager, ShadowingModelFunction shadowingModelFunction) throws ModelException, EventBusException {
+    public ModelEngine(DigitalTwinStateManager digitalTwinStateManager, ShadowingFunction shadowingFunction) throws ModelException, EventBusException {
 
-        if(shadowingModelFunction != null){
+        if(shadowingFunction != null){
             //Init the Shadowing Model Function with the current Digital Twin State and call the associated onCreate method
-            this.shadowingModelFunction = shadowingModelFunction;
-            this.shadowingModelFunction.init(digitalTwinStateManager);
-            this.shadowingModelFunction.onCreate();
+            this.shadowingFunction = shadowingFunction;
+            this.shadowingFunction.init(digitalTwinStateManager);
+            this.shadowingFunction.onCreate();
         }
         else {
             logger.error("MODEL ENGINE ERROR ! Shadowing Model Function = NULL !");
-            throw new ModelException("Error ! Provided ShadowingModelFunction == Null !");
+            throw new ModelException("Error ! Provided ShadowingFunction == Null !");
         }
     }
 
@@ -49,8 +49,8 @@ public class ModelEngine extends WldtWorker implements LifeCycleListener {
         logger.info("Stopping Model Engine ....");
 
         //Stop Shadowing Function
-        if(this.shadowingModelFunction != null)
-            this.shadowingModelFunction.onStop();
+        if(this.shadowingFunction != null)
+            this.shadowingFunction.onStop();
 
         logger.info("Model Engine Correctly Stopped !");
     }
@@ -58,7 +58,7 @@ public class ModelEngine extends WldtWorker implements LifeCycleListener {
     @Override
     public void onWorkerStart() throws WldtRuntimeException {
         try {
-            this.shadowingModelFunction.onStart();
+            this.shadowingFunction.onStart();
         } catch (Exception e) {
             String errorMessage = String.format("Shadowing Function Error Observing Physical Event: %s", e.getLocalizedMessage());
             logger.error(errorMessage);
@@ -84,7 +84,7 @@ public class ModelEngine extends WldtWorker implements LifeCycleListener {
     @Override
     public void onPhysicalAdapterBindingUpdate(String adapterId, PhysicalAssetDescription physicalAssetDescription) {
         logger.debug("ModelEngine-Listener-DT-LifeCycle: onPhysicalAdapterBindingUpdate()");
-        this.shadowingModelFunction.onPhysicalAdapterBidingUpdate(adapterId, physicalAssetDescription);
+        this.shadowingFunction.onPhysicalAdapterBidingUpdate(adapterId, physicalAssetDescription);
     }
 
     @Override
@@ -105,13 +105,13 @@ public class ModelEngine extends WldtWorker implements LifeCycleListener {
     @Override
     public void onDigitalTwinBound(Map<String, PhysicalAssetDescription> adaptersPhysicalAssetDescriptionMap) {
         logger.debug("ModelEngine-Listener-DT-LifeCycle: onDigitalTwinBound()");
-        this.shadowingModelFunction.onDigitalTwinBound(adaptersPhysicalAssetDescriptionMap);
+        this.shadowingFunction.onDigitalTwinBound(adaptersPhysicalAssetDescriptionMap);
     }
 
     @Override
     public void onDigitalTwinUnBound(Map<String, PhysicalAssetDescription> adaptersPhysicalAssetDescriptionMap, String errorMessage) {
         logger.debug("ModelEngine-Listener-DT-LifeCycle: onDigitalTwinUnBound()");
-        this.shadowingModelFunction.onDigitalTwinUnBound(adaptersPhysicalAssetDescriptionMap, errorMessage);
+        this.shadowingFunction.onDigitalTwinUnBound(adaptersPhysicalAssetDescriptionMap, errorMessage);
     }
 
     @Override

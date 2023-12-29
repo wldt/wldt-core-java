@@ -1,6 +1,6 @@
 package it.wldt.core.relationship;
 
-import it.wldt.core.engine.WldtEngine;
+import it.wldt.core.twin.DigitalTwin;
 import it.wldt.core.relationship.utils.RelationshipDigitalAdapter;
 import it.wldt.core.relationship.utils.RelationshipPhysicalAdapter;
 import it.wldt.core.relationship.utils.RelationshipShadowingFunction;
@@ -27,7 +27,7 @@ public class PhysicalAdapterRelationshipsInstanceCreation {
 
     private final String DT_TARGET1_NAME = "dt.target1";
     private final String DT_TARGET2_NAME = "dt.target2";
-    private WldtEngine dt;
+    private DigitalTwin dt;
 
     private CountDownLatch syncLatch;
     private RelationshipShadowingFunction shadowingFunction;
@@ -55,7 +55,7 @@ public class PhysicalAdapterRelationshipsInstanceCreation {
 
         lifeCycleListener = new RelationshipsLifeCycleListener(syncLatch);
 
-        dt = new WldtEngine(shadowingFunction, "relationship-dt");
+        dt = new DigitalTwin(shadowingFunction, "relationship-dt");
         dt.addPhysicalAdapter(physicalAdapter);
         dt.addDigitalAdapter(digitalAdapter);
         dt.addLifeCycleListener(lifeCycleListener);

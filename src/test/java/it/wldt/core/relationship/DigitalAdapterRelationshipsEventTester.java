@@ -1,7 +1,7 @@
 package it.wldt.core.relationship;
 
-import it.wldt.core.engine.LifeCycleListener;
-import it.wldt.core.engine.WldtEngine;
+import it.wldt.core.twin.DigitalTwin;
+import it.wldt.core.twin.LifeCycleListener;
 import it.wldt.core.relationship.utils.RelationshipDigitalAdapter;
 import it.wldt.core.relationship.utils.RelationshipsLifeCycleListener;
 import it.wldt.core.state.DigitalTwinStateRelationshipInstance;
@@ -27,9 +27,9 @@ import static org.junit.jupiter.api.Assertions.*;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class DigitalAdapterRelationshipsEventTester {
 
-    public WldtEngine initDT(RelationshipShadowingFunction shadowingFunction, RelationshipDigitalAdapter digitalAdapter, RelationshipPhysicalAdapter physicalAdapter, LifeCycleListener listener) throws ModelException, WldtRuntimeException, EventBusException, WldtConfigurationException {
+    public DigitalTwin initDT(RelationshipShadowingFunction shadowingFunction, RelationshipDigitalAdapter digitalAdapter, RelationshipPhysicalAdapter physicalAdapter, LifeCycleListener listener) throws ModelException, WldtRuntimeException, EventBusException, WldtConfigurationException {
 
-        WldtEngine dt = new WldtEngine(shadowingFunction, "relationship-dt");
+        DigitalTwin dt = new DigitalTwin(shadowingFunction, "relationship-dt");
 
         dt.addPhysicalAdapter(physicalAdapter);
         dt.addDigitalAdapter(digitalAdapter);
@@ -49,7 +49,7 @@ public class DigitalAdapterRelationshipsEventTester {
         RelationshipDigitalAdapter digitalAdapter = new RelationshipDigitalAdapter(null);
         RelationshipsLifeCycleListener lifeCycleListener = new RelationshipsLifeCycleListener(syncLatch);
 
-        WldtEngine dt = initDT(shadowingFunction, digitalAdapter, physicalAdapter, lifeCycleListener);
+        DigitalTwin dt = initDT(shadowingFunction, digitalAdapter, physicalAdapter, lifeCycleListener);
         dt.startLifeCycle();
 
         syncLatch.await(3000, TimeUnit.MILLISECONDS);
@@ -77,7 +77,7 @@ public class DigitalAdapterRelationshipsEventTester {
         RelationshipDigitalAdapter digitalAdapter = new RelationshipDigitalAdapter(instances);
         RelationshipsLifeCycleListener lifeCycleListener = new RelationshipsLifeCycleListener(syncLatch);
 
-        WldtEngine dt = initDT(shadowingFunction, digitalAdapter, physicalAdapter, lifeCycleListener);
+        DigitalTwin dt = initDT(shadowingFunction, digitalAdapter, physicalAdapter, lifeCycleListener);
         dt.startLifeCycle();
 
         physicalAdapter.simulateRelationshipInstanceEvent(RelationshipPhysicalAdapter.RELATIONSHIP_OPERATOR_NAME, "dt-human", true);

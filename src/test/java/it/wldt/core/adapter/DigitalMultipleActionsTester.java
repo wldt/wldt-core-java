@@ -6,7 +6,7 @@ import it.wldt.adapter.physical.PhysicalAdapter;
 import it.wldt.adapter.physical.PhysicalAssetAction;
 import it.wldt.adapter.physical.PhysicalAssetDescription;
 import it.wldt.adapter.physical.event.PhysicalAssetActionWldtEvent;
-import it.wldt.core.engine.WldtEngine;
+import it.wldt.core.twin.DigitalTwin;
 import it.wldt.exception.*;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
@@ -69,7 +69,7 @@ public class DigitalMultipleActionsTester {
         List<PhysicalAssetActionWldtEvent<?>> physicalAssetActionEventReceived1 = new ArrayList<>();
         List<PhysicalAssetActionWldtEvent<?>> physicalAssetActionEventReceived2 = new ArrayList<>();
 
-        WldtEngine dtEngine = new WldtEngine(new TestShadowingFunction(), "test-digital-twin");
+        DigitalTwin dtEngine = new DigitalTwin(new TestShadowingFunction(), "test-digital-twin");
         dtEngine.addPhysicalAdapter(createPhysicalAdapter("test.digital.actions.pa", ACTION1_KEY, countDown, physicalAssetActionEventReceived1));
         dtEngine.addPhysicalAdapter(createPhysicalAdapter("test.digital.actions.pa2", ACTION2_KEY, countDown, physicalAssetActionEventReceived2));
 

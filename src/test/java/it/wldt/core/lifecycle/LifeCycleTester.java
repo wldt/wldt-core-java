@@ -7,13 +7,13 @@ import it.wldt.adapter.digital.event.DigitalActionWldtEvent;
 import it.wldt.adapter.physical.PhysicalAssetDescription;
 import it.wldt.adapter.physical.event.PhysicalAssetRelationshipInstanceCreatedWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetRelationshipInstanceDeletedWldtEvent;
-import it.wldt.core.engine.LifeCycleListener;
-import it.wldt.core.engine.WldtEngine;
+import it.wldt.core.twin.LifeCycleListener;
+import it.wldt.core.twin.DigitalTwin;
 import it.wldt.core.event.DefaultWldtEventLogger;
 import it.wldt.core.event.WldtEventBus;
 import it.wldt.adapter.physical.event.PhysicalAssetEventWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetPropertyWldtEvent;
-import it.wldt.core.model.ShadowingModelFunction;
+import it.wldt.core.model.ShadowingFunction;
 import it.wldt.core.adapter.digital.TestDigitalAdapterConfiguration;
 import it.wldt.core.state.DigitalTwinState;
 import it.wldt.exception.*;
@@ -58,7 +58,7 @@ public class LifeCycleTester {
         TestPhysicalAdapter testPhysicalAdapter = new TestPhysicalAdapter("dummy-physical-adapter", new TestPhysicalAdapterConfiguration(), true);
 
         //Init the Engine
-        WldtEngine wldtEngine = new WldtEngine(new ShadowingModelFunction("test-shadowing-function") {
+        DigitalTwin digitalTwin = new DigitalTwin(new ShadowingFunction("test-shadowing-function") {
 
             private boolean isShadowed = false;
 
@@ -153,14 +153,14 @@ public class LifeCycleTester {
 
             @Override
             protected void onPhysicalAssetEventNotification(PhysicalAssetEventWldtEvent<?> physicalAssetEventWldtEvent) {
-                logger.info("ShadowingModelFunction Physical Asset Event - Event Received: {}", physicalAssetEventWldtEvent);
+                logger.info("ShadowingFunction Physical Asset Event - Event Received: {}", physicalAssetEventWldtEvent);
             }
 
         }, "life-cycle-tester-dt");
 
-        wldtEngine.addPhysicalAdapter(testPhysicalAdapter);
-        wldtEngine.addDigitalAdapter(new TestDigitalAdapter("test-digital-adapter", new TestDigitalAdapterConfiguration()));
-        wldtEngine.addLifeCycleListener(new LifeCycleListener() {
+        digitalTwin.addPhysicalAdapter(testPhysicalAdapter);
+        digitalTwin.addDigitalAdapter(new TestDigitalAdapter("test-digital-adapter", new TestDigitalAdapterConfiguration()));
+        digitalTwin.addLifeCycleListener(new LifeCycleListener() {
             @Override
             public void onCreate() {
                 logger.debug("LifeCycleListener - onCreate()");
@@ -227,7 +227,7 @@ public class LifeCycleTester {
             }
         });
 
-        wldtEngine.startLifeCycle();
+        digitalTwin.startLifeCycle();
 
         //Wait until all the messages have been received
         lock.await((TestPhysicalAdapter.MESSAGE_SLEEP_PERIOD_MS + 100
@@ -239,7 +239,7 @@ public class LifeCycleTester {
 
         Thread.sleep(2000);
 
-        wldtEngine.stopLifeCycle();
+        digitalTwin.stopLifeCycle();
     }
 
 }

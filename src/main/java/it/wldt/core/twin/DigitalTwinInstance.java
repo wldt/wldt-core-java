@@ -1,4 +1,4 @@
-package it.wldt.core.engine;
+package it.wldt.core.twin;
 
 import it.wldt.adapter.digital.DigitalAdapter;
 import it.wldt.adapter.physical.PhysicalAdapter;
@@ -15,28 +15,28 @@ import java.util.stream.Collectors;
  * Project: White Label Digital Twin Java Framework - (whitelabel-digitaltwin)
  *
  * Instance of the DT with its adapters, id and digitalized assets.
- * This class is used in the WLDT Engine for coordination and execution purposes.
+ * This class is used in the Digital Twin Class for coordination and execution purposes.
  */
-public class WldtInstance {
+public class DigitalTwinInstance {
 
-    private final String wldtId;
+    private final String digitalTwinId;
     private final List<String> digitalizedPhysicalAssets;
     private final List<PhysicalAdapter> physicalAdapterList;
     private final List<DigitalAdapter<?>> digitalAdapterList;
 
-    public WldtInstance(String wldtId, List<String> digitalizedPhysicalAssets) {
-        this.wldtId = wldtId;
+    public DigitalTwinInstance(String digitalTwinId, List<String> digitalizedPhysicalAssets) {
+        this.digitalTwinId = digitalTwinId;
         this.digitalizedPhysicalAssets = digitalizedPhysicalAssets;
         this.physicalAdapterList = new ArrayList<>();
         this.digitalAdapterList = new ArrayList<>();
     }
 
-    public WldtInstance(String wldtId) {
-        this(wldtId, new ArrayList<>());
+    public DigitalTwinInstance(String digitalTwinId) {
+        this(digitalTwinId, new ArrayList<>());
     }
 
-    public String getWldtId() {
-        return wldtId;
+    public String getDigitalTwinId() {
+        return digitalTwinId;
     }
 
     public List<String> getDigitalizedPhysicalAssets() {
@@ -62,8 +62,8 @@ public class WldtInstance {
 
     @Override
     public String toString() {
-        return "WldtInstance{" +
-                "wldtId='" + wldtId + '\'' +
+        return "DigitalTwinInstance{" +
+                "digitalTwinId='" + digitalTwinId + '\'' +
                 ", digitalizedPhysicalAssets=" + digitalizedPhysicalAssets +
                 ", physicalAdapterList=" + physicalAdapterList +
                 ", digitalAdapterList=" + digitalAdapterList +

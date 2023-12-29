@@ -1,4 +1,4 @@
-package it.wldt.core.engine;
+package it.wldt.core.twin;
 
 import it.wldt.adapter.physical.PhysicalAssetDescription;
 import it.wldt.core.state.DigitalTwinState;

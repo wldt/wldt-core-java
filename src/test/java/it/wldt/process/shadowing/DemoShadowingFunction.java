@@ -9,7 +9,7 @@ import it.wldt.adapter.physical.event.PhysicalAssetEventWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetPropertyWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetRelationshipInstanceCreatedWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetRelationshipInstanceDeletedWldtEvent;
-import it.wldt.core.model.ShadowingModelFunction;
+import it.wldt.core.model.ShadowingFunction;
 import it.wldt.core.state.DigitalTwinStateAction;
 import it.wldt.core.state.DigitalTwinStateEvent;
 import it.wldt.core.state.DigitalTwinStateEventNotification;
@@ -22,7 +22,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
-public class DemoShadowingFunction extends ShadowingModelFunction {
+public class DemoShadowingFunction extends ShadowingFunction {
 
     private static final Logger logger = LoggerFactory.getLogger(DemoShadowingFunction.class);
 
@@ -56,7 +56,7 @@ public class DemoShadowingFunction extends ShadowingModelFunction {
 
         try{
 
-            logger.debug("ShadowingModelFunction - DigitalTwin - LifeCycleListener - onDigitalTwinBound()");
+            logger.debug("ShadowingFunction - DigitalTwin - LifeCycleListener - onDigitalTwinBound()");
 
             //Handle Shadowing & Update Digital Twin State
             if(!isShadowed){
@@ -97,15 +97,15 @@ public class DemoShadowingFunction extends ShadowingModelFunction {
                 String adapterId = entry.getKey();
                 PhysicalAssetDescription physicalAssetDescription = entry.getValue();
 
-                logger.info("ShadowingModelFunction - Adapter ({}) Physical Asset Description: {}", adapterId, physicalAssetDescription);
+                logger.info("ShadowingFunction - Adapter ({}) Physical Asset Description: {}", adapterId, physicalAssetDescription);
 
                 try{
                     if(physicalAssetDescription != null && physicalAssetDescription.getProperties() != null && physicalAssetDescription.getProperties().size() > 0){
-                        logger.info("ShadowingModelFunction - Observing Physical Asset Properties: {}", physicalAssetDescription.getProperties());
+                        logger.info("ShadowingFunction - Observing Physical Asset Properties: {}", physicalAssetDescription.getProperties());
                         this.observePhysicalAssetProperties(physicalAssetDescription.getProperties());
                     }
                     else
-                        logger.info("ShadowingModelFunction - Empty property list on adapter {}. Nothing to observe !", adapterId);
+                        logger.info("ShadowingFunction - Empty property list on adapter {}. Nothing to observe !", adapterId);
                 }catch (Exception e){
                     e.printStackTrace();
                 }
@@ -117,15 +117,15 @@ public class DemoShadowingFunction extends ShadowingModelFunction {
                 String adapterId = entry.getKey();
                 PhysicalAssetDescription physicalAssetDescription = entry.getValue();
 
-                logger.info("ShadowingModelFunction - Adapter ({}) Physical Asset Description: {}", adapterId, physicalAssetDescription);
+                logger.info("ShadowingFunction - Adapter ({}) Physical Asset Description: {}", adapterId, physicalAssetDescription);
 
                 try{
                     if(physicalAssetDescription != null && physicalAssetDescription.getEvents() != null && physicalAssetDescription.getEvents().size() > 0){
-                        logger.info("ShadowingModelFunction - Observing Physical Asset Events: {}", physicalAssetDescription.getEvents());
+                        logger.info("ShadowingFunction - Observing Physical Asset Events: {}", physicalAssetDescription.getEvents());
                         this.observePhysicalAssetEvents(physicalAssetDescription.getEvents());
                     }
                     else
-                        logger.info("ShadowingModelFunction - Empty event list on adapter {}. Nothing to observe !", adapterId);
+                        logger.info("ShadowingFunction - Empty event list on adapter {}. Nothing to observe !", adapterId);
 
                 }catch (Exception e){
                     e.printStackTrace();
@@ -154,7 +154,7 @@ public class DemoShadowingFunction extends ShadowingModelFunction {
 
         try {
 
-            logger.info("ShadowingModelFunction Physical Event Received: {}", physicalPropertyEventMessage);
+            logger.info("ShadowingFunction Physical Event Received: {}", physicalPropertyEventMessage);
 
             SharedTestMetrics.getInstance().addShadowingFunctionPropertyEvent(digitalTwinId, physicalPropertyEventMessage);
 
@@ -192,7 +192,7 @@ public class DemoShadowingFunction extends ShadowingModelFunction {
     protected void onPhysicalAssetEventNotification(PhysicalAssetEventWldtEvent<?> physicalAssetEventWldtEvent) {
         try {
 
-            logger.info("ShadowingModelFunction Physical Asset Event Notification - Event Received: {}", physicalAssetEventWldtEvent);
+            logger.info("ShadowingFunction Physical Asset Event Notification - Event Received: {}", physicalAssetEventWldtEvent);
 
             SharedTestMetrics.getInstance().addShadowingFunctionEventNotification(digitalTwinId, physicalAssetEventWldtEvent);
 
@@ -221,7 +221,7 @@ public class DemoShadowingFunction extends ShadowingModelFunction {
     @Override
     protected void onDigitalActionEvent(DigitalActionWldtEvent<?> digitalActionWldtEvent) {
         try {
-            logger.info("ShadowingModelFunction onDigitalActionEvent - Event Received: {}", digitalActionWldtEvent);
+            logger.info("ShadowingFunction onDigitalActionEvent - Event Received: {}", digitalActionWldtEvent);
             //A basic Shadowing Function simply convert each DigitalActionWldtEvent in a PhysicalAssetActionWldtEvent
             this.publishPhysicalAssetActionWldtEvent(digitalActionWldtEvent.getActionKey(), digitalActionWldtEvent.getBody());
         } catch (EventBusException e) {

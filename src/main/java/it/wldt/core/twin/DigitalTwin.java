@@ -1,4 +1,4 @@
-package it.wldt.core.engine;
+package it.wldt.core.twin;
 
 
 import it.wldt.adapter.digital.DigitalAdapter;
@@ -9,7 +9,7 @@ import it.wldt.adapter.physical.PhysicalAssetDescription;
 import it.wldt.core.event.DefaultWldtEventLogger;
 import it.wldt.core.event.WldtEventBus;
 import it.wldt.core.model.ModelEngine;
-import it.wldt.core.model.ShadowingModelFunction;
+import it.wldt.core.model.ShadowingFunction;
 import it.wldt.core.model.ShadowingModelListener;
 import it.wldt.core.state.DigitalTwinState;
 import it.wldt.core.state.DigitalTwinStateManager;
@@ -36,21 +36,21 @@ import java.util.concurrent.Executors;
  *
  * Core Engine of the library responsible for coordinating adapter execution and their life cycle.
  */
-public class WldtEngine implements ShadowingModelListener, PhysicalAdapterListener, DigitalAdapterListener {
+public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListener, DigitalAdapterListener {
 
-    private static final Logger logger = LoggerFactory.getLogger(WldtEngine.class);
+    private static final Logger logger = LoggerFactory.getLogger(DigitalTwin.class);
 
     private static final int PHYSICAL_ADAPTERS_THREAD_POOL_SIZE_LIMIT = 5;
 
     private static final int DIGITAL_ADAPTERS_THREAD_POOL_SIZE_LIMIT = 5;
 
-    private static final String TAG = "[WLDT-Engine]";
+    private static final String TAG = "[WLDT-DigitalTwin]";
 
     private ExecutorService physicalAdapterExecutor = null;
 
     private ExecutorService digitalAdapterExecutor = null;
 
-    private static WldtInstance wldtInstance;
+    private DigitalTwinInstance digitalTwinInstance;
 
     private Map<String, PhysicalAssetDescription> physicalAdaptersPhysicalAssetDescriptionMap;
 
@@ -70,22 +70,24 @@ public class WldtEngine implements ShadowingModelListener, PhysicalAdapterListen
 
     private List<LifeCycleListener> lifeCycleListenerList = null;
 
+    private LifeCycleState currentLifeCycleState = LifeCycleState.NONE;
+
     private Thread modelEngineThread = null;
 
-    private ShadowingModelFunction shadowingModelFunction = null;
+    private ShadowingFunction shadowingFunction = null;
 
-    public WldtEngine(ShadowingModelFunction shadowingModelFunction, String digitalTwinId, List<String> digitalizedPhysicalAssets) throws ModelException, EventBusException, WldtRuntimeException {
-        wldtInstance = new WldtInstance(digitalTwinId, digitalizedPhysicalAssets);
-        init(shadowingModelFunction);
+    public DigitalTwin(ShadowingFunction shadowingFunction, String digitalTwinId, List<String> digitalizedPhysicalAssets) throws ModelException, EventBusException, WldtRuntimeException {
+        digitalTwinInstance = new DigitalTwinInstance(digitalTwinId, digitalizedPhysicalAssets);
+        init(shadowingFunction);
     }
 
-    public WldtEngine(ShadowingModelFunction shadowingModelFunction, String digitalTwinId) throws ModelException, EventBusException, WldtRuntimeException {
-        this(shadowingModelFunction, digitalTwinId, new ArrayList<>());
+    public DigitalTwin(ShadowingFunction shadowingFunction, String digitalTwinId) throws ModelException, EventBusException, WldtRuntimeException {
+        this(shadowingFunction, digitalTwinId, new ArrayList<>());
     }
 
-    private void init(ShadowingModelFunction shadowingModelFunction) throws ModelException, EventBusException, WldtRuntimeException {
+    private void init(ShadowingFunction shadowingFunction) throws ModelException, EventBusException, WldtRuntimeException {
 
-        if(shadowingModelFunction == null)
+        if(shadowingFunction == null)
             throw new WldtRuntimeException("Error ! Shadowing Function = NULL !");
 
         //Init Life Cycle Listeners & Status Map
@@ -96,6 +98,9 @@ public class WldtEngine implements ShadowingModelListener, PhysicalAdapterListen
         //Initialize the Digital Twin State
         this.digitalTwinStateManager = new DigitalTwinStateManager();
 
+        //Init DT Initial Life Cycle Phase
+        this.currentLifeCycleState = LifeCycleState.NONE;
+
         //Setup EventBus Logger
         WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
 
@@ -103,18 +108,17 @@ public class WldtEngine implements ShadowingModelListener, PhysicalAdapterListen
         this.physicalAdaptersPhysicalAssetDescriptionMap = new HashMap<>();
 
         //Set ShadowingListener, Init Model Engine & Add to the List of Workers
-        this.shadowingModelFunction = shadowingModelFunction;
-        this.shadowingModelFunction.setShadowingModelListener(this);
-        this.modelEngine = new ModelEngine(this.digitalTwinStateManager, this.shadowingModelFunction);
+        this.shadowingFunction = shadowingFunction;
+        this.shadowingFunction.setShadowingModelListener(this);
+        this.modelEngine = new ModelEngine(this.digitalTwinStateManager, this.shadowingFunction);
 
         //Save the Model Engine as Digital Twin Life Cycle Listener
         addLifeCycleListener(this.modelEngine);
-
-        executeModelEngine();
     }
 
     private void executeModelEngine(){
         modelEngineThread = new Thread(this.modelEngine);
+        modelEngineThread.setName(String.format("%s-model-engine", this.getId()));
         modelEngineThread.start();
     }
 
@@ -129,21 +133,25 @@ public class WldtEngine implements ShadowingModelListener, PhysicalAdapterListen
     }
 
     private void notifyLifeCycleOnCreate(){
+        this.currentLifeCycleState = LifeCycleState.CREATED;
         for(LifeCycleListener listener : this.lifeCycleListenerList)
             listener.onCreate();
     }
 
     private void notifyLifeCycleOnStart(){
+        this.currentLifeCycleState = LifeCycleState.STARTED;
         for(LifeCycleListener listener : this.lifeCycleListenerList)
             listener.onStart();
     }
 
     private void notifyLifeCycleOnBound(){
+        this.currentLifeCycleState = LifeCycleState.BOUND;
         for(LifeCycleListener listener : this.lifeCycleListenerList)
             listener.onDigitalTwinBound(this.physicalAdaptersPhysicalAssetDescriptionMap);
     }
 
     private void notifyLifeCycleOnUnBound(String errorMessage){
+        this.currentLifeCycleState = LifeCycleState.UN_BOUND;
         for(LifeCycleListener listener : this.lifeCycleListenerList)
             listener.onDigitalTwinUnBound(this.physicalAdaptersPhysicalAssetDescriptionMap, errorMessage);
     }
@@ -174,21 +182,25 @@ public class WldtEngine implements ShadowingModelListener, PhysicalAdapterListen
     }
 
     private void notifyLifeCycleOnSync(DigitalTwinState digitalTwinState){
+        this.currentLifeCycleState = LifeCycleState.SYNCHRONIZED;
         for(LifeCycleListener listener : this.lifeCycleListenerList)
             listener.onSync(digitalTwinState);
     }
 
     private void notifyLifeCycleOnUnSync(DigitalTwinState digitalTwinState){
+        this.currentLifeCycleState = LifeCycleState.NOT_SYNCHRONIZED;
         for(LifeCycleListener listener : this.lifeCycleListenerList)
             listener.onUnSync(digitalTwinState);
     }
 
     private void notifyLifeCycleOnStop(){
+        this.currentLifeCycleState = LifeCycleState.STOPPED;
         for(LifeCycleListener listener : this.lifeCycleListenerList)
             listener.onStop();
     }
 
     private void notifyLifeCycleOnDestroy(){
+        this.currentLifeCycleState = LifeCycleState.DESTROYED;
         for(LifeCycleListener listener : this.lifeCycleListenerList)
             listener.onDestroy();
     }
@@ -204,17 +216,17 @@ public class WldtEngine implements ShadowingModelListener, PhysicalAdapterListen
     public void addPhysicalAdapter(PhysicalAdapter physicalAdapter) throws WldtConfigurationException {
 
         if(physicalAdapter != null
-                && wldtInstance.getPhysicalAdapterList() != null
-                && !wldtInstance.getPhysicalAdapterList().contains(physicalAdapter)
-                && wldtInstance.getPhysicalAdapterList().size() < PHYSICAL_ADAPTERS_THREAD_POOL_SIZE_LIMIT) {
+                && digitalTwinInstance.getPhysicalAdapterList() != null
+                && !digitalTwinInstance.getPhysicalAdapterList().contains(physicalAdapter)
+                && digitalTwinInstance.getPhysicalAdapterList().size() < PHYSICAL_ADAPTERS_THREAD_POOL_SIZE_LIMIT) {
 
             physicalAdapter.setPhysicalAdapterListener(this);
-            wldtInstance.getPhysicalAdapterList().add(physicalAdapter);
+            digitalTwinInstance.getPhysicalAdapterList().add(physicalAdapter);
 
             //Save BoundStatus to False. It will be changed through a call back by the adapter
             this.physicalAdaptersBoundStatusMap.put(physicalAdapter.getId(), false);
 
-            logger.debug("{} New PhysicalAdapter ({}) Added to the Worker List ! Physical Adapters - Worker List Size: {}", TAG, physicalAdapter.getClass().getName(), wldtInstance.getPhysicalAdapterList().size());
+            logger.debug("{} New PhysicalAdapter ({}) Added to the Worker List ! Physical Adapters - Worker List Size: {}", TAG, physicalAdapter.getClass().getName(), digitalTwinInstance.getPhysicalAdapterList().size());
         }
         else
             throw new WldtConfigurationException("Invalid PhysicalAdapter, Already added or List Limit Reached !");
@@ -226,8 +238,8 @@ public class WldtEngine implements ShadowingModelListener, PhysicalAdapterListen
      * @throws WldtConfigurationException
      */
     public void clearPhysicalAdapterList() throws WldtConfigurationException{
-        if(wldtInstance.getPhysicalAdapterList() != null){
-            wldtInstance.getPhysicalAdapterList().clear();
+        if(digitalTwinInstance.getPhysicalAdapterList() != null){
+            digitalTwinInstance.getPhysicalAdapterList().clear();
         }
         else
             throw new WldtConfigurationException("Error Cleaning Physical Adapters ! List is Null !");
@@ -244,12 +256,12 @@ public class WldtEngine implements ShadowingModelListener, PhysicalAdapterListen
     public void addDigitalAdapter(DigitalAdapter<?> digitalAdapter) throws WldtConfigurationException {
 
         if(digitalAdapter != null
-                && wldtInstance.getDigitalAdapterList() != null
-                && !wldtInstance.getDigitalAdapterList().contains(digitalAdapter)
-                && wldtInstance.getDigitalAdapterList().size() < DIGITAL_ADAPTERS_THREAD_POOL_SIZE_LIMIT) {
+                && digitalTwinInstance.getDigitalAdapterList() != null
+                && !digitalTwinInstance.getDigitalAdapterList().contains(digitalAdapter)
+                && digitalTwinInstance.getDigitalAdapterList().size() < DIGITAL_ADAPTERS_THREAD_POOL_SIZE_LIMIT) {
 
             digitalAdapter.setDigitalAdapterListener(this);
-            wldtInstance.getDigitalAdapterList().add(digitalAdapter);
+            digitalTwinInstance.getDigitalAdapterList().add(digitalAdapter);
 
             //Save BoundStatus to False. It will be changed through a call back by the adapter
             this.digitalAdaptersBoundStatusMap.put(digitalAdapter.getId(), false);
@@ -257,7 +269,7 @@ public class WldtEngine implements ShadowingModelListener, PhysicalAdapterListen
             //Save the Model Engine as Digital Twin Life Cycle Listener
             addLifeCycleListener(digitalAdapter);
 
-            logger.debug("{} New DigitalAdapter ({}) Added to the Worker List ! Digital Adapters - Worker List Size: {}", TAG, digitalAdapter.getClass().getName(), wldtInstance.getDigitalAdapterList().size());
+            logger.debug("{} New DigitalAdapter ({}) Added to the Worker List ! Digital Adapters - Worker List Size: {}", TAG, digitalAdapter.getClass().getName(), digitalTwinInstance.getDigitalAdapterList().size());
         }
         else
             throw new WldtConfigurationException("Invalid PhysicalAdapter, Already added or List Limit Reached !");
@@ -269,12 +281,12 @@ public class WldtEngine implements ShadowingModelListener, PhysicalAdapterListen
      * @throws WldtConfigurationException
      */
     public void clearDigitalAdapterList() throws WldtConfigurationException{
-        if(wldtInstance.getDigitalAdapterList() != null){
+        if(digitalTwinInstance.getDigitalAdapterList() != null){
 
-            for(DigitalAdapter<?> digitalAdapter : wldtInstance.getDigitalAdapterList())
+            for(DigitalAdapter<?> digitalAdapter : digitalTwinInstance.getDigitalAdapterList())
                 removeLifeCycleListener(digitalAdapter);
 
-            wldtInstance.getDigitalAdapterList().clear();
+            digitalTwinInstance.getDigitalAdapterList().clear();
         }
         else
             throw new WldtConfigurationException("Error Cleaning Physical Adapters ! List is Null !");
@@ -282,26 +294,29 @@ public class WldtEngine implements ShadowingModelListener, PhysicalAdapterListen
 
     public void startLifeCycle() throws WldtConfigurationException {
 
+        // Start Executing as first component the Model Engine
+        executeModelEngine();
+
         //In order to start its LifeCycle the Digital Twin need at least one Physical and one Digital Adapter in order
         //to properly bridge the physical and the digital world
         //TODO Check -> Does it make sense to force to have at least one Digital Adapter in order to start the Life Cycle ?
-        if(wldtInstance.getPhysicalAdapterList() == null || wldtInstance.getPhysicalAdapterList().isEmpty() || wldtInstance.getDigitalAdapterList() == null || wldtInstance.getDigitalAdapterList().isEmpty())
+        if(digitalTwinInstance.getPhysicalAdapterList() == null || digitalTwinInstance.getPhysicalAdapterList().isEmpty() || digitalTwinInstance.getDigitalAdapterList() == null || digitalTwinInstance.getDigitalAdapterList().isEmpty())
             throw new WldtConfigurationException("Empty PhysicalAdapter o DigitalAdapter List !");
 
         notifyLifeCycleOnCreate();
 
         //Init PhysicalAdapter Executor
-        physicalAdapterExecutor = Executors.newFixedThreadPool(wldtInstance.getPhysicalAdapterList().size());
+        physicalAdapterExecutor = Executors.newFixedThreadPool(digitalTwinInstance.getPhysicalAdapterList().size());
 
-        wldtInstance.getPhysicalAdapterList().forEach(physicalAdapter -> {
+        digitalTwinInstance.getPhysicalAdapterList().forEach(physicalAdapter -> {
             logger.info("Executing PhysicalAdapter: {}", physicalAdapter.getClass());
             physicalAdapterExecutor.execute(physicalAdapter);
         });
 
         //Init DigitalAdapter Executor
-        digitalAdapterExecutor = Executors.newFixedThreadPool(wldtInstance.getDigitalAdapterList().size());
+        digitalAdapterExecutor = Executors.newFixedThreadPool(digitalTwinInstance.getDigitalAdapterList().size());
 
-        wldtInstance.getDigitalAdapterList().forEach(digitalAdapter -> {
+        digitalTwinInstance.getDigitalAdapterList().forEach(digitalAdapter -> {
             logger.info("Executing DigitalAdapter: {}", digitalAdapter.getClass());
             digitalAdapterExecutor.execute(digitalAdapter);
         });
@@ -327,13 +342,13 @@ public class WldtEngine implements ShadowingModelListener, PhysicalAdapterListen
             //Stop and Notify Physical Adapters
             this.physicalAdapterExecutor.shutdownNow();
             this.physicalAdapterExecutor = null;
-            for(PhysicalAdapter physicalAdapter : wldtInstance.getPhysicalAdapterList())
+            for(PhysicalAdapter physicalAdapter : digitalTwinInstance.getPhysicalAdapterList())
                 physicalAdapter.onWorkerStop();
 
             //Stop and Notify Digital Adapters
             this.digitalAdapterExecutor.shutdownNow();
             this.digitalAdapterExecutor = null;
-            for(DigitalAdapter<?> digitalAdapter : wldtInstance.getDigitalAdapterList())
+            for(DigitalAdapter<?> digitalAdapter : digitalTwinInstance.getDigitalAdapterList())
                 digitalAdapter.onWorkerStop();
 
             notifyLifeCycleOnStop();
@@ -342,19 +357,18 @@ public class WldtEngine implements ShadowingModelListener, PhysicalAdapterListen
         } catch (Exception e){
             logger.error("ERROR Stopping DT LifeCycle ! Error: {}", e.getLocalizedMessage());
         }
-
     }
 
-    public String getWldtId() {
-        return wldtInstance.getWldtId();
+    public String getId() {
+        return digitalTwinInstance.getDigitalTwinId();
     }
 
     public ModelEngine getModelEngine() {
         return modelEngine;
     }
 
-    public static WldtInstance getWldtInstance(){
-        return wldtInstance;
+    public DigitalTwinInstance getWldtInstance(){
+        return digitalTwinInstance;
     }
 
     /**
@@ -456,4 +470,9 @@ public class WldtEngine implements ShadowingModelListener, PhysicalAdapterListen
         //Notify the adapter unbound status
         notifyLifeCycleOnDigitalAdapterUnBound(adapterId, errorMessage);
     }
+
+    public LifeCycleState getCurrentLifeCycleState() {
+        return this.currentLifeCycleState;
+    }
+
 }

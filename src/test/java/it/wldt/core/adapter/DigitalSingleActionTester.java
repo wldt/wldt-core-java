@@ -6,7 +6,7 @@ import it.wldt.adapter.physical.PhysicalAssetAction;
 import it.wldt.adapter.physical.PhysicalAssetDescription;
 import it.wldt.adapter.physical.event.PhysicalAssetActionWldtEvent;
 import it.wldt.core.adapter.shadowing.TestShadowingFunction;
-import it.wldt.core.engine.WldtEngine;
+import it.wldt.core.twin.DigitalTwin;
 import it.wldt.exception.*;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
@@ -68,7 +68,7 @@ public class DigitalSingleActionTester {
 
         List<PhysicalAssetActionWldtEvent<?>> physicalAssetActionEventReceived = new ArrayList<>();
 
-        WldtEngine dtEngine = new WldtEngine(new TestShadowingFunction(), "digital.actions.tester.dt");
+        DigitalTwin dtEngine = new DigitalTwin(new TestShadowingFunction(), "digital.actions.tester.dt");
         dtEngine.addPhysicalAdapter(createPhysicalAdapter("test.digital.actions.pa", ACTION1_KEY, countDown, physicalAssetActionEventReceived));
 
         SwitchDigitalAdapter digitalAdapter = new SwitchDigitalAdapter();

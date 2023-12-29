@@ -16,11 +16,11 @@ public class DemoPhysicalAdapter extends ConfigurablePhysicalAdapter<DemoPhysica
 
     private static final Logger logger = LoggerFactory.getLogger(DemoPhysicalAdapter.class);
 
-    public static final int TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES = 10;
+    public static final int DEFAULT_TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES = 10;
 
-    public static final int TARGET_PHYSICAL_ASSET_EVENT_UPDATES = 2;
+    public static final int DEFAULT_TARGET_PHYSICAL_ASSET_EVENT_UPDATES = 2;
 
-    public static long MESSAGE_SLEEP_PERIOD_MS = 1000;
+    public static long DEFAULT_MESSAGE_SLEEP_PERIOD_MS = 1000;
 
     public static final String ENERGY_PROPERTY_KEY = "energy";
 
@@ -31,6 +31,12 @@ public class DemoPhysicalAdapter extends ConfigurablePhysicalAdapter<DemoPhysica
     public static final String SWITCH_ON_ACTION_KEY = "switch_on";
 
     public static final String OVERHEATING_EVENT_KEY = "overheating";
+
+    private int propertyUpdateMessageLimit = DEFAULT_TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES;
+
+    private int eventUpdateMessageLimit = DEFAULT_TARGET_PHYSICAL_ASSET_EVENT_UPDATES;
+
+    private long messageSleepPeriodMs = DEFAULT_MESSAGE_SLEEP_PERIOD_MS;
 
     // Internal reference of the Digital Twin Id for statistics, tests and metrics
     private final String digitalTwinId;
@@ -50,6 +56,20 @@ public class DemoPhysicalAdapter extends ConfigurablePhysicalAdapter<DemoPhysica
         this.digitalTwinId = digitalTwinId;
     }
 
+    public DemoPhysicalAdapter(String digitalTwinId, String id,
+                               DemoPhysicalAdapterConfiguration configuration,
+                               boolean isTelemetryOn,
+                               int targetPropertyUpdateMessageLimit,
+                               int targetEventUpdateMessageLimit,
+                               long targetMessageSleepPeriodMs) {
+        super(id, configuration);
+        this.isTelemetryOn = isTelemetryOn;
+        this.digitalTwinId = digitalTwinId;
+        this.propertyUpdateMessageLimit = targetPropertyUpdateMessageLimit;
+        this.eventUpdateMessageLimit = targetEventUpdateMessageLimit;
+        this.messageSleepPeriodMs = targetMessageSleepPeriodMs;
+    }
+
     @Override
     public void onIncomingPhysicalAction(PhysicalAssetActionWldtEvent<?> physicalActionEvent) {
         try{
@@ -57,13 +77,13 @@ public class DemoPhysicalAdapter extends ConfigurablePhysicalAdapter<DemoPhysica
 
             if(physicalActionEvent != null && physicalActionEvent.getActionKey().equals(SWITCH_ON_ACTION_KEY)) {
                 logger.info("{} Received ! Switching ON the device ...", physicalActionEvent.getType());
-                Thread.sleep(MESSAGE_SLEEP_PERIOD_MS);
+                Thread.sleep(this.messageSleepPeriodMs);
                 PhysicalAssetPropertyWldtEvent<String> event = new PhysicalAssetPropertyWldtEvent<>(SWITCH_PROPERTY_KEY, "ON");
                 WldtEventBus.getInstance().publishEvent(getId(), event);
                 SharedTestMetrics.getInstance().addPhysicalAdapterPropertyEvent(digitalTwinId, event);
             } else if(physicalActionEvent != null && physicalActionEvent.getActionKey().equals(SWITCH_OFF_ACTION_KEY)){
                 logger.info("{} Received ! Switching OFF the device ...", physicalActionEvent.getType());
-                Thread.sleep(MESSAGE_SLEEP_PERIOD_MS);
+                Thread.sleep(this.messageSleepPeriodMs);
                 PhysicalAssetPropertyWldtEvent<String> event = new PhysicalAssetPropertyWldtEvent<>(SWITCH_PROPERTY_KEY, "OFF");
                 WldtEventBus.getInstance().publishEvent(getId(), event);
                 SharedTestMetrics.getInstance().addPhysicalAdapterPropertyEvent(digitalTwinId, event);
@@ -110,12 +130,12 @@ public class DemoPhysicalAdapter extends ConfigurablePhysicalAdapter<DemoPhysica
                     try {
 
                         //Before the telemetry messages send an overheating event
-                        Thread.sleep(MESSAGE_SLEEP_PERIOD_MS);
+                        Thread.sleep(messageSleepPeriodMs);
                         publishPhysicalAssetEventWldtEvent(new PhysicalAssetEventWldtEvent<String>(OVERHEATING_EVENT_KEY, "overheating-low"));
 
-                        for(int i = 0; i< TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES; i++){
+                        for(int i = 0; i< propertyUpdateMessageLimit; i++){
 
-                            Thread.sleep(MESSAGE_SLEEP_PERIOD_MS);
+                            Thread.sleep(messageSleepPeriodMs);
                             double randomEnergyValue = 10 + (100 - 10) * random.nextDouble();
                             PhysicalAssetPropertyWldtEvent<Double> event = new PhysicalAssetPropertyWldtEvent<>(ENERGY_PROPERTY_KEY, randomEnergyValue);
                             publishPhysicalAssetPropertyWldtEvent(event);
