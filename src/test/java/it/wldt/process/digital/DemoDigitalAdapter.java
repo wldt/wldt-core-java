@@ -5,19 +5,23 @@ import it.wldt.core.state.DigitalTwinState;
 import it.wldt.core.state.DigitalTwinStateChange;
 import it.wldt.core.state.DigitalTwinStateEvent;
 import it.wldt.core.state.DigitalTwinStateEventNotification;
+import it.wldt.process.metrics.SharedTestMetrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.stream.Collectors;
 
 public class DemoDigitalAdapter extends DigitalAdapter<DemoDigitalAdapterConfiguration> {
 
     private static final Logger logger = LoggerFactory.getLogger(DemoDigitalAdapter.class);
 
+    // Internal reference of the Digital Twin Id for statistics, tests and metrics
+    private final String digitalTwinId;
 
-    public DemoDigitalAdapter(String id, DemoDigitalAdapterConfiguration configuration) {
+
+    public DemoDigitalAdapter(String digitalTwinId, String id, DemoDigitalAdapterConfiguration configuration) {
         super(id, configuration);
+        this.digitalTwinId = digitalTwinId;
     }
 
     @Override
@@ -77,11 +81,13 @@ public class DemoDigitalAdapter extends DigitalAdapter<DemoDigitalAdapterConfigu
         logger.info("DummyDigitalTwinAdapter -> onStateUpdate() - New State: {}", newDigitalTwinState);
         logger.info("DummyDigitalTwinAdapter -> onStateUpdate() - Previous State: {}", previousDigitalTwinState);
         logger.info("DummyDigitalTwinAdapter -> onStateUpdate() - State's Changes: {}", digitalTwinStateChangeList);
+        SharedTestMetrics.getInstance().addDigitalAdapterStateUpdate(digitalTwinId, digitalTwinState);
     }
 
 
     @Override
     protected void onEventNotificationReceived(DigitalTwinStateEventNotification<?> digitalTwinStateEventNotification) {
         logger.info("DummyDigitalTwinAdapter -> onDigitalTwinStateEventNotification() - EVENT NOTIFICATION RECEIVED: {}", digitalTwinStateEventNotification);
+        SharedTestMetrics.getInstance().addDigitalAdapterEventNotification(digitalTwinId, digitalTwinStateEventNotification);
     }
 }

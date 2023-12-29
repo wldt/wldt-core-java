@@ -15,6 +15,7 @@ import it.wldt.core.state.DigitalTwinStateEvent;
 import it.wldt.core.state.DigitalTwinStateEventNotification;
 import it.wldt.core.state.DigitalTwinStateProperty;
 import it.wldt.exception.EventBusException;
+import it.wldt.process.metrics.SharedTestMetrics;
 import it.wldt.process.physical.DemoPhysicalAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,8 +28,12 @@ public class DemoShadowingFunction extends ShadowingModelFunction {
 
     private boolean isShadowed = false;
 
-    public DemoShadowingFunction() {
+    // Internal reference of the Digital Twin Id for statistics, tests and metrics
+    private final String digitalTwinId;
+
+    public DemoShadowingFunction(String digitalTwinId) {
         super("dummy-shadowing-function");
+        this.digitalTwinId = digitalTwinId;
     }
 
     @Override
@@ -151,6 +156,8 @@ public class DemoShadowingFunction extends ShadowingModelFunction {
 
             logger.info("ShadowingModelFunction Physical Event Received: {}", physicalPropertyEventMessage);
 
+            SharedTestMetrics.getInstance().addShadowingFunctionPropertyEvent(digitalTwinId, physicalPropertyEventMessage);
+
             if(physicalPropertyEventMessage != null && getPhysicalEventsFilter().contains(physicalPropertyEventMessage.getType())){
 
                 //Check if it is a switch change
@@ -186,6 +193,8 @@ public class DemoShadowingFunction extends ShadowingModelFunction {
         try {
 
             logger.info("ShadowingModelFunction Physical Asset Event Notification - Event Received: {}", physicalAssetEventWldtEvent);
+
+            SharedTestMetrics.getInstance().addShadowingFunctionEventNotification(digitalTwinId, physicalAssetEventWldtEvent);
 
             //Handle the received physical event notification and map into a digital notification for digital adapters
             this.digitalTwinStateManager.notifyDigitalTwinStateEvent(

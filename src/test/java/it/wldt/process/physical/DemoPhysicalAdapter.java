@@ -5,6 +5,7 @@ import it.wldt.adapter.physical.event.PhysicalAssetActionWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetEventWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetPropertyWldtEvent;
 import it.wldt.core.event.WldtEventBus;
+import it.wldt.process.metrics.SharedTestMetrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,7 +20,7 @@ public class DemoPhysicalAdapter extends ConfigurablePhysicalAdapter<DemoPhysica
 
     public static final int TARGET_PHYSICAL_ASSET_EVENT_UPDATES = 2;
 
-    public static long MESSAGE_SLEEP_PERIOD_MS = 2000;
+    public static long MESSAGE_SLEEP_PERIOD_MS = 1000;
 
     public static final String ENERGY_PROPERTY_KEY = "energy";
 
@@ -31,17 +32,22 @@ public class DemoPhysicalAdapter extends ConfigurablePhysicalAdapter<DemoPhysica
 
     public static final String OVERHEATING_EVENT_KEY = "overheating";
 
+    // Internal reference of the Digital Twin Id for statistics, tests and metrics
+    private final String digitalTwinId;
+
     private boolean isTelemetryOn = false;
 
     private Random random = new Random();
 
-    public DemoPhysicalAdapter(String id, DemoPhysicalAdapterConfiguration configuration) {
+    public DemoPhysicalAdapter(String digitalTwinId, String id, DemoPhysicalAdapterConfiguration configuration) {
         super(id, configuration);
+        this.digitalTwinId = digitalTwinId;
     }
 
-    public DemoPhysicalAdapter(String id, DemoPhysicalAdapterConfiguration configuration, boolean isTelemetryOn) {
+    public DemoPhysicalAdapter(String digitalTwinId, String id, DemoPhysicalAdapterConfiguration configuration, boolean isTelemetryOn) {
         super(id, configuration);
         this.isTelemetryOn = isTelemetryOn;
+        this.digitalTwinId = digitalTwinId;
     }
 
     @Override
@@ -52,11 +58,15 @@ public class DemoPhysicalAdapter extends ConfigurablePhysicalAdapter<DemoPhysica
             if(physicalActionEvent != null && physicalActionEvent.getActionKey().equals(SWITCH_ON_ACTION_KEY)) {
                 logger.info("{} Received ! Switching ON the device ...", physicalActionEvent.getType());
                 Thread.sleep(MESSAGE_SLEEP_PERIOD_MS);
-                WldtEventBus.getInstance().publishEvent(getId(), new PhysicalAssetPropertyWldtEvent<>(SWITCH_PROPERTY_KEY, "ON"));
+                PhysicalAssetPropertyWldtEvent<String> event = new PhysicalAssetPropertyWldtEvent<>(SWITCH_PROPERTY_KEY, "ON");
+                WldtEventBus.getInstance().publishEvent(getId(), event);
+                SharedTestMetrics.getInstance().addPhysicalAdapterPropertyEvent(digitalTwinId, event);
             } else if(physicalActionEvent != null && physicalActionEvent.getActionKey().equals(SWITCH_OFF_ACTION_KEY)){
                 logger.info("{} Received ! Switching OFF the device ...", physicalActionEvent.getType());
                 Thread.sleep(MESSAGE_SLEEP_PERIOD_MS);
-                WldtEventBus.getInstance().publishEvent(getId(), new PhysicalAssetPropertyWldtEvent<>(SWITCH_PROPERTY_KEY, "OFF"));
+                PhysicalAssetPropertyWldtEvent<String> event = new PhysicalAssetPropertyWldtEvent<>(SWITCH_PROPERTY_KEY, "OFF");
+                WldtEventBus.getInstance().publishEvent(getId(), event);
+                SharedTestMetrics.getInstance().addPhysicalAdapterPropertyEvent(digitalTwinId, event);
             } else
                 logger.error("WRONG OR NULL ACTION RECEIVED !");
 
@@ -107,11 +117,15 @@ public class DemoPhysicalAdapter extends ConfigurablePhysicalAdapter<DemoPhysica
 
                             Thread.sleep(MESSAGE_SLEEP_PERIOD_MS);
                             double randomEnergyValue = 10 + (100 - 10) * random.nextDouble();
-                            publishPhysicalAssetPropertyWldtEvent(new PhysicalAssetPropertyWldtEvent<>(ENERGY_PROPERTY_KEY, randomEnergyValue));
+                            PhysicalAssetPropertyWldtEvent<Double> event = new PhysicalAssetPropertyWldtEvent<>(ENERGY_PROPERTY_KEY, randomEnergyValue);
+                            publishPhysicalAssetPropertyWldtEvent(event);
+                            SharedTestMetrics.getInstance().addPhysicalAdapterPropertyEvent(digitalTwinId, event);
                         }
 
                         //At the end of telemetry messages send an overheating event
-                        publishPhysicalAssetEventWldtEvent(new PhysicalAssetEventWldtEvent<String>(OVERHEATING_EVENT_KEY, "overheating-critical"));
+                        PhysicalAssetEventWldtEvent<String> event = new PhysicalAssetEventWldtEvent<String>(OVERHEATING_EVENT_KEY, "overheating-critical");
+                        publishPhysicalAssetEventWldtEvent(event);
+                        SharedTestMetrics.getInstance().addPhysicalAdapterEventNotification(digitalTwinId, event);
 
                     }catch (Exception e){
                         e.printStackTrace();
