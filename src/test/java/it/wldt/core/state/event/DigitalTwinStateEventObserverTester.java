@@ -16,6 +16,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class DigitalTwinStateEventObserverTester {
 
+    public final String DIGITAL_TWIN_ID = "dt00001";
+
     private final static String EVENT_KEY_1 = "testEventKey1";
 
     private final static String EVENT_KEY_2 = "testEventKey2";
@@ -50,10 +52,10 @@ public class DigitalTwinStateEventObserverTester {
 
     private DigitalTwinStateEvent testNewEvent1;
 
-    private void initTestDtState() {
+    private void initTestDtState() throws WldtDigitalTwinStateException {
         if(digitalTwinStateManager == null && digitalTwinState == null) {
             //Init DigitaTwin State Manager
-            digitalTwinStateManager = new DigitalTwinStateManager();
+            digitalTwinStateManager = new DigitalTwinStateManager(DIGITAL_TWIN_ID);
             digitalTwinState = digitalTwinStateManager.getDigitalTwinState();
         }
     }
@@ -138,7 +140,7 @@ public class DigitalTwinStateEventObserverTester {
         WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
 
         //Subscribe for target topic
-        WldtEventBus.getInstance().subscribe(SUBSCRIBER_ID_1, wldtEventFilter, getWldtEventListener());
+        WldtEventBus.getInstance().subscribe(DIGITAL_TWIN_ID, SUBSCRIBER_ID_1, wldtEventFilter, getWldtEventListener());
 
         registerEvent();
 
@@ -167,7 +169,7 @@ public class DigitalTwinStateEventObserverTester {
         assertEquals(receivedDigitalTwinStateChangeList.get(0).getResource(), testNewEvent1);
 
         //Remove Subscription for target topic
-        WldtEventBus.getInstance().unSubscribe(SUBSCRIBER_ID_1, wldtEventFilter, getWldtEventListener());
+        WldtEventBus.getInstance().unSubscribe(DIGITAL_TWIN_ID, SUBSCRIBER_ID_1, wldtEventFilter, getWldtEventListener());
     }
 
     @Test
@@ -190,7 +192,7 @@ public class DigitalTwinStateEventObserverTester {
         WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
 
         //Subscribe for target topic
-        WldtEventBus.getInstance().subscribe(SUBSCRIBER_ID_1, wldtEventFilter, getWldtEventListener());
+        WldtEventBus.getInstance().subscribe(DIGITAL_TWIN_ID, SUBSCRIBER_ID_1, wldtEventFilter, getWldtEventListener());
 
         assertTrue(digitalTwinState.getEvent(EVENT_KEY_1).isPresent());
         assertEquals(EVENT_TYPE, digitalTwinState.getEvent(EVENT_KEY_1).get().getType());
@@ -223,7 +225,7 @@ public class DigitalTwinStateEventObserverTester {
         assertEquals(receivedDigitalTwinStateChangeList.get(0).getResource(), updatedEvent);
 
         //Remove Subscription for target topic
-        WldtEventBus.getInstance().unSubscribe(SUBSCRIBER_ID_1, wldtEventFilter, getWldtEventListener());
+        WldtEventBus.getInstance().unSubscribe(DIGITAL_TWIN_ID, SUBSCRIBER_ID_1, wldtEventFilter, getWldtEventListener());
     }
 
     @Test
@@ -245,7 +247,7 @@ public class DigitalTwinStateEventObserverTester {
         WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
 
         //Subscribe for target topic
-        WldtEventBus.getInstance().subscribe(SUBSCRIBER_ID_1, wldtEventFilter, getWldtEventListener());
+        WldtEventBus.getInstance().subscribe(DIGITAL_TWIN_ID, SUBSCRIBER_ID_1, wldtEventFilter, getWldtEventListener());
 
         digitalTwinStateManager.startStateTransaction();
         digitalTwinStateManager.unRegisterEvent(EVENT_KEY_1);
@@ -274,6 +276,6 @@ public class DigitalTwinStateEventObserverTester {
         assertEquals(receivedDigitalTwinStateChangeList.get(0).getResource(), testNewEvent1);
 
         //Remove Subscription for target topic
-        WldtEventBus.getInstance().unSubscribe(SUBSCRIBER_ID_1, wldtEventFilter, getWldtEventListener());
+        WldtEventBus.getInstance().unSubscribe(DIGITAL_TWIN_ID, SUBSCRIBER_ID_1, wldtEventFilter, getWldtEventListener());
     }
 }

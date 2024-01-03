@@ -28,6 +28,8 @@ import static org.junit.jupiter.api.Assertions.*;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class DigitalMultipleActionsTester {
 
+    public final String DIGITAL_TWIN_ID = "dt00001";
+
     private final static String ACTION1_KEY = "switch-on";
     private final static String ACTION2_KEY = "switch-off";
 
@@ -62,14 +64,14 @@ public class DigitalMultipleActionsTester {
 
     @Test
     @Order(1)
-    public void multiplePhysicalAdapterTest() throws WldtConfigurationException, InterruptedException, ModelException, WldtRuntimeException, EventBusException {
+    public void multiplePhysicalAdapterTest() throws WldtConfigurationException, InterruptedException, ModelException, WldtRuntimeException, EventBusException, WldtWorkerException, WldtDigitalTwinStateException {
 
         CountDownLatch countDown = new CountDownLatch(2);
 
         List<PhysicalAssetActionWldtEvent<?>> physicalAssetActionEventReceived1 = new ArrayList<>();
         List<PhysicalAssetActionWldtEvent<?>> physicalAssetActionEventReceived2 = new ArrayList<>();
 
-        DigitalTwin dtEngine = new DigitalTwin(new TestShadowingFunction(), "test-digital-twin");
+        DigitalTwin dtEngine = new DigitalTwin(DIGITAL_TWIN_ID, new TestShadowingFunction());
         dtEngine.addPhysicalAdapter(createPhysicalAdapter("test.digital.actions.pa", ACTION1_KEY, countDown, physicalAssetActionEventReceived1));
         dtEngine.addPhysicalAdapter(createPhysicalAdapter("test.digital.actions.pa2", ACTION2_KEY, countDown, physicalAssetActionEventReceived2));
 

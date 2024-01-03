@@ -6,10 +6,7 @@ import it.wldt.core.relationship.utils.RelationshipPhysicalAdapter;
 import it.wldt.core.relationship.utils.RelationshipShadowingFunction;
 import it.wldt.core.relationship.utils.RelationshipsLifeCycleListener;
 import it.wldt.core.state.DigitalTwinStateRelationship;
-import it.wldt.exception.EventBusException;
-import it.wldt.exception.ModelException;
-import it.wldt.exception.WldtConfigurationException;
-import it.wldt.exception.WldtRuntimeException;
+import it.wldt.exception.*;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
@@ -24,6 +21,8 @@ import static org.junit.jupiter.api.Assertions.*;
 @Execution(ExecutionMode.SAME_THREAD)
 @Isolated
 public class PhysicalAdapterRelationshipsDeletionTester {
+
+    public final String DIGITAL_TWIN_ID = "dt00001";
 
     private final String DT_TARGET1_NAME = "dt.target1";
     private final String DT_TARGET2_NAME = "dt.target2";
@@ -40,7 +39,7 @@ public class PhysicalAdapterRelationshipsDeletionTester {
     private RelationshipDigitalAdapter digitalAdapter;
 
     @BeforeEach
-    public void setUp() throws WldtConfigurationException, ModelException, WldtRuntimeException, EventBusException {
+    public void setUp() throws WldtConfigurationException, ModelException, WldtRuntimeException, EventBusException, WldtWorkerException, WldtDigitalTwinStateException {
 
         System.out.println("Setting up Testing Environment ...");
 
@@ -55,7 +54,7 @@ public class PhysicalAdapterRelationshipsDeletionTester {
 
         lifeCycleListener = new RelationshipsLifeCycleListener(syncLatch);
 
-        dt = new DigitalTwin(shadowingFunction, "relationship-dt");
+        dt = new DigitalTwin(DIGITAL_TWIN_ID, shadowingFunction);
         dt.addPhysicalAdapter(physicalAdapter);
         dt.addDigitalAdapter(digitalAdapter);
         dt.addLifeCycleListener(lifeCycleListener);

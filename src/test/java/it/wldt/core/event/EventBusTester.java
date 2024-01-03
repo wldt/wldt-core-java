@@ -11,6 +11,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class EventBusTester {
 
+    public final String DIGITAL_TWIN_ID = "dt00001";
+
     public static final String PUBLISHER_ID_1 = "testModulePublisher1";
     public static final String TEST_TOPIC_1 = "topic0001";
     public static final String TEST_VALUE_0001 = "TEST-STRING-1";
@@ -100,7 +102,7 @@ public class EventBusTester {
         //Define EventFilter and add the target topic
         WldtEventFilter wldtEventFilter = new WldtEventFilter();
         wldtEventFilter.addAll(typeList);
-        WldtEventBus.getInstance().unSubscribe(subscriberId, wldtEventFilter, wldtEventListener);
+        WldtEventBus.getInstance().unSubscribe(DIGITAL_TWIN_ID, subscriberId, wldtEventFilter, wldtEventListener);
 
         Thread.sleep(1000);
 
@@ -113,7 +115,7 @@ public class EventBusTester {
         //Define EventFilter and add the target topic
         WldtEventFilter wldtEventFilter = new WldtEventFilter();
         wldtEventFilter.addAll(typeList);
-        WldtEventBus.getInstance().subscribe(subscriberId, wldtEventFilter, wldtEventListener);
+        WldtEventBus.getInstance().subscribe(DIGITAL_TWIN_ID, subscriberId, wldtEventFilter, wldtEventListener);
 
         Thread.sleep(1000);
         assertEquals(targetSubscriptionList, typeList);
@@ -129,7 +131,7 @@ public class EventBusTester {
         wldtEvent.putMetadata(METADATA_KEY_TEST_1, METADATA_VALUE_TEST_1);
 
         //Publish Message on the target Topic1
-        WldtEventBus.getInstance().publishEvent(PUBLISHER_ID_1, wldtEvent);
+        WldtEventBus.getInstance().publishEvent(DIGITAL_TWIN_ID, PUBLISHER_ID_1, wldtEvent);
 
         lock.await(2000, TimeUnit.MILLISECONDS);
 
@@ -150,7 +152,7 @@ public class EventBusTester {
         WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
 
         //Subscribe for target topic
-        WldtEventBus.getInstance().subscribe(SUBSCRIBER_ID_1, wldtEventFilter, new WldtEventListener() {
+        WldtEventBus.getInstance().subscribe(DIGITAL_TWIN_ID, SUBSCRIBER_ID_1, wldtEventFilter, new WldtEventListener() {
 
             @Override
             public void onEventSubscribed(String eventType) {
@@ -181,7 +183,7 @@ public class EventBusTester {
         wldtEvent.putMetadata(METADATA_KEY_TEST_1, METADATA_VALUE_TEST_1);
 
         //Publish Message on the target Topic1
-        WldtEventBus.getInstance().publishEvent(PUBLISHER_ID_1, wldtEvent);
+        WldtEventBus.getInstance().publishEvent(DIGITAL_TWIN_ID, PUBLISHER_ID_1, wldtEvent);
 
         lock.await(2000, TimeUnit.MILLISECONDS);
 
@@ -205,7 +207,7 @@ public class EventBusTester {
         WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
 
         //Subscribe for target topic
-        WldtEventBus.getInstance().subscribe(SUBSCRIBER_ID_1, wldtEventFilter, new WldtEventListener() {
+        WldtEventBus.getInstance().subscribe(DIGITAL_TWIN_ID, SUBSCRIBER_ID_1, wldtEventFilter, new WldtEventListener() {
             @Override
             public void onEventSubscribed(String eventType) {
                 System.out.println(SUBSCRIBER_ID_1  + " -> onSubscribe() called ! Event-Type:" + eventType);
@@ -237,7 +239,7 @@ public class EventBusTester {
             wldtEvent.setBody(TEST_VALUE_0001);
             wldtEvent.putMetadata(METADATA_KEY_TEST_1, METADATA_VALUE_TEST_1);
 
-            WldtEventBus.getInstance().publishEvent(PUBLISHER_ID_1, wldtEvent);
+            WldtEventBus.getInstance().publishEvent(DIGITAL_TWIN_ID, PUBLISHER_ID_1, wldtEvent);
             Thread.sleep(PUBLISHER_SLEEP_TIME_MS);
         }
 

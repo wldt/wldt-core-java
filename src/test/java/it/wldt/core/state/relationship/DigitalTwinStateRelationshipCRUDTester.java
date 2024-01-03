@@ -10,6 +10,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class DigitalTwinStateRelationshipCRUDTester {
 
+    public final String DIGITAL_TWIN_ID = "dt00001";
+
     private static final String REL_TYPE_1 = "relType1";
 
     private static final String REL_NAME_1 = "relName1";
@@ -26,10 +28,10 @@ public class DigitalTwinStateRelationshipCRUDTester {
 
     private DigitalTwinState digitalTwinState;
 
-    private void createDigitalTwinStateManager() {
+    private void createDigitalTwinStateManager() throws WldtDigitalTwinStateException {
         if(digitalTwinStateManager == null && digitalTwinState == null) {
             //Init DigitaTwin State Manager
-            digitalTwinStateManager = new DigitalTwinStateManager();
+            digitalTwinStateManager = new DigitalTwinStateManager(DIGITAL_TWIN_ID);
             digitalTwinState = digitalTwinStateManager.getDigitalTwinState();
         }
     }

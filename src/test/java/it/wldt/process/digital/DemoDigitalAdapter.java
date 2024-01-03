@@ -15,13 +15,8 @@ public class DemoDigitalAdapter extends DigitalAdapter<DemoDigitalAdapterConfigu
 
     private static final Logger logger = LoggerFactory.getLogger(DemoDigitalAdapter.class);
 
-    // Internal reference of the Digital Twin Id for statistics, tests and metrics
-    private final String digitalTwinId;
-
-
-    public DemoDigitalAdapter(String digitalTwinId, String id, DemoDigitalAdapterConfiguration configuration) {
+    public DemoDigitalAdapter(String id, DemoDigitalAdapterConfiguration configuration) {
         super(id, configuration);
-        this.digitalTwinId = digitalTwinId;
     }
 
     @Override

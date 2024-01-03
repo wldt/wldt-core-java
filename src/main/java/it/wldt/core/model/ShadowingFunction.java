@@ -71,7 +71,7 @@ public abstract class ShadowingFunction implements WldtEventListener {
         //Save the adopted EventFilter
         this.physicalEventsFilter.addAll(wldtEventFilter);
 
-        WldtEventBus.getInstance().subscribe(this.id, wldtEventFilter, this);
+        WldtEventBus.getInstance().subscribe(this.digitalTwinStateManager.getDigitalTwinId(), this.id, wldtEventFilter, this);
     }
 
     /**
@@ -94,7 +94,7 @@ public abstract class ShadowingFunction implements WldtEventListener {
         //Save the adopted EventFilter
         this.physicalEventsFilter.addAll(wldtEventFilter);
 
-        WldtEventBus.getInstance().subscribe(this.id, wldtEventFilter, this);
+        WldtEventBus.getInstance().subscribe(this.digitalTwinStateManager.getDigitalTwinId(), this.id, wldtEventFilter, this);
 
     }
 
@@ -116,7 +116,7 @@ public abstract class ShadowingFunction implements WldtEventListener {
         //Save the adopted EventFilter
         this.physicalEventsFilter.removeAll(wldtEventFilter);
 
-        WldtEventBus.getInstance().unSubscribe(this.id, wldtEventFilter, this);
+        WldtEventBus.getInstance().unSubscribe(this.digitalTwinStateManager.getDigitalTwinId(), this.id, wldtEventFilter, this);
     }
 
     /**
@@ -139,7 +139,7 @@ public abstract class ShadowingFunction implements WldtEventListener {
         //Save the adopted EventFilter
         this.physicalEventsFilter.removeAll(wldtEventFilter);
 
-        WldtEventBus.getInstance().unSubscribe(this.id, wldtEventFilter, this);
+        WldtEventBus.getInstance().unSubscribe(this.digitalTwinStateManager.getDigitalTwinId(), this.id, wldtEventFilter, this);
     }
 
     ///////////////////// PHYSICAL ASSET EVENT OBSERVATION MANAGEMENT ////////////////////////////////
@@ -161,7 +161,7 @@ public abstract class ShadowingFunction implements WldtEventListener {
         //Save the adopted EventFilter
         this.physicalEventsFilter.addAll(wldtEventFilter);
 
-        WldtEventBus.getInstance().subscribe(this.id, wldtEventFilter, this);
+        WldtEventBus.getInstance().subscribe(this.digitalTwinStateManager.getDigitalTwinId(), this.id, wldtEventFilter, this);
     }
 
     /**
@@ -184,7 +184,7 @@ public abstract class ShadowingFunction implements WldtEventListener {
         //Save the adopted EventFilter
         this.physicalEventsFilter.addAll(wldtEventFilter);
 
-        WldtEventBus.getInstance().subscribe(this.id, wldtEventFilter, this);
+        WldtEventBus.getInstance().subscribe(this.digitalTwinStateManager.getDigitalTwinId(), this.id, wldtEventFilter, this);
 
     }
 
@@ -206,7 +206,7 @@ public abstract class ShadowingFunction implements WldtEventListener {
         //Save the adopted EventFilter
         this.physicalEventsFilter.removeAll(wldtEventFilter);
 
-        WldtEventBus.getInstance().unSubscribe(this.id, wldtEventFilter, this);
+        WldtEventBus.getInstance().unSubscribe(this.digitalTwinStateManager.getDigitalTwinId(), this.id, wldtEventFilter, this);
     }
 
     /**
@@ -229,7 +229,7 @@ public abstract class ShadowingFunction implements WldtEventListener {
         //Save the adopted EventFilter
         this.physicalEventsFilter.removeAll(wldtEventFilter);
 
-        WldtEventBus.getInstance().unSubscribe(this.id, wldtEventFilter, this);
+        WldtEventBus.getInstance().unSubscribe(this.digitalTwinStateManager.getDigitalTwinId(), this.id, wldtEventFilter, this);
     }
 
     ///////////////////// PHYSICAL ASSET RELATIONSHIP OBSERVATION MANAGEMENT ////////////////////////////////
@@ -246,7 +246,7 @@ public abstract class ShadowingFunction implements WldtEventListener {
         //Save the adopted EventFilter
         this.physicalEventsFilter.addAll(wldtEventFilter);
 
-        WldtEventBus.getInstance().subscribe(this.id, wldtEventFilter, this);
+        WldtEventBus.getInstance().subscribe(this.digitalTwinStateManager.getDigitalTwinId(), this.id, wldtEventFilter, this);
     }
 
     protected void observePhysicalAssetRelationships(List<PhysicalAssetRelationship<?>> physicalAssetRelationships) throws ModelException, EventBusException {
@@ -264,7 +264,7 @@ public abstract class ShadowingFunction implements WldtEventListener {
         //Save the adopted EventFilter
         this.physicalEventsFilter.addAll(wldtEventFilter);
 
-        WldtEventBus.getInstance().subscribe(this.id, wldtEventFilter, this);
+        WldtEventBus.getInstance().subscribe(this.digitalTwinStateManager.getDigitalTwinId(), this.id, wldtEventFilter, this);
     }
 
     protected void unObservePhysicalAssetRelationship(PhysicalAssetRelationship<?> physicalAssetRelationship) throws EventBusException, ModelException {
@@ -279,7 +279,7 @@ public abstract class ShadowingFunction implements WldtEventListener {
 
         this.physicalEventsFilter.removeAll(wldtEventFilter);
 
-        WldtEventBus.getInstance().unSubscribe(this.id, wldtEventFilter, this);
+        WldtEventBus.getInstance().unSubscribe(this.digitalTwinStateManager.getDigitalTwinId(), this.id, wldtEventFilter, this);
     }
 
     protected void unObservePhysicalAssetRelationships(List<PhysicalAssetRelationship<?>> physicalAssetRelationshipList) throws EventBusException, ModelException {
@@ -298,7 +298,7 @@ public abstract class ShadowingFunction implements WldtEventListener {
         //Save the adopted EventFilter
         this.physicalEventsFilter.removeAll(wldtEventFilter);
 
-        WldtEventBus.getInstance().unSubscribe(this.id, wldtEventFilter, this);
+        WldtEventBus.getInstance().unSubscribe(this.digitalTwinStateManager.getDigitalTwinId(), this.id, wldtEventFilter, this);
     }
 
 
@@ -307,17 +307,17 @@ public abstract class ShadowingFunction implements WldtEventListener {
     protected void observeDigitalActionEvents() throws EventBusException {
         WldtEventFilter wldtEventFilter = new WldtEventFilter();
         wldtEventFilter.add(DigitalAdapter.DIGITAL_ACTION_EVENT);
-        WldtEventBus.getInstance().subscribe(this.id, wldtEventFilter, this);
+        WldtEventBus.getInstance().subscribe(this.digitalTwinStateManager.getDigitalTwinId(), this.id, wldtEventFilter, this);
     }
 
     protected void unObserveDigitalActionEvents() throws EventBusException {
         WldtEventFilter wldtEventFilter = new WldtEventFilter();
         wldtEventFilter.add(DigitalAdapter.DIGITAL_ACTION_EVENT);
-        WldtEventBus.getInstance().unSubscribe(this.id, wldtEventFilter, this);
+        WldtEventBus.getInstance().unSubscribe(this.digitalTwinStateManager.getDigitalTwinId(), this.id, wldtEventFilter, this);
     }
 
     protected <T> void publishPhysicalAssetActionWldtEvent(String actionKey, T body) throws EventBusException {
-        WldtEventBus.getInstance().publishEvent(this.id, new PhysicalAssetActionWldtEvent<>(actionKey, body));
+        WldtEventBus.getInstance().publishEvent(this.digitalTwinStateManager.getDigitalTwinId(), this.id, new PhysicalAssetActionWldtEvent<>(actionKey, body));
     }
 
     @Override
@@ -352,8 +352,8 @@ public abstract class ShadowingFunction implements WldtEventListener {
 
     }
 
-    protected void init(DigitalTwinStateManager digitalTwinState){
-        this.digitalTwinStateManager = digitalTwinState;
+    protected void init(DigitalTwinStateManager digitalTwinStateManager){
+        this.digitalTwinStateManager = digitalTwinStateManager;
     }
 
     abstract protected void onCreate();

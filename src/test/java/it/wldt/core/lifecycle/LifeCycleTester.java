@@ -34,6 +34,8 @@ public class LifeCycleTester {
 
     private static final Logger logger = LoggerFactory.getLogger(LifeCycleTester.class);
 
+    public final String DIGITAL_TWIN_ID = "dt00001";
+
     private static CountDownLatch lock = null;
 
     private static List<PhysicalAssetPropertyWldtEvent<Double>> receivedPhysicalTelemetryEventMessageList = null;
@@ -45,7 +47,7 @@ public class LifeCycleTester {
     private static final String DEMO_MQTT_MESSAGE_TYPE = "mqtt.telemetry";
 
     @Test
-    public void testLifeCycle() throws WldtConfigurationException, EventBusException, ModelException, ModelFunctionException, InterruptedException, WldtRuntimeException {
+    public void testLifeCycle() throws WldtConfigurationException, EventBusException, ModelException, ModelFunctionException, InterruptedException, WldtRuntimeException, WldtWorkerException, WldtDigitalTwinStateException {
 
         this.receivedPhysicalTelemetryEventMessageList = new ArrayList<>();
 
@@ -58,7 +60,7 @@ public class LifeCycleTester {
         TestPhysicalAdapter testPhysicalAdapter = new TestPhysicalAdapter("dummy-physical-adapter", new TestPhysicalAdapterConfiguration(), true);
 
         //Init the Engine
-        DigitalTwin digitalTwin = new DigitalTwin(new ShadowingFunction("test-shadowing-function") {
+        DigitalTwin digitalTwin = new DigitalTwin(DIGITAL_TWIN_ID, new ShadowingFunction("test-shadowing-function") {
 
             private boolean isShadowed = false;
 
@@ -156,7 +158,7 @@ public class LifeCycleTester {
                 logger.info("ShadowingFunction Physical Asset Event - Event Received: {}", physicalAssetEventWldtEvent);
             }
 
-        }, "life-cycle-tester-dt");
+        });
 
         digitalTwin.addPhysicalAdapter(testPhysicalAdapter);
         digitalTwin.addDigitalAdapter(new TestDigitalAdapter("test-digital-adapter", new TestDigitalAdapterConfiguration()));

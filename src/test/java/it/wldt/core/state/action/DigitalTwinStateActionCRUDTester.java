@@ -16,6 +16,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class DigitalTwinStateActionCRUDTester {
 
+    public final String DIGITAL_TWIN_ID = "dt00001";
+
     private final static String ACTION_KEY_1 = "testActionKey1";
     private final static String ACTION_KEY_2 = "testActionKey2";
     private final static String ACTION_TYPE = "testActionType";
@@ -27,7 +29,7 @@ public class DigitalTwinStateActionCRUDTester {
     private DigitalTwinState digitalTwinState;
 
     private void createDigitalTwinStateManager() throws WldtDigitalTwinStateException {
-        this.digitalTwinStateManager = new DigitalTwinStateManager();
+        this.digitalTwinStateManager = new DigitalTwinStateManager(DIGITAL_TWIN_ID);
         this.digitalTwinState = this.digitalTwinStateManager.getDigitalTwinState();
     }
 

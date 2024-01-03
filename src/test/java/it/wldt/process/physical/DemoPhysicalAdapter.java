@@ -38,25 +38,20 @@ public class DemoPhysicalAdapter extends ConfigurablePhysicalAdapter<DemoPhysica
 
     private long messageSleepPeriodMs = DEFAULT_MESSAGE_SLEEP_PERIOD_MS;
 
-    // Internal reference of the Digital Twin Id for statistics, tests and metrics
-    private final String digitalTwinId;
-
     private boolean isTelemetryOn = false;
 
     private Random random = new Random();
 
-    public DemoPhysicalAdapter(String digitalTwinId, String id, DemoPhysicalAdapterConfiguration configuration) {
+    public DemoPhysicalAdapter(String id, DemoPhysicalAdapterConfiguration configuration) {
         super(id, configuration);
-        this.digitalTwinId = digitalTwinId;
     }
 
-    public DemoPhysicalAdapter(String digitalTwinId, String id, DemoPhysicalAdapterConfiguration configuration, boolean isTelemetryOn) {
+    public DemoPhysicalAdapter(String id, DemoPhysicalAdapterConfiguration configuration, boolean isTelemetryOn) {
         super(id, configuration);
         this.isTelemetryOn = isTelemetryOn;
-        this.digitalTwinId = digitalTwinId;
     }
 
-    public DemoPhysicalAdapter(String digitalTwinId, String id,
+    public DemoPhysicalAdapter(String id,
                                DemoPhysicalAdapterConfiguration configuration,
                                boolean isTelemetryOn,
                                int targetPropertyUpdateMessageLimit,
@@ -64,7 +59,6 @@ public class DemoPhysicalAdapter extends ConfigurablePhysicalAdapter<DemoPhysica
                                long targetMessageSleepPeriodMs) {
         super(id, configuration);
         this.isTelemetryOn = isTelemetryOn;
-        this.digitalTwinId = digitalTwinId;
         this.propertyUpdateMessageLimit = targetPropertyUpdateMessageLimit;
         this.eventUpdateMessageLimit = targetEventUpdateMessageLimit;
         this.messageSleepPeriodMs = targetMessageSleepPeriodMs;
@@ -79,13 +73,13 @@ public class DemoPhysicalAdapter extends ConfigurablePhysicalAdapter<DemoPhysica
                 logger.info("{} Received ! Switching ON the device ...", physicalActionEvent.getType());
                 Thread.sleep(this.messageSleepPeriodMs);
                 PhysicalAssetPropertyWldtEvent<String> event = new PhysicalAssetPropertyWldtEvent<>(SWITCH_PROPERTY_KEY, "ON");
-                WldtEventBus.getInstance().publishEvent(getId(), event);
+                WldtEventBus.getInstance().publishEvent(digitalTwinId, getId(), event);
                 SharedTestMetrics.getInstance().addPhysicalAdapterPropertyEvent(digitalTwinId, event);
             } else if(physicalActionEvent != null && physicalActionEvent.getActionKey().equals(SWITCH_OFF_ACTION_KEY)){
                 logger.info("{} Received ! Switching OFF the device ...", physicalActionEvent.getType());
                 Thread.sleep(this.messageSleepPeriodMs);
                 PhysicalAssetPropertyWldtEvent<String> event = new PhysicalAssetPropertyWldtEvent<>(SWITCH_PROPERTY_KEY, "OFF");
-                WldtEventBus.getInstance().publishEvent(getId(), event);
+                WldtEventBus.getInstance().publishEvent(digitalTwinId, getId(), event);
                 SharedTestMetrics.getInstance().addPhysicalAdapterPropertyEvent(digitalTwinId, event);
             } else
                 logger.error("WRONG OR NULL ACTION RECEIVED !");

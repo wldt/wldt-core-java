@@ -25,19 +25,23 @@ public class DigitalAdapterCallbacksTester {
 
     private static final Logger logger = LoggerFactory.getLogger(DigitalAdapterCallbacksTester.class);
 
-    private DigitalTwin createDigitalTwin(ShadowingFunction shadowingFunction, List<PhysicalAdapter> paAdapters, List<DigitalAdapter<?>> daAdapters) throws WldtConfigurationException, ModelException, WldtRuntimeException, EventBusException {
-        DigitalTwin dt = new DigitalTwin(shadowingFunction, "da-tester-dt");
+    public final String DIGITAL_TWIN_ID = "dt00001";
+
+    private DigitalTwin createDigitalTwin(ShadowingFunction shadowingFunction, List<PhysicalAdapter> paAdapters, List<DigitalAdapter<?>> daAdapters) throws ModelException, WldtRuntimeException, EventBusException, WldtWorkerException, WldtDigitalTwinStateException {
+
+        DigitalTwin dt = new DigitalTwin(DIGITAL_TWIN_ID, shadowingFunction);
+
         paAdapters.forEach(pa -> {
             try {
                 dt.addPhysicalAdapter(pa);
-            } catch (WldtConfigurationException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         });
         daAdapters.forEach(da -> {
             try {
                 dt.addDigitalAdapter(da);
-            } catch (WldtConfigurationException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         });
@@ -171,7 +175,7 @@ public class DigitalAdapterCallbacksTester {
     }
 
     @Test
-    public void digitalTwinLifeCycleCallbacksTest() throws WldtConfigurationException, ModelException, WldtRuntimeException, EventBusException, InterruptedException {
+    public void digitalTwinLifeCycleCallbacksTest() throws WldtConfigurationException, ModelException, WldtRuntimeException, EventBusException, InterruptedException, WldtWorkerException, WldtDigitalTwinStateException {
         List<DigitalAdapterCallbacks> receivedCallbacks = new LinkedList<>();
         TestShadowingFunction shadowingFunction = new TestShadowingFunction();
         DigitalAdapter<String> da = createDigitalAdapter("test-digital-adapter", receivedCallbacks);
@@ -194,7 +198,7 @@ public class DigitalAdapterCallbacksTester {
     }
 
     @Test
-    public void physicalAdaptersCallbacksTest() throws WldtConfigurationException, ModelException, WldtRuntimeException, EventBusException, InterruptedException {
+    public void physicalAdaptersCallbacksTest() throws WldtConfigurationException, ModelException, WldtRuntimeException, EventBusException, InterruptedException, WldtWorkerException, WldtDigitalTwinStateException {
         List<DigitalAdapterCallbacks> receivedCallbacks = new LinkedList<>();
         DigitalAdapter<String> da = createDigitalAdapter("test-digital-adapter", receivedCallbacks);
         da.setDigitalAdapterLifeCycleListener(createDigitalAdapterLifeCycleLister(receivedCallbacks));
@@ -214,7 +218,7 @@ public class DigitalAdapterCallbacksTester {
     }
 
     @Test
-    public void digitalAdaptersCallbacksTest() throws WldtConfigurationException, ModelException, WldtRuntimeException, EventBusException, InterruptedException {
+    public void digitalAdaptersCallbacksTest() throws WldtConfigurationException, ModelException, WldtRuntimeException, EventBusException, InterruptedException, WldtWorkerException, WldtDigitalTwinStateException {
         List<DigitalAdapterCallbacks> receivedCallbacks1 = new LinkedList<>();
         List<DigitalAdapterCallbacks> receivedCallbacks2 = new LinkedList<>();
         List<DigitalAdapterCallbacks> receivedCallbacks3 = new LinkedList<>();

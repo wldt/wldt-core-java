@@ -4,10 +4,7 @@ import it.wldt.core.adapter.physical.TestPhysicalAdapter;
 import it.wldt.core.twin.DigitalTwin;
 import it.wldt.core.event.DefaultWldtEventLogger;
 import it.wldt.core.event.WldtEventBus;
-import it.wldt.exception.EventBusException;
-import it.wldt.exception.ModelException;
-import it.wldt.exception.WldtConfigurationException;
-import it.wldt.exception.WldtRuntimeException;
+import it.wldt.exception.*;
 import it.wldt.process.digital.DemoDigitalAdapter;
 import it.wldt.process.digital.DemoDigitalAdapterConfiguration;
 import it.wldt.process.metrics.SharedTestMetrics;
@@ -36,18 +33,15 @@ public class DemoProcessTester {
     private DigitalTwin digitalTwin = null;
 
     @BeforeEach
-    public void setUp() throws ModelException, WldtRuntimeException, EventBusException, WldtConfigurationException {
+    public void setUp() throws ModelException, WldtRuntimeException, EventBusException, WldtConfigurationException, WldtWorkerException, WldtDigitalTwinStateException {
 
         logger.info("Setting up Test Environment ...");
 
-        digitalTwin = new DigitalTwin(
-                new DemoShadowingFunction(TEST_DIGITAL_TWIN_ID),
-                TEST_DIGITAL_TWIN_ID);
+        digitalTwin = new DigitalTwin(TEST_DIGITAL_TWIN_ID, new DemoShadowingFunction());
 
         // Physical Adapter with Configuration
         digitalTwin.addPhysicalAdapter(
                 new DemoPhysicalAdapter(
-                        TEST_DIGITAL_TWIN_ID,
                         String.format("%s-%s", TEST_DIGITAL_TWIN_ID, "test-physical-adapter"),
                         new DemoPhysicalAdapterConfiguration(),
                         true));
@@ -55,8 +49,7 @@ public class DemoProcessTester {
         // Digital Adapter with Configuration
         digitalTwin.addDigitalAdapter(
                 new DemoDigitalAdapter(
-                        TEST_DIGITAL_TWIN_ID,
-                        String.format("%s-%s", TEST_DIGITAL_TWIN_ID, "test-digital-adapter"),
+                       String.format("%s-%s", TEST_DIGITAL_TWIN_ID, "test-digital-adapter"),
                         new DemoDigitalAdapterConfiguration())
         );
 

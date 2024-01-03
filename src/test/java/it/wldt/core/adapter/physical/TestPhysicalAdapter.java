@@ -20,6 +20,8 @@ public class TestPhysicalAdapter extends ConfigurablePhysicalAdapter<TestPhysica
 
     public static long MESSAGE_SLEEP_PERIOD_MS = 2000;
 
+    public final String DIGITAL_TWIN_ID = "dt00001";
+
     public static final String ENERGY_PROPERTY_KEY = "energy";
 
     public static final String SWITCH_PROPERTY_KEY = "switch";
@@ -51,11 +53,11 @@ public class TestPhysicalAdapter extends ConfigurablePhysicalAdapter<TestPhysica
             if(physicalActionEvent != null && physicalActionEvent.getActionKey().equals(SWITCH_ON_ACTION_KEY)) {
                 logger.info("{} Received ! Switching ON the device ...", physicalActionEvent.getType());
                 Thread.sleep(MESSAGE_SLEEP_PERIOD_MS);
-                WldtEventBus.getInstance().publishEvent(getId(), new PhysicalAssetPropertyWldtEvent<>(SWITCH_PROPERTY_KEY, "ON"));
+                WldtEventBus.getInstance().publishEvent(DIGITAL_TWIN_ID, getId(), new PhysicalAssetPropertyWldtEvent<>(SWITCH_PROPERTY_KEY, "ON"));
             } else if(physicalActionEvent != null && physicalActionEvent.getActionKey().equals(SWITCH_OFF_ACTION_KEY)){
                 logger.info("{} Received ! Switching OFF the device ...", physicalActionEvent.getType());
                 Thread.sleep(MESSAGE_SLEEP_PERIOD_MS);
-                WldtEventBus.getInstance().publishEvent(getId(), new PhysicalAssetPropertyWldtEvent<>(SWITCH_PROPERTY_KEY, "OFF"));
+                WldtEventBus.getInstance().publishEvent(DIGITAL_TWIN_ID, getId(), new PhysicalAssetPropertyWldtEvent<>(SWITCH_PROPERTY_KEY, "OFF"));
             } else
                 logger.error("WRONG OR NULL ACTION RECEIVED !");
 

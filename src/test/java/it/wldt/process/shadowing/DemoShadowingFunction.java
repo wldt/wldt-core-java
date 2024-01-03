@@ -28,12 +28,9 @@ public class DemoShadowingFunction extends ShadowingFunction {
 
     private boolean isShadowed = false;
 
-    // Internal reference of the Digital Twin Id for statistics, tests and metrics
-    private final String digitalTwinId;
 
-    public DemoShadowingFunction(String digitalTwinId) {
+    public DemoShadowingFunction() {
         super("dummy-shadowing-function");
-        this.digitalTwinId = digitalTwinId;
     }
 
     @Override
@@ -156,7 +153,7 @@ public class DemoShadowingFunction extends ShadowingFunction {
 
             logger.info("ShadowingFunction Physical Event Received: {}", physicalPropertyEventMessage);
 
-            SharedTestMetrics.getInstance().addShadowingFunctionPropertyEvent(digitalTwinId, physicalPropertyEventMessage);
+            SharedTestMetrics.getInstance().addShadowingFunctionPropertyEvent(this.digitalTwinStateManager.getDigitalTwinId(), physicalPropertyEventMessage);
 
             if(physicalPropertyEventMessage != null && getPhysicalEventsFilter().contains(physicalPropertyEventMessage.getType())){
 
@@ -194,7 +191,7 @@ public class DemoShadowingFunction extends ShadowingFunction {
 
             logger.info("ShadowingFunction Physical Asset Event Notification - Event Received: {}", physicalAssetEventWldtEvent);
 
-            SharedTestMetrics.getInstance().addShadowingFunctionEventNotification(digitalTwinId, physicalAssetEventWldtEvent);
+            SharedTestMetrics.getInstance().addShadowingFunctionEventNotification(this.digitalTwinStateManager.getDigitalTwinId(), physicalAssetEventWldtEvent);
 
             //Handle the received physical event notification and map into a digital notification for digital adapters
             this.digitalTwinStateManager.notifyDigitalTwinStateEvent(

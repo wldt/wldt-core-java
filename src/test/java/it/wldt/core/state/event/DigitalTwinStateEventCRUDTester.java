@@ -13,6 +13,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class DigitalTwinStateEventCRUDTester {
 
+    public final String DIGITAL_TWIN_ID = "dt00001";
+
     private final static String EVENT_KEY_1 = "testEventKey1";
 
     private final static String EVENT_KEY_2 = "testEventKey2";
@@ -25,10 +27,10 @@ public class DigitalTwinStateEventCRUDTester {
 
     private DigitalTwinState digitalTwinState;
 
-    private void createDigitalTwinStateManager() {
+    private void createDigitalTwinStateManager() throws WldtDigitalTwinStateException {
         if(digitalTwinStateManager == null && digitalTwinState == null) {
             //Init DigitaTwin State Manager
-            digitalTwinStateManager = new DigitalTwinStateManager();
+            digitalTwinStateManager = new DigitalTwinStateManager(DIGITAL_TWIN_ID);
             digitalTwinState = digitalTwinStateManager.getDigitalTwinState();
         }
     }

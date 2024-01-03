@@ -44,7 +44,18 @@ public class DigitalTwinStateManager {
 
     private boolean isEditing = false;
 
-    public DigitalTwinStateManager() {
+    private String digitalTwinId = null;
+
+    private DigitalTwinStateManager(){
+
+    }
+
+    public DigitalTwinStateManager(String digitalTwinId) throws WldtDigitalTwinStateException {
+
+        if(digitalTwinId == null)
+            throw new WldtDigitalTwinStateException("Error ! Impossible to create a WldtWorker with a NULL Digital Twin Id !");
+
+        this.digitalTwinId = digitalTwinId;
         this.digitalTwinState = new DigitalTwinState();
     }
 
@@ -128,7 +139,7 @@ public class DigitalTwinStateManager {
                 wldtEvent.putMetadata(DT_STATE_UPDATE_METADATA_CHANGE_LIST, this.digitalTwinStateTransaction.getDigitalTwinStateChangeList());
 
                 //Publish the event on the WLDT event bus
-                WldtEventBus.getInstance().publishEvent(DT_STATE_PUBLISHER_ID, wldtEvent);
+                WldtEventBus.getInstance().publishEvent(this.digitalTwinId, DT_STATE_PUBLISHER_ID, wldtEvent);
 
             } else
                 throw new WldtDigitalTwinStateException("Invalid DigitalTwinStateTransaction ! Missing commit or null starting or final state");
@@ -158,7 +169,7 @@ public class DigitalTwinStateManager {
             notificationEvent.setBody(digitalTwinStateEventNotification);
             notificationEvent.putMetadata(DT_STATE_EVENT_METADATA_KEY_EVENT_KEY, digitalTwinStateEventNotification.getDigitalEventKey());
 
-            WldtEventBus.getInstance().publishEvent(DT_STATE_PUBLISHER_ID, notificationEvent);
+            WldtEventBus.getInstance().publishEvent(this.digitalTwinId, DT_STATE_PUBLISHER_ID, notificationEvent);
 
         } catch (Exception e) {
             logger.error("notifyDigitalTwinStateEvent() -> Error Notifying State Listeners ! Error: {}", e.getLocalizedMessage());
@@ -552,4 +563,9 @@ public class DigitalTwinStateManager {
     public DigitalTwinState getDigitalTwinState() {
         return digitalTwinState;
     }
+
+    public String getDigitalTwinId() {
+        return digitalTwinId;
+    }
+
 }

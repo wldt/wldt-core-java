@@ -1,6 +1,5 @@
 package it.wldt.process;
 
-import it.wldt.core.adapter.physical.TestPhysicalAdapter;
 import it.wldt.core.engine.DigitalTwinEngine;
 import it.wldt.core.event.DefaultWldtEventLogger;
 import it.wldt.core.event.WldtEventBus;
@@ -37,16 +36,15 @@ public class EngineTester {
 
     private DigitalTwinEngine digitalTwinEngine = null;
 
-    private DigitalTwin createNewDigitalTwin(String digitalTwinId) throws ModelException, WldtRuntimeException, EventBusException, WldtConfigurationException {
+    private DigitalTwin createNewDigitalTwin(String digitalTwinId) throws ModelException, WldtRuntimeException, EventBusException, WldtConfigurationException, WldtWorkerException, WldtDigitalTwinStateException {
 
         DigitalTwin digitalTwin = new DigitalTwin(
-                new DemoShadowingFunction(digitalTwinId),
-                digitalTwinId);
+                digitalTwinId,
+                new DemoShadowingFunction());
 
         // Physical Adapter with Configuration
         digitalTwin.addPhysicalAdapter(
                 new DemoPhysicalAdapter(
-                        digitalTwinId,
                         String.format("%s-%s", digitalTwinId, "test-physical-adapter"),
                         new DemoPhysicalAdapterConfiguration(),
                         true));
@@ -54,7 +52,6 @@ public class EngineTester {
         // Digital Adapter with Configuration
         digitalTwin.addDigitalAdapter(
                 new DemoDigitalAdapter(
-                        digitalTwinId,
                         String.format("%s-%s", digitalTwinId, "test-digital-adapter"),
                         new DemoDigitalAdapterConfiguration())
         );
@@ -68,7 +65,7 @@ public class EngineTester {
     }
 
     @BeforeEach
-    public void setUp() throws ModelException, WldtRuntimeException, EventBusException, WldtConfigurationException, WldtEngineException {
+    public void setUp() throws ModelException, WldtRuntimeException, EventBusException, WldtConfigurationException, WldtEngineException, WldtWorkerException, WldtDigitalTwinStateException {
 
         logger.info("Setting up Test Environment ...");
 
@@ -141,9 +138,6 @@ public class EngineTester {
 
         // Check that the engine has the correct number of twins
         assertEquals(3, digitalTwinEngine.getDigitalTwinMap().size());
-
-        // Sleep to wait that all twins are correctly started
-        Thread.sleep(2*60000);
 
         // Check that all Twins are correctly started through their Life Cycle State
         checkTwinIsActive(TEST_DIGITAL_TWIN_ID_1);

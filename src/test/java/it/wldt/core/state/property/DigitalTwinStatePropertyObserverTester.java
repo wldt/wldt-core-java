@@ -23,6 +23,8 @@ public class DigitalTwinStatePropertyObserverTester {
     public static final String TEST_PROPERTY_VALUE_0001 = "TEST-STRING";
     public static final String TEST_PROPERTY_VALUE_0001_UPDATED = "TEST-STRING-UPDATED";
 
+    public final String DIGITAL_TWIN_ID = "dt00001";
+
     public static final String TEST_PROPERTY_TYPE = "test_type";
 
     public static final String SUBSCRIBER_ID_1 = "testModuleSubscriber1";
@@ -49,9 +51,9 @@ public class DigitalTwinStatePropertyObserverTester {
 
     private WldtEventListener wldtEventListener;
 
-    private void initTestDtState() {
+    private void initTestDtState() throws WldtDigitalTwinStateException {
         //Init DigitaTwin State
-        digitalTwinStateManager = new DigitalTwinStateManager();
+        digitalTwinStateManager = new DigitalTwinStateManager(DIGITAL_TWIN_ID);
         digitalTwinState = digitalTwinStateManager.getDigitalTwinState();
     }
 
@@ -138,7 +140,7 @@ public class DigitalTwinStatePropertyObserverTester {
         WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
 
         //Subscribe for target topic
-        WldtEventBus.getInstance().subscribe(SUBSCRIBER_ID_1, wldtEventFilter, getWldtEventListener());
+        WldtEventBus.getInstance().subscribe(DIGITAL_TWIN_ID, SUBSCRIBER_ID_1, wldtEventFilter, getWldtEventListener());
 
         createProperty();
 
@@ -164,7 +166,7 @@ public class DigitalTwinStatePropertyObserverTester {
         assertEquals(receivedDigitalTwinStateChangeList.get(0).getResource(), testProperty1);
 
         //Remove Subscription for target topic
-        WldtEventBus.getInstance().unSubscribe(SUBSCRIBER_ID_1, wldtEventFilter, getWldtEventListener());
+        WldtEventBus.getInstance().unSubscribe(DIGITAL_TWIN_ID, SUBSCRIBER_ID_1, wldtEventFilter, getWldtEventListener());
     }
 
     @Test
@@ -187,7 +189,7 @@ public class DigitalTwinStatePropertyObserverTester {
         WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
 
         //Subscribe for target topic
-        WldtEventBus.getInstance().subscribe(SUBSCRIBER_ID_1, wldtEventFilter, getWldtEventListener());
+        WldtEventBus.getInstance().subscribe(DIGITAL_TWIN_ID, SUBSCRIBER_ID_1, wldtEventFilter, getWldtEventListener());
 
         //Update Property
         DigitalTwinStateProperty<String> updatedProperty = new DigitalTwinStateProperty<String>(TEST_PROPERTY_KEY_0001, TEST_PROPERTY_VALUE_0001_UPDATED, true, true);
@@ -219,7 +221,7 @@ public class DigitalTwinStatePropertyObserverTester {
         assertEquals(receivedDigitalTwinStateChangeList.get(0).getResource(), updatedProperty);
 
         //Remove Subscription for target topic
-        WldtEventBus.getInstance().unSubscribe(SUBSCRIBER_ID_1, wldtEventFilter, getWldtEventListener());
+        WldtEventBus.getInstance().unSubscribe(DIGITAL_TWIN_ID, SUBSCRIBER_ID_1, wldtEventFilter, getWldtEventListener());
     }
 
     @Test
@@ -241,7 +243,7 @@ public class DigitalTwinStatePropertyObserverTester {
         WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
 
         //Subscribe for target topic
-        WldtEventBus.getInstance().subscribe(SUBSCRIBER_ID_1, wldtEventFilter, getWldtEventListener());
+        WldtEventBus.getInstance().subscribe(DIGITAL_TWIN_ID, SUBSCRIBER_ID_1, wldtEventFilter, getWldtEventListener());
 
         digitalTwinStateManager.startStateTransaction();
         digitalTwinStateManager.deleteProperty(TEST_PROPERTY_KEY_0001);
@@ -268,7 +270,7 @@ public class DigitalTwinStatePropertyObserverTester {
         assertEquals(receivedDigitalTwinStateChangeList.get(0).getResource(), testProperty1);
 
         //Remove Subscription for target topic
-        WldtEventBus.getInstance().unSubscribe(SUBSCRIBER_ID_1, wldtEventFilter, getWldtEventListener());
+        WldtEventBus.getInstance().unSubscribe(DIGITAL_TWIN_ID, SUBSCRIBER_ID_1, wldtEventFilter, getWldtEventListener());
     }
 
     @Test
@@ -291,7 +293,7 @@ public class DigitalTwinStatePropertyObserverTester {
         WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
 
         //Subscribe for target topic
-        WldtEventBus.getInstance().subscribe(SUBSCRIBER_ID_1, wldtEventFilter, getWldtEventListener());
+        WldtEventBus.getInstance().subscribe(DIGITAL_TWIN_ID, SUBSCRIBER_ID_1, wldtEventFilter, getWldtEventListener());
 
         //Update Property
         DigitalTwinStateProperty<String> updatedProperty = new DigitalTwinStateProperty<String>(TEST_PROPERTY_KEY_0001, TEST_PROPERTY_VALUE_0001_UPDATED, true, true);
@@ -323,6 +325,6 @@ public class DigitalTwinStatePropertyObserverTester {
         assertEquals(receivedDigitalTwinStateChangeList.get(0).getResource(), updatedProperty);
 
         //Remove Subscription for target topic
-        WldtEventBus.getInstance().unSubscribe(SUBSCRIBER_ID_1, wldtEventFilter, getWldtEventListener());
+        WldtEventBus.getInstance().unSubscribe(DIGITAL_TWIN_ID, SUBSCRIBER_ID_1, wldtEventFilter, getWldtEventListener());
     }
 }

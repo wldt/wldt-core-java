@@ -34,6 +34,8 @@ import static org.junit.jupiter.api.Assertions.*;
 @TestMethodOrder(MethodOrderer.MethodName.class)
 public class ShadowingFunctionTester {
 
+    public final String DIGITAL_TWIN_ID = "dt00001";
+
     private static final Logger logger = LoggerFactory.getLogger(ShadowingFunctionTester.class);
 
     private static CountDownLatch testCountDownLatch = null;
@@ -46,7 +48,7 @@ public class ShadowingFunctionTester {
         WldtEventFilter wldtEventFilter = new WldtEventFilter();
         wldtEventFilter.add(DigitalTwinStateManager.getStatusUpdatesWldtEventMessageType());
 
-        WldtEventBus.getInstance().subscribe("demo-state-observer", wldtEventFilter, new WldtEventListener() {
+        WldtEventBus.getInstance().subscribe(DIGITAL_TWIN_ID, "demo-state-observer", wldtEventFilter, new WldtEventListener() {
             @Override
             public void onEventSubscribed(String eventType) {
                 logger.info("DT-State-Observer - onEventSubscribed(): {}", eventType);
@@ -227,7 +229,7 @@ public class ShadowingFunctionTester {
     }
 
     @Test
-    public void testShadowingFunctionOnPhysicalEvents() throws WldtConfigurationException, EventBusException, ModelException, ModelFunctionException, InterruptedException, WldtRuntimeException {
+    public void testShadowingFunctionOnPhysicalEvents() throws WldtConfigurationException, EventBusException, ModelException, InterruptedException, WldtRuntimeException, WldtWorkerException, WldtDigitalTwinStateException {
 
         receivedStateWldtEventList = new ArrayList<>();
 
@@ -246,7 +248,7 @@ public class ShadowingFunctionTester {
         TestDigitalAdapter testDigitalAdapter = new TestDigitalAdapter("dummy-digital-adapter", new TestDigitalAdapterConfiguration());
 
         //Init the Engine
-        DigitalTwin digitalTwin = new DigitalTwin(getTargetShadowingFunction(), "shadowing-tester-dt");
+        DigitalTwin digitalTwin = new DigitalTwin(DIGITAL_TWIN_ID, getTargetShadowingFunction());
         digitalTwin.addPhysicalAdapter(testPhysicalAdapter);
         digitalTwin.addDigitalAdapter(testDigitalAdapter);
         digitalTwin.startLifeCycle();

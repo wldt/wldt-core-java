@@ -29,6 +29,8 @@ public class AdaptersTester {
 
     private static final Logger logger = LoggerFactory.getLogger(AdaptersTester.class);
 
+    public final String DIGITAL_TWIN_ID = "dt00001";
+
     private static CountDownLatch wldtEventsLock = null;
 
     private static CountDownLatch actionLock = null;
@@ -83,7 +85,7 @@ public class AdaptersTester {
         testDigitalAdapter = null;
     }
 
-    private void buildWldtEngine(boolean physicalTelemetryOn) throws WldtConfigurationException, ModelException, WldtRuntimeException, EventBusException {
+    private void buildWldtEngine(boolean physicalTelemetryOn) throws WldtConfigurationException, ModelException, WldtRuntimeException, EventBusException, WldtWorkerException, WldtDigitalTwinStateException {
 
         //Create Physical Adapter
         testPhysicalAdapter = new TestPhysicalAdapter("dummy-physical-adapter", new TestPhysicalAdapterConfiguration(), physicalTelemetryOn);
@@ -95,14 +97,14 @@ public class AdaptersTester {
         );
 
         //Init the Engine
-        digitalTwin = new DigitalTwin(getTargetShadowingFunction(), "adapters-tester-digital-twin");
+        digitalTwin = new DigitalTwin(DIGITAL_TWIN_ID, getTargetShadowingFunction());
         digitalTwin.addPhysicalAdapter(testPhysicalAdapter);
         digitalTwin.addDigitalAdapter(testDigitalAdapter);
     }
 
     @Test
     @Order(1)
-    public void testPhysicalAdapterEvents() throws WldtConfigurationException, EventBusException, ModelException, InterruptedException, WldtRuntimeException {
+    public void testPhysicalAdapterEvents() throws WldtConfigurationException, EventBusException, ModelException, InterruptedException, WldtRuntimeException, WldtWorkerException, WldtDigitalTwinStateException {
 
         //Set EventBus Logger
         WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
@@ -134,7 +136,7 @@ public class AdaptersTester {
 
     @Test
     @Order(2)
-    public void testPhysicalAdapterActions() throws WldtConfigurationException, EventBusException, ModelException, ModelFunctionException, InterruptedException, WldtRuntimeException {
+    public void testPhysicalAdapterActions() throws WldtConfigurationException, EventBusException, ModelException, ModelFunctionException, InterruptedException, WldtRuntimeException, WldtWorkerException, WldtDigitalTwinStateException {
 
         //Set EventBus Logger
         WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
@@ -147,13 +149,13 @@ public class AdaptersTester {
 
         //Send a Demo OFF PhysicalAction to the Adapter
         PhysicalAssetActionWldtEvent<String> switchOffPhysicalActionEvent = new PhysicalAssetActionWldtEvent<String>(TestPhysicalAdapter.SWITCH_OFF_ACTION_KEY, "OFF");
-        WldtEventBus.getInstance().publishEvent("demo-action-tester", switchOffPhysicalActionEvent);
+        WldtEventBus.getInstance().publishEvent(DIGITAL_TWIN_ID, "demo-action-tester", switchOffPhysicalActionEvent);
         logger.info("Physical Action OFF Sent ! Sleeping (5s) ...");
         Thread.sleep(5000);
 
         //Send a Demo OFF PhysicalAction to the Adapter
         PhysicalAssetActionWldtEvent<String> switchOnPhysicalActionEvent = new PhysicalAssetActionWldtEvent<String>(TestPhysicalAdapter.SWITCH_ON_ACTION_KEY, "ON");
-        WldtEventBus.getInstance().publishEvent("demo-action-tester", switchOnPhysicalActionEvent);
+        WldtEventBus.getInstance().publishEvent(DIGITAL_TWIN_ID, "demo-action-tester", switchOnPhysicalActionEvent);
         logger.info("Physical Action ON Sent ! Sleeping (5s) ...");
 
         //Wait until all the messages have been received

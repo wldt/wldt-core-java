@@ -8,6 +8,7 @@ import it.wldt.exception.EventBusException;
 import it.wldt.exception.ModelException;
 import it.wldt.exception.WldtRuntimeException;
 import it.wldt.core.worker.WldtWorker;
+import it.wldt.exception.WldtWorkerException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,7 +29,14 @@ public class ModelEngine extends WldtWorker implements LifeCycleListener {
 
     private ShadowingFunction shadowingFunction;
 
-    public ModelEngine(DigitalTwinStateManager digitalTwinStateManager, ShadowingFunction shadowingFunction) throws ModelException, EventBusException {
+    public ModelEngine(String digitalTwinId, DigitalTwinStateManager digitalTwinStateManager, ShadowingFunction shadowingFunction) throws ModelException, WldtWorkerException {
+
+        super();
+
+        if(digitalTwinId == null)
+            throw new ModelException("Error ! Digital Twin ID cannot be NULL !");
+        else
+            this.digitalTwinId = digitalTwinId;
 
         if(shadowingFunction != null){
             //Init the Shadowing Model Function with the current Digital Twin State and call the associated onCreate method

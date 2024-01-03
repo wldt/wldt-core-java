@@ -13,10 +13,7 @@ import it.wldt.core.model.ShadowingFunction;
 import it.wldt.core.model.ShadowingModelListener;
 import it.wldt.core.state.DigitalTwinState;
 import it.wldt.core.state.DigitalTwinStateManager;
-import it.wldt.exception.EventBusException;
-import it.wldt.exception.ModelException;
-import it.wldt.exception.WldtConfigurationException;
-import it.wldt.exception.WldtRuntimeException;
+import it.wldt.exception.*;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -76,16 +73,32 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
 
     private ShadowingFunction shadowingFunction = null;
 
-    public DigitalTwin(ShadowingFunction shadowingFunction, String digitalTwinId, List<String> digitalizedPhysicalAssets) throws ModelException, EventBusException, WldtRuntimeException {
-        digitalTwinInstance = new DigitalTwinInstance(digitalTwinId, digitalizedPhysicalAssets);
+    private String digitalTwinId;
+
+    public DigitalTwin(String digitalTwinId, List<String> digitalizedPhysicalAssetsIdList, ShadowingFunction shadowingFunction) throws ModelException, EventBusException, WldtRuntimeException, WldtWorkerException, WldtDigitalTwinStateException {
+
+        if(digitalTwinId == null)
+            throw new WldtRuntimeException("Error ! Digital Twin ID = Null !");
+
+        //TODO Add a check to force passing a list of Physical Asset Id ? Check if digitalizedPhysicalAssetsIdList.isEmpty() ?
+        if(digitalizedPhysicalAssetsIdList == null)
+            digitalizedPhysicalAssetsIdList = new ArrayList<>();
+            //throw new WldtRuntimeException("Error ! List of Physical Asset Ids = Null or EMPTY!");
+
+        if(shadowingFunction == null)
+            throw new WldtRuntimeException("Error ! Digital Twin Shadowing Function = Null !");
+
+        this.digitalTwinId = digitalTwinId;
+        this.digitalTwinInstance = new DigitalTwinInstance(digitalTwinId, digitalizedPhysicalAssetsIdList);
+
         init(shadowingFunction);
     }
 
-    public DigitalTwin(ShadowingFunction shadowingFunction, String digitalTwinId) throws ModelException, EventBusException, WldtRuntimeException {
-        this(shadowingFunction, digitalTwinId, new ArrayList<>());
+    public DigitalTwin(String digitalTwinId, ShadowingFunction shadowingFunction) throws ModelException, EventBusException, WldtRuntimeException, WldtWorkerException, WldtDigitalTwinStateException {
+        this(digitalTwinId, new ArrayList<>(), shadowingFunction);
     }
 
-    private void init(ShadowingFunction shadowingFunction) throws ModelException, EventBusException, WldtRuntimeException {
+    private void init(ShadowingFunction shadowingFunction) throws ModelException, WldtRuntimeException, WldtWorkerException, WldtDigitalTwinStateException {
 
         if(shadowingFunction == null)
             throw new WldtRuntimeException("Error ! Shadowing Function = NULL !");
@@ -96,7 +109,7 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
         this.digitalAdaptersBoundStatusMap = new HashMap<>();
 
         //Initialize the Digital Twin State
-        this.digitalTwinStateManager = new DigitalTwinStateManager();
+        this.digitalTwinStateManager = new DigitalTwinStateManager(this.digitalTwinId);
 
         //Init DT Initial Life Cycle Phase
         this.currentLifeCycleState = LifeCycleState.NONE;
@@ -110,7 +123,7 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
         //Set ShadowingListener, Init Model Engine & Add to the List of Workers
         this.shadowingFunction = shadowingFunction;
         this.shadowingFunction.setShadowingModelListener(this);
-        this.modelEngine = new ModelEngine(this.digitalTwinStateManager, this.shadowingFunction);
+        this.modelEngine = new ModelEngine(this.digitalTwinId, this.digitalTwinStateManager, this.shadowingFunction);
 
         //Save the Model Engine as Digital Twin Life Cycle Listener
         addLifeCycleListener(this.modelEngine);
@@ -213,13 +226,14 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
      * @param physicalAdapter
      * @throws WldtConfigurationException
      */
-    public void addPhysicalAdapter(PhysicalAdapter physicalAdapter) throws WldtConfigurationException {
+    public void addPhysicalAdapter(PhysicalAdapter physicalAdapter) throws WldtConfigurationException, WldtWorkerException {
 
         if(physicalAdapter != null
                 && digitalTwinInstance.getPhysicalAdapterList() != null
                 && !digitalTwinInstance.getPhysicalAdapterList().contains(physicalAdapter)
                 && digitalTwinInstance.getPhysicalAdapterList().size() < PHYSICAL_ADAPTERS_THREAD_POOL_SIZE_LIMIT) {
 
+            physicalAdapter.setDigitalTwinId(this.digitalTwinId);
             physicalAdapter.setPhysicalAdapterListener(this);
             digitalTwinInstance.getPhysicalAdapterList().add(physicalAdapter);
 
@@ -253,13 +267,14 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
      * @param digitalAdapter
      * @throws WldtConfigurationException
      */
-    public void addDigitalAdapter(DigitalAdapter<?> digitalAdapter) throws WldtConfigurationException {
+    public void addDigitalAdapter(DigitalAdapter<?> digitalAdapter) throws WldtConfigurationException, WldtWorkerException {
 
         if(digitalAdapter != null
                 && digitalTwinInstance.getDigitalAdapterList() != null
                 && !digitalTwinInstance.getDigitalAdapterList().contains(digitalAdapter)
                 && digitalTwinInstance.getDigitalAdapterList().size() < DIGITAL_ADAPTERS_THREAD_POOL_SIZE_LIMIT) {
 
+            digitalAdapter.setDigitalTwinId(this.digitalTwinId);
             digitalAdapter.setDigitalAdapterListener(this);
             digitalTwinInstance.getDigitalAdapterList().add(digitalAdapter);
 
@@ -475,4 +490,7 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
         return this.currentLifeCycleState;
     }
 
+    public String getDigitalTwinId() {
+        return digitalTwinId;
+    }
 }

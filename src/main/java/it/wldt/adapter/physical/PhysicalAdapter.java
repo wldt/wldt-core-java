@@ -9,6 +9,7 @@ import it.wldt.exception.EventBusException;
 import it.wldt.exception.PhysicalAdapterException;
 import it.wldt.exception.WldtRuntimeException;
 import it.wldt.adapter.physical.event.*;
+import it.wldt.exception.WldtWorkerException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,7 +46,12 @@ public abstract class PhysicalAdapter extends WldtWorker implements WldtEventLis
 
     private PhysicalAssetDescription adapterPhysicalAssetDescription;
 
-    public PhysicalAdapter(String id){
+    private PhysicalAdapter(){
+
+    }
+
+    public PhysicalAdapter(String id) {
+        super();
         this.id = id;
     }
 
@@ -101,19 +107,19 @@ public abstract class PhysicalAdapter extends WldtWorker implements WldtEventLis
     public abstract void onAdapterStop();
 
     protected void publishPhysicalAssetPropertyWldtEvent(PhysicalAssetPropertyWldtEvent<?> targetPhysicalPropertyEventMessage) throws EventBusException {
-        WldtEventBus.getInstance().publishEvent(getId(), targetPhysicalPropertyEventMessage);
+        WldtEventBus.getInstance().publishEvent(this.digitalTwinId, getId(), targetPhysicalPropertyEventMessage);
     }
 
     protected void publishPhysicalAssetEventWldtEvent(PhysicalAssetEventWldtEvent<?> targetPhysicalAssetEventWldtEvent) throws EventBusException {
-        WldtEventBus.getInstance().publishEvent(getId(), targetPhysicalAssetEventWldtEvent);
+        WldtEventBus.getInstance().publishEvent(this.digitalTwinId, getId(), targetPhysicalAssetEventWldtEvent);
     }
 
     protected void publishPhysicalAssetRelationshipCreatedWldtEvent(PhysicalAssetRelationshipInstanceCreatedWldtEvent<?> targetPhysicalAssetRelationshipWldtEvent) throws EventBusException {
-        WldtEventBus.getInstance().publishEvent(getId(), targetPhysicalAssetRelationshipWldtEvent);
+        WldtEventBus.getInstance().publishEvent(this.digitalTwinId, getId(), targetPhysicalAssetRelationshipWldtEvent);
     }
 
     protected void publishPhysicalAssetRelationshipDeletedWldtEvent(PhysicalAssetRelationshipInstanceDeletedWldtEvent<?> targetPhysicalAssetRelationshipWldtEvent) throws EventBusException {
-        WldtEventBus.getInstance().publishEvent(getId(), targetPhysicalAssetRelationshipWldtEvent);
+        WldtEventBus.getInstance().publishEvent(this.digitalTwinId, getId(), targetPhysicalAssetRelationshipWldtEvent);
     }
 
     public PhysicalAssetDescription getPhysicalAssetDescription() {
@@ -212,7 +218,7 @@ public abstract class PhysicalAdapter extends WldtWorker implements WldtEventLis
                 this.physicalActionEventsFilter = new WldtEventFilter();
             else {
                 //Clean existing subscriptions and the local event filter
-                WldtEventBus.getInstance().unSubscribe(this.id, this.physicalActionEventsFilter, this);
+                WldtEventBus.getInstance().unSubscribe(this.digitalTwinId, this.id, this.physicalActionEventsFilter, this);
                 this.physicalActionEventsFilter.clear();
             }
 
@@ -221,7 +227,7 @@ public abstract class PhysicalAdapter extends WldtWorker implements WldtEventLis
                 this.physicalActionEventsFilter.add(PhysicalAssetActionWldtEvent
                         .buildEventType(PhysicalAssetActionWldtEvent.EVENT_BASIC_TYPE, physicalAssetAction.getKey()));
 
-            WldtEventBus.getInstance().subscribe(this.id, this.physicalActionEventsFilter, this);
+            WldtEventBus.getInstance().subscribe(this.digitalTwinId, this.id, this.physicalActionEventsFilter, this);
 
         }
         else

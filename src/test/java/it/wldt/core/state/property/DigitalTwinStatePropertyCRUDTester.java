@@ -12,6 +12,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class DigitalTwinStatePropertyCRUDTester {
 
+    public final String DIGITAL_TWIN_ID = "dt00001";
+
     public static final String TEST_KEY_0001 = "testKey0001";
     public static final String TEST_VALUE_0001 = "TEST-STRING";
 
@@ -34,7 +36,7 @@ public class DigitalTwinStatePropertyCRUDTester {
 
         if(digitalTwinStateManager == null && digitalTwinState == null) {
             //Init DigitaTwin State Manager
-            digitalTwinStateManager = new DigitalTwinStateManager();
+            digitalTwinStateManager = new DigitalTwinStateManager(DIGITAL_TWIN_ID);
             digitalTwinState = digitalTwinStateManager.getDigitalTwinState();
         }
     }

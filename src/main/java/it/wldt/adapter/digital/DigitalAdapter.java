@@ -12,6 +12,7 @@ import it.wldt.core.worker.WldtWorker;
 import it.wldt.exception.EventBusException;
 import it.wldt.exception.WldtDigitalTwinStateEventException;
 import it.wldt.exception.WldtRuntimeException;
+import it.wldt.exception.WldtWorkerException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,14 +68,17 @@ public abstract class DigitalAdapter<C> extends WldtWorker implements WldtEventL
 
     private DigitalAdapterLifeCycleListener digitalAdapterLifeCycleListener;
 
-    private DigitalAdapter(){}
+    private DigitalAdapter() {
+    }
 
-    public DigitalAdapter(String id, C configuration){
+    public DigitalAdapter(String id, C configuration) {
+        super();
         this.id = id;
         this.configuration = configuration;
     }
 
-    public DigitalAdapter(String id){
+    public DigitalAdapter(String id) {
+        super();
         this.id = id;
     }
 
@@ -94,7 +98,7 @@ public abstract class DigitalAdapter<C> extends WldtWorker implements WldtEventL
         //Save the adopted EventFilter
         this.statePropertiesWldtEventFilter = wldtEventFilter;
 
-        WldtEventBus.getInstance().subscribe(this.id, wldtEventFilter, this);
+        WldtEventBus.getInstance().subscribe(this.digitalTwinId, this.id, wldtEventFilter, this);
     }
 
     /**
@@ -110,7 +114,7 @@ public abstract class DigitalAdapter<C> extends WldtWorker implements WldtEventL
         //Save the adopted EventFilter
         this.statePropertiesWldtEventFilter = wldtEventFilter;
 
-        WldtEventBus.getInstance().unSubscribe(this.id, wldtEventFilter, this);
+        WldtEventBus.getInstance().unSubscribe(this.digitalTwinId, this.id, wldtEventFilter, this);
     }
 
 
@@ -128,7 +132,7 @@ public abstract class DigitalAdapter<C> extends WldtWorker implements WldtEventL
      */
     protected <T> void publishDigitalActionWldtEvent(String actionKey, T body) throws EventBusException {
         WldtEvent<DigitalActionWldtEvent<T>> notification = new WldtEvent<>(DIGITAL_ACTION_EVENT, new DigitalActionWldtEvent<>(actionKey, body));
-        WldtEventBus.getInstance().publishEvent(this.id, notification);
+        WldtEventBus.getInstance().publishEvent(this.digitalTwinId, this.id, notification);
     }
 
     /**
@@ -139,7 +143,7 @@ public abstract class DigitalAdapter<C> extends WldtWorker implements WldtEventL
      */
     protected void publishDigitalActionWldtEvent(DigitalActionWldtEvent<?> actionWldtEvent) throws EventBusException {
         WldtEvent<DigitalActionWldtEvent<?>> notification = new WldtEvent<>(DIGITAL_ACTION_EVENT, actionWldtEvent);
-        WldtEventBus.getInstance().publishEvent(this.id, notification);
+        WldtEventBus.getInstance().publishEvent(this.digitalTwinId, this.id, notification);
     }
 
 
@@ -191,7 +195,7 @@ public abstract class DigitalAdapter<C> extends WldtWorker implements WldtEventL
 
         this.stateTargetEventNotificationWldtEventsFilter.addAll(wldtEventFilter);
 
-        WldtEventBus.getInstance().subscribe(this.id, wldtEventFilter, this);
+        WldtEventBus.getInstance().subscribe(this.digitalTwinId, this.id, wldtEventFilter, this);
     }
 
     /**
@@ -211,7 +215,7 @@ public abstract class DigitalAdapter<C> extends WldtWorker implements WldtEventL
 
         this.stateTargetEventNotificationWldtEventsFilter.removeAll(wldtEventFilter);
 
-        WldtEventBus.getInstance().unSubscribe(this.id, wldtEventFilter, this);
+        WldtEventBus.getInstance().unSubscribe(this.digitalTwinId, this.id, wldtEventFilter, this);
     }
 
     /**
@@ -232,7 +236,7 @@ public abstract class DigitalAdapter<C> extends WldtWorker implements WldtEventL
 
         this.stateTargetEventNotificationWldtEventsFilter.addAll(wldtEventFilter);
 
-        WldtEventBus.getInstance().subscribe(this.id, wldtEventFilter, this);
+        WldtEventBus.getInstance().subscribe(this.digitalTwinId, this.id, wldtEventFilter, this);
     }
 
     /**
@@ -251,7 +255,7 @@ public abstract class DigitalAdapter<C> extends WldtWorker implements WldtEventL
 
         this.stateTargetEventNotificationWldtEventsFilter.removeAll(wldtEventFilter);
 
-        WldtEventBus.getInstance().unSubscribe(this.id, wldtEventFilter, this);
+        WldtEventBus.getInstance().unSubscribe(this.digitalTwinId, this.id, wldtEventFilter, this);
     }
 
 

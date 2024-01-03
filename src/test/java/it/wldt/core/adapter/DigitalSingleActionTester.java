@@ -27,6 +27,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class DigitalSingleActionTester {
 
+    public final String DIGITAL_TWIN_ID = "dt00001";
+
     private final static String ACTION1_KEY = "switch-on";
     private final static String ACTION2_KEY = "switch-off";
 
@@ -62,13 +64,13 @@ public class DigitalSingleActionTester {
 
     @Test
     @Order(1)
-    public void basicDigitalActionTest() throws WldtConfigurationException, InterruptedException, ModelException, WldtRuntimeException, EventBusException {
+    public void basicDigitalActionTest() throws WldtConfigurationException, InterruptedException, ModelException, WldtRuntimeException, EventBusException, WldtWorkerException, WldtDigitalTwinStateException {
 
         CountDownLatch countDown = new CountDownLatch(1);
 
         List<PhysicalAssetActionWldtEvent<?>> physicalAssetActionEventReceived = new ArrayList<>();
 
-        DigitalTwin dtEngine = new DigitalTwin(new TestShadowingFunction(), "digital.actions.tester.dt");
+        DigitalTwin dtEngine = new DigitalTwin(DIGITAL_TWIN_ID, new TestShadowingFunction());
         dtEngine.addPhysicalAdapter(createPhysicalAdapter("test.digital.actions.pa", ACTION1_KEY, countDown, physicalAssetActionEventReceived));
 
         SwitchDigitalAdapter digitalAdapter = new SwitchDigitalAdapter();
