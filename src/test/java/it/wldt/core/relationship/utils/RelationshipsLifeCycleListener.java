@@ -1,7 +1,7 @@
 package it.wldt.core.relationship.utils;
 
 import it.wldt.adapter.physical.PhysicalAssetDescription;
-import it.wldt.core.twin.LifeCycleListener;
+import it.wldt.core.engine.LifeCycleListener;
 import it.wldt.core.state.DigitalTwinState;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;

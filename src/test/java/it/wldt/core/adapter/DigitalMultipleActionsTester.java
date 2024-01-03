@@ -6,7 +6,8 @@ import it.wldt.adapter.physical.PhysicalAdapter;
 import it.wldt.adapter.physical.PhysicalAssetAction;
 import it.wldt.adapter.physical.PhysicalAssetDescription;
 import it.wldt.adapter.physical.event.PhysicalAssetActionWldtEvent;
-import it.wldt.core.twin.DigitalTwin;
+import it.wldt.core.engine.DigitalTwin;
+import it.wldt.core.engine.DigitalTwinEngine;
 import it.wldt.exception.*;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
@@ -64,20 +65,23 @@ public class DigitalMultipleActionsTester {
 
     @Test
     @Order(1)
-    public void multiplePhysicalAdapterTest() throws WldtConfigurationException, InterruptedException, ModelException, WldtRuntimeException, EventBusException, WldtWorkerException, WldtDigitalTwinStateException {
+    public void multiplePhysicalAdapterTest() throws WldtConfigurationException, InterruptedException, ModelException, WldtRuntimeException, EventBusException, WldtWorkerException, WldtDigitalTwinStateException, WldtEngineException {
+
+        DigitalTwinEngine digitalTwinEngine = new DigitalTwinEngine();
 
         CountDownLatch countDown = new CountDownLatch(2);
 
         List<PhysicalAssetActionWldtEvent<?>> physicalAssetActionEventReceived1 = new ArrayList<>();
         List<PhysicalAssetActionWldtEvent<?>> physicalAssetActionEventReceived2 = new ArrayList<>();
 
-        DigitalTwin dtEngine = new DigitalTwin(DIGITAL_TWIN_ID, new TestShadowingFunction());
-        dtEngine.addPhysicalAdapter(createPhysicalAdapter("test.digital.actions.pa", ACTION1_KEY, countDown, physicalAssetActionEventReceived1));
-        dtEngine.addPhysicalAdapter(createPhysicalAdapter("test.digital.actions.pa2", ACTION2_KEY, countDown, physicalAssetActionEventReceived2));
+        DigitalTwin dt = new DigitalTwin(DIGITAL_TWIN_ID, new TestShadowingFunction());
+        dt.addPhysicalAdapter(createPhysicalAdapter("test.digital.actions.pa", ACTION1_KEY, countDown, physicalAssetActionEventReceived1));
+        dt.addPhysicalAdapter(createPhysicalAdapter("test.digital.actions.pa2", ACTION2_KEY, countDown, physicalAssetActionEventReceived2));
 
         SwitchDigitalAdapter digitalAdapter = new SwitchDigitalAdapter();
-        dtEngine.addDigitalAdapter(digitalAdapter);
-        dtEngine.startLifeCycle();
+        dt.addDigitalAdapter(digitalAdapter);
+
+        digitalTwinEngine.addDigitalTwin(dt, true);
 
         assertEquals(0, physicalAssetActionEventReceived1.size());
         assertEquals(0, physicalAssetActionEventReceived2.size());
@@ -101,7 +105,7 @@ public class DigitalMultipleActionsTester {
 
         physicalAssetActionEventReceived2.clear();
 
-        dtEngine.stopLifeCycle();
+        digitalTwinEngine.stopDigitalTwin(DIGITAL_TWIN_ID);
     }
 
 }

@@ -1,4 +1,4 @@
-package it.wldt.core.twin;
+package it.wldt.core.engine;
 
 
 import it.wldt.adapter.digital.DigitalAdapter;
@@ -307,7 +307,7 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
             throw new WldtConfigurationException("Error Cleaning Physical Adapters ! List is Null !");
     }
 
-    public void startLifeCycle() throws WldtConfigurationException {
+    protected void startLifeCycle() throws WldtConfigurationException {
 
         // Start Executing as first component the Model Engine
         executeModelEngine();
@@ -345,7 +345,7 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
 
     }
 
-    public void stopLifeCycle(){
+    protected void stopLifeCycle(){
         try{
 
             //Stop and Notify Model Engine

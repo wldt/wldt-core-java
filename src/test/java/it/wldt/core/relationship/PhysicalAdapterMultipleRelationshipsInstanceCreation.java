@@ -1,6 +1,7 @@
 package it.wldt.core.relationship;
 
-import it.wldt.core.twin.DigitalTwin;
+import it.wldt.core.engine.DigitalTwin;
+import it.wldt.core.engine.DigitalTwinEngine;
 import it.wldt.core.relationship.utils.RelationshipDigitalAdapter;
 import it.wldt.core.relationship.utils.RelationshipPhysicalAdapter;
 import it.wldt.core.relationship.utils.RelationshipShadowingFunction;
@@ -76,9 +77,11 @@ public class PhysicalAdapterMultipleRelationshipsInstanceCreation {
 
     @Test
     @Order(1)
-    public void multipleRelationshipInstanceCreationTest() throws WldtConfigurationException, InterruptedException {
+    public void multipleRelationshipInstanceCreationTest() throws WldtConfigurationException, InterruptedException, WldtEngineException {
 
-        dt.startLifeCycle();
+        DigitalTwinEngine digitalTwinEngine = new DigitalTwinEngine();
+
+        digitalTwinEngine.addDigitalTwin(dt, true);
 
         physicalAdapter.simulateRelationshipInstanceEvent(RelationshipPhysicalAdapter.RELATIONSHIP_CONTAINS_NAME, DT_TARGET1_NAME, true);
         physicalAdapter.simulateRelationshipInstanceEvent(RelationshipPhysicalAdapter.RELATIONSHIP_CONTAINS_NAME, DT_TARGET2_NAME, true);
@@ -89,6 +92,8 @@ public class PhysicalAdapterMultipleRelationshipsInstanceCreation {
         DigitalTwinStateRelationship<String> operatorRelationship = (DigitalTwinStateRelationship<String>) lifeCycleListener.getDigitalTwinState().getRelationship(RelationshipPhysicalAdapter.RELATIONSHIP_OPERATOR_NAME).get();
         assertEquals(2, containsRelationship.getInstances().size());
         assertEquals(1, operatorRelationship.getInstances().size());
+
+        digitalTwinEngine.stopDigitalTwin(DIGITAL_TWIN_ID);
     }
 
 }

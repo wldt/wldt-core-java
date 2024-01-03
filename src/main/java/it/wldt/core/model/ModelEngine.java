@@ -1,10 +1,9 @@
 package it.wldt.core.model;
 
 import it.wldt.adapter.physical.PhysicalAssetDescription;
-import it.wldt.core.twin.LifeCycleListener;
+import it.wldt.core.engine.LifeCycleListener;
 import it.wldt.core.state.DigitalTwinState;
 import it.wldt.core.state.DigitalTwinStateManager;
-import it.wldt.exception.EventBusException;
 import it.wldt.exception.ModelException;
 import it.wldt.exception.WldtRuntimeException;
 import it.wldt.core.worker.WldtWorker;

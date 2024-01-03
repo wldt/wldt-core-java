@@ -1,7 +1,8 @@
 package it.wldt.core.relationship;
 
-import it.wldt.core.twin.DigitalTwin;
-import it.wldt.core.twin.LifeCycleListener;
+import it.wldt.core.engine.DigitalTwin;
+import it.wldt.core.engine.DigitalTwinEngine;
+import it.wldt.core.engine.LifeCycleListener;
 import it.wldt.core.relationship.utils.RelationshipDigitalAdapter;
 import it.wldt.core.relationship.utils.RelationshipsLifeCycleListener;
 import it.wldt.core.state.DigitalTwinStateRelationshipInstance;
@@ -38,7 +39,9 @@ public class DigitalAdapterRelationshipsEventTester {
 
     @Order(2)
     @Test
-    public void testDigitalAdapterStateWithRelationshipTest() throws WldtConfigurationException, ModelException, WldtRuntimeException, EventBusException, InterruptedException, WldtWorkerException, WldtDigitalTwinStateException {
+    public void testDigitalAdapterStateWithRelationshipTest() throws WldtConfigurationException, ModelException, WldtRuntimeException, EventBusException, InterruptedException, WldtWorkerException, WldtDigitalTwinStateException, WldtEngineException {
+
+        DigitalTwinEngine digitalTwinEngine = new DigitalTwinEngine();
 
         CountDownLatch syncLatch = new CountDownLatch(1);
 
@@ -48,7 +51,8 @@ public class DigitalAdapterRelationshipsEventTester {
         RelationshipsLifeCycleListener lifeCycleListener = new RelationshipsLifeCycleListener(syncLatch);
 
         DigitalTwin dt = initDT(shadowingFunction, digitalAdapter, physicalAdapter, lifeCycleListener);
-        dt.startLifeCycle();
+
+        digitalTwinEngine.addDigitalTwin(dt, true);
 
         syncLatch.await(3000, TimeUnit.MILLISECONDS);
 
@@ -56,11 +60,15 @@ public class DigitalAdapterRelationshipsEventTester {
         assertEquals(2, digitalAdapter.getDigitalTwinState().getRelationshipList().get().size());
         assertTrue(digitalAdapter.getDigitalTwinState().getRelationship(RelationshipPhysicalAdapter.RELATIONSHIP_OPERATOR_NAME).isPresent());
         assertTrue(digitalAdapter.getDigitalTwinState().getRelationship(RelationshipPhysicalAdapter.RELATIONSHIP_CONTAINS_NAME).isPresent());
+
+        digitalTwinEngine.stopDigitalTwin(DIGITAL_TWIN_ID);
     }
 
     @Test
     @Order(1)
-    public void testDigitalAdapterReceiveRelationshipsNotification() throws WldtConfigurationException, ModelException, WldtRuntimeException, EventBusException, InterruptedException, WldtWorkerException, WldtDigitalTwinStateException {
+    public void testDigitalAdapterReceiveRelationshipsNotification() throws WldtConfigurationException, ModelException, WldtRuntimeException, EventBusException, InterruptedException, WldtWorkerException, WldtDigitalTwinStateException, WldtEngineException {
+
+        DigitalTwinEngine digitalTwinEngine = new DigitalTwinEngine();
 
         CountDownLatch syncLatch = new CountDownLatch(1);
 
@@ -76,7 +84,8 @@ public class DigitalAdapterRelationshipsEventTester {
         RelationshipsLifeCycleListener lifeCycleListener = new RelationshipsLifeCycleListener(syncLatch);
 
         DigitalTwin dt = initDT(shadowingFunction, digitalAdapter, physicalAdapter, lifeCycleListener);
-        dt.startLifeCycle();
+
+        digitalTwinEngine.addDigitalTwin(dt, true);
 
         physicalAdapter.simulateRelationshipInstanceEvent(RelationshipPhysicalAdapter.RELATIONSHIP_OPERATOR_NAME, "dt-human", true);
 
@@ -88,6 +97,8 @@ public class DigitalAdapterRelationshipsEventTester {
         physicalAdapter.simulateRelationshipInstanceEvent(RelationshipPhysicalAdapter.RELATIONSHIP_OPERATOR_NAME, "dt-human", false);
 
         assertTrue(instances.isEmpty());
+
+        digitalTwinEngine.stopDigitalTwin(DIGITAL_TWIN_ID);
 
     }
 }

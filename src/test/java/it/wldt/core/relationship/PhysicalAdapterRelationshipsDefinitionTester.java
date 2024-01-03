@@ -1,7 +1,8 @@
 package it.wldt.core.relationship;
 
 import it.wldt.adapter.physical.PhysicalAssetRelationship;
-import it.wldt.core.twin.DigitalTwin;
+import it.wldt.core.engine.DigitalTwin;
+import it.wldt.core.engine.DigitalTwinEngine;
 import it.wldt.core.relationship.utils.RelationshipDigitalAdapter;
 import it.wldt.core.relationship.utils.RelationshipPhysicalAdapter;
 import it.wldt.core.relationship.utils.RelationshipShadowingFunction;
@@ -83,9 +84,12 @@ public class PhysicalAdapterRelationshipsDefinitionTester {
 
     @Test
     @Order(1)
-    public void physicalAssetDescriptionAndDTStateTest() throws WldtConfigurationException, ModelException, WldtRuntimeException, EventBusException, InterruptedException {
+    public void physicalAssetDescriptionAndDTStateTest() throws WldtConfigurationException, ModelException, WldtRuntimeException, EventBusException, InterruptedException, WldtEngineException {
 
-        dt.startLifeCycle();
+        DigitalTwinEngine digitalTwinEngine = new DigitalTwinEngine();
+
+        digitalTwinEngine.addDigitalTwin(dt, true);
+
         syncLatch.await(3000, TimeUnit.MILLISECONDS);
 
         assertNotNull(lifeCycleListener.getPhysicalAssetDescription());
@@ -105,7 +109,8 @@ public class PhysicalAdapterRelationshipsDefinitionTester {
         //At the beginning each relationship has no instances
         assertEquals(0, lifeCycleListener.getDigitalTwinState().getRelationshipList().get().get(0).getInstances().size());
         assertEquals(0, lifeCycleListener.getDigitalTwinState().getRelationshipList().get().get(1).getInstances().size());
-        dt.stopLifeCycle();
+
+        digitalTwinEngine.stopDigitalTwin(DIGITAL_TWIN_ID);
     }
 
 }

@@ -1,7 +1,8 @@
 package it.wldt.process;
 
 import it.wldt.core.adapter.physical.TestPhysicalAdapter;
-import it.wldt.core.twin.DigitalTwin;
+import it.wldt.core.engine.DigitalTwin;
+import it.wldt.core.engine.DigitalTwinEngine;
 import it.wldt.core.event.DefaultWldtEventLogger;
 import it.wldt.core.event.WldtEventBus;
 import it.wldt.exception.*;
@@ -32,10 +33,14 @@ public class DemoProcessTester {
 
     private DigitalTwin digitalTwin = null;
 
+    private DigitalTwinEngine digitalTwinEngine = null;
+
     @BeforeEach
-    public void setUp() throws ModelException, WldtRuntimeException, EventBusException, WldtConfigurationException, WldtWorkerException, WldtDigitalTwinStateException {
+    public void setUp() throws ModelException, WldtRuntimeException, EventBusException, WldtConfigurationException, WldtWorkerException, WldtDigitalTwinStateException, WldtEngineException {
 
         logger.info("Setting up Test Environment ...");
+
+        digitalTwinEngine = new DigitalTwinEngine();
 
         digitalTwin = new DigitalTwin(TEST_DIGITAL_TWIN_ID, new DemoShadowingFunction());
 
@@ -56,14 +61,21 @@ public class DemoProcessTester {
         // Register DT to Shared Test Metrics
         SharedTestMetrics.getInstance().registerDigitalTwin(TEST_DIGITAL_TWIN_ID);
 
-        digitalTwin.startLifeCycle();
+        // Add the Twin to the Engine
+        digitalTwinEngine.addDigitalTwin(digitalTwin);
+
+        // Start the Digital Twin
+        digitalTwinEngine.startDigitalTwin(TEST_DIGITAL_TWIN_ID);
 
     }
 
     @AfterEach
-    public void tearDown() {
+    public void tearDown() throws WldtEngineException {
         logger.info("Cleaning up Test Environment ...");
-        digitalTwin.stopLifeCycle();
+        digitalTwinEngine.stopDigitalTwin(TEST_DIGITAL_TWIN_ID);
+        digitalTwinEngine.removeDigitalTwin(TEST_DIGITAL_TWIN_ID);
+        digitalTwin = null;
+        digitalTwinEngine = null;
         SharedTestMetrics.getInstance().resetMetrics();
         SharedTestMetrics.getInstance().unRegisterDigitalTwin(TEST_DIGITAL_TWIN_ID);
     }

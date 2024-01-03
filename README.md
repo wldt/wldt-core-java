@@ -1367,7 +1367,7 @@ with the created components and start the DT.
 Create a new Java file called ```TestDigitalTwin``` adding the following code: 
  
 ```java
-import it.wldt.core.twin.DigitalTwin;
+import it.wldt.core.engine.DigitalTwin;
 
 public class TestDigitalTwin {
 

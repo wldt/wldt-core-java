@@ -1,13 +1,13 @@
 package it.wldt.core.engine;
 
-import it.wldt.core.twin.DigitalTwin;
-import it.wldt.core.twin.LifeCycleState;
 import it.wldt.exception.WldtConfigurationException;
 import it.wldt.exception.WldtEngineException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -25,7 +25,15 @@ public class DigitalTwinEngine {
         this.digitalTwinMap = new HashMap<>();
     }
 
-    public void addDigitalTwin(DigitalTwin digitalTwin) throws WldtEngineException {
+    public synchronized void addDigitalTwin(DigitalTwin digitalTwin, boolean startDigitalTwin) throws WldtEngineException, WldtConfigurationException {
+
+        addDigitalTwin(digitalTwin);
+
+        if(startDigitalTwin)
+            startDigitalTwin(digitalTwin.getDigitalTwinId());
+    }
+
+    public synchronized void addDigitalTwin(DigitalTwin digitalTwin) throws WldtEngineException {
 
         if(this.digitalTwinMap != null && digitalTwin != null && digitalTwin.getId() != null) {
             logger.debug("Adding Digital Twin: {} to the Engine ...", digitalTwin.getId());
@@ -36,17 +44,35 @@ public class DigitalTwinEngine {
             throw new WldtEngineException("Error adding new Digital Twin to the Engine ! On value among twinMap, twin or twinId = null");
     }
 
-    public void startAll() throws WldtEngineException, WldtConfigurationException {
+    public synchronized void removeDigitalTwin(String digitalTwinId) throws WldtEngineException {
+
+        if(this.digitalTwinMap != null && digitalTwinId != null) {
+            logger.debug("Removing Digital Twin: {} from the Engine ...", digitalTwinId);
+            stopDigitalTwin(digitalTwinId);
+            this.digitalTwinMap.remove(digitalTwinId);
+            logger.debug("Digital Twin: {} removed from the Engine !", digitalTwinId);
+        }
+        else
+            throw new WldtEngineException("Error removing new Digital Twin to the Engine ! On value among twinMap, twin or twinId = null");
+    }
+
+    public synchronized void removeAll() throws WldtEngineException {
+        List<String> idList = new ArrayList<>(digitalTwinMap.keySet());
+        for (String digitalTwinId : idList)
+            removeDigitalTwin(digitalTwinId);
+    }
+
+    public synchronized void startAll() throws WldtEngineException, WldtConfigurationException {
         for (Map.Entry<String, DigitalTwin> digitalTwinEntry : this.digitalTwinMap.entrySet())
             startDigitalTwin(digitalTwinEntry.getKey());
     }
 
-    public void stopAll() throws WldtEngineException {
+    public synchronized void stopAll() throws WldtEngineException {
         for (Map.Entry<String, DigitalTwin> digitalTwinEntry : this.digitalTwinMap.entrySet())
             stopDigitalTwin(digitalTwinEntry.getKey());
     }
 
-    public void startDigitalTwin(String digitalTwinId) throws WldtEngineException, WldtConfigurationException {
+    public synchronized void startDigitalTwin(String digitalTwinId) throws WldtEngineException, WldtConfigurationException {
 
         logger.debug("Starting Digital Twin: {} ...", digitalTwinId);
 
@@ -58,22 +84,29 @@ public class DigitalTwinEngine {
 
         DigitalTwin targetDigitalTwin = this.digitalTwinMap.get(digitalTwinId);
 
+        // Check the current DT Life Cycle State
         if(targetDigitalTwin.getCurrentLifeCycleState().equals(LifeCycleState.NONE) ||
                 targetDigitalTwin.getCurrentLifeCycleState().equals(LifeCycleState.STOPPED) ||
-                targetDigitalTwin.getCurrentLifeCycleState().equals(LifeCycleState.DESTROYED))
+                targetDigitalTwin.getCurrentLifeCycleState().equals(LifeCycleState.DESTROYED)) {
             targetDigitalTwin.startLifeCycle();
+            logger.debug("Digital Twin: {} STARTED !", digitalTwinId);
+        }
         else
+            logger.warn(String.format("Warning starting the target DT with id: %s -> DT already started ! LifeCycle State: %s !",
+                    digitalTwinId,
+                    targetDigitalTwin.getCurrentLifeCycleState().getValue()
+            ));
+            /*
             throw new WldtEngineException(
                     String.format("Error starting the target DT with id: %s -> DT already started ! LifeCycle State: %s !",
                             digitalTwinId,
                             targetDigitalTwin.getCurrentLifeCycleState().getValue()
                     )
             );
-
-        logger.debug("Digital Twin: {} STARTED !", digitalTwinId);
+            */
     }
 
-    public void stopDigitalTwin(String digitalTwinId) throws WldtEngineException {
+    public synchronized void stopDigitalTwin(String digitalTwinId) throws WldtEngineException {
 
         logger.debug("Stopping Digital Twin: {} ...", digitalTwinId);
 
@@ -85,22 +118,34 @@ public class DigitalTwinEngine {
 
         DigitalTwin targetDigitalTwin = this.digitalTwinMap.get(digitalTwinId);
 
+        // Check the current DT Life Cycle State
         if(!targetDigitalTwin.getCurrentLifeCycleState().equals(LifeCycleState.NONE) &&
                 !targetDigitalTwin.getCurrentLifeCycleState().equals(LifeCycleState.STOPPED) &&
-                !targetDigitalTwin.getCurrentLifeCycleState().equals(LifeCycleState.DESTROYED))
+                !targetDigitalTwin.getCurrentLifeCycleState().equals(LifeCycleState.DESTROYED)) {
             targetDigitalTwin.stopLifeCycle();
+            logger.debug("Digital Twin: {} STOPPED !", digitalTwinId);
+        }
         else
+            logger.warn(String.format("Error starting the target DT with id: %s -> DT already stopped ! ! LifeCycle State: %s !",
+                    digitalTwinId,
+                    targetDigitalTwin.getCurrentLifeCycleState().getValue()
+            ));
+            /*
             throw new WldtEngineException(
-                    String.format("Error starting the target DT with id: %s -> DT already started ! LifeCycle State: %s !",
+                    String.format("Error starting the target DT with id: %s -> DT already stopped ! ! LifeCycle State: %s !",
                             digitalTwinId,
                             targetDigitalTwin.getCurrentLifeCycleState().getValue()
                     )
             );
-
-        logger.debug("Digital Twin: {} STOPPED !", digitalTwinId);
+            */
     }
 
-    public Map<String, DigitalTwin> getDigitalTwinMap() {
-        return digitalTwinMap;
+    public int getDigitalTwinCount(){
+        return this.digitalTwinMap.size();
     }
+
+    public synchronized Map<String, DigitalTwin> getDigitalTwinMap() {
+        return new HashMap<>(digitalTwinMap);
+    }
+
 }

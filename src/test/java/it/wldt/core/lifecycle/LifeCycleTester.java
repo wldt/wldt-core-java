@@ -7,8 +7,9 @@ import it.wldt.adapter.digital.event.DigitalActionWldtEvent;
 import it.wldt.adapter.physical.PhysicalAssetDescription;
 import it.wldt.adapter.physical.event.PhysicalAssetRelationshipInstanceCreatedWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetRelationshipInstanceDeletedWldtEvent;
-import it.wldt.core.twin.LifeCycleListener;
-import it.wldt.core.twin.DigitalTwin;
+import it.wldt.core.engine.DigitalTwinEngine;
+import it.wldt.core.engine.LifeCycleListener;
+import it.wldt.core.engine.DigitalTwin;
 import it.wldt.core.event.DefaultWldtEventLogger;
 import it.wldt.core.event.WldtEventBus;
 import it.wldt.adapter.physical.event.PhysicalAssetEventWldtEvent;
@@ -47,7 +48,9 @@ public class LifeCycleTester {
     private static final String DEMO_MQTT_MESSAGE_TYPE = "mqtt.telemetry";
 
     @Test
-    public void testLifeCycle() throws WldtConfigurationException, EventBusException, ModelException, ModelFunctionException, InterruptedException, WldtRuntimeException, WldtWorkerException, WldtDigitalTwinStateException {
+    public void testLifeCycle() throws WldtConfigurationException, EventBusException, ModelException, ModelFunctionException, InterruptedException, WldtRuntimeException, WldtWorkerException, WldtDigitalTwinStateException, WldtEngineException {
+
+        DigitalTwinEngine digitalTwinEngine = new DigitalTwinEngine();
 
         this.receivedPhysicalTelemetryEventMessageList = new ArrayList<>();
 
@@ -229,7 +232,7 @@ public class LifeCycleTester {
             }
         });
 
-        digitalTwin.startLifeCycle();
+        digitalTwinEngine.addDigitalTwin(digitalTwin, true);
 
         //Wait until all the messages have been received
         lock.await((TestPhysicalAdapter.MESSAGE_SLEEP_PERIOD_MS + 100
@@ -241,7 +244,7 @@ public class LifeCycleTester {
 
         Thread.sleep(2000);
 
-        digitalTwin.stopLifeCycle();
+        digitalTwinEngine.stopDigitalTwin(DIGITAL_TWIN_ID);
     }
 
 }

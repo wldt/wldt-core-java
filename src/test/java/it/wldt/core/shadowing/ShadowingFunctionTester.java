@@ -9,9 +9,10 @@ import it.wldt.adapter.physical.event.PhysicalAssetRelationshipInstanceCreatedWl
 import it.wldt.adapter.physical.event.PhysicalAssetRelationshipInstanceDeletedWldtEvent;
 import it.wldt.core.adapter.physical.TestPhysicalAdapter;
 import it.wldt.core.adapter.physical.TestPhysicalAdapterConfiguration;
-import it.wldt.core.twin.DigitalTwin;
+import it.wldt.core.engine.DigitalTwin;
 import it.wldt.adapter.physical.event.PhysicalAssetEventWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetPropertyWldtEvent;
+import it.wldt.core.engine.DigitalTwinEngine;
 import it.wldt.core.event.*;
 import it.wldt.core.model.ShadowingFunction;
 import it.wldt.core.state.DigitalTwinState;
@@ -229,7 +230,9 @@ public class ShadowingFunctionTester {
     }
 
     @Test
-    public void testShadowingFunctionOnPhysicalEvents() throws WldtConfigurationException, EventBusException, ModelException, InterruptedException, WldtRuntimeException, WldtWorkerException, WldtDigitalTwinStateException {
+    public void testShadowingFunctionOnPhysicalEvents() throws WldtConfigurationException, EventBusException, ModelException, InterruptedException, WldtRuntimeException, WldtWorkerException, WldtDigitalTwinStateException, WldtEngineException {
+
+        DigitalTwinEngine digitalTwinEngine = new DigitalTwinEngine();
 
         receivedStateWldtEventList = new ArrayList<>();
 
@@ -251,7 +254,8 @@ public class ShadowingFunctionTester {
         DigitalTwin digitalTwin = new DigitalTwin(DIGITAL_TWIN_ID, getTargetShadowingFunction());
         digitalTwin.addPhysicalAdapter(testPhysicalAdapter);
         digitalTwin.addDigitalAdapter(testDigitalAdapter);
-        digitalTwin.startLifeCycle();
+
+        digitalTwinEngine.addDigitalTwin(digitalTwin, true);
 
         //Wait until all the messages have been received
         testCountDownLatch.await((TestPhysicalAdapter.MESSAGE_SLEEP_PERIOD_MS
@@ -263,7 +267,7 @@ public class ShadowingFunctionTester {
 
         Thread.sleep(2000);
 
-        digitalTwin.stopLifeCycle();
+        digitalTwinEngine.stopDigitalTwin(DIGITAL_TWIN_ID);
     }
 
 }

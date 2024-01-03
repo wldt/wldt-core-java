@@ -1,6 +1,7 @@
 package it.wldt.core.relationship;
 
-import it.wldt.core.twin.DigitalTwin;
+import it.wldt.core.engine.DigitalTwin;
+import it.wldt.core.engine.DigitalTwinEngine;
 import it.wldt.core.relationship.utils.RelationshipDigitalAdapter;
 import it.wldt.core.relationship.utils.RelationshipPhysicalAdapter;
 import it.wldt.core.relationship.utils.RelationshipShadowingFunction;
@@ -76,9 +77,11 @@ public class PhysicalAdapterRelationshipsInstanceCreation {
 
     @Test
     @Order(1)
-    public void relationshipInstanceCreationTest() throws WldtConfigurationException, InterruptedException {
+    public void relationshipInstanceCreationTest() throws WldtConfigurationException, InterruptedException, WldtEngineException {
 
-        dt.startLifeCycle();
+        DigitalTwinEngine digitalTwinEngine = new DigitalTwinEngine();
+
+        digitalTwinEngine.addDigitalTwin(dt, true);
 
         physicalAdapter.simulateRelationshipInstanceEvent(RelationshipPhysicalAdapter.RELATIONSHIP_CONTAINS_NAME, DT_TARGET1_NAME, true);
         relationshipLatch.await(5000, TimeUnit.MILLISECONDS);
@@ -88,6 +91,7 @@ public class PhysicalAdapterRelationshipsInstanceCreation {
         assertEquals(1, containsRelationship.getInstances().size());
         assertEquals(DT_TARGET1_NAME, containsRelationship.getInstances().get(0).getTargetId());
 
+        digitalTwinEngine.stopDigitalTwin(DIGITAL_TWIN_ID);
     }
 
 }

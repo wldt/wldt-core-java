@@ -7,7 +7,8 @@ import it.wldt.adapter.physical.PhysicalAdapter;
 import it.wldt.adapter.physical.PhysicalAssetDescription;
 import it.wldt.adapter.physical.PhysicalAssetProperty;
 import it.wldt.adapter.physical.event.PhysicalAssetActionWldtEvent;
-import it.wldt.core.twin.DigitalTwin;
+import it.wldt.core.engine.DigitalTwin;
+import it.wldt.core.engine.DigitalTwinEngine;
 import it.wldt.core.model.ShadowingFunction;
 import it.wldt.core.state.*;
 import it.wldt.exception.*;
@@ -175,69 +176,103 @@ public class DigitalAdapterCallbacksTester {
     }
 
     @Test
-    public void digitalTwinLifeCycleCallbacksTest() throws WldtConfigurationException, ModelException, WldtRuntimeException, EventBusException, InterruptedException, WldtWorkerException, WldtDigitalTwinStateException {
+    public void digitalTwinLifeCycleCallbacksTest() throws WldtConfigurationException, ModelException, WldtRuntimeException, EventBusException, InterruptedException, WldtWorkerException, WldtDigitalTwinStateException, WldtEngineException {
+
+        DigitalTwinEngine digitalTwinEngine = new DigitalTwinEngine();
+
         List<DigitalAdapterCallbacks> receivedCallbacks = new LinkedList<>();
+
         TestShadowingFunction shadowingFunction = new TestShadowingFunction();
+
         DigitalAdapter<String> da = createDigitalAdapter("test-digital-adapter", receivedCallbacks);
         da.setDigitalAdapterLifeCycleListener(createDigitalAdapterLifeCycleLister(receivedCallbacks));
+
         DigitalTwin dt = createDigitalTwin(shadowingFunction,
                 Collections.singletonList(createPhysicalAdapter("test-pa", new ArrayList<>(Arrays.asList("temperature", "volume")))),
                 Collections.singletonList(da));
+
         List<DigitalAdapterCallbacks> expected = new LinkedList<>(Arrays.asList(ON_DT_CREATE, ON_DT_START, ON_DT_SYNC, ON_DT_BOUND));
-        dt.startLifeCycle();
+
+        digitalTwinEngine.addDigitalTwin(dt, true);
+
         Thread.sleep(2000);
+
         assertTrue(receivedCallbacks.containsAll(expected));
         shadowingFunction.simulateShadowingUnSync();
+
         Thread.sleep(3000);
+
         assertTrue(receivedCallbacks.contains(ON_DT_UN_SYNC));
+
         Thread.sleep(2000);
-        dt.stopLifeCycle();
+
+        digitalTwinEngine.stopDigitalTwin(DIGITAL_TWIN_ID);
+
         expected.addAll(Arrays.asList(ON_DT_UN_BOUND, ON_DT_STOP, ON_DT_DESTROY));
+
         assertTrue(receivedCallbacks.containsAll(expected));
 
     }
 
     @Test
-    public void physicalAdaptersCallbacksTest() throws WldtConfigurationException, ModelException, WldtRuntimeException, EventBusException, InterruptedException, WldtWorkerException, WldtDigitalTwinStateException {
+    public void physicalAdaptersCallbacksTest() throws WldtConfigurationException, ModelException, WldtRuntimeException, EventBusException, InterruptedException, WldtWorkerException, WldtDigitalTwinStateException, WldtEngineException {
+
+        DigitalTwinEngine digitalTwinEngine = new DigitalTwinEngine();
+
         List<DigitalAdapterCallbacks> receivedCallbacks = new LinkedList<>();
+
         DigitalAdapter<String> da = createDigitalAdapter("test-digital-adapter", receivedCallbacks);
         da.setDigitalAdapterLifeCycleListener(createDigitalAdapterLifeCycleLister(receivedCallbacks));
+
         DigitalTwin dt = createDigitalTwin(new TestShadowingFunction(),
                 Arrays.asList(createPhysicalAdapter("test-physical-adapter-1", new ArrayList<>(Collections.singletonList("temperature"))),
                         createPhysicalAdapter("test-physical-adapter-2", new ArrayList<>(Collections.singletonList("volume"))),
                         createPhysicalAdapter("test-physical-adapter-3", new ArrayList<>(Collections.singletonList("air-quality")))),
                 Collections.singletonList(da));
 
-        dt.startLifeCycle();
+        digitalTwinEngine.addDigitalTwin(dt, true);
+
         Thread.sleep(2000);
         assertEquals(3, receivedCallbacks.stream().filter(c -> c == ON_PA_BOUND).count());
 
         Thread.sleep(2000);
-        dt.stopLifeCycle();
+
+        digitalTwinEngine.stopDigitalTwin(DIGITAL_TWIN_ID);
+
         assertEquals(3, receivedCallbacks.stream().filter(c -> c == ON_PA_UN_BOUND).count());
     }
 
     @Test
-    public void digitalAdaptersCallbacksTest() throws WldtConfigurationException, ModelException, WldtRuntimeException, EventBusException, InterruptedException, WldtWorkerException, WldtDigitalTwinStateException {
+    public void digitalAdaptersCallbacksTest() throws WldtConfigurationException, ModelException, WldtRuntimeException, EventBusException, InterruptedException, WldtWorkerException, WldtDigitalTwinStateException, WldtEngineException {
+
+        DigitalTwinEngine digitalTwinEngine = new DigitalTwinEngine();
+
         List<DigitalAdapterCallbacks> receivedCallbacks1 = new LinkedList<>();
         List<DigitalAdapterCallbacks> receivedCallbacks2 = new LinkedList<>();
         List<DigitalAdapterCallbacks> receivedCallbacks3 = new LinkedList<>();
+
         DigitalAdapter<String> da1 = createDigitalAdapter("test-digital-adapter1", receivedCallbacks1);
         da1.setDigitalAdapterLifeCycleListener(createDigitalAdapterLifeCycleLister(receivedCallbacks1));
+
         DigitalAdapter<String> da2 = createDigitalAdapter("test-digital-adapter2", receivedCallbacks2);
         da2.setDigitalAdapterLifeCycleListener(createDigitalAdapterLifeCycleLister(receivedCallbacks2));
+
         DigitalAdapter<String> da3 = createDigitalAdapter("test-digital-adapter3", receivedCallbacks3);
         da3.setDigitalAdapterLifeCycleListener(createDigitalAdapterLifeCycleLister(receivedCallbacks3));
+
         DigitalTwin dt = createDigitalTwin(new TestShadowingFunction(),
                 Collections.singletonList(createPhysicalAdapter("test-physical-adapter", new ArrayList<>(Collections.singletonList("temperature")))),
                 Arrays.asList(da1, da2, da3));
-        dt.startLifeCycle();
+
+        digitalTwinEngine.addDigitalTwin(dt, true);
+
         Thread.sleep(2000);
         assertEquals(3, receivedCallbacks1.stream().filter(c -> c == ON_DA_BOUND).count());
         assertEquals(3, receivedCallbacks2.stream().filter(c -> c == ON_DA_BOUND).count());
         assertEquals(3, receivedCallbacks3.stream().filter(c -> c == ON_DA_BOUND).count());
 
-        dt.stopLifeCycle();
+        digitalTwinEngine.stopDigitalTwin(DIGITAL_TWIN_ID);
+
         assertEquals(3, receivedCallbacks1.stream().filter(c -> c == ON_DA_UN_BOUND).count());
         assertEquals(3, receivedCallbacks2.stream().filter(c -> c == ON_DA_UN_BOUND).count());
         assertEquals(3, receivedCallbacks3.stream().filter(c -> c == ON_DA_UN_BOUND).count());

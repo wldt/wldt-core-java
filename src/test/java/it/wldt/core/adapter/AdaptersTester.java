@@ -7,9 +7,10 @@ import it.wldt.adapter.physical.*;
 import it.wldt.adapter.physical.event.*;
 import it.wldt.core.adapter.physical.TestPhysicalAdapter;
 import it.wldt.core.adapter.physical.TestPhysicalAdapterConfiguration;
+import it.wldt.core.engine.DigitalTwinEngine;
 import it.wldt.core.model.ShadowingFunction;
 import it.wldt.core.state.*;
-import it.wldt.core.twin.DigitalTwin;
+import it.wldt.core.engine.DigitalTwin;
 import it.wldt.core.event.DefaultWldtEventLogger;
 import it.wldt.core.event.WldtEventBus;
 import it.wldt.exception.*;
@@ -104,13 +105,16 @@ public class AdaptersTester {
 
     @Test
     @Order(1)
-    public void testPhysicalAdapterEvents() throws WldtConfigurationException, EventBusException, ModelException, InterruptedException, WldtRuntimeException, WldtWorkerException, WldtDigitalTwinStateException {
+    public void testPhysicalAdapterEvents() throws WldtConfigurationException, EventBusException, ModelException, InterruptedException, WldtRuntimeException, WldtWorkerException, WldtDigitalTwinStateException, WldtEngineException {
+
+        DigitalTwinEngine digitalTwinEngine = new DigitalTwinEngine();
 
         //Set EventBus Logger
         WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
 
         buildWldtEngine(true);
-        digitalTwin.startLifeCycle();
+
+        digitalTwinEngine.addDigitalTwin(digitalTwin, true);
 
         //Wait until all the messages have been received
         wldtEventsLock.await((TestPhysicalAdapter.MESSAGE_SLEEP_PERIOD_MS + ((TestPhysicalAdapter.TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES + TestPhysicalAdapter.TARGET_PHYSICAL_ASSET_EVENT_UPDATES) * TestPhysicalAdapter.MESSAGE_SLEEP_PERIOD_MS)), TimeUnit.MILLISECONDS);
@@ -131,18 +135,21 @@ public class AdaptersTester {
 
         Thread.sleep(2000);
 
-        digitalTwin.stopLifeCycle();
+        digitalTwinEngine.stopDigitalTwin(DIGITAL_TWIN_ID);
     }
 
     @Test
     @Order(2)
-    public void testPhysicalAdapterActions() throws WldtConfigurationException, EventBusException, ModelException, ModelFunctionException, InterruptedException, WldtRuntimeException, WldtWorkerException, WldtDigitalTwinStateException {
+    public void testPhysicalAdapterActions() throws WldtConfigurationException, EventBusException, ModelException, ModelFunctionException, InterruptedException, WldtRuntimeException, WldtWorkerException, WldtDigitalTwinStateException, WldtEngineException {
+
+        DigitalTwinEngine digitalTwinEngine = new DigitalTwinEngine();
 
         //Set EventBus Logger
         WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
 
         buildWldtEngine(false);
-        digitalTwin.startLifeCycle();
+
+        digitalTwinEngine.addDigitalTwin(digitalTwin, true);
 
         logger.info("WLDT Started ! Sleeping (5s) before sending actions ...");
         Thread.sleep(5000);
@@ -166,7 +173,7 @@ public class AdaptersTester {
 
         Thread.sleep(2000);
 
-        digitalTwin.stopLifeCycle();
+        digitalTwinEngine.stopDigitalTwin(DIGITAL_TWIN_ID);
     }
 
 

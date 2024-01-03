@@ -3,8 +3,8 @@ package it.wldt.process;
 import it.wldt.core.engine.DigitalTwinEngine;
 import it.wldt.core.event.DefaultWldtEventLogger;
 import it.wldt.core.event.WldtEventBus;
-import it.wldt.core.twin.DigitalTwin;
-import it.wldt.core.twin.LifeCycleState;
+import it.wldt.core.engine.DigitalTwin;
+import it.wldt.core.engine.LifeCycleState;
 import it.wldt.exception.*;
 import it.wldt.process.digital.DemoDigitalAdapter;
 import it.wldt.process.digital.DemoDigitalAdapterConfiguration;
@@ -38,9 +38,8 @@ public class EngineTester {
 
     private DigitalTwin createNewDigitalTwin(String digitalTwinId) throws ModelException, WldtRuntimeException, EventBusException, WldtConfigurationException, WldtWorkerException, WldtDigitalTwinStateException {
 
-        DigitalTwin digitalTwin = new DigitalTwin(
-                digitalTwinId,
-                new DemoShadowingFunction());
+        // Create the new Digital Twin with its Shadowing Function
+        DigitalTwin digitalTwin = new DigitalTwin(digitalTwinId, new DemoShadowingFunction());
 
         // Physical Adapter with Configuration
         digitalTwin.addPhysicalAdapter(
@@ -58,8 +57,6 @@ public class EngineTester {
 
         // Register DT to Shared Test Metrics
         SharedTestMetrics.getInstance().registerDigitalTwin(digitalTwinId);
-
-        //digitalTwin.startLifeCycle();
 
         return digitalTwin;
     }
@@ -85,6 +82,11 @@ public class EngineTester {
     @AfterEach
     public void tearDown() throws WldtEngineException {
         logger.info("Cleaning up Test Environment ...");
+
+        digitalTwinEngine.stopAll();
+        digitalTwinEngine.removeAll();
+        digitalTwinEngine = null;
+
         SharedTestMetrics.getInstance().resetMetrics();
         SharedTestMetrics.getInstance().unRegisterDigitalTwin(TEST_DIGITAL_TWIN_ID_1);
         SharedTestMetrics.getInstance().unRegisterDigitalTwin(TEST_DIGITAL_TWIN_ID_2);
@@ -102,7 +104,7 @@ public class EngineTester {
         digitalTwinEngine.startAll();
 
         // Check that the engine has the correct number of twins
-        assertEquals(3, digitalTwinEngine.getDigitalTwinMap().size());
+        assertEquals(3, digitalTwinEngine.getDigitalTwinCount());
 
         // Sleep to wait that all twins are correctly started
         Thread.sleep(5000);
@@ -123,7 +125,7 @@ public class EngineTester {
         checkTwinIsStoppedOrDestroyed(TEST_DIGITAL_TWIN_ID_2);
         checkTwinIsStoppedOrDestroyed(TEST_DIGITAL_TWIN_ID_3);
 
-        Thread.sleep(10*60000);
+        Thread.sleep(60000);
     }
 
     @Test
@@ -162,7 +164,7 @@ public class EngineTester {
         checkTwinIsStoppedOrDestroyed(TEST_DIGITAL_TWIN_ID_2);
         checkTwinIsStoppedOrDestroyed(TEST_DIGITAL_TWIN_ID_3);
 
-        Thread.sleep(10*60000);
+        Thread.sleep(60000);
     }
 
     private void checkTwinIsActive(String digitalTwinId) {
