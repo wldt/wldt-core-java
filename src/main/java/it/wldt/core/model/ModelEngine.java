@@ -6,7 +6,7 @@ import it.wldt.core.state.DigitalTwinState;
 import it.wldt.core.state.DigitalTwinStateManager;
 import it.wldt.exception.ModelException;
 import it.wldt.exception.WldtRuntimeException;
-import it.wldt.core.worker.WldtWorker;
+import it.wldt.core.engine.DigitalTwinWorker;
 import it.wldt.exception.WldtWorkerException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,7 +22,7 @@ import java.util.Map;
  * This a fundamental core component responsible to handle the Model associated to the DT instance
  * maintaining its internal state and executing/coordinating its shadowing function
  */
-public class ModelEngine extends WldtWorker implements LifeCycleListener {
+public class ModelEngine extends DigitalTwinWorker implements LifeCycleListener {
 
     private static final Logger logger = LoggerFactory.getLogger(ModelEngine.class);
 

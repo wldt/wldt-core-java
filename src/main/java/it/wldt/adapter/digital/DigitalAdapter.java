@@ -8,7 +8,7 @@ import it.wldt.core.event.WldtEventBus;
 import it.wldt.core.event.WldtEventFilter;
 import it.wldt.core.event.WldtEventListener;
 import it.wldt.core.state.*;
-import it.wldt.core.worker.WldtWorker;
+import it.wldt.core.engine.DigitalTwinWorker;
 import it.wldt.exception.EventBusException;
 import it.wldt.exception.WldtDigitalTwinStateEventException;
 import it.wldt.exception.WldtRuntimeException;
@@ -37,7 +37,7 @@ import java.util.stream.Collectors;
  * Multiple Digital Adapters can be active at the same time on the Digital Twin with the aim to handle different
  * interaction with the digital layer according to the nature of the twin and its operation context.
  */
-public abstract class DigitalAdapter<C> extends WldtWorker implements WldtEventListener, LifeCycleListener {
+public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements WldtEventListener, LifeCycleListener {
 
     public static final String DIGITAL_ACTION_EVENT = "da.digital.action.event";
 

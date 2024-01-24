@@ -53,7 +53,7 @@ public class DigitalTwinStateManager {
     public DigitalTwinStateManager(String digitalTwinId) throws WldtDigitalTwinStateException {
 
         if(digitalTwinId == null)
-            throw new WldtDigitalTwinStateException("Error ! Impossible to create a WldtWorker with a NULL Digital Twin Id !");
+            throw new WldtDigitalTwinStateException("Error ! Impossible to create a DigitalTwinWorker with a NULL Digital Twin Id !");
 
         this.digitalTwinId = digitalTwinId;
         this.digitalTwinState = new DigitalTwinState();

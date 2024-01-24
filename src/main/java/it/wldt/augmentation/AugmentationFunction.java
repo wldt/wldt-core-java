@@ -1,8 +1,5 @@
 package it.wldt.augmentation;
 
-import it.wldt.core.worker.WldtWorker;
-import it.wldt.exception.WldtRuntimeException;
-
 /**
  * @author Marco Picone, Ph.D. - picone.m@gmail.com
  * @project HelloJava

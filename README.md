@@ -10,14 +10,14 @@ For Maven projects you can import the WLDT Library into your ``<dependencies></d
 <dependency>
     <groupId>io.github.wldt</groupId>
     <artifactId>wldt-core</artifactId>
-    <version>0.2.1</version>
+    <version>0.3.0</version>
 </dependency>
 ```
 
 If you are using Gradle use instead the following: 
 
 ```groovy
-implementation group: 'io.github.wldt', name: 'wldt-core', version: '0.2.1'
+implementation group: 'io.github.wldt', name: 'wldt-core', version: '0.3.0'
 ```
 
 ## Motivation & Digital Twin "Definition" and Main Concepts
@@ -253,31 +253,37 @@ architecture is developed: the one related to the ``core`` of the library, the o
 and finally, that of the ``adapters``.
 
 <p align="center">
-  <img class="center" src="images/wldt_structure.jpeg" width="80%">
+  <img class="center" src="images/wldt_structure.jpg" width="80%">
 </p>
 
 Each of this core components has the following main characteristics:
 
-- **WLDT Engine**: Defines the multi-thread engine of the library allowing the execution and monitoring of 
-multiple workers simultaneously. Therefore, the it is also responsible for orchestrating 
-the different internal modules of the architecture while keeping track of each one, and it can be 
-considered the core of the DT itself
-- **WLDT Event Bus**: Represents the internal Event Bus, designed to support communication between 
-the different components of the DT's instance. It allows defining customized events to model 
-both physical and digital input and outputs. Each WLDT's component can publish on the shared Event Bus and define 
-an Event Filter to specify which types of events it is interested in managing, 
+- **Metrics Manager**: Provides the functionalities for managing and tracking various metrics 
+within DT instances combining both internal and custom metrics through a flexible and extensible approach.
+- **Logger**: Is designed to facilitate efficient and customizable logging within implemented and deployed DTs with 
+configurable log levels and versatile output options.
+- **Utils & Commons**: Hold a collection of utility classes and common functionalities that can be readily employed 
+across DT implementations ranging from handling common data structures to providing helpful tools for string manipulation.
+- **Event Communication Bus**: Represents the internal Event Bus, designed to support communication between
+the different components of the DT's instance. It allows defining customized events to model
+both physical and digital input and outputs. Each WLDT's component can publish on the shared Event Bus and define
+an Event Filter to specify which types of events it is interested in managing,
 associating a specific callback to each one to process the different messages.
-- **WLDT Workers**: Models the basic internal component and actually constitutes 
-the single executable element by the WLDT Engine. 
-Except for the Digital Twin State, each of the modules described later defines a specific implementation of a WLDT Worker.
-- **Digital Twin State**:  It structures the state of the DT by defining the list of properties, events, and actions. 
+- **Digital Twin Engine**: Defines the multi-thread engine of the library allowing the execution and monitoring of 
+multiple DTs (and their core components) simultaneously. Therefore, it is also responsible for orchestrating 
+the different internal modules of the architecture while keeping track of each one, and it can be 
+considered the core of the platform itself allowing the execution and control of the deployed DTs. Currently, it supports
+the execution of twins on the same Java process, however the same engine abstraction might be used to extend the framework to 
+support distributed execution for example through different processes or microservices.
+- **Digital Twin**: Models a modular DT structure built through the combination of core functionalities together with physical
+and digital adapter capabilities. This Layer includes the `Digital Twin State`  responsible to structure the state of the DT by defining the list of properties, events, and actions. 
 The different instances included in the lists can correspond directly to elements of the physical asset 
-or can derive from their combination, in any case, it is the Shadowing Model Function (SMF) that defines 
+or can derive from their combination, in any case, it is the `Shadowing Function (SF)` that defines 
 the mapping, following the model defined by the designer. 
-This component also exposes a set of methods to allow SMF manipulation. 
+This component also exposes a set of methods to allow SF manipulation. 
 Every time the Digital Twin State is modified, the latter generates the corresponding DT's event to notify all the components 
 about the variation. 
-- **Shadowing Model Function**: It is the library component responsible for defining the behavior of 
+- **Shadowing Function**: It is the library component responsible for defining the behavior of 
 the Digital Twin by interacting with the Digital Twin State. 
 Specifically, it implements the shadowing process that allows keeping the 
 DT synchronized with its physical entity. 
@@ -293,19 +299,19 @@ have completed the binding procedure with the physical asset. This component als
 related to specific protocols, must implement. 
 As provided by the DT definition, a DT can be equipped with multiple Physical Adapters 
 in order to manage communication with the corresponding physical entity. 
-Each will produce a Physical Asset Description (PAD), 
+Each will produce a `Physical Asset Description (PAD)`, 
 i.e., a description of the properties, events, actions, and relationships 
  that the physical asset exposes through the specific protocol. 
 The DT transitions from the Unbound to the Bound state when all its Physical Adapters 
 have produced their respective PADs. 
-The Shadowing Model Function, following the DT model, 
+The Shadowing Function, following the DT model, 
 selects the components of the various PADs that it is interested in managing.
 - **Digital Adapter**: It provides the set of callbacks that each specific implementation can use
 to be notified of changes in the DT state. 
 Symmetrically to what happens with Physical Adapters, a Digital Twin can define 
 multiple Digital Adapters to expose its state and functionality through different protocols.
 
-Therefore, to create a Digital Twin using WLDT, it is necessary to define a Shadowing Model Function and 
+Therefore, to create a Digital Twin using WLDT, it is necessary to define and instantiate a DT with its Shadowing Function and 
 at least one Physical Adapter and one Digital Adapter, in order to enable connection with the physical 
 entity and allow the DT to be used by external applications. Once the 3 components are defined, 
 it is possible to instantiate the WLDT Engine and, subsequently, start the lifecycle of the DT. 
@@ -319,7 +325,8 @@ The steps that we have to follow in order to create our first (and super simple)
 - Physical Adapter
 - Shadowing Function
 - Digital Adapter
-- Digital Twin Process
+- Digital Twin
+- Digital Twin & Digital Twin Engine
 
 ### Physical Adapter
 

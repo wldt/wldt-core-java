@@ -4,12 +4,11 @@ import it.wldt.core.event.WldtEvent;
 import it.wldt.core.event.WldtEventBus;
 import it.wldt.core.event.WldtEventFilter;
 import it.wldt.core.event.WldtEventListener;
-import it.wldt.core.worker.WldtWorker;
+import it.wldt.core.engine.DigitalTwinWorker;
 import it.wldt.exception.EventBusException;
 import it.wldt.exception.PhysicalAdapterException;
 import it.wldt.exception.WldtRuntimeException;
 import it.wldt.adapter.physical.event.*;
-import it.wldt.exception.WldtWorkerException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,7 +33,7 @@ import java.util.Objects;
  * same time on the Digital Twin with the aim to handle different interaction with the physical layer according to the
  * nature of the twin and the associated physical device.
  */
-public abstract class PhysicalAdapter extends WldtWorker implements WldtEventListener {
+public abstract class PhysicalAdapter extends DigitalTwinWorker implements WldtEventListener {
 
     private static final Logger logger = LoggerFactory.getLogger(ConfigurablePhysicalAdapter.class);
 
