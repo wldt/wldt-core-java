@@ -2,8 +2,6 @@ package it.wldt.augmentation;
 
 /**
  * @author Marco Picone, Ph.D. - picone.m@gmail.com
- * @project wldt-core
- * @created 26/10/2023 - 16:03
  */
 public class TestAugmentation {
 

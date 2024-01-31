@@ -9,6 +9,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 public class TestDigitalAdapter extends DigitalAdapter<TestDigitalAdapterConfiguration> {
 
     private static final Logger logger = LoggerFactory.getLogger(TestDigitalAdapter.class);
@@ -94,6 +96,13 @@ public class TestDigitalAdapter extends DigitalAdapter<TestDigitalAdapterConfigu
         logger.info("DummyDigitalTwinAdapter -> onStateUpdate() - New State: {}", newDigitalTwinState);
         logger.info("DummyDigitalTwinAdapter -> onStateUpdate() - Previous State: {}", previousDigitalTwinState);
         logger.info("DummyDigitalTwinAdapter -> onStateUpdate() - State's Changes: {}", digitalTwinStateChangeList);
+
+        assertNotNull(newDigitalTwinState);
+
+        if(previousDigitalTwinState != null){
+            //Check if the two state are different
+            assertNotEquals(newDigitalTwinState.getEvaluationInstant().toEpochMilli(), previousDigitalTwinState.getEvaluationInstant().toEpochMilli());
+        }
 
         if(this.receivedDigitalTwinStateUpdateList != null)
             this.receivedDigitalTwinStateUpdateList.add(digitalTwinState);

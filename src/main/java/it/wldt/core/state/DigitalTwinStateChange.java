@@ -9,8 +9,6 @@ import java.util.Objects;
  * Represents a change in the state of a Digital Twin.
  *
  * @author Marco Picone, Ph.D. - picone.m@gmail.com
- * @project wldt-core
- * @created 18/10/2023 - 15:35
  */
 public class DigitalTwinStateChange {
 

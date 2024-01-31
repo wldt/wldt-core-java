@@ -9,8 +9,6 @@ import java.util.ArrayList;
 
 /**
  * @author Marco Picone, Ph.D. - picone.m@gmail.com
- * @project wldt-core
- * @created 18/10/2023 - 16:02
  */
 public class DigitalTwinStateTransaction {
 
@@ -41,7 +39,7 @@ public class DigitalTwinStateTransaction {
      */
     public DigitalTwinStateTransaction(DigitalTwinState startDigitalTwinState) {
         this.startDigitalTwinState = startDigitalTwinState;
-        this.endDigitalTwinState = startDigitalTwinState;
+        this.endDigitalTwinState = new DigitalTwinState(startDigitalTwinState);
         this.digitalTwinStateChangeList = new ArrayList<>();
     }
 

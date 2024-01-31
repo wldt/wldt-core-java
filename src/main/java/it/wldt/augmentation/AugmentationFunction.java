@@ -2,8 +2,6 @@ package it.wldt.augmentation;
 
 /**
  * @author Marco Picone, Ph.D. - picone.m@gmail.com
- * @project HelloJava
- * @created 26/10/2023 - 15:43
  */
 public abstract class AugmentationFunction<T> implements Runnable {
 

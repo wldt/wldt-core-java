@@ -12,8 +12,6 @@ import java.util.*;
  * Manages the lifecycle and operations on these components.
  *
  * @author Marco Picone, Ph.D. - picone.m@gmail.com
- * @project wldt-core
- * @created 18/10/2023 - 15:14
  */
 public class DigitalTwinState {
 
@@ -56,6 +54,20 @@ public class DigitalTwinState {
         this.events = events;
         this.relationships = relationships;
         this.evaluationInstant = Instant.now();
+    }
+
+    /**
+     * Constructor to build a new DT State from a previous one.
+     * The evaluationInstant will be assigned to now and values are copied
+     *
+     * @param sourceDigitalTwinState The Source DT State to copy
+     */
+    public DigitalTwinState(DigitalTwinState sourceDigitalTwinState) {
+        this();
+        this.properties.putAll(sourceDigitalTwinState.properties);
+        this.actions.putAll(sourceDigitalTwinState.actions);
+        this.events.putAll(sourceDigitalTwinState.events);
+        this.relationships.putAll(sourceDigitalTwinState.relationships);
     }
 
     //////////////////////////// PROPERTY MANAGEMENT //////////////////////////////////////////////////////////

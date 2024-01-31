@@ -13,8 +13,6 @@ import java.util.Map;
  * The DigitalTwinEngine class manages a collection of DigitalTwin instances.
  *
  * @author Marco Picone, Ph.D. - picone.m@gmail.com
- * @project wldt-core
- * @created 29/12/2023 - 15:50
  */
 public class DigitalTwinEngine {
 

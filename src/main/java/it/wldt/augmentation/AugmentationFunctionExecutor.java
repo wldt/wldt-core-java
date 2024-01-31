@@ -7,8 +7,6 @@ import java.util.concurrent.Executors;
 
 /**
  * @author Marco Picone, Ph.D. - picone.m@gmail.com
- * @project wldt-core
- * @created 26/10/2023 - 16:06
  */
 public class AugmentationFunctionExecutor {
 

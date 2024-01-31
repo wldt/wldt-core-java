@@ -93,7 +93,7 @@ public class DigitalTwinStateManager {
         if(digitalTwinStateTransaction == null)
             throw new WldtDigitalTwinStateException("Trying to commit Digital Twin State Transaction without properly starting it ! Call start() and then commit() to apply changes");
 
-        logger.info("Committing Digital Twin State ({}) Changes ...", this.digitalTwinStateTransaction);
+        logger.debug("Committing Digital Twin State: Start State: {} Changes: {}", this.digitalTwinStateTransaction.getStartDigitalTwinState(), this.digitalTwinStateTransaction.getDigitalTwinStateChangeList());
 
         //Apply Digital Twin State Changes
         this.digitalTwinStateTransaction.handleStateChanges();
@@ -556,9 +556,18 @@ public class DigitalTwinStateManager {
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+    /**
+     * Returns the last DT State Transaction
+     * @return The last DT State Transaction
+     */
+    public DigitalTwinStateTransaction getDigitalTwinStateTransaction() {
+        return digitalTwinStateTransaction;
+    }
+
     /**
      * Returns the current Digital Twin State
-     * @return
+     * @return The current DT State
      */
     public DigitalTwinState getDigitalTwinState() {
         return digitalTwinState;

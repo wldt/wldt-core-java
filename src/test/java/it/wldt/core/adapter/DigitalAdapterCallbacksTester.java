@@ -94,7 +94,6 @@ public class DigitalAdapterCallbacksTester {
 
             @Override
             protected void onStateUpdate(DigitalTwinState newDigitalTwinState, DigitalTwinState previousDigitalTwinState, ArrayList<DigitalTwinStateChange> digitalTwinStateChangeList) {
-
             }
 
             @Override
