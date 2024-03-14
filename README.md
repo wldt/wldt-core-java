@@ -20,21 +20,9 @@ If you are using Gradle use instead the following:
 implementation group: 'io.github.wldt', name: 'wldt-core', version: '0.3.0'
 ```
 
-## Motivation & Digital Twin "Definition" and Main Concepts
+## Scientitic Citation & Reference 
 
-The White Label Digital Twin (WLDT) library aims to support the design, development and deployment of Digital Twins (DTs) 
-within the Internet of Thing (IoT) ecosystems. The library has been designed following the latest DT definitions 
-coming from both Industrial and Scientific domains and identifying DTs as active software components. 
-The Digital Twin definition that we use as reference for the upcoming definitions and library's architecture and main 
-modules is the following:
-
-```text
-A Digital Twin (DT) is a comprehensive software representation of an individual physical asset (PA). 
-It includes the properties, conditions, relationships and behavior(s) of the real-life object through models and data. 
-A Digital Twin is a set of realistic models that can digitalize an object’s behavior in the deployed environment. 
-The Digital Twin represents and reflects its physical twin and remains its virtual counterpart across the object’s entire lifecycle.
-```
-Main Scientific references supporting these definition are the following: 
+If you use the WLDT Library in a Scientific Paper please use this reference: 
 
 ```
 @article{PICONE2021100661,
@@ -49,6 +37,21 @@ Main Scientific references supporting these definition are the following:
     author = {Marco Picone and Marco Mamei and Franco Zambonelli},
     keywords = {Internet of Things, Digital twin, Library, Software agent}
 }
+```
+
+## Digital Twin "Definition" & Main Concepts
+
+The White Label Digital Twin (WLDT) library aims to support the design, development and deployment of Digital Twins (DTs) 
+within the Internet of Thing (IoT) ecosystems. The library has been designed following the latest DT definitions 
+coming from both Industrial and Scientific domains and identifying DTs as active software components. 
+The Digital Twin definition that we use as reference for the upcoming definitions and library's architecture and main 
+modules is the following:
+
+```text
+A Digital Twin (DT) is a comprehensive software representation of an individual physical asset (PA). 
+It includes the properties, conditions, relationships and behavior(s) of the real-life object through models and data. 
+A Digital Twin is a set of realistic models that can digitalize an object’s behavior in the deployed environment. 
+The Digital Twin represents and reflects its physical twin and remains its virtual counterpart across the object’s entire lifecycle.
 ```
 
 ### Digital Twin Abstraction & Model 
