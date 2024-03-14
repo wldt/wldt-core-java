@@ -19,7 +19,7 @@ import java.util.Objects;
  * By default, it is associated to the type of the Class (e.g., java.lang.String)
  * but it can be directly changed by the developer to associate it to a specific ontology or data type.
  */
-public class DigitalTwinStateEvent {
+public class DigitalTwinStateEvent extends DigitalTwinStateResource {
 
     private static final Logger logger = LoggerFactory.getLogger(DigitalTwinStateEvent.class);
 

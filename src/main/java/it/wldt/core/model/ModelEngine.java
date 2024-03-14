@@ -2,16 +2,15 @@ package it.wldt.core.model;
 
 import it.wldt.adapter.physical.PhysicalAssetDescription;
 import it.wldt.core.engine.LifeCycleListener;
-import it.wldt.exception.EventBusException;
+import it.wldt.core.state.DigitalTwinState;
+import it.wldt.core.state.DigitalTwinStateManager;
 import it.wldt.exception.ModelException;
-import it.wldt.exception.ModelFunctionException;
 import it.wldt.exception.WldtRuntimeException;
-import it.wldt.core.state.IDigitalTwinState;
-import it.wldt.core.worker.WldtWorker;
+import it.wldt.core.engine.DigitalTwinWorker;
+import it.wldt.exception.WldtWorkerException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import java.util.HashMap;
-import java.util.List;
+
 import java.util.Map;
 
 /**
@@ -23,67 +22,33 @@ import java.util.Map;
  * This a fundamental core component responsible to handle the Model associated to the DT instance
  * maintaining its internal state and executing/coordinating its shadowing function
  */
-public class ModelEngine extends WldtWorker implements LifeCycleListener {
+public class ModelEngine extends DigitalTwinWorker implements LifeCycleListener {
 
     private static final Logger logger = LoggerFactory.getLogger(ModelEngine.class);
 
-    private IDigitalTwinState digitalTwinState = null;
+    private ShadowingFunction shadowingFunction;
 
-    private Map<String, StateModelFunction> modelFunctionMap;
+    public ModelEngine(String digitalTwinId, DigitalTwinStateManager digitalTwinStateManager, ShadowingFunction shadowingFunction) throws ModelException, WldtWorkerException {
 
-    private ShadowingModelFunction shadowingModelFunction;
+        super();
 
-    public ModelEngine(IDigitalTwinState digitalTwinState, ShadowingModelFunction shadowingModelFunction) throws ModelException, EventBusException {
+        if(digitalTwinId == null)
+            throw new ModelException("Error ! Digital Twin ID cannot be NULL !");
+        else
+            this.digitalTwinId = digitalTwinId;
 
-        this.digitalTwinState = digitalTwinState;
-        this.modelFunctionMap = new HashMap<>();
-
-        if(shadowingModelFunction != null){
+        if(shadowingFunction != null){
             //Init the Shadowing Model Function with the current Digital Twin State and call the associated onCreate method
-            this.shadowingModelFunction = shadowingModelFunction;
-            this.shadowingModelFunction.init(digitalTwinState);
-            this.shadowingModelFunction.onCreate();
+            this.shadowingFunction = shadowingFunction;
+            this.shadowingFunction.init(digitalTwinStateManager);
+            this.shadowingFunction.onCreate();
         }
         else {
             logger.error("MODEL ENGINE ERROR ! Shadowing Model Function = NULL !");
-            throw new ModelException("Error ! Provided ShadowingModelFunction == Null !");
+            throw new ModelException("Error ! Provided ShadowingFunction == Null !");
         }
     }
 
-    /**
-     *
-     * @param stateModelFunction
-     * @throws ModelException
-     */
-    public void addStateModelFunction(StateModelFunction stateModelFunction, boolean observeState, List<String> observePropertyList) throws ModelException, EventBusException, ModelFunctionException {
-        if(stateModelFunction == null || stateModelFunction.getId() == null)
-            throw new ModelException("Error ! ModelFunction = Null or ModelFunction-Id = Null !");
-
-        stateModelFunction.init(this.digitalTwinState);
-
-        this.modelFunctionMap.put(stateModelFunction.getId(), stateModelFunction);
-
-        this.modelFunctionMap.get(stateModelFunction.getId()).onAdded();
-
-        if(observeState)
-            this.modelFunctionMap.get(stateModelFunction.getId()).observeDigitalTwinState();
-
-        if(observePropertyList != null && observePropertyList.size() > 0)
-            this.modelFunctionMap.get(stateModelFunction.getId()).observeDigitalTwinProperties(observePropertyList);
-    }
-
-    /**
-     *
-     * @param modelFunctionId
-     * @throws ModelException
-     */
-    public void removeStateModelFunction(String modelFunctionId) throws ModelException {
-        if(modelFunctionId == null || !modelFunctionMap.containsKey(modelFunctionId))
-            throw new ModelException(String.format("Error ! Provided modelFunctionId(%s) invalid or not found !", modelFunctionId));
-
-        this.modelFunctionMap.get(modelFunctionId).onRemoved();
-        this.modelFunctionMap.remove(modelFunctionId);
-    }
 
     @Override
     public void onWorkerStop() {
@@ -91,16 +56,8 @@ public class ModelEngine extends WldtWorker implements LifeCycleListener {
         logger.info("Stopping Model Engine ....");
 
         //Stop Shadowing Function
-        if(this.shadowingModelFunction != null)
-            this.shadowingModelFunction.onStop();
-
-        //Remove all the stored State Model Function
-        for (Map.Entry<String, StateModelFunction> entry : this.modelFunctionMap.entrySet())
-            try{
-                removeStateModelFunction(entry.getKey());
-            }catch (Exception e){
-                logger.error("Error Removing State Model Function: {}", e.getLocalizedMessage());
-            }
+        if(this.shadowingFunction != null)
+            this.shadowingFunction.onStop();
 
         logger.info("Model Engine Correctly Stopped !");
     }
@@ -108,7 +65,7 @@ public class ModelEngine extends WldtWorker implements LifeCycleListener {
     @Override
     public void onWorkerStart() throws WldtRuntimeException {
         try {
-            this.shadowingModelFunction.onStart();
+            this.shadowingFunction.onStart();
         } catch (Exception e) {
             String errorMessage = String.format("Shadowing Function Error Observing Physical Event: %s", e.getLocalizedMessage());
             logger.error(errorMessage);
@@ -134,7 +91,7 @@ public class ModelEngine extends WldtWorker implements LifeCycleListener {
     @Override
     public void onPhysicalAdapterBindingUpdate(String adapterId, PhysicalAssetDescription physicalAssetDescription) {
         logger.debug("ModelEngine-Listener-DT-LifeCycle: onPhysicalAdapterBindingUpdate()");
-        this.shadowingModelFunction.onPhysicalAdapterBidingUpdate(adapterId, physicalAssetDescription);
+        this.shadowingFunction.onPhysicalAdapterBidingUpdate(adapterId, physicalAssetDescription);
     }
 
     @Override
@@ -155,22 +112,22 @@ public class ModelEngine extends WldtWorker implements LifeCycleListener {
     @Override
     public void onDigitalTwinBound(Map<String, PhysicalAssetDescription> adaptersPhysicalAssetDescriptionMap) {
         logger.debug("ModelEngine-Listener-DT-LifeCycle: onDigitalTwinBound()");
-        this.shadowingModelFunction.onDigitalTwinBound(adaptersPhysicalAssetDescriptionMap);
+        this.shadowingFunction.onDigitalTwinBound(adaptersPhysicalAssetDescriptionMap);
     }
 
     @Override
     public void onDigitalTwinUnBound(Map<String, PhysicalAssetDescription> adaptersPhysicalAssetDescriptionMap, String errorMessage) {
         logger.debug("ModelEngine-Listener-DT-LifeCycle: onDigitalTwinUnBound()");
-        this.shadowingModelFunction.onDigitalTwinUnBound(adaptersPhysicalAssetDescriptionMap, errorMessage);
+        this.shadowingFunction.onDigitalTwinUnBound(adaptersPhysicalAssetDescriptionMap, errorMessage);
     }
 
     @Override
-    public void onSync(IDigitalTwinState digitalTwinState) {
+    public void onSync(DigitalTwinState digitalTwinState) {
         logger.debug("ModelEngine-Listener-DT-LifeCycle: onSync() - DT State: {}", digitalTwinState);
     }
 
     @Override
-    public void onUnSync(IDigitalTwinState digitalTwinState) {
+    public void onUnSync(DigitalTwinState digitalTwinState) {
         logger.debug("ModelEngine-Listener-DT-LifeCycle: onUnSync() - DT State: {}", digitalTwinState);
     }
 

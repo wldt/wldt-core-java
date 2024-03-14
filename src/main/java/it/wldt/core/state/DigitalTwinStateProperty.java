@@ -19,7 +19,7 @@ import java.util.Objects;
  *
  * @param <T>
  */
-public class DigitalTwinStateProperty<T> {
+public class DigitalTwinStateProperty<T> extends DigitalTwinStateResource {
 
     private static final Logger logger = LoggerFactory.getLogger(DigitalTwinStateProperty.class);
 
@@ -70,6 +70,20 @@ public class DigitalTwinStateProperty<T> {
         this.type = value.getClass().getName();
     }
 
+    public DigitalTwinStateProperty(String key, T value, String type) throws WldtDigitalTwinStateException {
+
+        if(key == null || value == null)
+            throw new WldtDigitalTwinStateException("Error creating DigitalTwinStateProperty ! Key or Value = Null !");
+
+        this.key = key;
+        this.value = value;
+
+        if(type == null)
+            this.type = value.getClass().getName();
+        else
+            this.type = type;
+    }
+
     public DigitalTwinStateProperty(String key, T value, boolean readable, boolean writable) throws WldtDigitalTwinStateException {
         this(key, value);
         this.readable = readable;
@@ -97,6 +111,11 @@ public class DigitalTwinStateProperty<T> {
 
     public void setValue(T value) {
         this.value = value;
+    }
+
+    public void setValueObject(Object valueObject){
+        if(this.value.getClass().equals(valueObject.getClass()))
+            this.value = (T) valueObject;
     }
 
     public boolean isReadable() {
@@ -134,9 +153,9 @@ public class DigitalTwinStateProperty<T> {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (!(o instanceof DigitalTwinStateProperty)) return false;
         DigitalTwinStateProperty<?> that = (DigitalTwinStateProperty<?>) o;
-        return readable == that.readable && writable == that.writable && exposed == that.exposed && key.equals(that.key) && value.equals(that.value);
+        return readable == that.readable && writable == that.writable && exposed == that.exposed && Objects.equals(key, that.key) && Objects.equals(value, that.value) && Objects.equals(type, that.type);
     }
 
     @Override
@@ -146,9 +165,10 @@ public class DigitalTwinStateProperty<T> {
 
     @Override
     public String toString() {
-        final StringBuilder sb = new StringBuilder("DigitalTwinStateProperty{");
+        final StringBuffer sb = new StringBuffer("DigitalTwinStateProperty{");
         sb.append("key='").append(key).append('\'');
         sb.append(", value=").append(value);
+        sb.append(", type='").append(type).append('\'');
         sb.append(", readable=").append(readable);
         sb.append(", writable=").append(writable);
         sb.append(", exposed=").append(exposed);

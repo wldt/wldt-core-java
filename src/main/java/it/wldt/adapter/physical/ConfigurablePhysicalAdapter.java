@@ -1,5 +1,7 @@
 package it.wldt.adapter.physical;
 
+import it.wldt.exception.WldtWorkerException;
+
 /**
  * Authors:
  *          Marco Picone, Ph.D. (picone.m@gmail.com)
@@ -13,7 +15,11 @@ public abstract class ConfigurablePhysicalAdapter<C> extends PhysicalAdapter {
 
     private C configuration;
 
-    public ConfigurablePhysicalAdapter(String id, C configuration){
+    private ConfigurablePhysicalAdapter() {
+        super("");
+    }
+
+    public ConfigurablePhysicalAdapter(String id, C configuration) {
         super(id);
         this.configuration = configuration;
     }

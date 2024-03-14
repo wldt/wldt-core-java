@@ -4,7 +4,7 @@ import it.wldt.core.event.WldtEvent;
 import it.wldt.core.event.WldtEventBus;
 import it.wldt.core.event.WldtEventFilter;
 import it.wldt.core.event.WldtEventListener;
-import it.wldt.core.worker.WldtWorker;
+import it.wldt.core.engine.DigitalTwinWorker;
 import it.wldt.exception.EventBusException;
 import it.wldt.exception.PhysicalAdapterException;
 import it.wldt.exception.WldtRuntimeException;
@@ -33,7 +33,7 @@ import java.util.Objects;
  * same time on the Digital Twin with the aim to handle different interaction with the physical layer according to the
  * nature of the twin and the associated physical device.
  */
-public abstract class PhysicalAdapter extends WldtWorker implements WldtEventListener {
+public abstract class PhysicalAdapter extends DigitalTwinWorker implements WldtEventListener {
 
     private static final Logger logger = LoggerFactory.getLogger(ConfigurablePhysicalAdapter.class);
 
@@ -45,7 +45,12 @@ public abstract class PhysicalAdapter extends WldtWorker implements WldtEventLis
 
     private PhysicalAssetDescription adapterPhysicalAssetDescription;
 
-    public PhysicalAdapter(String id){
+    private PhysicalAdapter(){
+
+    }
+
+    public PhysicalAdapter(String id) {
+        super();
         this.id = id;
     }
 
@@ -101,19 +106,19 @@ public abstract class PhysicalAdapter extends WldtWorker implements WldtEventLis
     public abstract void onAdapterStop();
 
     protected void publishPhysicalAssetPropertyWldtEvent(PhysicalAssetPropertyWldtEvent<?> targetPhysicalPropertyEventMessage) throws EventBusException {
-        WldtEventBus.getInstance().publishEvent(getId(), targetPhysicalPropertyEventMessage);
+        WldtEventBus.getInstance().publishEvent(this.digitalTwinId, getId(), targetPhysicalPropertyEventMessage);
     }
 
     protected void publishPhysicalAssetEventWldtEvent(PhysicalAssetEventWldtEvent<?> targetPhysicalAssetEventWldtEvent) throws EventBusException {
-        WldtEventBus.getInstance().publishEvent(getId(), targetPhysicalAssetEventWldtEvent);
+        WldtEventBus.getInstance().publishEvent(this.digitalTwinId, getId(), targetPhysicalAssetEventWldtEvent);
     }
 
     protected void publishPhysicalAssetRelationshipCreatedWldtEvent(PhysicalAssetRelationshipInstanceCreatedWldtEvent<?> targetPhysicalAssetRelationshipWldtEvent) throws EventBusException {
-        WldtEventBus.getInstance().publishEvent(getId(), targetPhysicalAssetRelationshipWldtEvent);
+        WldtEventBus.getInstance().publishEvent(this.digitalTwinId, getId(), targetPhysicalAssetRelationshipWldtEvent);
     }
 
     protected void publishPhysicalAssetRelationshipDeletedWldtEvent(PhysicalAssetRelationshipInstanceDeletedWldtEvent<?> targetPhysicalAssetRelationshipWldtEvent) throws EventBusException {
-        WldtEventBus.getInstance().publishEvent(getId(), targetPhysicalAssetRelationshipWldtEvent);
+        WldtEventBus.getInstance().publishEvent(this.digitalTwinId, getId(), targetPhysicalAssetRelationshipWldtEvent);
     }
 
     public PhysicalAssetDescription getPhysicalAssetDescription() {
@@ -212,7 +217,7 @@ public abstract class PhysicalAdapter extends WldtWorker implements WldtEventLis
                 this.physicalActionEventsFilter = new WldtEventFilter();
             else {
                 //Clean existing subscriptions and the local event filter
-                WldtEventBus.getInstance().unSubscribe(this.id, this.physicalActionEventsFilter, this);
+                WldtEventBus.getInstance().unSubscribe(this.digitalTwinId, this.id, this.physicalActionEventsFilter, this);
                 this.physicalActionEventsFilter.clear();
             }
 
@@ -221,7 +226,7 @@ public abstract class PhysicalAdapter extends WldtWorker implements WldtEventLis
                 this.physicalActionEventsFilter.add(PhysicalAssetActionWldtEvent
                         .buildEventType(PhysicalAssetActionWldtEvent.EVENT_BASIC_TYPE, physicalAssetAction.getKey()));
 
-            WldtEventBus.getInstance().subscribe(this.id, this.physicalActionEventsFilter, this);
+            WldtEventBus.getInstance().subscribe(this.digitalTwinId, this.id, this.physicalActionEventsFilter, this);
 
         }
         else

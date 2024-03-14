@@ -1,8 +1,7 @@
 package it.wldt.core.engine;
 
 import it.wldt.adapter.physical.PhysicalAssetDescription;
-import it.wldt.core.state.IDigitalTwinState;
-
+import it.wldt.core.state.DigitalTwinState;
 import java.util.Map;
 
 /**
@@ -33,9 +32,9 @@ public interface LifeCycleListener {
 
     public void onDigitalTwinUnBound(Map<String, PhysicalAssetDescription> adaptersPhysicalAssetDescriptionMap, String errorMessage);
 
-    public void onSync(IDigitalTwinState digitalTwinState);
+    public void onSync(DigitalTwinState digitalTwinState);
 
-    public void onUnSync(IDigitalTwinState digitalTwinState);
+    public void onUnSync(DigitalTwinState digitalTwinState);
 
     public void onStop();
 
