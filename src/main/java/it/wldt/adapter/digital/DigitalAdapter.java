@@ -39,7 +39,7 @@ import java.util.stream.Collectors;
  */
 public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements WldtEventListener, LifeCycleListener {
 
-    public static final String DIGITAL_ACTION_EVENT = "da.digital.action.event";
+    //public static final String DIGITAL_ACTION_EVENT = "da.digital.action.event";
 
     private static final Logger logger = LoggerFactory.getLogger(DigitalAdapter.class);
 
@@ -130,8 +130,8 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
      * @throws EventBusException
      */
     protected <T> void publishDigitalActionWldtEvent(String actionKey, T body) throws EventBusException {
-        WldtEvent<DigitalActionWldtEvent<T>> notification = new WldtEvent<>(DIGITAL_ACTION_EVENT, new DigitalActionWldtEvent<>(actionKey, body));
-        WldtEventBus.getInstance().publishEvent(this.digitalTwinId, this.id, notification);
+        //WldtEvent<DigitalActionWldtEvent<T>> notification = new WldtEvent<>(DIGITAL_ACTION_EVENT, new DigitalActionWldtEvent<>(actionKey, body));
+        WldtEventBus.getInstance().publishEvent(this.digitalTwinId, this.id, new DigitalActionWldtEvent<>(actionKey, body));
     }
 
     /**
@@ -141,8 +141,8 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
      * @throws EventBusException
      */
     protected void publishDigitalActionWldtEvent(DigitalActionWldtEvent<?> actionWldtEvent) throws EventBusException {
-        WldtEvent<DigitalActionWldtEvent<?>> notification = new WldtEvent<>(DIGITAL_ACTION_EVENT, actionWldtEvent);
-        WldtEventBus.getInstance().publishEvent(this.digitalTwinId, this.id, notification);
+        //WldtEvent<DigitalActionWldtEvent<?>> notification = new WldtEvent<>(DIGITAL_ACTION_EVENT, actionWldtEvent);
+        WldtEventBus.getInstance().publishEvent(this.digitalTwinId, this.id, actionWldtEvent);
     }
 
 

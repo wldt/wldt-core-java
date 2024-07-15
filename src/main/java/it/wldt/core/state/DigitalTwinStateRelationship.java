@@ -54,8 +54,11 @@ public class DigitalTwinStateRelationship<T> extends DigitalTwinStateResource {
 
     @Override
     public String toString() {
-        return "DigitalTwinStateRelationship{" +
-                "name='" + name + '\'' +
-                '}';
+        final StringBuilder sb = new StringBuilder("DigitalTwinStateRelationship{");
+        sb.append("name='").append(name).append('\'');
+        sb.append(", type='").append(type).append('\'');
+        sb.append(", instances=").append(instances);
+        sb.append('}');
+        return sb.toString();
     }
 }

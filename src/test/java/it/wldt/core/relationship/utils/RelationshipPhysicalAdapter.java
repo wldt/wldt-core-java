@@ -14,6 +14,8 @@ public class RelationshipPhysicalAdapter extends PhysicalAdapter {
     public final static String RELATIONSHIP_CONTAINS_NAME = "contains";
     public final static String RELATIONSHIP_OPERATOR_NAME = "operator";
 
+    public final static String RELATIONSHIP_TYPE_TEST = "rel_test";
+
     public RelationshipPhysicalAdapter() {
         super("Relationship-physical-adapter");
     }
@@ -25,8 +27,8 @@ public class RelationshipPhysicalAdapter extends PhysicalAdapter {
 
     @Override
     public void onAdapterStart() {
-        PhysicalAssetRelationship<String> relContains = new PhysicalAssetRelationship<>(RELATIONSHIP_CONTAINS_NAME);
-        PhysicalAssetRelationship<String> relOperator = new PhysicalAssetRelationship<>(RELATIONSHIP_OPERATOR_NAME);
+        PhysicalAssetRelationship<String> relContains = new PhysicalAssetRelationship<>(RELATIONSHIP_CONTAINS_NAME, RELATIONSHIP_TYPE_TEST);
+        PhysicalAssetRelationship<String> relOperator = new PhysicalAssetRelationship<>(RELATIONSHIP_OPERATOR_NAME, RELATIONSHIP_TYPE_TEST);
         PhysicalAssetDescription description = new PhysicalAssetDescription();
         description.getRelationships().add(relContains);
         description.getRelationships().add(relOperator);

@@ -26,7 +26,7 @@ public class ModelEngine extends DigitalTwinWorker implements LifeCycleListener 
 
     private static final Logger logger = LoggerFactory.getLogger(ModelEngine.class);
 
-    private ShadowingFunction shadowingFunction;
+    private final ShadowingFunction shadowingFunction;
 
     public ModelEngine(String digitalTwinId, DigitalTwinStateManager digitalTwinStateManager, ShadowingFunction shadowingFunction) throws ModelException, WldtWorkerException {
 
@@ -38,6 +38,7 @@ public class ModelEngine extends DigitalTwinWorker implements LifeCycleListener 
             this.digitalTwinId = digitalTwinId;
 
         if(shadowingFunction != null){
+
             //Init the Shadowing Model Function with the current Digital Twin State and call the associated onCreate method
             this.shadowingFunction = shadowingFunction;
             this.shadowingFunction.init(digitalTwinStateManager);

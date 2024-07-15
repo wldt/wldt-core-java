@@ -79,6 +79,51 @@ public class WldtEventBus {
                     eventLogger.logEventForwarded(publisherId, wldtSubscriberInfo.getId(), wldtEvent);
             });
         }
+
+        // Wildcard Check
+        // If there is a registered digital twin with that id and the target eventType among registered subscriptions using wildcards
+        if(this.subscriberMap.containsKey(digitalTwinId) &&
+                digitalTwinSubscriptionOptional.isPresent()) {
+
+            // Retrieve the list of Subscribers
+            for(String subscriptionEventType : digitalTwinSubscriptionOptional.get().keySet()){
+                   if(matchWildCardType(wldtEvent.getType(), subscriptionEventType))
+                       digitalTwinSubscriptionOptional.get().get(subscriptionEventType).forEach(wldtSubscriberInfo -> {
+                           wldtSubscriberInfo.getEventListener().onEvent(wldtEvent);
+                           if (eventLogger != null)
+                               eventLogger.logEventForwarded(publisherId, wldtSubscriberInfo.getId(), wldtEvent);
+                       });
+            }
+        }
+    }
+
+    private boolean isWildCardType(String filterEventType){
+        try{
+            if(filterEventType != null){
+                String[] eventTypeStructureArray = filterEventType.split("\\.");
+                // If the last element of the topic is the multi level wild card
+                return eventTypeStructureArray.length > 0 && eventTypeStructureArray[eventTypeStructureArray.length - 1].equals(WldtEventTypes.MULTI_LEVEL_WILDCARD_VALUE);
+            }
+            else
+                logger.error("Error checking WildCard Type ! Event Type == NULL!");
+
+            return false;
+
+        }catch (Exception e){
+            logger.error("Error checking WildCard Type ! Event Type: {} Error: {} ", filterEventType, e.getLocalizedMessage());
+            return false;
+        }
+    }
+
+    public boolean matchWildCardType(String eventType, String filterType){
+        // If the filter type is a wild card filter
+        if(isWildCardType(filterType)){
+            // Remove ".*" from the filter to match the target event type
+            String targetType = filterType.replace(String.format(".%s", WldtEventTypes.MULTI_LEVEL_WILDCARD_VALUE), "");
+            return eventType.contains(targetType);
+        }
+        else
+            return false;
     }
 
     public void subscribe(String digitalTwinId, String subscriberId, WldtEventFilter wldtEventFilter, WldtEventListener wldtEventListener) throws EventBusException{

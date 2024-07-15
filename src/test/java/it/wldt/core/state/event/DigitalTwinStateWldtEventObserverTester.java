@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.jupiter.api.Assertions.*;
 
 
-public class DigitalTwinStateEventObserverTester {
+public class DigitalTwinStateWldtEventObserverTester {
 
     public final String DIGITAL_TWIN_ID = "dt00001";
 

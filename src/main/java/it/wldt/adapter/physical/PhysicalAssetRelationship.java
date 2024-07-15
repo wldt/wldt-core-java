@@ -20,14 +20,29 @@ public class PhysicalAssetRelationship<T> {
     //TODO: add the type of the target of the relationship
     //TODO: add list of properties
 
-    private final String name;
+    private String name;
 
-    public PhysicalAssetRelationship(String name) {
+    private String type;
+
+    public PhysicalAssetRelationship(String name, String type) {
         this.name = name;
+        this.type = type;
     }
 
     public String getName() {
         return name;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public void setType(String type) {
+        this.type = type;
     }
 
     public PhysicalAssetRelationshipInstance<T> createRelationshipInstance(T targetId){
@@ -40,8 +55,10 @@ public class PhysicalAssetRelationship<T> {
 
     @Override
     public String toString() {
-        return "PhysicalAssetRelationship{" +
-                "name='" + name + '\'' +
-                '}';
+        final StringBuilder sb = new StringBuilder("PhysicalAssetRelationship{");
+        sb.append("name='").append(name).append('\'');
+        sb.append(", type='").append(type).append('\'');
+        sb.append('}');
+        return sb.toString();
     }
 }

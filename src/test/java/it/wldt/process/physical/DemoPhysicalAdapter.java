@@ -1,10 +1,9 @@
 package it.wldt.process.physical;
 
 import it.wldt.adapter.physical.*;
-import it.wldt.adapter.physical.event.PhysicalAssetActionWldtEvent;
-import it.wldt.adapter.physical.event.PhysicalAssetEventWldtEvent;
-import it.wldt.adapter.physical.event.PhysicalAssetPropertyWldtEvent;
+import it.wldt.adapter.physical.event.*;
 import it.wldt.core.event.WldtEventBus;
+import it.wldt.exception.EventBusException;
 import it.wldt.process.metrics.SharedTestMetrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,7 +39,17 @@ public class DemoPhysicalAdapter extends ConfigurablePhysicalAdapter<DemoPhysica
 
     private boolean isTelemetryOn = false;
 
+    private boolean isRelationShipOn = false;
+
     private Random random = new Random();
+
+    public final static String RELATIONSHIP_IS_CONTAINED_IN = "isUsedIn";
+
+    public final static String RELATIONSHIP_IS_USED_BY = "isUsedBy";
+
+    public final static String RELATIONSHIP_IS_CONTAINED_IN_TYPE = "test.relationship.containedin";
+
+    public final static String RELATIONSHIP_IS_USED_BY_TYPE = "test.relationship.usedby";
 
     public DemoPhysicalAdapter(String id, DemoPhysicalAdapterConfiguration configuration) {
         super(id, configuration);
@@ -49,6 +58,15 @@ public class DemoPhysicalAdapter extends ConfigurablePhysicalAdapter<DemoPhysica
     public DemoPhysicalAdapter(String id, DemoPhysicalAdapterConfiguration configuration, boolean isTelemetryOn) {
         super(id, configuration);
         this.isTelemetryOn = isTelemetryOn;
+        this.isRelationShipOn = false;
+    }
+
+    public DemoPhysicalAdapter(String id, DemoPhysicalAdapterConfiguration configuration,
+                               boolean isTelemetryOn,
+                               boolean isRelationShipOn) {
+        super(id, configuration);
+        this.isTelemetryOn = isTelemetryOn;
+        this.isRelationShipOn = isRelationShipOn;
     }
 
     public DemoPhysicalAdapter(String id,
@@ -89,6 +107,23 @@ public class DemoPhysicalAdapter extends ConfigurablePhysicalAdapter<DemoPhysica
         }
     }
 
+    public void simulateRelationshipInstanceEvent(String relationshipName, String targetId, boolean isCreationEvent){
+        this.getPhysicalAssetDescription().getRelationships().stream()
+                .filter(r -> r.getName().equals(relationshipName))
+                .forEach(r -> {
+                    try {
+                        PhysicalAssetRelationship<String> relationship = (PhysicalAssetRelationship<String>) r;
+                        if(isCreationEvent)
+                            publishPhysicalAssetRelationshipCreatedWldtEvent(new PhysicalAssetRelationshipInstanceCreatedWldtEvent<>(relationship.createRelationshipInstance(targetId)));
+                        else
+                            publishPhysicalAssetRelationshipDeletedWldtEvent(new PhysicalAssetRelationshipInstanceDeletedWldtEvent<>(relationship.createRelationshipInstance(targetId)));
+
+                    } catch (EventBusException e) {
+                        e.printStackTrace();
+                    }
+                });
+    }
+
     @Override
     public void onAdapterStart() {
 
@@ -110,6 +145,14 @@ public class DemoPhysicalAdapter extends ConfigurablePhysicalAdapter<DemoPhysica
                 add(new PhysicalAssetEvent(OVERHEATING_EVENT_KEY,"text/plain"));
             }});
 
+            // Create Relationship if the associated flag is true
+            if(isRelationShipOn) {
+                PhysicalAssetRelationship<String> relIsContainedIn = new PhysicalAssetRelationship<>(RELATIONSHIP_IS_CONTAINED_IN, RELATIONSHIP_IS_CONTAINED_IN_TYPE);
+                PhysicalAssetRelationship<String> relIsUsedBy = new PhysicalAssetRelationship<>(RELATIONSHIP_IS_USED_BY, RELATIONSHIP_IS_USED_BY_TYPE);
+                physicalAssetDescription.getRelationships().add(relIsContainedIn);
+                physicalAssetDescription.getRelationships().add(relIsUsedBy);
+            }
+
             this.notifyPhysicalAdapterBound(physicalAssetDescription);
 
         }catch (Exception e){
@@ -127,6 +170,11 @@ public class DemoPhysicalAdapter extends ConfigurablePhysicalAdapter<DemoPhysica
                         Thread.sleep(messageSleepPeriodMs);
                         publishPhysicalAssetEventWldtEvent(new PhysicalAssetEventWldtEvent<String>(OVERHEATING_EVENT_KEY, "overheating-low"));
 
+                        if(isRelationShipOn) {
+                            simulateRelationshipInstanceEvent(RELATIONSHIP_IS_CONTAINED_IN, "SmartHome", true);
+                            simulateRelationshipInstanceEvent(RELATIONSHIP_IS_USED_BY, "SmartHome-Manager", true);
+                        }
+
                         for(int i = 0; i< propertyUpdateMessageLimit; i++){
 
                             Thread.sleep(messageSleepPeriodMs);
@@ -140,6 +188,11 @@ public class DemoPhysicalAdapter extends ConfigurablePhysicalAdapter<DemoPhysica
                         PhysicalAssetEventWldtEvent<String> event = new PhysicalAssetEventWldtEvent<String>(OVERHEATING_EVENT_KEY, "overheating-critical");
                         publishPhysicalAssetEventWldtEvent(event);
                         SharedTestMetrics.getInstance().addPhysicalAdapterEventNotification(digitalTwinId, event);
+
+                        if(isRelationShipOn) {
+                            simulateRelationshipInstanceEvent(RELATIONSHIP_IS_CONTAINED_IN, "SmartHome", false);
+                            simulateRelationshipInstanceEvent(RELATIONSHIP_IS_USED_BY, "SmartHome-Manager", false);
+                        }
 
                     }catch (Exception e){
                         e.printStackTrace();

@@ -5,6 +5,7 @@ import it.wldt.core.state.DigitalTwinState;
 import it.wldt.core.state.DigitalTwinStateChange;
 import it.wldt.core.state.DigitalTwinStateEvent;
 import it.wldt.core.state.DigitalTwinStateEventNotification;
+import it.wldt.exception.EventBusException;
 import it.wldt.process.metrics.SharedTestMetrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -84,5 +85,14 @@ public class DemoDigitalAdapter extends DigitalAdapter<DemoDigitalAdapterConfigu
     protected void onEventNotificationReceived(DigitalTwinStateEventNotification<?> digitalTwinStateEventNotification) {
         logger.info("DummyDigitalTwinAdapter -> onDigitalTwinStateEventNotification() - EVENT NOTIFICATION RECEIVED: {}", digitalTwinStateEventNotification);
         SharedTestMetrics.getInstance().addDigitalAdapterEventNotification(digitalTwinId, digitalTwinStateEventNotification);
+    }
+
+    public <T> void invokeAction(String actionKey, T body){
+        try {
+            logger.info("INVOKING ACTION: {} BODY: {}", actionKey, body);
+            publishDigitalActionWldtEvent(actionKey, body);
+        } catch (EventBusException e) {
+            e.printStackTrace();
+        }
     }
 }

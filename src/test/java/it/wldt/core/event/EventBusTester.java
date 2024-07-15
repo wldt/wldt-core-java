@@ -29,6 +29,10 @@ public class EventBusTester {
     public static int receivedMessageCount = 0;
     public static long delaySum = 0;
 
+    public static final String TEST_TOPIC_MULTI_LEVEL = "test.level1.level2.topic0001";
+
+    public static final String TEST_WILDCARD_TOPIC = "test.level1.level2.*";
+
     private CountDownLatch lock = new CountDownLatch(1);
 
     private WldtEvent<?> receivedMessage;
@@ -128,6 +132,58 @@ public class EventBusTester {
         //Define New Message
         WldtEvent<String> wldtEvent = new WldtEvent<>(targetTopic);
         wldtEvent.setBody(body);
+        wldtEvent.putMetadata(METADATA_KEY_TEST_1, METADATA_VALUE_TEST_1);
+
+        //Publish Message on the target Topic1
+        WldtEventBus.getInstance().publishEvent(DIGITAL_TWIN_ID, PUBLISHER_ID_1, wldtEvent);
+
+        lock.await(2000, TimeUnit.MILLISECONDS);
+
+        assertNotNull(receivedMessage);
+        assertEquals(wldtEvent, receivedMessage);
+        assertEquals(TEST_VALUE_0001, receivedMessage.getBody());
+        assertEquals(wldtEvent.getMetadata(), receivedMessage.getMetadata());
+    }
+
+    @Test
+    public void singleWildCardPubSubTest() throws InterruptedException, EventBusException {
+
+        //Define EventFilter and add the target topic
+        WldtEventFilter wldtEventFilter = new WldtEventFilter();
+        wldtEventFilter.add(TEST_WILDCARD_TOPIC);
+
+        //Set EventBus Logger
+        WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
+
+        //Subscribe for target topic
+        WldtEventBus.getInstance().subscribe(DIGITAL_TWIN_ID, SUBSCRIBER_ID_1, wldtEventFilter, new WldtEventListener() {
+
+            @Override
+            public void onEventSubscribed(String eventType) {
+                System.out.println(SUBSCRIBER_ID_1  + " -> onSubscribe() called ! Event-Type:" + eventType);
+            }
+
+            @Override
+            public void onEventUnSubscribed(String eventType) {
+                System.out.println(SUBSCRIBER_ID_1  + " -> onUnSubscribe() called ! Event-Type:" + eventType);
+            }
+
+            @Override
+            public void onEvent(WldtEvent<?> wldtEvent) {
+                if(wldtEvent != null){
+                    WldtEvent<String> msg = (WldtEvent<String>) wldtEvent;
+                    long diff = System.currentTimeMillis() - msg.getCreationTimestamp();
+                    System.out.println("Message Received in: " + diff);
+                }
+
+                receivedMessage = wldtEvent;
+                lock.countDown();
+            }
+        });
+
+        //Define New Message
+        WldtEvent<String> wldtEvent = new WldtEvent<>(TEST_TOPIC_MULTI_LEVEL);
+        wldtEvent.setBody(TEST_VALUE_0001);
         wldtEvent.putMetadata(METADATA_KEY_TEST_1, METADATA_VALUE_TEST_1);
 
         //Publish Message on the target Topic1

@@ -1,19 +1,13 @@
 package it.wldt.process.shadowing;
 
 import it.wldt.adapter.digital.event.DigitalActionWldtEvent;
-import it.wldt.adapter.physical.PhysicalAssetAction;
-import it.wldt.adapter.physical.PhysicalAssetDescription;
-import it.wldt.adapter.physical.PhysicalAssetEvent;
-import it.wldt.adapter.physical.PhysicalAssetProperty;
+import it.wldt.adapter.physical.*;
 import it.wldt.adapter.physical.event.PhysicalAssetEventWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetPropertyWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetRelationshipInstanceCreatedWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetRelationshipInstanceDeletedWldtEvent;
 import it.wldt.core.model.ShadowingFunction;
-import it.wldt.core.state.DigitalTwinStateAction;
-import it.wldt.core.state.DigitalTwinStateEvent;
-import it.wldt.core.state.DigitalTwinStateEventNotification;
-import it.wldt.core.state.DigitalTwinStateProperty;
+import it.wldt.core.state.*;
 import it.wldt.exception.EventBusException;
 import it.wldt.process.metrics.SharedTestMetrics;
 import it.wldt.process.physical.DemoPhysicalAdapter;
@@ -72,13 +66,26 @@ public class DemoShadowingFunction extends ShadowingFunction {
                     for(PhysicalAssetProperty<?> physicalAssetProperty : physicalAssetDescription.getProperties())
                         this.digitalTwinStateManager.createProperty(new DigitalTwinStateProperty<>(physicalAssetProperty.getKey(), physicalAssetProperty.getInitialValue()));
 
+                    // Add Actions to the DT State
                     for(PhysicalAssetAction physicalAssetAction : physicalAssetDescription.getActions())
                         this.digitalTwinStateManager.enableAction(new DigitalTwinStateAction(physicalAssetAction.getKey(),
                                 physicalAssetAction.getType(),
                                 physicalAssetAction.getContentType()));
 
+                    // Add Events to the DT State
                     for(PhysicalAssetEvent physicalAssetEvent: physicalAssetDescription.getEvents())
                         this.digitalTwinStateManager.registerEvent(new DigitalTwinStateEvent(physicalAssetEvent.getKey(), physicalAssetEvent.getType()));
+
+                    // Add Relationships to the DT State & Observe
+                    for(PhysicalAssetRelationship<?> physicalAssetRelationship : physicalAssetDescription.getRelationships()) {
+
+                        this.digitalTwinStateManager.createRelationship(new DigitalTwinStateRelationship<String>(
+                                physicalAssetRelationship.getName(),
+                                physicalAssetRelationship.getType()));
+
+                        // The Digital Twin is interested to monitor variation of target physical relationship
+                        this.observePhysicalAssetRelationship(physicalAssetRelationship);
+                    }
                 }
 
                 //Commit DT State Change Transaction to apply the changes on the DT State and notify about the change
@@ -160,12 +167,17 @@ public class DemoShadowingFunction extends ShadowingFunction {
                 //Check if it is a switch change
                 if(physicalPropertyEventMessage.getPhysicalPropertyId().equals(DemoPhysicalAdapter.SWITCH_PROPERTY_KEY)
                         && physicalPropertyEventMessage.getBody() instanceof String){
-
                     logger.info("CORRECT PhysicalEvent Received -> Type: {} Message: {}", physicalPropertyEventMessage.getType(), physicalPropertyEventMessage);
 
+                    //Update Digital Twin Status
+                    this.digitalTwinStateManager.startStateTransaction();
+                    this.digitalTwinStateManager.updateProperty(
+                            new DigitalTwinStateProperty<>(
+                                    physicalPropertyEventMessage.getPhysicalPropertyId(),
+                                    physicalPropertyEventMessage.getBody()));
+                    this.digitalTwinStateManager.commitStateTransaction();
                 }
                 else{
-
                     logger.info("CORRECT PhysicalEvent Received -> Type: {} Message: {}", physicalPropertyEventMessage.getType(), physicalPropertyEventMessage);
 
                     //Update Digital Twin Status
@@ -178,7 +190,7 @@ public class DemoShadowingFunction extends ShadowingFunction {
                 }
             }
             else
-                logger.error("WRONG Physical Event Message Received !");
+                logger.error("WRONG Physical Event Message Received ! Received Type: {}", physicalPropertyEventMessage.getType());
 
         }catch (Exception e){
             e.printStackTrace();
@@ -207,11 +219,65 @@ public class DemoShadowingFunction extends ShadowingFunction {
 
     @Override
     protected void onPhysicalAssetRelationshipEstablished(PhysicalAssetRelationshipInstanceCreatedWldtEvent<?> physicalAssetRelationshipWldtEvent) {
+        logger.info("ShadowingFunction onPhysicalAssetRelationshipEstablished - Event Received: {}", physicalAssetRelationshipWldtEvent);
 
+        try {
+
+            if(physicalAssetRelationshipWldtEvent != null
+                    && physicalAssetRelationshipWldtEvent.getBody() != null){
+
+                PhysicalAssetRelationshipInstance<?> paRelInstance = physicalAssetRelationshipWldtEvent.getBody();
+
+                if(paRelInstance.getTargetId() instanceof String){
+
+                    String relName = paRelInstance.getRelationship().getName();
+                    String relKey = paRelInstance.getKey();
+                    String relTargetId = (String)paRelInstance.getTargetId();
+
+                    DigitalTwinStateRelationshipInstance<String> instance = new DigitalTwinStateRelationshipInstance<String>(relName, relTargetId, relKey);
+
+                    //Update Digital Twin Status
+                    this.digitalTwinStateManager.startStateTransaction();
+                    this.digitalTwinStateManager.addRelationshipInstance(instance);
+                    this.digitalTwinStateManager.commitStateTransaction();
+                }
+            }
+            
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        
     }
 
     @Override
     protected void onPhysicalAssetRelationshipDeleted(PhysicalAssetRelationshipInstanceDeletedWldtEvent<?> physicalAssetRelationshipWldtEvent) {
+        logger.info("ShadowingFunction onPhysicalAssetRelationshipDeleted - Event Received: {}", physicalAssetRelationshipWldtEvent);
+
+        try {
+
+            if(physicalAssetRelationshipWldtEvent != null
+                    && physicalAssetRelationshipWldtEvent.getBody() != null){
+
+                PhysicalAssetRelationshipInstance<?> paRelInstance = physicalAssetRelationshipWldtEvent.getBody();
+
+                if(paRelInstance.getTargetId() instanceof String){
+
+                    String relName = paRelInstance.getRelationship().getName();
+                    String relKey = paRelInstance.getKey();
+                    String relTargetId = (String)paRelInstance.getTargetId();
+
+                    DigitalTwinStateRelationshipInstance<String> instance = new DigitalTwinStateRelationshipInstance<String>(relName, relTargetId, relKey);
+
+                    //Update Digital Twin Status
+                    this.digitalTwinStateManager.startStateTransaction();
+                    this.digitalTwinStateManager.deleteRelationshipInstance(relName, relKey);
+                    this.digitalTwinStateManager.commitStateTransaction();
+                }
+            }
+
+        }catch (Exception e){
+            e.printStackTrace();
+        }
 
     }
 

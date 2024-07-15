@@ -7,10 +7,7 @@ import it.wldt.adapter.physical.PhysicalAssetDescription;
 import it.wldt.adapter.physical.PhysicalAssetEvent;
 import it.wldt.adapter.physical.PhysicalAssetProperty;
 import it.wldt.adapter.physical.PhysicalAssetRelationship;
-import it.wldt.core.event.WldtEvent;
-import it.wldt.core.event.WldtEventBus;
-import it.wldt.core.event.WldtEventFilter;
-import it.wldt.core.event.WldtEventListener;
+import it.wldt.core.event.*;
 import it.wldt.core.state.DigitalTwinStateManager;
 import it.wldt.exception.EventBusException;
 import it.wldt.exception.ModelException;
@@ -238,7 +235,7 @@ public abstract class ShadowingFunction implements WldtEventListener {
         if(physicalAssetRelationship == null)
             throw new ModelException("Error ! NULL Physical Relationship ...");
 
-        //Define EventFilter and add the target topics
+        // Define EventFilter and add the target topics
         WldtEventFilter wldtEventFilter = new WldtEventFilter();
         wldtEventFilter.add(PhysicalAssetRelationshipInstanceCreatedWldtEvent.buildEventType(PhysicalAssetRelationshipInstanceCreatedWldtEvent.EVENT_BASIC_TYPE, physicalAssetRelationship.getName()));
         wldtEventFilter.add(PhysicalAssetRelationshipInstanceDeletedWldtEvent.buildEventType(PhysicalAssetRelationshipInstanceDeletedWldtEvent.EVENT_BASIC_TYPE, physicalAssetRelationship.getName()));
@@ -306,13 +303,17 @@ public abstract class ShadowingFunction implements WldtEventListener {
 
     protected void observeDigitalActionEvents() throws EventBusException {
         WldtEventFilter wldtEventFilter = new WldtEventFilter();
-        wldtEventFilter.add(DigitalAdapter.DIGITAL_ACTION_EVENT);
+        //wldtEventFilter.add(DigitalAdapter.DIGITAL_ACTION_EVENT);
+        // Observe the Wildcard Event Type for Digital Action Event
+        wldtEventFilter.add(WldtEventTypes.ALL_DIGITAL_ACTION_EVENT_TYPE);
         WldtEventBus.getInstance().subscribe(this.digitalTwinStateManager.getDigitalTwinId(), this.id, wldtEventFilter, this);
     }
 
     protected void unObserveDigitalActionEvents() throws EventBusException {
         WldtEventFilter wldtEventFilter = new WldtEventFilter();
-        wldtEventFilter.add(DigitalAdapter.DIGITAL_ACTION_EVENT);
+        //wldtEventFilter.add(DigitalAdapter.DIGITAL_ACTION_EVENT);
+        // Un-Observe the Wildcard Event Type for Digital Action Event
+        wldtEventFilter.add(WldtEventTypes.ALL_DIGITAL_ACTION_EVENT_TYPE);
         WldtEventBus.getInstance().unSubscribe(this.digitalTwinStateManager.getDigitalTwinId(), this.id, wldtEventFilter, this);
     }
 
@@ -333,7 +334,9 @@ public abstract class ShadowingFunction implements WldtEventListener {
     @Override
     public void onEvent(WldtEvent<?> wldtEvent) {
 
-        logger.info("Shadowing Model Function -> Received Event: {} Class: {}", wldtEvent, wldtEvent.getClass());
+        logger.info("Shadowing Function -> Received Event: {} Class: {}", wldtEvent, wldtEvent.getClass());
+
+        // TODO Re-write all the following checks with Event Filters & Wildcard instead of Class Instances
 
         if(wldtEvent instanceof PhysicalAssetPropertyWldtEvent)
             onPhysicalAssetPropertyVariation((PhysicalAssetPropertyWldtEvent<?>) wldtEvent);
@@ -347,8 +350,11 @@ public abstract class ShadowingFunction implements WldtEventListener {
         if(wldtEvent instanceof PhysicalAssetRelationshipInstanceDeletedWldtEvent)
             onPhysicalAssetRelationshipDeleted((PhysicalAssetRelationshipInstanceDeletedWldtEvent<?>) wldtEvent);
 
-        if(wldtEvent.getType().equals(DigitalAdapter.DIGITAL_ACTION_EVENT))
-            onDigitalActionEvent((DigitalActionWldtEvent<?>) wldtEvent.getBody());
+        if(wldtEvent instanceof DigitalActionWldtEvent<?>)
+            onDigitalActionEvent((DigitalActionWldtEvent<?>) wldtEvent);
+
+        //if(wldtEvent.getType().equals(DigitalAdapter.DIGITAL_ACTION_EVENT))
+        //    onDigitalActionEvent((DigitalActionWldtEvent<?>) wldtEvent.getBody());
 
     }
 
