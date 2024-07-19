@@ -2,6 +2,7 @@ package it.wldt.core.model;
 
 import it.wldt.adapter.physical.PhysicalAssetDescription;
 import it.wldt.core.engine.LifeCycleListener;
+import it.wldt.core.event.EventManager;
 import it.wldt.core.state.DigitalTwinState;
 import it.wldt.core.state.DigitalTwinStateManager;
 import it.wldt.exception.ModelException;
@@ -25,6 +26,8 @@ import java.util.Map;
 public class ModelEngine extends DigitalTwinWorker implements LifeCycleListener {
 
     private static final Logger logger = LoggerFactory.getLogger(ModelEngine.class);
+
+    private static final String MODEL_ENGINE_PUBLISHER_ID = "model_engine";
 
     private final ShadowingFunction shadowingFunction;
 
@@ -81,7 +84,7 @@ public class ModelEngine extends DigitalTwinWorker implements LifeCycleListener 
 
     @Override
     public void onStart() {
-        logger.debug("ModelEngine-Listener-DT-LifeCycle: onCreate()");
+        logger.debug("ModelEngine-Listener-DT-LifeCycle: onStart()");
     }
 
     @Override
@@ -97,7 +100,7 @@ public class ModelEngine extends DigitalTwinWorker implements LifeCycleListener 
 
     @Override
     public void onPhysicalAdapterUnBound(String adapterId, PhysicalAssetDescription physicalAssetDescription, String errorMessage) {
-        logger.debug("ModelEngine-Listener-DT-LifeCycle: onPhysicalAdapterBound({})", adapterId);
+        logger.debug("ModelEngine-Listener-DT-LifeCycle: onPhysicalAdapterUnBound({})", adapterId);
     }
 
     @Override

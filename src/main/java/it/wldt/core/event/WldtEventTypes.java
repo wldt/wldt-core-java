@@ -26,8 +26,8 @@ public class WldtEventTypes {
 
     public static final String ALL_PHYSICAL_RELATIONSHIP_INSTANCE_DELETED_EVENT_TYPE = String.format("%s.%s", PHYSICAL_RELATIONSHIP_INSTANCE_DELETED_EVENT_BASE_TYPE, MULTI_LEVEL_WILDCARD_VALUE);;
 
-    //TODO Currently Not Used (PAD generation and notification should be updated)
-    public static final String PHYSICAL_ASSET_DESCRIPTION_CREATED = "dt.physical.event.pad.created";
+    public static final String PHYSICAL_ASSET_DESCRIPTION_AVAILABLE = "dt.physical.event.pad.available";
+
     public static final String PHYSICAL_ASSET_DESCRIPTION_UPDATED = "dt.physical.event.pad.updated";
 
     /* Digital Interface Events */

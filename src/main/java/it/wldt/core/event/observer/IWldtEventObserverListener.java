@@ -15,4 +15,7 @@ public interface IWldtEventObserverListener {
     public void onPhysicalAssetActionEvent(WldtEvent<?> wldtEvent);
 
     public void onDigitalActionEvent(WldtEvent<?> wldtEvent);
+
+    public void onPhysicalAssetDescriptionEvent(WldtEvent<?> wldtEvent);
+
 }

@@ -1,9 +1,6 @@
 package it.wldt.adapter.physical;
 
-import it.wldt.core.event.WldtEvent;
-import it.wldt.core.event.WldtEventBus;
-import it.wldt.core.event.WldtEventFilter;
-import it.wldt.core.event.WldtEventListener;
+import it.wldt.core.event.*;
 import it.wldt.core.engine.DigitalTwinWorker;
 import it.wldt.exception.EventBusException;
 import it.wldt.exception.PhysicalAdapterException;
@@ -143,6 +140,12 @@ public abstract class PhysicalAdapter extends DigitalTwinWorker implements WldtE
         //Notify Listeners
         if(getPhysicalAdapterListener() != null)
             getPhysicalAdapterListener().onPhysicalBindingUpdate(getId(), this.adapterPhysicalAssetDescription);
+
+        // Notify with an Event that a new PAD for the target Physical Adapter has been updated
+        EventManager.notifyPhysicalAdapterPadUpdated(this.digitalTwinId,
+                id,
+                id,
+                this.adapterPhysicalAssetDescription);
     }
 
     /**
@@ -161,6 +164,12 @@ public abstract class PhysicalAdapter extends DigitalTwinWorker implements WldtE
 
         if(getPhysicalAdapterListener() != null)
             getPhysicalAdapterListener().onPhysicalBindingUpdate(getId(), this.adapterPhysicalAssetDescription);
+
+        // Notify with an Event that a new PAD for the target Physical Adapter has been updated
+        EventManager.notifyPhysicalAdapterPadUpdated(this.digitalTwinId,
+                id,
+                id,
+                this.adapterPhysicalAssetDescription);
     }
 
     /**
@@ -186,6 +195,12 @@ public abstract class PhysicalAdapter extends DigitalTwinWorker implements WldtE
         //Notify Listeners
         if(getPhysicalAdapterListener() != null)
             getPhysicalAdapterListener().onPhysicalAdapterBound(getId(), this.adapterPhysicalAssetDescription);
+
+        // Notify with an Event that a new PAD for the target Physical Adapter is Available
+        EventManager.notifyPhysicalAdapterPadAvailable(this.digitalTwinId,
+                id,
+                id,
+                this.adapterPhysicalAssetDescription);
     }
 
     /**

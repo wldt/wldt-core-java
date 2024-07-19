@@ -86,6 +86,7 @@ public class EventObserverTester {
         eventObserver.observePhysicalAssetActionEvents();
         eventObserver.observeStateEvents();
         eventObserver.observeDigitalActionEvents();
+        eventObserver.observePhysicalAssetDescriptionEvents();
 
         // Register DT to Shared Test Metrics
         SharedTestMetrics.getInstance().registerDigitalTwin(TEST_DIGITAL_TWIN_ID);
@@ -112,6 +113,7 @@ public class EventObserverTester {
         eventObserver.unObservePhysicalAssetActionEvents();
         eventObserver.unObserveStateEvents();
         eventObserver.unObserveDigitalActionEvents();
+        eventObserver.unObservePhysicalAssetDescriptionEvents();
 
         SharedTestMetrics.getInstance().resetMetrics();
         SharedTestMetrics.getInstance().unRegisterDigitalTwin(TEST_DIGITAL_TWIN_ID);
@@ -273,6 +275,33 @@ public class EventObserverTester {
         }
         assertEquals(targetPhysicalActionMessages, totalPhysicalActionMessages);
 
+    }
+
+    @Test
+    @Order(4)
+    public void testPhysicalAdapterPadEvents() throws InterruptedException {
+
+        //Set EventBus Logger
+        WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
+
+        //Wait until all the messages have been received
+        Thread.sleep((DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS + ((DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES + DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_EVENT_UPDATES) * DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS)));
+
+        //Check Received Physical Asset Description WLDT Events (Available & Updated)
+        assertNotNull(testObserverListener.getPhysicalAssetDescriptionEvents());
+
+        // Considering the testing Physical Adapter we have10 Energy Updates, 2 Events of OverHeating, 4 Relationship Instance changes
+        int targetPhysicalAssetMessages = 1;
+        int totalReceivedEvents = 0;
+
+        for (Map.Entry<String, List<WldtEvent<?>>> entry : testObserverListener.getPhysicalAssetDescriptionEvents().entrySet()) {
+            String eventType = entry.getKey();
+            List<WldtEvent<?>> eventList = entry.getValue();
+            totalReceivedEvents += eventList.size();
+        }
+        assertEquals(targetPhysicalAssetMessages, totalReceivedEvents);
+
+        Thread.sleep(2000);
     }
 
 }

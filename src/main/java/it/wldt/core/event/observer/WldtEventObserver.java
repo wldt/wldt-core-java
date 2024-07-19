@@ -22,6 +22,8 @@ public class WldtEventObserver implements WldtEventListener {
 
     private WldtEventFilter digitalActionEventFilter = null;
 
+    private WldtEventFilter physicalAssetDescriptionEventFilter = null;
+
     private String observerId;
 
     private String digitalTwinId;
@@ -50,6 +52,7 @@ public class WldtEventObserver implements WldtEventListener {
         this.physicalAssetEventFilter = new WldtEventFilter();
         this.physicalAssetActionEventFilter = new WldtEventFilter();
         this.digitalActionEventFilter = new WldtEventFilter();
+        this.physicalAssetDescriptionEventFilter = new WldtEventFilter();
 
         this.observerListener = observerListener;
     }
@@ -169,6 +172,26 @@ public class WldtEventObserver implements WldtEventListener {
         unObserveEventsWithFilter(this.digitalActionEventFilter);
     }
 
+
+    /**
+     * Trigger the observation of Physical Asset Descriptions generated a Physical Assets
+     * Function
+     * @throws EventBusException
+     */
+    public void observePhysicalAssetDescriptionEvents() throws EventBusException {
+        observeEventsWithFilter(this.physicalAssetDescriptionEventFilter,
+                WldtEventTypes.PHYSICAL_ASSET_DESCRIPTION_AVAILABLE,
+                WldtEventTypes.PHYSICAL_ASSET_DESCRIPTION_UPDATED);
+    }
+
+    /**
+     * Cancel the observation of Physical Asset Descriptions generated a Physical Assets
+     * @throws EventBusException
+     */
+    public void unObservePhysicalAssetDescriptionEvents() throws EventBusException {
+        unObserveEventsWithFilter(this.physicalAssetDescriptionEventFilter);
+    }
+
     @Override
     public void onEventSubscribed(String eventType) {
         if(this.observerListener != null)
@@ -208,6 +231,10 @@ public class WldtEventObserver implements WldtEventListener {
             // Check Digital Action Events
             if(this.digitalActionEventFilter != null && this.digitalActionEventFilter.matchEventType(wldtEvent.getType()))
                 this.observerListener.onDigitalActionEvent(wldtEvent);
+
+            // Check Physical Asset Description Events
+            if(this.physicalAssetDescriptionEventFilter != null && this.physicalAssetDescriptionEventFilter.matchEventType(wldtEvent.getType()))
+                this.observerListener.onPhysicalAssetDescriptionEvent(wldtEvent);
         }
         else
             logger.error("WldtEventObserver({}) onEvent - Wrong or Null WldtEvent: {}", this.observerId, wldtEvent);
