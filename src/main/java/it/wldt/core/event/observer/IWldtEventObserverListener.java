@@ -18,4 +18,6 @@ public interface IWldtEventObserverListener {
 
     public void onPhysicalAssetDescriptionEvent(WldtEvent<?> wldtEvent);
 
+    public void onLifeCycleEvent(WldtEvent<?> wldtEvent);
+
 }

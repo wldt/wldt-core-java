@@ -87,6 +87,7 @@ public class EventObserverTester {
         eventObserver.observeStateEvents();
         eventObserver.observeDigitalActionEvents();
         eventObserver.observePhysicalAssetDescriptionEvents();
+        eventObserver.observeLifeCycleEvents();
 
         // Register DT to Shared Test Metrics
         SharedTestMetrics.getInstance().registerDigitalTwin(TEST_DIGITAL_TWIN_ID);
@@ -103,10 +104,13 @@ public class EventObserverTester {
     public void tearDown() throws WldtEngineException, EventBusException {
 
         logger.info("Cleaning up Test Environment ...");
-        digitalTwinEngine.stopDigitalTwin(TEST_DIGITAL_TWIN_ID);
-        digitalTwinEngine.removeDigitalTwin(TEST_DIGITAL_TWIN_ID);
-        digitalTwin = null;
-        digitalTwinEngine = null;
+
+        if(digitalTwinEngine != null && digitalTwin != null) {
+            digitalTwinEngine.stopDigitalTwin(TEST_DIGITAL_TWIN_ID);
+            digitalTwinEngine.removeDigitalTwin(TEST_DIGITAL_TWIN_ID);
+            digitalTwin = null;
+            digitalTwinEngine = null;
+        }
 
         // Cancel all the available observation
         eventObserver.unObservePhysicalAssetEvents();
@@ -114,6 +118,7 @@ public class EventObserverTester {
         eventObserver.unObserveStateEvents();
         eventObserver.unObserveDigitalActionEvents();
         eventObserver.unObservePhysicalAssetDescriptionEvents();
+        eventObserver.unObserveLifeCycleEvents();
 
         SharedTestMetrics.getInstance().resetMetrics();
         SharedTestMetrics.getInstance().unRegisterDigitalTwin(TEST_DIGITAL_TWIN_ID);
@@ -300,6 +305,43 @@ public class EventObserverTester {
             totalReceivedEvents += eventList.size();
         }
         assertEquals(targetPhysicalAssetMessages, totalReceivedEvents);
+
+        Thread.sleep(2000);
+    }
+
+    @Test
+    @Order(5)
+    public void testLifeCycleEvents() throws InterruptedException, WldtEngineException {
+
+        //Set EventBus Logger
+        WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
+
+        //Wait until all the messages have been received
+        Thread.sleep((DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS + ((DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES + DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_EVENT_UPDATES) * DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS)));
+
+        // Forcing Digital Twin Stop
+        if(digitalTwinEngine != null && digitalTwin != null) {
+            digitalTwinEngine.stopDigitalTwin(TEST_DIGITAL_TWIN_ID);
+            digitalTwinEngine.removeDigitalTwin(TEST_DIGITAL_TWIN_ID);
+            digitalTwin = null;
+            digitalTwinEngine = null;
+        }
+
+        Thread.sleep(5000);
+
+        //Check Received Physical Asset Description WLDT Events (Available & Updated)
+        assertNotNull(testObserverListener.getLifeCycleEvents());
+
+        // Considering the testing Physical Adapter we have10 Energy Updates, 2 Events of OverHeating, 4 Relationship Instance changes
+        int targetMessages = 7;
+        int totalReceivedEvents = 0;
+
+        for (Map.Entry<String, List<WldtEvent<?>>> entry : testObserverListener.getLifeCycleEvents().entrySet()) {
+            String eventType = entry.getKey();
+            List<WldtEvent<?>> eventList = entry.getValue();
+            totalReceivedEvents += eventList.size();
+        }
+        assertEquals(targetMessages, totalReceivedEvents);
 
         Thread.sleep(2000);
     }

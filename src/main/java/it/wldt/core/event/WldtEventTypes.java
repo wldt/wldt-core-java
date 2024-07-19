@@ -44,20 +44,6 @@ public class WldtEventTypes {
     public static final String ALL_DT_STATE_EVENT_NOTIFICATION_EVENT_TYPE = String.format("%s.%s", DT_STATE_EVENT_NOTIFICATION_EVENT_BASE_TYPE, MULTI_LEVEL_WILDCARD_VALUE);
 
     /* Life Cycle Events */
-    //TODO Currently Not Used -> Life Cycle Event Generation Should be Integrated
-    public static final String DT_LIFE_CYCLE_CREATED_EVENT_TYPE = "dt.lifecycle.created";
-    public static final String DT_LIFE_CYCLE_STARTED_EVENT_TYPE = "dt.lifecycle.created";
-    public static final String DT_LIFE_CYCLE_PHYSICAL_ADAPTER_BOUND_EVENT_TYPE = "dt.lifecycle.adapter.physical.bound";
-    public static final String DT_LIFE_CYCLE_PHYSICAL_ADAPTER_BINDING_UPDATE_EVENT_TYPE = "dt.lifecycle.adapter.physical.bindingupdate";
-    public static final String DT_LIFE_CYCLE_PHYSICAL_ADAPTER_UNBOUND_EVENT_TYPE = "dt.lifecycle.adapter.physical.unbound";
-    public static final String DT_LIFE_CYCLE_DIGITAL_ADAPTER_BOUND_EVENT_TYPE = "dt.lifecycle.adapter.digital.bound";
-    public static final String DT_LIFE_CYCLE_DIGITAL_ADAPTER_BINDING_UPDATE_EVENT_TYPE = "dt.lifecycle.adapter.digital.bindingupdate";
-    public static final String DT_LIFE_CYCLE_DIGITAL_ADAPTER_UNBOUND_EVENT_TYPE = "dt.lifecycle.adapter.digital.unbound";
-    public static final String DT_LIFE_CYCLE_BOUND_EVENT_TYPE = "dt.lifecycle.bound";
-    public static final String DT_LIFE_CYCLE_UNBOUND_EVENT_TYPE = "dt.lifecycle.unbound";
-    public static final String DT_LIFE_CYCLE_SYNC_EVENT_TYPE = "dt.lifecycle.sync";
-    public static final String DT_LIFE_CYCLE_NOT_SYNC_EVENT_TYPE = "dt.lifecycle.notsync";
-    public static final String DT_LIFE_CYCLE_STOPPED_EVENT_TYPE = "dt.lifecycle.stopped";
-    public static final String DT_LIFE_CYCLE_DESTROYED_EVENT_TYPE = "dt.lifecycle.destroyed";
+    public static final String DT_LIFE_CYCLE_EVENT_TYPE = "dt.lifecycle";
 
 }

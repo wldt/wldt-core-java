@@ -7,6 +7,7 @@ import it.wldt.adapter.physical.PhysicalAdapter;
 import it.wldt.adapter.physical.PhysicalAdapterListener;
 import it.wldt.adapter.physical.PhysicalAssetDescription;
 import it.wldt.core.event.DefaultWldtEventLogger;
+import it.wldt.core.event.EventManager;
 import it.wldt.core.event.WldtEventBus;
 import it.wldt.core.model.ModelEngine;
 import it.wldt.core.model.ShadowingFunction;
@@ -35,6 +36,8 @@ import java.util.stream.Collectors;
 public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListener, DigitalAdapterListener {
 
     private static final Logger logger = LoggerFactory.getLogger(DigitalTwin.class);
+
+    private static final String EVENT_PUBLISHER_ID = "dt_core";
 
     // Internal TAG fo Logs
     private static final String TAG = "[WLDT-DigitalTwin]";
@@ -123,6 +126,8 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
      * Id of the target Digital Twin
      */
     private String digitalTwinId;
+
+    private Object syncStateObject = new Object();
 
     /**
      * Constructor for creating a DigitalTwin instance.
@@ -248,7 +253,18 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
      * Notifies listeners when the digital twin is created.
      */
     private void notifyLifeCycleOnCreate(){
-        this.currentLifeCycleState = LifeCycleState.CREATED;
+
+        synchronized (this.syncStateObject){
+
+            this.currentLifeCycleState = LifeCycleState.CREATED;
+
+            // Notify the change in the DT Life Cycle
+            EventManager.publishLifeCycleEvent(
+                    digitalTwinId,
+                    EVENT_PUBLISHER_ID,
+                    this.currentLifeCycleState);
+        }
+
         for(LifeCycleListener listener : this.lifeCycleListenerList)
             listener.onCreate();
     }
@@ -257,7 +273,18 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
      * Notifies listeners when the digital twin is started.
      */
     private void notifyLifeCycleOnStart(){
-        this.currentLifeCycleState = LifeCycleState.STARTED;
+
+        synchronized (this.syncStateObject){
+
+            this.currentLifeCycleState = LifeCycleState.STARTED;
+
+            // Notify the change in the DT Life Cycle
+            EventManager.publishLifeCycleEvent(
+                    digitalTwinId,
+                    EVENT_PUBLISHER_ID,
+                    this.currentLifeCycleState);
+        }
+
         for(LifeCycleListener listener : this.lifeCycleListenerList)
             listener.onStart();
     }
@@ -266,7 +293,17 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
      * Notifies listeners when the digital twin is bound.
      */
     private void notifyLifeCycleOnBound(){
-        this.currentLifeCycleState = LifeCycleState.BOUND;
+        synchronized (this.syncStateObject){
+
+            this.currentLifeCycleState = LifeCycleState.BOUND;
+
+            // Notify the change in the DT Life Cycle
+            EventManager.publishLifeCycleEvent(
+                    digitalTwinId,
+                    EVENT_PUBLISHER_ID,
+                    this.currentLifeCycleState);
+        }
+
         for(LifeCycleListener listener : this.lifeCycleListenerList)
             listener.onDigitalTwinBound(this.physicalAdaptersPhysicalAssetDescriptionMap);
     }
@@ -277,7 +314,16 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
      * @param errorMessage The error message associated with the unbound event.
      */
     private void notifyLifeCycleOnUnBound(String errorMessage){
-        this.currentLifeCycleState = LifeCycleState.UN_BOUND;
+        synchronized (this.syncStateObject){
+            this.currentLifeCycleState = LifeCycleState.UN_BOUND;
+
+            // Notify the change in the DT Life Cycle
+            EventManager.publishLifeCycleEvent(
+                    digitalTwinId,
+                    EVENT_PUBLISHER_ID,
+                    this.currentLifeCycleState);
+        }
+
         for(LifeCycleListener listener : this.lifeCycleListenerList)
             listener.onDigitalTwinUnBound(this.physicalAdaptersPhysicalAssetDescriptionMap, errorMessage);
     }
@@ -344,7 +390,16 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
      * @param digitalTwinState The state of the digital twin after synchronization.
      */
     private void notifyLifeCycleOnSync(DigitalTwinState digitalTwinState){
-        this.currentLifeCycleState = LifeCycleState.SYNCHRONIZED;
+        synchronized (this.syncStateObject){
+            this.currentLifeCycleState = LifeCycleState.SYNCHRONIZED;
+
+            // Notify the change in the DT Life Cycle
+            EventManager.publishLifeCycleEvent(
+                    digitalTwinId,
+                    EVENT_PUBLISHER_ID,
+                    this.currentLifeCycleState);
+        }
+
         for(LifeCycleListener listener : this.lifeCycleListenerList)
             listener.onSync(digitalTwinState);
     }
@@ -355,7 +410,16 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
      * @param digitalTwinState The state of the digital twin after going out of synchronization.
      */
     private void notifyLifeCycleOnUnSync(DigitalTwinState digitalTwinState){
-        this.currentLifeCycleState = LifeCycleState.NOT_SYNCHRONIZED;
+        synchronized (this.syncStateObject){
+            this.currentLifeCycleState = LifeCycleState.NOT_SYNCHRONIZED;
+
+            // Notify the change in the DT Life Cycle
+            EventManager.publishLifeCycleEvent(
+                    digitalTwinId,
+                    EVENT_PUBLISHER_ID,
+                    this.currentLifeCycleState);
+        }
+
         for(LifeCycleListener listener : this.lifeCycleListenerList)
             listener.onUnSync(digitalTwinState);
     }
@@ -364,7 +428,16 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
      * Notifies listeners when the digital twin is stopped.
      */
     private void notifyLifeCycleOnStop(){
-        this.currentLifeCycleState = LifeCycleState.STOPPED;
+        synchronized (this.syncStateObject){
+            this.currentLifeCycleState = LifeCycleState.STOPPED;
+
+            // Notify the change in the DT Life Cycle
+            EventManager.publishLifeCycleEvent(
+                    digitalTwinId,
+                    EVENT_PUBLISHER_ID,
+                    this.currentLifeCycleState);
+        }
+
         for(LifeCycleListener listener : this.lifeCycleListenerList)
             listener.onStop();
     }
@@ -373,7 +446,16 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
      * Notifies listeners when the digital twin is destroyed.
      */
     private void notifyLifeCycleOnDestroy(){
-        this.currentLifeCycleState = LifeCycleState.DESTROYED;
+        synchronized (this.syncStateObject){
+            this.currentLifeCycleState = LifeCycleState.DESTROYED;
+
+            // Notify the change in the DT Life Cycle
+            EventManager.publishLifeCycleEvent(
+                    digitalTwinId,
+                    EVENT_PUBLISHER_ID,
+                    this.currentLifeCycleState);
+        }
+
         for(LifeCycleListener listener : this.lifeCycleListenerList)
             listener.onDestroy();
     }

@@ -28,6 +28,9 @@ public class TestObserverListener implements IWldtEventObserverListener {
     // Physical Asset Description Events
     private Map<String, List<WldtEvent<?>>> physicalAssetDescriptionEvents;
 
+    // Life Cycle Events
+    private Map<String, List<WldtEvent<?>>> lifeCycleEvents;
+
     public TestObserverListener(){
         logger.info("TestObserverListener Constructor Called !");
         init();
@@ -42,6 +45,7 @@ public class TestObserverListener implements IWldtEventObserverListener {
         this.dtStateEvents = new HashMap<>();
         this.digitalActionEvents = new HashMap<>();
         this.physicalAssetDescriptionEvents = new HashMap<>();
+        this.lifeCycleEvents = new HashMap<>();
     }
 
     private void resetMetrics(){
@@ -53,6 +57,7 @@ public class TestObserverListener implements IWldtEventObserverListener {
         this.dtStateEvents.clear();
         this.digitalActionEvents.clear();
         this.physicalAssetDescriptionEvents.clear();
+        this.lifeCycleEvents.clear();
 
         init();
     }
@@ -104,6 +109,11 @@ public class TestObserverListener implements IWldtEventObserverListener {
         handleNewEvent(this.physicalAssetDescriptionEvents, wldtEvent);
     }
 
+    @Override
+    public void onLifeCycleEvent(WldtEvent<?> wldtEvent) {
+        handleNewEvent(this.lifeCycleEvents, wldtEvent);
+    }
+
     public Map<String, List<WldtEvent<?>>> getPhysicalAssetEvents() {
         return physicalAssetEvents;
     }
@@ -122,5 +132,9 @@ public class TestObserverListener implements IWldtEventObserverListener {
 
     public Map<String, List<WldtEvent<?>>> getPhysicalAssetDescriptionEvents() {
         return physicalAssetDescriptionEvents;
+    }
+
+    public Map<String, List<WldtEvent<?>>> getLifeCycleEvents() {
+        return lifeCycleEvents;
     }
 }

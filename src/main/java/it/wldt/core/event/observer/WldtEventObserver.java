@@ -24,6 +24,8 @@ public class WldtEventObserver implements WldtEventListener {
 
     private WldtEventFilter physicalAssetDescriptionEventFilter = null;
 
+    private WldtEventFilter lifeCycleEventFilter = null;
+
     private String observerId;
 
     private String digitalTwinId;
@@ -53,6 +55,7 @@ public class WldtEventObserver implements WldtEventListener {
         this.physicalAssetActionEventFilter = new WldtEventFilter();
         this.digitalActionEventFilter = new WldtEventFilter();
         this.physicalAssetDescriptionEventFilter = new WldtEventFilter();
+        this.lifeCycleEventFilter = new WldtEventFilter();
 
         this.observerListener = observerListener;
     }
@@ -192,6 +195,24 @@ public class WldtEventObserver implements WldtEventListener {
         unObserveEventsWithFilter(this.physicalAssetDescriptionEventFilter);
     }
 
+    /**
+     * Trigger the observation of Life Cycle Events
+     * Function
+     * @throws EventBusException
+     */
+    public void observeLifeCycleEvents() throws EventBusException {
+        observeEventsWithFilter(this.lifeCycleEventFilter,
+                WldtEventTypes.DT_LIFE_CYCLE_EVENT_TYPE);
+    }
+
+    /**
+     * Cancel the observation of Life Cycle Events
+     * @throws EventBusException
+     */
+    public void unObserveLifeCycleEvents() throws EventBusException {
+        unObserveEventsWithFilter(this.lifeCycleEventFilter);
+    }
+
     @Override
     public void onEventSubscribed(String eventType) {
         if(this.observerListener != null)
@@ -235,6 +256,10 @@ public class WldtEventObserver implements WldtEventListener {
             // Check Physical Asset Description Events
             if(this.physicalAssetDescriptionEventFilter != null && this.physicalAssetDescriptionEventFilter.matchEventType(wldtEvent.getType()))
                 this.observerListener.onPhysicalAssetDescriptionEvent(wldtEvent);
+
+            // Life Cycle Events
+            if(this.lifeCycleEventFilter != null && this.lifeCycleEventFilter.matchEventType(wldtEvent.getType()))
+                this.observerListener.onLifeCycleEvent(wldtEvent);
         }
         else
             logger.error("WldtEventObserver({}) onEvent - Wrong or Null WldtEvent: {}", this.observerId, wldtEvent);
