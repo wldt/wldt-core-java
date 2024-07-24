@@ -2,6 +2,7 @@ package it.wldt.storage;
 
 import it.wldt.adapter.digital.event.DigitalWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetWldtEvent;
+import it.wldt.core.engine.LifeCycleState;
 import it.wldt.core.state.DigitalTwinState;
 import it.wldt.core.state.DigitalTwinStateChange;
 
@@ -23,6 +24,7 @@ public class DefaultWldtStorage implements IWldtStorage{
     private Map<Long, List<DigitalTwinStateChange>> stateChangeMap;
     private List<PhysicalAssetWldtEvent<?>> physicalAssetEvents;
     private List<DigitalWldtEvent<?>> digitalTwinEvents;
+    private Map<Long, LifeCycleState> lifeCycleStateMap;
 
     /**
      * Constructs a new DefaultWldtStorage object with empty storage containers.
@@ -32,6 +34,7 @@ public class DefaultWldtStorage implements IWldtStorage{
         stateChangeMap = new HashMap<>();
         physicalAssetEvents = new ArrayList<>();
         digitalTwinEvents = new ArrayList<>();
+        lifeCycleStateMap = new HashMap<>();
     }
 
     ////////////////////////////////////// Digital Twin State Management //////////////////////////////////////////////
@@ -275,12 +278,54 @@ public class DefaultWldtStorage implements IWldtStorage{
         return digitalTwinEvents.subList(startIndex, endIndex + 1);
     }
 
+    /**
+     * Save the LifeCycleState of the Digital Twin
+     *
+     * @param lifeCycleState
+     */
+    @Override
+    public void saveLifeCycleState(long timestamp, LifeCycleState lifeCycleState) {
+        // Implement this method using the variable lifeCycleStateMap
+        lifeCycleStateMap.put(timestamp, lifeCycleState);
+
+    }
+
+    /**
+     * Get the number of LifeCycleState of the Digital Twin
+     *
+     * @return the number of LifeCycleState of the Digital Twin
+     */
+    @Override
+    public int getLifeCycleStateCount() {
+        return lifeCycleStateMap.size();
+    }
+
+    /**
+     * Get the last LifeCycleState of the Digital Twin
+     *
+     * @param startTimestampMs
+     * @param endTimestampMs
+     * @return the last LifeCycleState of the Digital Twin
+     */
+    @Override
+    public Map<Long, LifeCycleState> getLifeCycleStateInTimeRange(long startTimestampMs, long endTimestampMs) throws IllegalArgumentException {
+        Map<Long, LifeCycleState> result = new HashMap<>();
+        for (Map.Entry<Long, LifeCycleState> entry : lifeCycleStateMap.entrySet()) {
+            long timestamp = entry.getKey();
+            if (timestamp >= startTimestampMs && timestamp <= endTimestampMs) {
+                result.put(timestamp, entry.getValue());
+            }
+        }
+        return result;
+    }
+
     @Override
     public void clear(){
         digitalTwinStateMap.clear();
         stateChangeMap.clear();
         physicalAssetEvents.clear();
         digitalTwinEvents.clear();
+        lifeCycleStateMap.clear();
     }
 
     public Map<Long, DigitalTwinState> getDigitalTwinStateMap() {

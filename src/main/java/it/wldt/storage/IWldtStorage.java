@@ -2,9 +2,11 @@ package it.wldt.storage;
 
 import it.wldt.adapter.digital.event.DigitalWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetWldtEvent;
+import it.wldt.core.engine.LifeCycleState;
 import it.wldt.core.state.DigitalTwinState;
 import it.wldt.core.state.DigitalTwinStateChange;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -146,6 +148,24 @@ public interface IWldtStorage {
      * @throws IllegalArgumentException  if startIndex is greater than endIndex
      */
     public List<DigitalWldtEvent<?>> getDigitalTwinEventsInRange(int startIndex, int endIndex) throws IndexOutOfBoundsException, IllegalArgumentException;
+
+    /**
+     * Save the LifeCycleState of the Digital Twin
+     * @param lifeCycleState
+     */
+    public void saveLifeCycleState(long timestamp, LifeCycleState lifeCycleState);
+
+    /**
+     * Get the number of LifeCycleState of the Digital Twin
+     * @return the number of LifeCycleState of the Digital Twin
+     */
+    public int getLifeCycleStateCount();
+
+    /**
+     * Get the last LifeCycleState of the Digital Twin
+     * @return the last LifeCycleState of the Digital Twin
+     */
+    public Map<Long, LifeCycleState> getLifeCycleStateInTimeRange(long startTimestampMs, long endTimestampMs) throws IllegalArgumentException;
 
     /**
      * Clear all the store information in the WLDT Storage
