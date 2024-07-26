@@ -1,11 +1,12 @@
 package it.wldt.storage;
 
+import it.wldt.adapter.digital.DigitalActionRequest;
 import it.wldt.adapter.digital.event.DigitalActionWldtEvent;
-import it.wldt.adapter.physical.PhysicalAssetDescription;
-import it.wldt.adapter.physical.PhysicalAssetRelationshipInstance;
+import it.wldt.adapter.physical.*;
 import it.wldt.adapter.physical.event.*;
 import it.wldt.core.engine.DigitalTwinWorker;
 import it.wldt.core.engine.LifeCycleState;
+import it.wldt.core.engine.LifeCycleStateVariation;
 import it.wldt.core.event.WldtEvent;
 import it.wldt.core.event.WldtEventBus;
 import it.wldt.core.event.WldtEventTypes;
@@ -18,11 +19,21 @@ import it.wldt.exception.StorageException;
 import it.wldt.exception.WldtRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ *
+ * Authors:
+ *      Marco Picone, Ph.D. (picone.m@gmail.com)
+ * Date: 25/07/2024
+ *
+ * The StorageManager class is an abstract class that represents the storage manager for a DigitalTwin.
+ * It is responsible for managing the storage of the data related to the DigitalTwin.
+ * The StorageManager class is an observer of the WldtEventBus and it is able to save the data in the storage.
+ * The StorageManager class is also a DigitalTwinWorker and it is able to start and stop the storage manager.
+ */
 public abstract class StorageManager extends DigitalTwinWorker implements IWldtEventObserverListener {
 
     private static final Logger logger = LoggerFactory.getLogger(StorageManager.class);
@@ -145,44 +156,48 @@ public abstract class StorageManager extends DigitalTwinWorker implements IWldtE
     @Override
     public void onStateEvent(WldtEvent<?> wldtEvent) {
 
-        // Check if the event is a DigitalTwinState
-        if(wldtEvent != null && wldtEvent.getBody() != null && wldtEvent.getBody() instanceof DigitalTwinState){
+        try{
+            // Check if the event is a DigitalTwinState
+            if(wldtEvent != null && wldtEvent.getBody() != null && wldtEvent.getBody() instanceof DigitalTwinState){
 
-            DigitalTwinState currentState = (DigitalTwinState)wldtEvent.getBody();
-            DigitalTwinState previousState = null;
-            List<DigitalTwinStateChange> stateChangeList = null;
+                DigitalTwinState currentState = (DigitalTwinState)wldtEvent.getBody();
+                DigitalTwinState previousState = null;
+                List<DigitalTwinStateChange> stateChangeList = null;
 
-            // Check if the previous state is present in the event metadata
-            if(wldtEvent.getMetadata() != null
-                    && wldtEvent.getMetadata(DigitalTwinStateManager.DT_STATE_UPDATE_METADATA_PREVIOUS_STATE).isPresent()
-                    && wldtEvent.getMetadata(DigitalTwinStateManager.DT_STATE_UPDATE_METADATA_PREVIOUS_STATE).get() instanceof DigitalTwinState)
-                previousState = (DigitalTwinState) wldtEvent.getMetadata(DigitalTwinStateManager.DT_STATE_UPDATE_METADATA_PREVIOUS_STATE).get();
+                // Check if the previous state is present in the event metadata
+                if(wldtEvent.getMetadata() != null
+                        && wldtEvent.getMetadata(DigitalTwinStateManager.DT_STATE_UPDATE_METADATA_PREVIOUS_STATE).isPresent()
+                        && wldtEvent.getMetadata(DigitalTwinStateManager.DT_STATE_UPDATE_METADATA_PREVIOUS_STATE).get() instanceof DigitalTwinState)
+                    previousState = (DigitalTwinState) wldtEvent.getMetadata(DigitalTwinStateManager.DT_STATE_UPDATE_METADATA_PREVIOUS_STATE).get();
 
-            // Check if the state change list is present in the event metadata
-            if(wldtEvent.getMetadata() != null
-                    && wldtEvent.getMetadata(DigitalTwinStateManager.DT_STATE_UPDATE_METADATA_CHANGE_LIST).isPresent()
-                    && wldtEvent.getMetadata(DigitalTwinStateManager.DT_STATE_UPDATE_METADATA_CHANGE_LIST).get() instanceof List<?>) {
+                // Check if the state change list is present in the event metadata
+                if(wldtEvent.getMetadata() != null
+                        && wldtEvent.getMetadata(DigitalTwinStateManager.DT_STATE_UPDATE_METADATA_CHANGE_LIST).isPresent()
+                        && wldtEvent.getMetadata(DigitalTwinStateManager.DT_STATE_UPDATE_METADATA_CHANGE_LIST).get() instanceof List<?>) {
 
-                List<?> list = (List<?>) wldtEvent.getMetadata(DigitalTwinStateManager.DT_STATE_UPDATE_METADATA_CHANGE_LIST).get();
+                    List<?> list = (List<?>) wldtEvent.getMetadata(DigitalTwinStateManager.DT_STATE_UPDATE_METADATA_CHANGE_LIST).get();
 
-                boolean allElementsAreDigitalTwinStateChange = list.stream().allMatch(element -> element instanceof DigitalTwinStateChange);
+                    boolean allElementsAreDigitalTwinStateChange = list.stream().allMatch(element -> element instanceof DigitalTwinStateChange);
 
-                if (allElementsAreDigitalTwinStateChange)
-                    stateChangeList = (List<DigitalTwinStateChange>) list;
-                else
-                    logger.error("Warning saving the DigitalTwinState ! The state change list is not a list of DigitalTwinStateChange !");
+                    if (allElementsAreDigitalTwinStateChange)
+                        stateChangeList = (List<DigitalTwinStateChange>) list;
+                    else
+                        logger.error("Warning saving the DigitalTwinState ! The state change list is not a list of DigitalTwinStateChange !");
+                }
+
+                // Find Storage interested to the target event
+                for (Map.Entry<String, WldtStorage> entry : storageMap.entrySet()) {
+                    WldtStorage storage = entry.getValue();
+                    if(storage != null && storage.isObserveStateEvents())
+                        storage.saveDigitalTwinState(currentState, stateChangeList);
+                }
+
             }
-
-            // Find Storage interested to the target event
-            for (Map.Entry<String, WldtStorage> entry : storageMap.entrySet()) {
-                WldtStorage storage = entry.getValue();
-                if(storage != null && storage.isObserveStateEvents())
-                    storage.saveDigitalTwinState(currentState, stateChangeList);
-            }
-
+            else
+                logger.error("Error saving the DigitalTwinState ! The event is not a DigitalTwinState !");
+        }catch (Exception e){
+            logger.error("Error saving the DigitalTwinState ! Error: {}", e.getLocalizedMessage());
         }
-        else
-            logger.error("Error saving the DigitalTwinState ! The event is not a DigitalTwinState !");
 
     }
 
@@ -194,53 +209,55 @@ public abstract class StorageManager extends DigitalTwinWorker implements IWldtE
      */
     @Override
     public void onPhysicalAssetEvent(WldtEvent<?> event) {
-        // Check if the event is a PhysicalAssetWldtEvent
-        if(event != null && event.getBody() != null && event.getType() != null && event instanceof PhysicalAssetWldtEvent<?>)
-            // Find Storage interested to the target event
-            for (Map.Entry<String, WldtStorage> entry : storageMap.entrySet()) {
-                WldtStorage storage = entry.getValue();
+        try{
+            // Check if the event is a PhysicalAssetWldtEvent
+            if(event != null && event.getBody() != null && event.getType() != null && event instanceof PhysicalAssetWldtEvent<?>)
+                // Find Storage interested to the target event
+                for (Map.Entry<String, WldtStorage> entry : storageMap.entrySet()) {
+                    WldtStorage storage = entry.getValue();
 
-                if (storage != null && storage.isObserverPhysicalAssetEvents()){
+                    if (storage != null && storage.isObserverPhysicalAssetEvents()){
 
-                    // Save the PhysicalAsset Property Variation
-                    if(WldtEventBus.getInstance().matchWildCardType(event.getType(), WldtEventTypes.ALL_PHYSICAL_PROPERTY_VARIATION_EVENT_TYPE) && event.getBody() instanceof PhysicalAssetPropertyWldtEvent<?>){
-                        PhysicalAssetPropertyWldtEvent<?> propertyVariationEvent = (PhysicalAssetPropertyWldtEvent<?>) event;
-                        storage.savePhysicalAssetPropertyVariation(propertyVariationEvent.getCreationTimestamp(),
-                                propertyVariationEvent.getPhysicalPropertyId(),
-                                propertyVariationEvent.getBody(),
-                                propertyVariationEvent.getMetadata());
+                        // Save the PhysicalAsset Property Variation
+                        if(WldtEventBus.getInstance().matchWildCardType(event.getType(), WldtEventTypes.ALL_PHYSICAL_PROPERTY_VARIATION_EVENT_TYPE) && event.getBody() instanceof PhysicalAssetPropertyWldtEvent<?>){
+                            PhysicalAssetPropertyWldtEvent<?> propertyVariationEvent = (PhysicalAssetPropertyWldtEvent<?>) event;
+                            storage.savePhysicalAssetPropertyVariation(new PhysicalAssetPropertyVariation(propertyVariationEvent.getCreationTimestamp(),
+                                    propertyVariationEvent.getPhysicalPropertyId(),
+                                    propertyVariationEvent.getBody(),
+                                    propertyVariationEvent.getMetadata()));
+                        }
+
+                        // Save the PhysicalAsset Event
+                        if(WldtEventBus.getInstance().matchWildCardType(event.getType(), WldtEventTypes.ALL_PHYSICAL_EVENT_NOTIFICATION_EVENT_TYPE) && event.getBody() instanceof PhysicalAssetEventWldtEvent<?>){
+                            PhysicalAssetEventWldtEvent<?> physicalEvent = (PhysicalAssetEventWldtEvent<?>) event;
+                            storage.savePhysicalAssetActionRequest(new PhysicalAssetActionRequest(physicalEvent.getCreationTimestamp(),
+                                    physicalEvent.getPhysicalEventKey(),
+                                    physicalEvent.getBody(),
+                                    physicalEvent.getMetadata()));
+                        }
+
+                        // Save the PhysicalAsset Relationship Instance Created
+                        if(WldtEventBus.getInstance().matchWildCardType(event.getType(), WldtEventTypes.ALL_PHYSICAL_RELATIONSHIP_INSTANCE_CREATION_EVENT_TYPE) && event.getBody() instanceof PhysicalAssetRelationshipInstanceCreatedWldtEvent<?>){
+                            PhysicalAssetRelationshipInstanceCreatedWldtEvent<?> physicalEvent = (PhysicalAssetRelationshipInstanceCreatedWldtEvent<?>) event;
+                            PhysicalAssetRelationshipInstance<?> relationshipInstance = physicalEvent.getBody();
+                            storage.savePhysicalAssetRelationshipInstanceCreatedEvent(new PhysicalRelationshipInstanceVariation(physicalEvent.getCreationTimestamp(),
+                                    relationshipInstance));
+                        }
+
+                        // Save the PhysicalAsset Relationship Instance Deleted
+                        if(WldtEventBus.getInstance().matchWildCardType(event.getType(), WldtEventTypes.ALL_PHYSICAL_RELATIONSHIP_INSTANCE_DELETED_EVENT_TYPE) && event.getBody() instanceof PhysicalAssetRelationshipInstanceDeletedWldtEvent<?>){
+                            PhysicalAssetRelationshipInstanceDeletedWldtEvent<?> physicalEvent = (PhysicalAssetRelationshipInstanceDeletedWldtEvent<?>) event;
+                            PhysicalAssetRelationshipInstance<?> relationshipInstance = physicalEvent.getBody();
+                            storage.savePhysicalAssetRelationshipInstanceDeletedEvent(new PhysicalRelationshipInstanceVariation(physicalEvent.getCreationTimestamp(),
+                                    relationshipInstance));
+                        }
                     }
-
-                    // Save the PhysicalAsset Event
-                    if(WldtEventBus.getInstance().matchWildCardType(event.getType(), WldtEventTypes.ALL_PHYSICAL_EVENT_NOTIFICATION_EVENT_TYPE) && event.getBody() instanceof PhysicalAssetEventWldtEvent<?>){
-                        PhysicalAssetEventWldtEvent<?> physicalEvent = (PhysicalAssetEventWldtEvent<?>) event;
-                        storage.savePhysicalAssetActionEvent(physicalEvent.getCreationTimestamp(),
-                                physicalEvent.getPhysicalEventKey(),
-                                physicalEvent.getBody(),
-                                physicalEvent.getMetadata());
-                    }
-
-                    // Save the PhysicalAsset Relationship Instance Created
-                    if(WldtEventBus.getInstance().matchWildCardType(event.getType(), WldtEventTypes.ALL_PHYSICAL_RELATIONSHIP_INSTANCE_CREATION_EVENT_TYPE) && event.getBody() instanceof PhysicalAssetRelationshipInstanceCreatedWldtEvent<?>){
-                        PhysicalAssetRelationshipInstanceCreatedWldtEvent<?> physicalEvent = (PhysicalAssetRelationshipInstanceCreatedWldtEvent<?>) event;
-                        PhysicalAssetRelationshipInstance<?> relationshipInstance = (PhysicalAssetRelationshipInstance)physicalEvent.getBody();
-                        storage.savePhysicalAssetRelationshipInstanceCreatedEvent(physicalEvent.getCreationTimestamp(),
-                                relationshipInstance);
-                    }
-
-                    // Save the PhysicalAsset Relationship Instance Deleted
-                    if(WldtEventBus.getInstance().matchWildCardType(event.getType(), WldtEventTypes.ALL_PHYSICAL_RELATIONSHIP_INSTANCE_DELETED_EVENT_TYPE) && event.getBody() instanceof PhysicalAssetRelationshipInstanceDeletedWldtEvent<?>){
-                        PhysicalAssetRelationshipInstanceDeletedWldtEvent<?> physicalEvent = (PhysicalAssetRelationshipInstanceDeletedWldtEvent<?>) event;
-                        PhysicalAssetRelationshipInstance<?> relationshipInstance = (PhysicalAssetRelationshipInstance)physicalEvent.getBody();
-                        storage.savePhysicalAssetRelationshipInstanceDeletedEvent(physicalEvent.getCreationTimestamp(),
-                                relationshipInstance);
-                    }
-
-
                 }
-            }
-        else
-            logger.error("Error saving the PhysicalAssetWldtEvent ! The event is not a PhysicalAssetWldtEvent !");
+            else
+                logger.error("Error saving the PhysicalAssetWldtEvent ! The event is not a PhysicalAssetWldtEvent !");
+        }catch (Exception e){
+            logger.error("Error saving the PhysicalAssetWldtEvent ! Error: {}", e.getLocalizedMessage());
+        }
     }
 
     /**
@@ -251,80 +268,97 @@ public abstract class StorageManager extends DigitalTwinWorker implements IWldtE
      */
     @Override
     public void onPhysicalAssetActionEvent(WldtEvent<?> wldtEvent) {
+        try {
+            // Check if the event is a PhysicalAssetActionWldtEvent
+            if(wldtEvent != null && wldtEvent.getBody() != null && wldtEvent instanceof PhysicalAssetActionWldtEvent<?>)
 
-        // Check if the event is a PhysicalAssetActionWldtEvent
-        if(wldtEvent != null && wldtEvent.getBody() != null && wldtEvent instanceof PhysicalAssetActionWldtEvent<?>)
+                // Find Storage interested to the target event
+                for (Map.Entry<String, WldtStorage> entry : storageMap.entrySet()) {
 
-            // Find Storage interested to the target event
-            for (Map.Entry<String, WldtStorage> entry : storageMap.entrySet()) {
+                    WldtStorage storage = entry.getValue();
 
-                WldtStorage storage = entry.getValue();
-
-                // Save the PhysicalAssetActionWldtEvent
-                if (storage != null && storage.isObserverPhysicalAssetActionEvents()) {
-                    PhysicalAssetActionWldtEvent<?> physicalAssetActionWldtEvent = (PhysicalAssetActionWldtEvent<?>) wldtEvent;
-                    storage.savePhysicalAssetActionEvent(physicalAssetActionWldtEvent.getCreationTimestamp(),
-                            physicalAssetActionWldtEvent.getActionKey(),
-                            physicalAssetActionWldtEvent.getBody(),
-                            physicalAssetActionWldtEvent.getMetadata());
+                    // Save the PhysicalAssetActionWldtEvent
+                    if (storage != null && storage.isObserverPhysicalAssetActionEvents()) {
+                        PhysicalAssetActionWldtEvent<?> physicalAssetActionWldtEvent = (PhysicalAssetActionWldtEvent<?>) wldtEvent;
+                        storage.savePhysicalAssetActionRequest(new PhysicalAssetActionRequest(physicalAssetActionWldtEvent.getCreationTimestamp(),
+                                physicalAssetActionWldtEvent.getActionKey(),
+                                physicalAssetActionWldtEvent.getBody(),
+                                physicalAssetActionWldtEvent.getMetadata()));
+                    }
                 }
-            }
             else
                 logger.error("Error saving the PhysicalAssetActionWldtEvent ! The event is not a PhysicalAssetActionWldtEvent !");
+        }catch (Exception e){
+            logger.error("Error saving the PhysicalAssetActionWldtEvent ! Error: {}", e.getLocalizedMessage());
+        }
     }
 
     @Override
     public void onDigitalActionEvent(WldtEvent<?> wldtEvent) {
 
-        // Check if the event is a PhysicalAssetActionWldtEvent
-        if(wldtEvent != null && wldtEvent.getBody() != null && wldtEvent instanceof DigitalActionWldtEvent<?>)
-            // Find Storage interested to the target event
-            for (Map.Entry<String, WldtStorage> entry : storageMap.entrySet()) {
+        try{
+            // Check if the event is a PhysicalAssetActionWldtEvent
+            if(wldtEvent != null && wldtEvent.getBody() != null && wldtEvent instanceof DigitalActionWldtEvent<?>)
+                // Find Storage interested to the target event
+                for (Map.Entry<String, WldtStorage> entry : storageMap.entrySet()) {
 
-                WldtStorage storage = entry.getValue();
+                    WldtStorage storage = entry.getValue();
 
-                // Save the DigitalActionWldtEvent
-                if (storage != null && storage.isObserverDigitalActionEvents()) {
-                    DigitalActionWldtEvent<?> digitalActionWldtEvent = (DigitalActionWldtEvent<?>) wldtEvent;
-                    storage.saveDigitalActionEvent(
-                            digitalActionWldtEvent.getCreationTimestamp(),
-                            digitalActionWldtEvent.getActionKey(),
-                            digitalActionWldtEvent.getBody(),
-                            digitalActionWldtEvent.getMetadata());
+                    // Save the DigitalActionWldtEvent
+                    if (storage != null && storage.isObserverDigitalActionEvents()) {
+                        DigitalActionWldtEvent<?> digitalActionWldtEvent = (DigitalActionWldtEvent<?>) wldtEvent;
+                        storage.saveDigitalActionEvent(new DigitalActionRequest(
+                                digitalActionWldtEvent.getCreationTimestamp(),
+                                digitalActionWldtEvent.getActionKey(),
+                                digitalActionWldtEvent.getBody(),
+                                digitalActionWldtEvent.getMetadata()));
+                    }
                 }
-            }
-        else
-            logger.error("Error saving the DigitalActionWldtEvent ! The event is not a DigitalActionWldtEvent !");
+            else
+                logger.error("Error saving the DigitalActionWldtEvent ! The event is not a DigitalActionWldtEvent !");
+        }catch (Exception e){
+            logger.error("Error saving the DigitalActionWldtEvent ! Error: {}", e.getLocalizedMessage());
+        }
     }
 
     @Override
     public void onPhysicalAssetDescriptionEvent(WldtEvent<?> wldtEvent) {
+        try{
+            // Check if the event is a PhysicalAssetActionWldtEvent
+            if(wldtEvent != null && wldtEvent.getBody() != null && wldtEvent.getBody() instanceof PhysicalAssetDescription)
 
-        // Check if the event is a PhysicalAssetActionWldtEvent
-        if(wldtEvent != null && wldtEvent.getBody() != null && wldtEvent.getBody() instanceof PhysicalAssetDescription)
+                // Find Storage interested to the target event
+                for (Map.Entry<String, WldtStorage> entry : storageMap.entrySet()) {
+                    WldtStorage storage = entry.getValue();
+                    if (storage != null && storage.isObservePhysicalAssetDescriptionEvents()) {
 
-            // Find Storage interested to the target event
-            for (Map.Entry<String, WldtStorage> entry : storageMap.entrySet()) {
-                WldtStorage storage = entry.getValue();
-                if (storage != null && storage.isObservePhysicalAssetDescriptionEvents()) {
+                        // Get the event timestamp and adapter id
+                        long timestamp = wldtEvent.getCreationTimestamp();
+                        String adapterId = null;
 
-                    // Get the event timestamp and adapter id
-                    long timestamp = wldtEvent.getCreationTimestamp();
-                    String adapterId = null;
+                        // Check if the adapter id is present in the event metadata
+                        if(wldtEvent.getMetadata(WldtEventTypes.PHYSICAL_ASSET_DESCRIPTION_EVENT_METADATA_ADAPTER_ID).isPresent())
+                            adapterId = (String) wldtEvent.getMetadata(WldtEventTypes.PHYSICAL_ASSET_DESCRIPTION_EVENT_METADATA_ADAPTER_ID).get();
 
-                    // Check if the adapter id is present in the event metadata
-                    if(wldtEvent.getMetadata(WldtEventTypes.PHYSICAL_ASSET_DESCRIPTION_EVENT_METADATA_ADAPTER_ID).isPresent())
-                        adapterId = (String) wldtEvent.getMetadata(WldtEventTypes.PHYSICAL_ASSET_DESCRIPTION_EVENT_METADATA_ADAPTER_ID).get();
-
-                    // Save the PhysicalAssetDescription Event
-                    if (wldtEvent.getType().equals(WldtEventTypes.PHYSICAL_ASSET_DESCRIPTION_AVAILABLE))
-                        storage.savePhysicalAssetDescriptionAvailable(timestamp, adapterId, (PhysicalAssetDescription) wldtEvent.getBody());
-                    if (wldtEvent.getType().equals(WldtEventTypes.PHYSICAL_ASSET_DESCRIPTION_UPDATED))
-                        storage.savePhysicalAssetDescriptionUpdated(timestamp, adapterId, (PhysicalAssetDescription) wldtEvent.getBody());
+                        // Save the PhysicalAssetDescription Event
+                        if (wldtEvent.getType().equals(WldtEventTypes.PHYSICAL_ASSET_DESCRIPTION_AVAILABLE))
+                            storage.saveNewPhysicalAssetDescriptionNotification(new PhysicalAssetDescriptionNotification(
+                                    timestamp,
+                                    adapterId,
+                                    (PhysicalAssetDescription) wldtEvent.getBody())
+                            );
+                        if (wldtEvent.getType().equals(WldtEventTypes.PHYSICAL_ASSET_DESCRIPTION_UPDATED))
+                            storage.saveUpdatedPhysicalAssetDescriptionNotification(new PhysicalAssetDescriptionNotification(
+                                    timestamp,
+                                    adapterId,
+                                    (PhysicalAssetDescription) wldtEvent.getBody()));
+                    }
                 }
-            }
-        else
-            logger.error("Error saving the PhysicalAssetDescription Event ! The event body is not a PhysicalAssetDescription !");
+            else
+                logger.error("Error saving the PhysicalAssetDescription Event ! The event body is not a PhysicalAssetDescription !");
+        }catch (Exception e){
+            logger.error("Error saving the PhysicalAssetDescription Event ! Error: {}", e.getLocalizedMessage());
+        }
     }
 
     /**
@@ -335,16 +369,19 @@ public abstract class StorageManager extends DigitalTwinWorker implements IWldtE
      */
     @Override
     public void onLifeCycleEvent(WldtEvent<?> wldtEvent) {
-
-        // Check if the event is a PhysicalAssetActionWldtEvent
-        if(wldtEvent != null && wldtEvent.getBody() != null && wldtEvent.getBody() instanceof String)
-            // Find Storage interested to the target event
-            for (Map.Entry<String, WldtStorage> entry : storageMap.entrySet()) {
-                WldtStorage storage = entry.getValue();
-                if (storage != null && storage.isObserveLifeCycleEvents())
-                    storage.saveLifeCycleState(wldtEvent.getCreationTimestamp(), LifeCycleState.valueOf((String) wldtEvent.getBody()));
-            }
-        else
-            logger.error("Error saving the LifeCycleEvent Event ! The event body is not a String !");
+        try{
+            // Check if the event is a PhysicalAssetActionWldtEvent
+            if(wldtEvent != null && wldtEvent.getBody() != null && wldtEvent.getBody() instanceof String)
+                // Find Storage interested to the target event
+                for (Map.Entry<String, WldtStorage> entry : storageMap.entrySet()) {
+                    WldtStorage storage = entry.getValue();
+                    if (storage != null && storage.isObserveLifeCycleEvents())
+                        storage.saveLifeCycleState(new LifeCycleStateVariation(wldtEvent.getCreationTimestamp(), LifeCycleState.valueOf((String) wldtEvent.getBody())));
+                }
+            else
+                logger.error("Error saving the LifeCycleEvent Event ! The event body is not a String !");
+        }catch (Exception e){
+            logger.error("Error saving the LifeCycleEvent Event ! Error: {}", e.getLocalizedMessage());
+        }
     }
 }

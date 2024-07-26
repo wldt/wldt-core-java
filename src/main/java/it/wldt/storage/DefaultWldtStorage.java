@@ -1,10 +1,17 @@
 package it.wldt.storage;
 
+import it.wldt.adapter.digital.DigitalActionRequest;
 import it.wldt.adapter.digital.event.DigitalWldtEvent;
+import it.wldt.adapter.physical.PhysicalAssetActionRequest;
+import it.wldt.adapter.physical.PhysicalAssetDescriptionNotification;
+import it.wldt.adapter.physical.PhysicalAssetPropertyVariation;
+import it.wldt.adapter.physical.PhysicalRelationshipInstanceVariation;
 import it.wldt.adapter.physical.event.PhysicalAssetWldtEvent;
 import it.wldt.core.engine.LifeCycleState;
+import it.wldt.core.engine.LifeCycleStateVariation;
 import it.wldt.core.state.DigitalTwinState;
 import it.wldt.core.state.DigitalTwinStateChange;
+import it.wldt.exception.StorageException;
 
 import java.util.*;
 
@@ -17,24 +24,35 @@ import java.util.*;
  * approach for storage using ArrayLists and HashMaps and more advanced solution should be implemented for production
  * oriented Digital Twins for examples using external storage and memorization solutions.
  */
-public class DefaultWldtStorage implements IWldtStorage{
+public class DefaultWldtStorage extends WldtStorage {
 
     // Instance variables for storing digital twin states, state changes, physical asset events, and digital twin events
     private Map<Long, DigitalTwinState> digitalTwinStateMap;
     private Map<Long, List<DigitalTwinStateChange>> stateChangeMap;
-    private List<PhysicalAssetWldtEvent<?>> physicalAssetEvents;
-    private List<DigitalWldtEvent<?>> digitalTwinEvents;
+    private Map<Long, PhysicalAssetActionRequest> physicalActionRequestMap;
+    private Map<Long, DigitalActionRequest> digitalActionRequestMap;
+    private Map<Long, PhysicalAssetDescriptionNotification> newPhysicalAssetDescriptionNotificationMap;
+    private Map<Long, PhysicalAssetDescriptionNotification> updatedPhysicalAssetDescriptionNotificationMap;
+    private Map<Long, PhysicalAssetPropertyVariation> physicalAssetPropertyVariationMap;
+    private Map<Long, PhysicalRelationshipInstanceVariation> physicalRelationshipInstanceCreatedMap;
+    private Map<Long, PhysicalRelationshipInstanceVariation> physicalRelationshipInstanceDeletedMap;
     private Map<Long, LifeCycleState> lifeCycleStateMap;
 
     /**
      * Constructs a new DefaultWldtStorage object with empty storage containers.
      */
-    public DefaultWldtStorage() {
-        digitalTwinStateMap = new HashMap<>();
-        stateChangeMap = new HashMap<>();
-        physicalAssetEvents = new ArrayList<>();
-        digitalTwinEvents = new ArrayList<>();
-        lifeCycleStateMap = new HashMap<>();
+    public DefaultWldtStorage(String storageId) {
+        super(storageId);
+        this.digitalTwinStateMap = new HashMap<>();
+        this.stateChangeMap = new HashMap<>();
+        this.physicalActionRequestMap = new HashMap<>();
+        this.digitalActionRequestMap = new HashMap<>();
+        this.newPhysicalAssetDescriptionNotificationMap = new HashMap<>();
+        this.updatedPhysicalAssetDescriptionNotificationMap = new HashMap<>();
+        this.physicalAssetPropertyVariationMap = new HashMap<>();
+        this.physicalRelationshipInstanceCreatedMap = new HashMap<>();
+        this.physicalRelationshipInstanceDeletedMap = new HashMap<>();
+        this.lifeCycleStateMap = new HashMap<>();
     }
 
     ////////////////////////////////////// Digital Twin State Management //////////////////////////////////////////////
@@ -47,7 +65,7 @@ public class DefaultWldtStorage implements IWldtStorage{
      * @throws IllegalArgumentException  if digitalTwinState is null
      */
     @Override
-    public void saveDigitalTwinState(DigitalTwinState digitalTwinState, List<DigitalTwinStateChange> digitalTwinStateChangeList) throws IllegalArgumentException {
+    public void saveDigitalTwinState(DigitalTwinState digitalTwinState, List<DigitalTwinStateChange> digitalTwinStateChangeList) throws StorageException, IllegalArgumentException {
         if (digitalTwinState == null) {
             throw new IllegalArgumentException("Digital twin state cannot be null.");
         }
@@ -141,158 +159,19 @@ public class DefaultWldtStorage implements IWldtStorage{
         return result;
     }
 
-    ////////////////////////////////////// Physical Asset Events Management //////////////////////////////////////////////
-
-    /**
-     * Saves a physical event generated from a physical adapter and associated with a physical counterpart of the
-     * Digital Twin.
-     *
-     * @param physicalAssetWldtEvent the physical asset event to save
-     * @throws IllegalArgumentException if the provided physical asset event is invalid or null
-     */
-    @Override
-    public void savePhysicalAssetEvent(PhysicalAssetWldtEvent<?> physicalAssetWldtEvent) throws IllegalArgumentException {
-        if (physicalAssetWldtEvent == null) {
-            throw new IllegalArgumentException("Physical asset event cannot be null.");
-        }
-        physicalAssetEvents.add(physicalAssetWldtEvent);
-    }
-
-    /**
-     * Returns the number of events generated events from Physical Assets associated to the Digital Twin
-     * @return The number of received Physical Asset Events
-     */
-    @Override
-    public int getPhysicalAssetEventsCount() {
-        return physicalAssetEvents.size();
-    }
-
-    /**
-     * Retrieves a list of Physical Assets Events within the specified time range.
-     *
-     * @param startTimestampMs The start timestamp (in milliseconds) of the time range.
-     * @param endTimestampMs   The end timestamp (in milliseconds) of the time range.
-     * @return A list of Physical Asset Events within the specified time range.
-     * @throws IllegalArgumentException If the start timestamp is greater than the end timestamp.
-     */
-    @Override
-    public List<PhysicalAssetWldtEvent<?>> getPhysicalAssetEventsInTimeRange(long startTimestampMs, long endTimestampMs) throws IllegalArgumentException {
-        if (startTimestampMs > endTimestampMs) {
-            throw new IllegalArgumentException("Start timestamp cannot be greater than end timestamp.");
-        }
-        List<PhysicalAssetWldtEvent<?>> result = new ArrayList<>();
-        for (PhysicalAssetWldtEvent<?> event : physicalAssetEvents) {
-            long timestamp = event.getCreationTimestamp();
-            if (timestamp >= startTimestampMs && timestamp <= endTimestampMs) {
-                result.add(event);
-            }
-        }
-        return result;
-    }
-
-    /**
-     * Retrieves a list of Physical Assets Events within the specified range of indices.
-     *
-     * @param startIndex the index of the first Physical Asset Event to retrieve (inclusive). Starting index is 0.
-     * @param endIndex   the index of the last Physical Asset Event to retrieve (inclusive)
-     * @return a list of Physical Asset Events within the specified index range
-     * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
-     * @throws IllegalArgumentException  if startIndex is greater than endIndex
-     */
-    @Override
-    public List<PhysicalAssetWldtEvent<?>> getPhysicalAssetEventsInRange(int startIndex, int endIndex) throws IndexOutOfBoundsException, IllegalArgumentException {
-        if (startIndex < 0 || endIndex < 0 || startIndex > endIndex) {
-            throw new IllegalArgumentException("Invalid index range.");
-        }
-        if (endIndex >= physicalAssetEvents.size()) {
-            throw new IndexOutOfBoundsException("End index out of bounds.");
-        }
-        return physicalAssetEvents.subList(startIndex, endIndex + 1);
-    }
-
-    ////////////////////////////////////// Digital Twin Events Management //////////////////////////////////////////////
-
-    /**
-     * Saves a digital event generated from the Digital Twin and sent to Digital Adapters or Augmentation Functions
-     *
-     * @param digitalWldtEvent the digital twin event to save
-     * @throws IllegalArgumentException if the provided digital twin events is invalid or null
-     */
-    @Override
-    public void saveDigitalTwinEvent(DigitalWldtEvent<?> digitalWldtEvent) throws IllegalArgumentException {
-        if (digitalWldtEvent == null) {
-            throw new IllegalArgumentException("Digital twin event cannot be null.");
-        }
-        digitalTwinEvents.add(digitalWldtEvent);
-    }
-
-    /**
-     * Returns the number of events generated Digital Twin events
-     * @return The number of generated Digital Twin Events
-     */
-    @Override
-    public int getDigitalTwinEventsCount() {
-        return digitalTwinEvents.size();
-    }
-
-    /**
-     * Retrieves a list of Digital Twin Events within the specified time range.
-     *
-     * @param startTimestampMs The start timestamp (in milliseconds) of the time range.
-     * @param endTimestampMs   The end timestamp (in milliseconds) of the time range.
-     * @return A list of Digital Twin objects representing the generated events within the specified time range.
-     * @throws IllegalArgumentException If the start timestamp is greater than the end timestamp.
-     */
-    @Override
-    public List<DigitalWldtEvent<?>> getDigitalTwinEventsInTimeRange(long startTimestampMs, long endTimestampMs) throws IllegalArgumentException {
-        if (startTimestampMs > endTimestampMs) {
-            throw new IllegalArgumentException("Start timestamp cannot be greater than end timestamp.");
-        }
-        List<DigitalWldtEvent<?>> result = new ArrayList<>();
-        for (DigitalWldtEvent<?> event : digitalTwinEvents) {
-            long timestamp = event.getCreationTimestamp();
-            if (timestamp >= startTimestampMs && timestamp <= endTimestampMs) {
-                result.add(event);
-            }
-        }
-        return result;
-    }
-
-    /**
-     * Retrieves a list of Digital Twin Events within the specified range of indices.
-     *
-     * @param startIndex the index of the first Digital Twin Event to retrieve (inclusive). Starting index is 0.
-     * @param endIndex   the index of the last Digital Twin Event to retrieve (inclusive)
-     * @return a list of Digital Twin Events within the specified index range
-     * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
-     * @throws IllegalArgumentException  if startIndex is greater than endIndex
-     */
-    @Override
-    public List<DigitalWldtEvent<?>> getDigitalTwinEventsInRange(int startIndex, int endIndex) throws IndexOutOfBoundsException, IllegalArgumentException {
-        if (startIndex < 0 || endIndex < 0 || startIndex > endIndex) {
-            throw new IllegalArgumentException("Invalid index range.");
-        }
-        if (endIndex >= digitalTwinEvents.size()) {
-            throw new IndexOutOfBoundsException("End index out of bounds.");
-        }
-        return digitalTwinEvents.subList(startIndex, endIndex + 1);
-    }
-
     /**
      * Save the LifeCycleState of the Digital Twin
-     *
-     * @param lifeCycleState
+     * @param lifeCycleStateVariation the LifeCycleState of the Digital Twin to be saved
      */
     @Override
-    public void saveLifeCycleState(long timestamp, LifeCycleState lifeCycleState) {
+    public void saveLifeCycleState(LifeCycleStateVariation lifeCycleStateVariation) {
         // Implement this method using the variable lifeCycleStateMap
-        lifeCycleStateMap.put(timestamp, lifeCycleState);
+        lifeCycleStateMap.put(lifeCycleStateVariation.getTimestamp(), lifeCycleStateVariation.getLifeCycleState());
 
     }
 
     /**
      * Get the number of LifeCycleState of the Digital Twin
-     *
      * @return the number of LifeCycleState of the Digital Twin
      */
     @Override
@@ -302,7 +181,6 @@ public class DefaultWldtStorage implements IWldtStorage{
 
     /**
      * Get the last LifeCycleState of the Digital Twin
-     *
      * @param startTimestampMs
      * @param endTimestampMs
      * @return the last LifeCycleState of the Digital Twin
@@ -319,55 +197,521 @@ public class DefaultWldtStorage implements IWldtStorage{
         return result;
     }
 
+    /**
+     * Get the LifeCycleState of the Digital Twin in the specified range of indices
+     *
+     * @param startIndex the index of the first LifeCycleState to retrieve (inclusive). Starting index is 0.
+     * @param endIndex   the index of the last LifeCycleState to retrieve (inclusive)
+     * @return a list of LifeCycleState within the specified index range
+     * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
+     * @throws IllegalArgumentException  if startIndex is greater than endIndex
+     */
+    @Override
+    public Map<Long, LifeCycleState> getLifeCycleStateInRange(int startIndex, int endIndex) throws IndexOutOfBoundsException, IllegalArgumentException {
+
+        if (startIndex < 0 || endIndex < 0 || startIndex > endIndex) {
+            throw new IllegalArgumentException("Invalid index range.");
+        }
+        if (endIndex >= lifeCycleStateMap.size()) {
+            throw new IndexOutOfBoundsException("End index out of bounds.");
+        }
+
+        Map<Long, LifeCycleState> result = new HashMap<>();
+        List<Long> timestamps = new ArrayList<>(lifeCycleStateMap.keySet());
+        for (int i = startIndex; i <= endIndex; i++) {
+            result.put(timestamps.get(i), lifeCycleStateMap.get(timestamps.get(i)));
+        }
+        return result;
+    }
+
+    /**
+     * Save Physical Asset Action Request
+     *
+     * @param physicalAssetActionRequest the Physical Asset Action Request to be saved
+     */
+    @Override
+    public void savePhysicalAssetActionRequest(PhysicalAssetActionRequest physicalAssetActionRequest) throws StorageException {
+        if(physicalAssetActionRequest == null)
+            throw new StorageException("Physical Asset Action Request cannot be null.");
+
+        this.physicalActionRequestMap.put(physicalAssetActionRequest.getRequestTimestamp(), physicalAssetActionRequest);
+    }
+
+    /**
+     * Get the number of Physical Asset Action Request
+     * @return the number of Physical Asset Action Request
+     */
+    @Override
+    public int getPhysicalAssetActionEventCount() {
+        return this.physicalActionRequestMap.size();
+    }
+
+    /**
+     * Get the Physical Asset Action Request in the specified time range
+     *
+     * @param startTimestampMs the start timestamp of the time range
+     * @param endTimestampMs   the end timestamp of the time range
+     * @return the list of Physical Asset Action Request in the specified time range
+     */
+    @Override
+    public List<PhysicalAssetActionRequest> getPhysicalAssetActionRequestInTimeRange(long startTimestampMs, long endTimestampMs) throws IllegalArgumentException {
+        List<PhysicalAssetActionRequest> result = new ArrayList<>();
+        for (Map.Entry<Long, PhysicalAssetActionRequest> entry : physicalActionRequestMap.entrySet()) {
+            long timestamp = entry.getKey();
+            if (timestamp >= startTimestampMs && timestamp <= endTimestampMs) {
+                result.add(entry.getValue());
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Get the Physical Asset Action Request in the specified range of indices
+     *
+     * @param startIndex the index of the first Physical Asset Action Request to retrieve (inclusive). Starting index is 0.
+     * @param endIndex   the index of the last Physical Asset Action Request to retrieve (inclusive)
+     * @return a list of Physical Asset Action Request within the specified index range
+     * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
+     * @throws IllegalArgumentException  if startIndex is greater than endIndex
+     */
+    @Override
+    public List<PhysicalAssetActionRequest> getPhysicalAssetActionRequestInRange(int startIndex, int endIndex) throws IndexOutOfBoundsException, IllegalArgumentException {
+        if (startIndex < 0 || endIndex < 0 || startIndex > endIndex) {
+            throw new IllegalArgumentException("Invalid index range.");
+        }
+        if (endIndex >= physicalActionRequestMap.size()) {
+            throw new IndexOutOfBoundsException("End index out of bounds.");
+        }
+
+        List<PhysicalAssetActionRequest> result = new ArrayList<>();
+        List<Long> timestamps = new ArrayList<>(physicalActionRequestMap.keySet());
+        for (int i = startIndex; i <= endIndex; i++) {
+            result.add(physicalActionRequestMap.get(timestamps.get(i)));
+        }
+        return result;
+    }
+
+    /**
+     * Save a Digital Action Request
+     *
+     * @param digitalActionRequest the Digital Action Request to be saved
+     */
+    @Override
+    public void saveDigitalActionEvent(DigitalActionRequest digitalActionRequest) throws StorageException {
+        if(digitalActionRequest == null)
+            throw new StorageException("Digital Action Request cannot be null.");
+
+        this.digitalActionRequestMap.put(digitalActionRequest.getRequestTimestamp(), digitalActionRequest);
+    }
+
+    /**
+     * Get the number of Digital Action Request Stored
+     *
+     * @return the number of Digital Action Request
+     */
+    @Override
+    public int getDigitalActionEventCount() {
+        return this.digitalActionRequestMap.size();
+    }
+
+    /**
+     * Get the Digital Action Request in the specified time range
+     *
+     * @param startTimestampMs the start timestamp of the time range
+     * @param endTimestampMs   the end timestamp of the time range
+     * @return the list of Digital Action Request in the specified time range
+     */
+    @Override
+    public List<DigitalActionRequest> getDigitalActionRequestInTimeRange(long startTimestampMs, long endTimestampMs) throws IllegalArgumentException {
+        List<DigitalActionRequest> result = new ArrayList<>();
+        for (Map.Entry<Long, DigitalActionRequest> entry : digitalActionRequestMap.entrySet()) {
+            long timestamp = entry.getKey();
+            if (timestamp >= startTimestampMs && timestamp <= endTimestampMs) {
+                result.add(entry.getValue());
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Get the Digital Action Request in the specified range of indices
+     *
+     * @param startIndex the index of the first Digital Action Request to retrieve (inclusive). Starting index is 0.
+     * @param endIndex   the index of the last Digital Action Request to retrieve (inclusive)
+     * @return a list of Digital Action Request within the specified index range
+     * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
+     * @throws IllegalArgumentException  if startIndex is greater than endIndex
+     */
+    @Override
+    public List<DigitalActionRequest> getDigitalActionRequestInRange(int startIndex, int endIndex) throws IndexOutOfBoundsException, IllegalArgumentException {
+        if (startIndex < 0 || endIndex < 0 || startIndex > endIndex) {
+            throw new IllegalArgumentException("Invalid index range.");
+        }
+        if (endIndex >= digitalActionRequestMap.size()) {
+            throw new IndexOutOfBoundsException("End index out of bounds.");
+        }
+
+        List<DigitalActionRequest> result = new ArrayList<>();
+        List<Long> timestamps = new ArrayList<>(digitalActionRequestMap.keySet());
+        for (int i = startIndex; i <= endIndex; i++) {
+            result.add(digitalActionRequestMap.get(timestamps.get(i)));
+        }
+        return result;
+    }
+
+    /**
+     * Save a new Physical Asset Description Available
+     *
+     * @param physicalAssetDescriptionNotification the Physical Asset Description Notification to be saved
+     */
+    @Override
+    public void saveNewPhysicalAssetDescriptionNotification(PhysicalAssetDescriptionNotification physicalAssetDescriptionNotification) throws StorageException {
+        if(physicalAssetDescriptionNotification == null)
+            throw new StorageException("Physical Asset Description Notification cannot be null.");
+
+        this.newPhysicalAssetDescriptionNotificationMap.put(physicalAssetDescriptionNotification.getNotificationTimestamp(), physicalAssetDescriptionNotification);
+    }
+
+    /**
+     * Get the number of New Physical Asset Description Notifications available
+     *
+     * @return the number of Physical Asset Description Notifications available
+     */
+    @Override
+    public int getNewPhysicalAssetDescriptionNotificationCount() {
+        return this.newPhysicalAssetDescriptionNotificationMap.size();
+    }
+
+    /**
+     * Get the New Physical Asset Description Available in the specified time range
+     *
+     * @param startTimestampMs the start timestamp of the time range
+     * @param endTimestampMs   the end timestamp of the time range
+     * @return the list of New Physical Asset Description Available in the specified time range
+     */
+    @Override
+    public List<PhysicalAssetDescriptionNotification> getNewPhysicalAssetDescriptionNotificationInTimeRange(long startTimestampMs, long endTimestampMs) throws IllegalArgumentException {
+        List<PhysicalAssetDescriptionNotification> result = new ArrayList<>();
+        for (Map.Entry<Long, PhysicalAssetDescriptionNotification> entry : newPhysicalAssetDescriptionNotificationMap.entrySet()) {
+            long timestamp = entry.getKey();
+            if (timestamp >= startTimestampMs && timestamp <= endTimestampMs) {
+                result.add(entry.getValue());
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Get the New Physical Asset Description Available in the specified range of indices
+     *
+     * @param startIndex the index of the first New Physical Asset Description to retrieve (inclusive). Starting index is 0.
+     * @param endIndex   the index of the last New Physical Asset Description to retrieve (inclusive)
+     * @return a list of New Physical Asset Description within the specified index range
+     * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
+     * @throws IllegalArgumentException  if startIndex is greater than endIndex
+     */
+    @Override
+    public List<PhysicalAssetDescriptionNotification> getNewPhysicalAssetDescriptionNotificationInRange(int startIndex, int endIndex) throws IndexOutOfBoundsException, IllegalArgumentException {
+        if (startIndex < 0 || endIndex < 0 || startIndex > endIndex) {
+            throw new IllegalArgumentException("Invalid index range.");
+        }
+        if (endIndex >= newPhysicalAssetDescriptionNotificationMap.size()) {
+            throw new IndexOutOfBoundsException("End index out of bounds.");
+        }
+
+        List<PhysicalAssetDescriptionNotification> result = new ArrayList<>();
+        List<Long> timestamps = new ArrayList<>(newPhysicalAssetDescriptionNotificationMap.keySet());
+        for (int i = startIndex; i <= endIndex; i++) {
+            result.add(newPhysicalAssetDescriptionNotificationMap.get(timestamps.get(i)));
+        }
+        return result;
+    }
+
+    /**
+     * Save the updated Physical Asset Description
+     *
+     * @param physicalAssetDescriptionNotification
+     * @return the number of Physical Asset Description Available
+     */
+    @Override
+    public void saveUpdatedPhysicalAssetDescriptionNotification(PhysicalAssetDescriptionNotification physicalAssetDescriptionNotification) throws StorageException {
+        if(physicalAssetDescriptionNotification == null)
+            throw new StorageException("Physical Asset Description Notification cannot be null.");
+
+        this.updatedPhysicalAssetDescriptionNotificationMap.put(physicalAssetDescriptionNotification.getNotificationTimestamp(), physicalAssetDescriptionNotification);
+    }
+
+    /**
+     * Get the number of Updated Physical Asset Description
+     *
+     * @return the number of Updated Physical Asset Description
+     */
+    @Override
+    public int getUpdatedPhysicalAssetDescriptionNotificationCount() {
+        return this.updatedPhysicalAssetDescriptionNotificationMap.size();
+    }
+
+    /**
+     * Get the Updated Physical Asset Description in the specified time range
+     *
+     * @param startTimestampMs the start timestamp of the time range
+     * @param endTimestampMs   the end timestamp of the time range
+     * @return the list of Updated Physical Asset Description in the specified time range
+     */
+    @Override
+    public List<PhysicalAssetDescriptionNotification> getUpdatedPhysicalAssetDescriptionNotificationInTimeRange(long startTimestampMs, long endTimestampMs) throws IllegalArgumentException {
+        List<PhysicalAssetDescriptionNotification> result = new ArrayList<>();
+        for (Map.Entry<Long, PhysicalAssetDescriptionNotification> entry : updatedPhysicalAssetDescriptionNotificationMap.entrySet()) {
+            long timestamp = entry.getKey();
+            if (timestamp >= startTimestampMs && timestamp <= endTimestampMs) {
+                result.add(entry.getValue());
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Get the Updated Physical Asset Description in the specified range of indices
+     *
+     * @param startIndex the index of the first Updated Physical Asset Description to retrieve (inclusive). Starting index is 0.
+     * @param endIndex   the index of the last Updated Physical Asset Description to retrieve (inclusive)
+     * @return a list of Updated Physical Asset Description within the specified index range
+     * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
+     * @throws IllegalArgumentException  if startIndex is greater than endIndex
+     */
+    @Override
+    public List<PhysicalAssetDescriptionNotification> getUpdatedPhysicalAssetDescriptionNotificationInRange(int startIndex, int endIndex) throws IndexOutOfBoundsException, IllegalArgumentException {
+        if (startIndex < 0 || endIndex < 0 || startIndex > endIndex) {
+            throw new IllegalArgumentException("Invalid index range.");
+        }
+        if (endIndex >= updatedPhysicalAssetDescriptionNotificationMap.size()) {
+            throw new IndexOutOfBoundsException("End index out of bounds.");
+        }
+
+        List<PhysicalAssetDescriptionNotification> result = new ArrayList<>();
+        List<Long> timestamps = new ArrayList<>(updatedPhysicalAssetDescriptionNotificationMap.keySet());
+        for (int i = startIndex; i <= endIndex; i++) {
+            result.add(updatedPhysicalAssetDescriptionNotificationMap.get(timestamps.get(i)));
+        }
+        return result;
+    }
+
+    /**
+     * Save the Physical Asset Property Variation
+     *
+     * @param physicalAssetPropertyVariation the Physical Asset Property Variation to be saved
+     */
+    @Override
+    public void savePhysicalAssetPropertyVariation(PhysicalAssetPropertyVariation physicalAssetPropertyVariation) throws StorageException {
+        if(physicalAssetPropertyVariation == null)
+            throw new StorageException("Physical Asset Property Variation cannot be null.");
+
+        this.physicalAssetPropertyVariationMap.put(physicalAssetPropertyVariation.getTimestamp(), physicalAssetPropertyVariation);
+    }
+
+    /**
+     * Get the number of Physical Asset Property Variation
+     *
+     * @return the number of Physical Asset Property Variation
+     */
+    @Override
+    public int getPhysicalAssetPropertyVariationCount() {
+        return this.physicalAssetPropertyVariationMap.size();
+    }
+
+    /**
+     * Get the Physical Asset Property Variation in the specified time range
+     *
+     * @param startTimestampMs the start timestamp of the time range
+     * @param endTimestampMs   the end timestamp of the time range
+     * @return the list of Physical Asset Property Variation in the specified time range
+     */
+    @Override
+    public List<PhysicalAssetPropertyVariation> getPhysicalAssetPropertyVariationInTimeRange(long startTimestampMs, long endTimestampMs) throws IllegalArgumentException {
+        List<PhysicalAssetPropertyVariation> result = new ArrayList<>();
+        for (Map.Entry<Long, PhysicalAssetPropertyVariation> entry : physicalAssetPropertyVariationMap.entrySet()) {
+            long timestamp = entry.getKey();
+            if (timestamp >= startTimestampMs && timestamp <= endTimestampMs) {
+                result.add(entry.getValue());
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Get the Physical Asset Property Variation in the specified range of indices
+     *
+     * @param startIndex the index of the first Physical Asset Property Variation to retrieve (inclusive). Starting index is 0.
+     * @param endIndex   the index of the last Physical Asset Property Variation to retrieve (inclusive)
+     * @return a list of Physical Asset Property Variation within the specified index range
+     * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
+     * @throws IllegalArgumentException  if startIndex is greater than endIndex
+     */
+    @Override
+    public List<PhysicalAssetPropertyVariation> getPhysicalAssetPropertyVariationInRange(int startIndex, int endIndex) throws IndexOutOfBoundsException, IllegalArgumentException {
+        if (startIndex < 0 || endIndex < 0 || startIndex > endIndex) {
+            throw new IllegalArgumentException("Invalid index range.");
+        }
+        if (endIndex >= physicalAssetPropertyVariationMap.size()) {
+            throw new IndexOutOfBoundsException("End index out of bounds.");
+        }
+
+        List<PhysicalAssetPropertyVariation> result = new ArrayList<>();
+        List<Long> timestamps = new ArrayList<>(physicalAssetPropertyVariationMap.keySet());
+        for (int i = startIndex; i <= endIndex; i++) {
+            result.add(physicalAssetPropertyVariationMap.get(timestamps.get(i)));
+        }
+        return result;
+    }
+
+    /**
+     * Save the Physical Asset Relationship Instance Created Event
+     *
+     * @param physicalRelationshipInstanceVariation the Physical Relationship Instance Variation to be saved
+     */
+    @Override
+    public void savePhysicalAssetRelationshipInstanceCreatedEvent(PhysicalRelationshipInstanceVariation physicalRelationshipInstanceVariation) throws StorageException {
+        if(physicalRelationshipInstanceVariation == null)
+            throw new StorageException("Physical Relationship Instance Variation cannot be null.");
+
+        this.physicalRelationshipInstanceCreatedMap.put(physicalRelationshipInstanceVariation.getNotificationTimestamp(), physicalRelationshipInstanceVariation);
+    }
+
+    /**
+     * Get the number of Physical Asset Relationship Instance Created Event
+     *
+     * @return the number of Physical Asset Relationship Instance Created Event
+     */
+    @Override
+    public int getPhysicalAssetRelationshipInstanceCreatedEventCount() {
+        return this.physicalRelationshipInstanceCreatedMap.size();
+    }
+
+    /**
+     * Get the Physical Asset Relationship Instance Created Event in the specified time range
+     *
+     * @param startTimestampMs the start timestamp of the time range
+     * @param endTimestampMs   the end timestamp of the time range
+     * @return the list of Physical Asset Relationship Instance Created Event in the specified time range
+     */
+    @Override
+    public List<PhysicalRelationshipInstanceVariation> getPhysicalAssetRelationshipInstanceCreatedEventInTimeRange(long startTimestampMs, long endTimestampMs) throws IllegalArgumentException {
+        List<PhysicalRelationshipInstanceVariation> result = new ArrayList<>();
+        for (Map.Entry<Long, PhysicalRelationshipInstanceVariation> entry : physicalRelationshipInstanceCreatedMap.entrySet()) {
+            long timestamp = entry.getKey();
+            if (timestamp >= startTimestampMs && timestamp <= endTimestampMs) {
+                result.add(entry.getValue());
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Get the Physical Asset Relationship Instance Created Event in the specified range of indices
+     *
+     * @param startIndex the index of the first Physical Asset Property Variation to retrieve (inclusive). Starting index is 0.
+     * @param endIndex   the index of the last Physical Asset Property Variation to retrieve (inclusive)
+     * @return a list of Physical Asset Relationship Instance Created Event within the specified index range
+     * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
+     * @throws IllegalArgumentException  if startIndex is greater than endIndex
+     */
+    @Override
+    public List<PhysicalRelationshipInstanceVariation> getPhysicalAssetRelationshipInstanceCreatedEventInRange(int startIndex, int endIndex) throws IllegalArgumentException {
+        if (startIndex < 0 || endIndex < 0 || startIndex > endIndex) {
+            throw new IllegalArgumentException("Invalid index range.");
+        }
+        if (endIndex >= physicalRelationshipInstanceCreatedMap.size()) {
+            throw new IndexOutOfBoundsException("End index out of bounds.");
+        }
+
+        List<PhysicalRelationshipInstanceVariation> result = new ArrayList<>();
+        List<Long> timestamps = new ArrayList<>(physicalRelationshipInstanceCreatedMap.keySet());
+        for (int i = startIndex; i <= endIndex; i++) {
+            result.add(physicalRelationshipInstanceCreatedMap.get(timestamps.get(i)));
+        }
+        return result;
+    }
+
+    /**
+     * Save the Physical Asset Relationship Instance Updated Event
+     *
+     * @param physicalRelationshipInstanceVariation the Physical Relationship Instance Variation to be saved
+     */
+    @Override
+    public void savePhysicalAssetRelationshipInstanceDeletedEvent(PhysicalRelationshipInstanceVariation physicalRelationshipInstanceVariation) throws StorageException {
+        if(physicalRelationshipInstanceVariation == null)
+            throw new StorageException("Physical Relationship Instance Variation cannot be null.");
+
+        this.physicalRelationshipInstanceDeletedMap.put(physicalRelationshipInstanceVariation.getNotificationTimestamp(), physicalRelationshipInstanceVariation);
+    }
+
+    /**
+     * Get the number of Physical Asset Relationship Instance Updated Event
+     *
+     * @return the number of Physical Asset Relationship Instance Updated Event
+     */
+    @Override
+    public int getPhysicalAssetRelationshipInstanceDeletedEventCount() {
+        return this.physicalRelationshipInstanceDeletedMap.size();
+    }
+
+    /**
+     * Get the Physical Asset Relationship Instance Updated Event in the specified time range
+     *
+     * @param startTimestampMs the start timestamp of the time range
+     * @param endTimestampMs   the end timestamp of the time range
+     * @return the list of Physical Asset Relationship Instance Updated Event in the specified time range
+     */
+    @Override
+    public List<PhysicalRelationshipInstanceVariation> getPhysicalAssetRelationshipInstanceDeletedEventInTimeRange(long startTimestampMs, long endTimestampMs) throws IllegalArgumentException {
+        List<PhysicalRelationshipInstanceVariation> result = new ArrayList<>();
+        for (Map.Entry<Long, PhysicalRelationshipInstanceVariation> entry : physicalRelationshipInstanceDeletedMap.entrySet()) {
+            long timestamp = entry.getKey();
+            if (timestamp >= startTimestampMs && timestamp <= endTimestampMs) {
+                result.add(entry.getValue());
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Get the Physical Asset Relationship Instance Updated Event in the specified range of indices
+     *
+     * @param startIndex the index of the first Physical Asset Relationship Instance Updated Event to retrieve (inclusive). Starting index is 0.
+     * @param endIndex   the index of the last Physical Asset Relationship Instance Updated Event to retrieve (inclusive)
+     * @return a list of Physical Asset Relationship Instance Updated Event within the specified index range
+     * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
+     * @throws IllegalArgumentException  if startIndex is greater than endIndex
+     */
+    @Override
+    public List<PhysicalRelationshipInstanceVariation> getPhysicalAssetRelationshipInstanceDeletedEventInRange(int startIndex, int endIndex) throws IndexOutOfBoundsException, IllegalArgumentException {
+        if (startIndex < 0 || endIndex < 0 || startIndex > endIndex) {
+            throw new IllegalArgumentException("Invalid index range.");
+        }
+        if (endIndex >= physicalRelationshipInstanceDeletedMap.size()) {
+            throw new IndexOutOfBoundsException("End index out of bounds.");
+        }
+
+        List<PhysicalRelationshipInstanceVariation> result = new ArrayList<>();
+        List<Long> timestamps = new ArrayList<>(physicalRelationshipInstanceDeletedMap.keySet());
+        for (int i = startIndex; i <= endIndex; i++) {
+            result.add(physicalRelationshipInstanceDeletedMap.get(timestamps.get(i)));
+        }
+        return result;
+    }
+
     @Override
     public void clear(){
-        digitalTwinStateMap.clear();
-        stateChangeMap.clear();
-        physicalAssetEvents.clear();
-        digitalTwinEvents.clear();
-        lifeCycleStateMap.clear();
+        this.digitalTwinStateMap.clear();
+        this.stateChangeMap.clear();
+        this.physicalActionRequestMap.clear();
+        this.digitalActionRequestMap.clear();
+        this.newPhysicalAssetDescriptionNotificationMap.clear();
+        this.updatedPhysicalAssetDescriptionNotificationMap.clear();
+        this.physicalAssetPropertyVariationMap.clear();
+        this.physicalRelationshipInstanceCreatedMap.clear();
+        this.physicalRelationshipInstanceDeletedMap.clear();
+        this.lifeCycleStateMap.clear();
     }
 
-    public Map<Long, DigitalTwinState> getDigitalTwinStateMap() {
-        return digitalTwinStateMap;
-    }
-
-    public void setDigitalTwinStateMap(Map<Long, DigitalTwinState> digitalTwinStateMap) {
-        this.digitalTwinStateMap = digitalTwinStateMap;
-    }
-
-    public Map<Long, List<DigitalTwinStateChange>> getStateChangeMap() {
-        return stateChangeMap;
-    }
-
-    public void setStateChangeMap(Map<Long, List<DigitalTwinStateChange>> stateChangeMap) {
-        this.stateChangeMap = stateChangeMap;
-    }
-
-    public List<PhysicalAssetWldtEvent<?>> getPhysicalAssetEvents() {
-        return physicalAssetEvents;
-    }
-
-    public void setPhysicalAssetEvents(List<PhysicalAssetWldtEvent<?>> physicalAssetEvents) {
-        this.physicalAssetEvents = physicalAssetEvents;
-    }
-
-    public List<DigitalWldtEvent<?>> getDigitalTwinEvents() {
-        return digitalTwinEvents;
-    }
-
-    public void setDigitalTwinEvents(List<DigitalWldtEvent<?>> digitalTwinEvents) {
-        this.digitalTwinEvents = digitalTwinEvents;
-    }
-
-    @Override
-    public String toString() {
-        final StringBuilder sb = new StringBuilder("DefaultWldtStorage{");
-        sb.append("digitalTwinStateMap=").append(digitalTwinStateMap);
-        sb.append(", stateChangeMap=").append(stateChangeMap);
-        sb.append(", physicalAssetEvents=").append(physicalAssetEvents);
-        sb.append(", digitalTwinEvents=").append(digitalTwinEvents);
-        sb.append('}');
-        return sb.toString();
-    }
 }
