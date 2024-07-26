@@ -30,6 +30,8 @@ public class WldtEventTypes {
 
     public static final String PHYSICAL_ASSET_DESCRIPTION_UPDATED = "dt.physical.event.pad.updated";
 
+    public static final String PHYSICAL_ASSET_DESCRIPTION_EVENT_METADATA_ADAPTER_ID = "adapter_id";
+
     /* Digital Interface Events */
 
     public static final String DIGITAL_ACTION_EVENT_BASE_TYPE = "dt.digital.event.action";

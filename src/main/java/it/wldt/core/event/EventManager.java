@@ -45,7 +45,7 @@ public class EventManager {
                     targetEventType,
                     physicalAssetDescription,
                     new HashMap<String, Object>() {{
-                        put("adapter_id", adapterId);
+                        put(WldtEventTypes.PHYSICAL_ASSET_DESCRIPTION_EVENT_METADATA_ADAPTER_ID, adapterId);
                     }});
 
             publishEvent(digitalTwinId, publisherId, event);

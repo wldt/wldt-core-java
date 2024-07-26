@@ -2,17 +2,25 @@ package it.wldt.storage;
 
 import it.wldt.adapter.digital.event.DigitalActionWldtEvent;
 import it.wldt.adapter.physical.PhysicalAssetDescription;
-import it.wldt.adapter.physical.event.PhysicalAssetActionWldtEvent;
-import it.wldt.adapter.physical.event.PhysicalAssetWldtEvent;
+import it.wldt.adapter.physical.PhysicalAssetRelationshipInstance;
+import it.wldt.adapter.physical.event.*;
 import it.wldt.core.engine.DigitalTwinWorker;
 import it.wldt.core.engine.LifeCycleState;
 import it.wldt.core.event.WldtEvent;
+import it.wldt.core.event.WldtEventBus;
+import it.wldt.core.event.WldtEventTypes;
 import it.wldt.core.event.observer.IWldtEventObserverListener;
 import it.wldt.core.event.observer.WldtEventObserver;
+import it.wldt.core.state.DigitalTwinState;
+import it.wldt.core.state.DigitalTwinStateChange;
+import it.wldt.core.state.DigitalTwinStateManager;
+import it.wldt.exception.StorageException;
 import it.wldt.exception.WldtRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public abstract class StorageManager extends DigitalTwinWorker implements IWldtEventObserverListener {
@@ -22,208 +30,30 @@ public abstract class StorageManager extends DigitalTwinWorker implements IWldtE
     private static final String STORAGE_MANAGER_OBSERVER_ID = "storage_manager";
 
     // Map containing the storage types for a DT
-    private Map<String, IWldtStorage> storageMap;
-
-    // If true the storage manager will observe state events and receive callback to handle the storage
-    private boolean observeStateEvents = false;
-
-    // If true the storage manager will observe physical asset events and receive callback to handle the storage
-    private boolean observerPhysicalAssetEvents = false;
-
-    // If true the storage manager will observe physical asset action events and receive callback to handle the storage
-    private boolean observerPhysicalAssetActionEvents = false;
-
-    // If true the storage manager will observe physical asset description events and receive callback to handle the storage
-    private boolean observePhysicalAssetDescriptionEvents = false;
-
-    // If true the storage manager will observe digital action events and receive callback to handle the storage
-    private boolean observerDigitalActionEvents = false;
-
-    // If true the storage manager will observe life cycle events and receive callback to handle the storage
-    private boolean observeLifeCycleEvents = false;
+    private Map<String, WldtStorage> storageMap;
 
     // The WldtEventObserver instance
     private WldtEventObserver wldtEventObserver;
 
-    // The default storage id
-    private String defaultStorageId;
-
     /**
      * Default constructor for the StorageManager class
      */
-    public StorageManager(){
+    public StorageManager(String digitalTwinId){
+        this.digitalTwinId = digitalTwinId;
         this.storageMap = new HashMap<>();
     }
 
     /**
-     * Constructor for the StorageManager class
-     * @param storageMap Map containing the storage types for a DT
-     */
-    public StorageManager(Map<String, IWldtStorage> storageMap){
-        this(storageMap,
-                false,
-                false,
-                false,
-                false,
-                false,
-                false);
-    }
-
-    /**
-     * Default constructor for the StorageManager class
-     * @param observeStateEvents If true the storage manager will observe state events and receive callback to handle the storage
-     * @param observerPhysicalAssetEvents If true the storage manager will observe physical asset events and receive callback to handle the storage
-     * @param observerPhysicalAssetActionEvents If true the storage manager will observe physical asset action events and receive callback to handle the storage
-     * @param observePhysicalAssetDescriptionEvents If true the storage manager will observe physical asset description events and receive callback to handle the storage
-     * @param observerDigitalActionEvents If true the storage manager will observe digital action events and receive callback to handle the storage
-     * @param observeLifeCycleEvents If true the storage manager will observe life cycle events and receive callback to handle the storage
-     */
-    public StorageManager(boolean observeStateEvents,
-                          boolean observerPhysicalAssetEvents,
-                          boolean observerPhysicalAssetActionEvents,
-                          boolean observePhysicalAssetDescriptionEvents,
-                          boolean observerDigitalActionEvents,
-                          boolean observeLifeCycleEvents) {
-        this(new HashMap<>(),
-                observeStateEvents,
-                observerPhysicalAssetEvents,
-                observerPhysicalAssetActionEvents,
-                observePhysicalAssetDescriptionEvents,
-                observerDigitalActionEvents,
-                observeLifeCycleEvents);
-    }
-
-    /**
-     * Constructor for the StorageManager class
-     * @param storageMap Map containing the storage types for a DT
-     * @param observeStateEvents If true the storage manager will observe state events and receive callback to handle the storage
-     * @param observerPhysicalAssetEvents If true the storage manager will observe physical asset events and receive callback to handle the storage
-     * @param observerPhysicalAssetActionEvents If true the storage manager will observe physical asset action events and receive callback to handle the storage
-     * @param observePhysicalAssetDescriptionEvents If true the storage manager will observe physical asset description events and receive callback to handle the storage
-     * @param observerDigitalActionEvents If true the storage manager will observe digital action events and receive callback to handle the storage
-     * @param observeLifeCycleEvents If true the storage manager will observe life cycle events and receive callback to handle the storage
-     */
-    public StorageManager(Map<String, IWldtStorage> storageMap,
-                          boolean observeStateEvents,
-                          boolean observerPhysicalAssetEvents,
-                          boolean observerPhysicalAssetActionEvents,
-                          boolean observePhysicalAssetDescriptionEvents,
-                          boolean observerDigitalActionEvents,
-                          boolean observeLifeCycleEvents) {
-
-        this.storageMap = storageMap;
-        this.observeStateEvents = observeStateEvents;
-        this.observerPhysicalAssetEvents = observerPhysicalAssetEvents;
-        this.observerPhysicalAssetActionEvents = observerPhysicalAssetActionEvents;
-        this.observePhysicalAssetDescriptionEvents = observePhysicalAssetDescriptionEvents;
-        this.observerDigitalActionEvents = observerDigitalActionEvents;
-        this.observeLifeCycleEvents = observeLifeCycleEvents;
-    }
-
-    /**
-     * Observe all the events types for the Storage Class
-     * @param observeAllEvents If true the storage manager will observe all the events and receive callback to handle the storage
-     * @return
-     */
-    public StorageManager observeAllEvents(boolean observeAllEvents) {
-        this.observeStateEvents = observeAllEvents;
-        this.observerPhysicalAssetEvents = observeAllEvents;
-        this.observerPhysicalAssetActionEvents = observeAllEvents;
-        this.observePhysicalAssetDescriptionEvents = observeAllEvents;
-        this.observerDigitalActionEvents = observeAllEvents;
-        this.observeLifeCycleEvents = observeAllEvents;
-        return this;
-    }
-
-    /**
-     * Observe the state events for the Storage Class
-     * @param observeStateEvents If true the storage manager will observe state events and receive callback to handle the storage
-     * @return
-     */
-    public StorageManager observeStateEvents(boolean observeStateEvents) {
-        this.observeStateEvents = observeStateEvents;
-        return this;
-    }
-
-    /**
-     * Observe the physical asset events for the Storage Class
-     * @param observerPhysicalAssetEvents If true the storage manager will observe physical asset events and receive callback to handle the storage
-     * @return
-     */
-    public StorageManager observerPhysicalAssetEvents(boolean observerPhysicalAssetEvents) {
-        this.observerPhysicalAssetEvents = observerPhysicalAssetEvents;
-        return this;
-    }
-
-    /**
-     * Observe the physical asset action events for the Storage Class
-     * @param observerPhysicalAssetActionEvents If true the storage manager will observe physical asset action events and receive callback to handle the storage
-     * @return
-     */
-    public StorageManager observerPhysicalAssetActionEvents(boolean observerPhysicalAssetActionEvents) {
-        this.observerPhysicalAssetActionEvents = observerPhysicalAssetActionEvents;
-        return this;
-    }
-
-    /**
-     * Observe the physical asset description events for the Storage Class
-     * @param observePhysicalAssetDescriptionEvents If true the storage manager will observe physical asset description events and receive callback to handle the storage
-     * @return
-     */
-    public StorageManager observePhysicalAssetDescriptionEvents(boolean observePhysicalAssetDescriptionEvents) {
-        this.observePhysicalAssetDescriptionEvents = observePhysicalAssetDescriptionEvents;
-        return this;
-    }
-
-    /**
-     * Observe the digital action events for the Storage Class
-     * @param observerDigitalActionEvents If true the storage manager will observe digital action events and receive callback to handle the storage
-     * @return
-     */
-    public StorageManager observerDigitalActionEvents(boolean observerDigitalActionEvents) {
-        this.observerDigitalActionEvents = observerDigitalActionEvents;
-        return this;
-    }
-
-    /**
-     * Observe the life cycle events for the Storage Class
-     * @param observeLifeCycleEvents If true the storage manager will observe life cycle events and receive callback to handle the storage
-     * @return
-     */
-    public StorageManager observeLifeCycleEvents(boolean observeLifeCycleEvents) {
-        this.observeLifeCycleEvents = observeLifeCycleEvents;
-        return this;
-    }
-
-    /**
-     * Check if the observation of any type is active
-     * @return True if the observation of any type is active
-     */
-    private boolean isObservationActive(){
-        return observeStateEvents || observerPhysicalAssetEvents || observerPhysicalAssetActionEvents || observePhysicalAssetDescriptionEvents || observerDigitalActionEvents || observeLifeCycleEvents;
-    }
-
-    /**
      * Save the storage in the storage map
-     * @param storageId The storage id
      * @param storage The storage object
      */
-    public StorageManager putStorage(String storageId, IWldtStorage storage, boolean isDefault){
-        this.storageMap.put(storageId, storage);
+    public StorageManager putStorage(WldtStorage storage) throws StorageException {
 
-        if(isDefault)
-            this.defaultStorageId = storageId;
+        if(storage == null || storage.getStorageId() == null)
+            throw new StorageException("The storage object or the storage id cannot be null !");
 
+        this.storageMap.put(storage.getStorageId(), storage);
         return this;
-    }
-
-    /**
-     * Save the storage in the storage map
-     * @param storageId The storage id
-     * @param storage The storage object
-     */
-    public StorageManager putStorage(String storageId, IWldtStorage storage){
-        return this.putStorage(storageId, storage, false);
     }
 
     /**
@@ -231,7 +61,7 @@ public abstract class StorageManager extends DigitalTwinWorker implements IWldtE
      * @param storageId The storage id
      * @return The storage object
      */
-    public IWldtStorage getStorage(String storageId) {
+    public WldtStorage getStorage(String storageId) {
         return this.storageMap.get(storageId);
     }
 
@@ -239,12 +69,12 @@ public abstract class StorageManager extends DigitalTwinWorker implements IWldtE
      * Remove the storage from the storage map
      * @param storageId The storage id
      */
-    public void removeStorage(String storageId) {
+    public void removeStorage(String storageId) throws StorageException {
         // Check if is the default storage and avoid to remove it
-        if(this.defaultStorageId != null && this.defaultStorageId.equals(storageId))
-            logger.error("Cannot remove the default storage !");
-        else
+        if(this.storageMap.containsKey(storageId))
             this.storageMap.remove(storageId);
+        else
+            throw new StorageException("The storage id is not present in the storage map !");
     }
 
     /**
@@ -258,31 +88,17 @@ public abstract class StorageManager extends DigitalTwinWorker implements IWldtE
         try {
 
             // Check if the default storage is present and if the observation of any type is active
-            if(defaultStorageId != null && this.storageMap.containsKey(defaultStorageId) && isObservationActive()){
-                logger.info("Initializing the WldtEventObserver for the StorageManager ...");
-                this.wldtEventObserver = new WldtEventObserver(this.digitalTwinId, STORAGE_MANAGER_OBSERVER_ID, this);
+            logger.info("Initializing the WldtEventObserver for the StorageManager ...");
 
-                if(observeStateEvents)
-                    wldtEventObserver.observeStateEvents();
+            this.wldtEventObserver = new WldtEventObserver(this.digitalTwinId, STORAGE_MANAGER_OBSERVER_ID, this);
 
-                if(observerPhysicalAssetEvents)
-                    wldtEventObserver.observePhysicalAssetEvents();
+            wldtEventObserver.observeStateEvents();
+            wldtEventObserver.observePhysicalAssetEvents();
+            wldtEventObserver.observePhysicalAssetActionEvents();
+            wldtEventObserver.observePhysicalAssetDescriptionEvents();
+            wldtEventObserver.observeDigitalActionEvents();
+            wldtEventObserver.observeLifeCycleEvents();
 
-                if(observerPhysicalAssetActionEvents)
-                    wldtEventObserver.observePhysicalAssetActionEvents();
-
-                if(observePhysicalAssetDescriptionEvents)
-                    wldtEventObserver.observePhysicalAssetDescriptionEvents();
-
-                if(observerDigitalActionEvents)
-                    wldtEventObserver.observeDigitalActionEvents();
-
-                if(observeLifeCycleEvents)
-                    wldtEventObserver.observeLifeCycleEvents();
-
-            }
-            else
-                logger.info("No events to observe for the StorageManager ... Working in Manual mode");
         }catch (Exception e){
             logger.error("Error initializing the StorageManager WldtEventObserver ! Error: {}", e.getLocalizedMessage());
         }
@@ -298,33 +114,19 @@ public abstract class StorageManager extends DigitalTwinWorker implements IWldtE
     public void onWorkerStop() throws WldtRuntimeException {
         try {
             // Check if the default storage is present and if the observation of any type is active
-            if(defaultStorageId != null && this.storageMap.containsKey(defaultStorageId) && isObservationActive()){
+            if(wldtEventObserver != null){
 
                 logger.info("Stopping the WldtEventObserver for the StorageManager ...");
-
-                this.wldtEventObserver = new WldtEventObserver(this.digitalTwinId, STORAGE_MANAGER_OBSERVER_ID, this);
-
-                if(observeStateEvents)
-                    wldtEventObserver.unObserveLifeCycleEvents();
-
-                if(observerPhysicalAssetEvents)
-                    wldtEventObserver.unObservePhysicalAssetEvents();
-
-                if(observerPhysicalAssetActionEvents)
-                    wldtEventObserver.unObservePhysicalAssetActionEvents();
-
-                if(observePhysicalAssetDescriptionEvents)
-                    wldtEventObserver.unObservePhysicalAssetDescriptionEvents();
-
-                if(observerDigitalActionEvents)
-                    wldtEventObserver.unObserveDigitalActionEvents();
-
-                if(observeLifeCycleEvents)
-                    wldtEventObserver.unObserveLifeCycleEvents();
+                wldtEventObserver.unObserveStateEvents();
+                wldtEventObserver.unObservePhysicalAssetEvents();
+                wldtEventObserver.unObservePhysicalAssetActionEvents();
+                wldtEventObserver.unObservePhysicalAssetDescriptionEvents();
+                wldtEventObserver.unObserveDigitalActionEvents();
+                wldtEventObserver.unObserveLifeCycleEvents();
 
             }
             else
-                logger.info("Nothing to stop for the StorageManager ... Worked in Manual mode");
+                logger.info("Nothing to stop for the StorageManager ... Observer not initialized !");
         }catch (Exception e){
             logger.error("Error stopping the StorageManager WldtEventObserver ! Error: {}", e.getLocalizedMessage());
         }
@@ -342,27 +144,103 @@ public abstract class StorageManager extends DigitalTwinWorker implements IWldtE
 
     @Override
     public void onStateEvent(WldtEvent<?> wldtEvent) {
-        if(defaultStorageId != null && this.storageMap.containsKey(defaultStorageId)){
-            IWldtStorage storage = this.storageMap.get(defaultStorageId);
-            //storage.saveDigitalTwinState(wldtEvent.getDigitalTwinState(), wldtEvent.getDigitalTwinStateChangeList());
+
+        // Check if the event is a DigitalTwinState
+        if(wldtEvent != null && wldtEvent.getBody() != null && wldtEvent.getBody() instanceof DigitalTwinState){
+
+            DigitalTwinState currentState = (DigitalTwinState)wldtEvent.getBody();
+            DigitalTwinState previousState = null;
+            List<DigitalTwinStateChange> stateChangeList = null;
+
+            // Check if the previous state is present in the event metadata
+            if(wldtEvent.getMetadata() != null
+                    && wldtEvent.getMetadata(DigitalTwinStateManager.DT_STATE_UPDATE_METADATA_PREVIOUS_STATE).isPresent()
+                    && wldtEvent.getMetadata(DigitalTwinStateManager.DT_STATE_UPDATE_METADATA_PREVIOUS_STATE).get() instanceof DigitalTwinState)
+                previousState = (DigitalTwinState) wldtEvent.getMetadata(DigitalTwinStateManager.DT_STATE_UPDATE_METADATA_PREVIOUS_STATE).get();
+
+            // Check if the state change list is present in the event metadata
+            if(wldtEvent.getMetadata() != null
+                    && wldtEvent.getMetadata(DigitalTwinStateManager.DT_STATE_UPDATE_METADATA_CHANGE_LIST).isPresent()
+                    && wldtEvent.getMetadata(DigitalTwinStateManager.DT_STATE_UPDATE_METADATA_CHANGE_LIST).get() instanceof List<?>) {
+
+                List<?> list = (List<?>) wldtEvent.getMetadata(DigitalTwinStateManager.DT_STATE_UPDATE_METADATA_CHANGE_LIST).get();
+
+                boolean allElementsAreDigitalTwinStateChange = list.stream().allMatch(element -> element instanceof DigitalTwinStateChange);
+
+                if (allElementsAreDigitalTwinStateChange)
+                    stateChangeList = (List<DigitalTwinStateChange>) list;
+                else
+                    logger.error("Warning saving the DigitalTwinState ! The state change list is not a list of DigitalTwinStateChange !");
+            }
+
+            // Find Storage interested to the target event
+            for (Map.Entry<String, WldtStorage> entry : storageMap.entrySet()) {
+                WldtStorage storage = entry.getValue();
+                if(storage != null && storage.isObserveStateEvents())
+                    storage.saveDigitalTwinState(currentState, stateChangeList);
+            }
+
         }
+        else
+            logger.error("Error saving the DigitalTwinState ! The event is not a DigitalTwinState !");
+
     }
 
     /**
      * Method to be implemented by subclasses.
      * Defines the logic to be executed when a PhysicalAssetWldtEvent is received.
      *
-     * @param wldtEvent The PhysicalAssetWldtEvent received by the observer.
+     * @param event The PhysicalAssetWldtEvent received by the observer.
      */
     @Override
-    public void onPhysicalAssetEvent(WldtEvent<?> wldtEvent) {
-        // Check if the default storage is present and if the event is a PhysicalAssetWldtEvent
-        if(defaultStorageId != null && this.storageMap.containsKey(defaultStorageId) && wldtEvent instanceof PhysicalAssetWldtEvent<?>){
-                IWldtStorage storage = this.storageMap.get(defaultStorageId);
-                storage.savePhysicalAssetEvent((PhysicalAssetWldtEvent<?>) wldtEvent);
-        }
+    public void onPhysicalAssetEvent(WldtEvent<?> event) {
+        // Check if the event is a PhysicalAssetWldtEvent
+        if(event != null && event.getBody() != null && event.getType() != null && event instanceof PhysicalAssetWldtEvent<?>)
+            // Find Storage interested to the target event
+            for (Map.Entry<String, WldtStorage> entry : storageMap.entrySet()) {
+                WldtStorage storage = entry.getValue();
+
+                if (storage != null && storage.isObserverPhysicalAssetEvents()){
+
+                    // Save the PhysicalAsset Property Variation
+                    if(WldtEventBus.getInstance().matchWildCardType(event.getType(), WldtEventTypes.ALL_PHYSICAL_PROPERTY_VARIATION_EVENT_TYPE) && event.getBody() instanceof PhysicalAssetPropertyWldtEvent<?>){
+                        PhysicalAssetPropertyWldtEvent<?> propertyVariationEvent = (PhysicalAssetPropertyWldtEvent<?>) event;
+                        storage.savePhysicalAssetPropertyVariation(propertyVariationEvent.getCreationTimestamp(),
+                                propertyVariationEvent.getPhysicalPropertyId(),
+                                propertyVariationEvent.getBody(),
+                                propertyVariationEvent.getMetadata());
+                    }
+
+                    // Save the PhysicalAsset Event
+                    if(WldtEventBus.getInstance().matchWildCardType(event.getType(), WldtEventTypes.ALL_PHYSICAL_EVENT_NOTIFICATION_EVENT_TYPE) && event.getBody() instanceof PhysicalAssetEventWldtEvent<?>){
+                        PhysicalAssetEventWldtEvent<?> physicalEvent = (PhysicalAssetEventWldtEvent<?>) event;
+                        storage.savePhysicalAssetActionEvent(physicalEvent.getCreationTimestamp(),
+                                physicalEvent.getPhysicalEventKey(),
+                                physicalEvent.getBody(),
+                                physicalEvent.getMetadata());
+                    }
+
+                    // Save the PhysicalAsset Relationship Instance Created
+                    if(WldtEventBus.getInstance().matchWildCardType(event.getType(), WldtEventTypes.ALL_PHYSICAL_RELATIONSHIP_INSTANCE_CREATION_EVENT_TYPE) && event.getBody() instanceof PhysicalAssetRelationshipInstanceCreatedWldtEvent<?>){
+                        PhysicalAssetRelationshipInstanceCreatedWldtEvent<?> physicalEvent = (PhysicalAssetRelationshipInstanceCreatedWldtEvent<?>) event;
+                        PhysicalAssetRelationshipInstance<?> relationshipInstance = (PhysicalAssetRelationshipInstance)physicalEvent.getBody();
+                        storage.savePhysicalAssetRelationshipInstanceCreatedEvent(physicalEvent.getCreationTimestamp(),
+                                relationshipInstance);
+                    }
+
+                    // Save the PhysicalAsset Relationship Instance Deleted
+                    if(WldtEventBus.getInstance().matchWildCardType(event.getType(), WldtEventTypes.ALL_PHYSICAL_RELATIONSHIP_INSTANCE_DELETED_EVENT_TYPE) && event.getBody() instanceof PhysicalAssetRelationshipInstanceDeletedWldtEvent<?>){
+                        PhysicalAssetRelationshipInstanceDeletedWldtEvent<?> physicalEvent = (PhysicalAssetRelationshipInstanceDeletedWldtEvent<?>) event;
+                        PhysicalAssetRelationshipInstance<?> relationshipInstance = (PhysicalAssetRelationshipInstance)physicalEvent.getBody();
+                        storage.savePhysicalAssetRelationshipInstanceDeletedEvent(physicalEvent.getCreationTimestamp(),
+                                relationshipInstance);
+                    }
+
+
+                }
+            }
         else
-            logger.error("Error saving the PhysicalAssetWldtEvent ! The default storage is not present or the event is not a PhysicalAssetWldtEvent !");
+            logger.error("Error saving the PhysicalAssetWldtEvent ! The event is not a PhysicalAssetWldtEvent !");
     }
 
     /**
@@ -373,26 +251,80 @@ public abstract class StorageManager extends DigitalTwinWorker implements IWldtE
      */
     @Override
     public void onPhysicalAssetActionEvent(WldtEvent<?> wldtEvent) {
-        if(defaultStorageId != null && this.storageMap.containsKey(defaultStorageId) && wldtEvent instanceof PhysicalAssetActionWldtEvent<?>){
-            IWldtStorage storage = this.storageMap.get(defaultStorageId);
-            storage.savePhysicalAssetActionEvent(wldtEvent);
-        }
+
+        // Check if the event is a PhysicalAssetActionWldtEvent
+        if(wldtEvent != null && wldtEvent.getBody() != null && wldtEvent instanceof PhysicalAssetActionWldtEvent<?>)
+
+            // Find Storage interested to the target event
+            for (Map.Entry<String, WldtStorage> entry : storageMap.entrySet()) {
+
+                WldtStorage storage = entry.getValue();
+
+                // Save the PhysicalAssetActionWldtEvent
+                if (storage != null && storage.isObserverPhysicalAssetActionEvents()) {
+                    PhysicalAssetActionWldtEvent<?> physicalAssetActionWldtEvent = (PhysicalAssetActionWldtEvent<?>) wldtEvent;
+                    storage.savePhysicalAssetActionEvent(physicalAssetActionWldtEvent.getCreationTimestamp(),
+                            physicalAssetActionWldtEvent.getActionKey(),
+                            physicalAssetActionWldtEvent.getBody(),
+                            physicalAssetActionWldtEvent.getMetadata());
+                }
+            }
+            else
+                logger.error("Error saving the PhysicalAssetActionWldtEvent ! The event is not a PhysicalAssetActionWldtEvent !");
     }
 
     @Override
     public void onDigitalActionEvent(WldtEvent<?> wldtEvent) {
-        if(defaultStorageId != null && this.storageMap.containsKey(defaultStorageId) && wldtEvent instanceof DigitalActionWldtEvent<?>){
-            IWldtStorage storage = this.storageMap.get(defaultStorageId);
-            storage.saveDigitalActionEvent(wldtEvent);
-        }
+
+        // Check if the event is a PhysicalAssetActionWldtEvent
+        if(wldtEvent != null && wldtEvent.getBody() != null && wldtEvent instanceof DigitalActionWldtEvent<?>)
+            // Find Storage interested to the target event
+            for (Map.Entry<String, WldtStorage> entry : storageMap.entrySet()) {
+
+                WldtStorage storage = entry.getValue();
+
+                // Save the DigitalActionWldtEvent
+                if (storage != null && storage.isObserverDigitalActionEvents()) {
+                    DigitalActionWldtEvent<?> digitalActionWldtEvent = (DigitalActionWldtEvent<?>) wldtEvent;
+                    storage.saveDigitalActionEvent(
+                            digitalActionWldtEvent.getCreationTimestamp(),
+                            digitalActionWldtEvent.getActionKey(),
+                            digitalActionWldtEvent.getBody(),
+                            digitalActionWldtEvent.getMetadata());
+                }
+            }
+        else
+            logger.error("Error saving the DigitalActionWldtEvent ! The event is not a DigitalActionWldtEvent !");
     }
 
     @Override
     public void onPhysicalAssetDescriptionEvent(WldtEvent<?> wldtEvent) {
-        if(defaultStorageId != null && this.storageMap.containsKey(defaultStorageId) && wldtEvent != null && wldtEvent.getBody() instanceof PhysicalAssetDescription){
-            IWldtStorage storage = this.storageMap.get(defaultStorageId);
-            storage.savePhysicalAssetDescription(wldtEvent);
-        }
+
+        // Check if the event is a PhysicalAssetActionWldtEvent
+        if(wldtEvent != null && wldtEvent.getBody() != null && wldtEvent.getBody() instanceof PhysicalAssetDescription)
+
+            // Find Storage interested to the target event
+            for (Map.Entry<String, WldtStorage> entry : storageMap.entrySet()) {
+                WldtStorage storage = entry.getValue();
+                if (storage != null && storage.isObservePhysicalAssetDescriptionEvents()) {
+
+                    // Get the event timestamp and adapter id
+                    long timestamp = wldtEvent.getCreationTimestamp();
+                    String adapterId = null;
+
+                    // Check if the adapter id is present in the event metadata
+                    if(wldtEvent.getMetadata(WldtEventTypes.PHYSICAL_ASSET_DESCRIPTION_EVENT_METADATA_ADAPTER_ID).isPresent())
+                        adapterId = (String) wldtEvent.getMetadata(WldtEventTypes.PHYSICAL_ASSET_DESCRIPTION_EVENT_METADATA_ADAPTER_ID).get();
+
+                    // Save the PhysicalAssetDescription Event
+                    if (wldtEvent.getType().equals(WldtEventTypes.PHYSICAL_ASSET_DESCRIPTION_AVAILABLE))
+                        storage.savePhysicalAssetDescriptionAvailable(timestamp, adapterId, (PhysicalAssetDescription) wldtEvent.getBody());
+                    if (wldtEvent.getType().equals(WldtEventTypes.PHYSICAL_ASSET_DESCRIPTION_UPDATED))
+                        storage.savePhysicalAssetDescriptionUpdated(timestamp, adapterId, (PhysicalAssetDescription) wldtEvent.getBody());
+                }
+            }
+        else
+            logger.error("Error saving the PhysicalAssetDescription Event ! The event body is not a PhysicalAssetDescription !");
     }
 
     /**
@@ -403,9 +335,16 @@ public abstract class StorageManager extends DigitalTwinWorker implements IWldtE
      */
     @Override
     public void onLifeCycleEvent(WldtEvent<?> wldtEvent) {
-        if(defaultStorageId != null && this.storageMap.containsKey(defaultStorageId) && wldtEvent != null && wldtEvent.getBody() instanceof String){
-            IWldtStorage storage = this.storageMap.get(defaultStorageId);
-            storage.saveLifeCycleState(wldtEvent.getCreationTimestamp(), LifeCycleState.valueOf((String) wldtEvent.getBody()));
-        }
+
+        // Check if the event is a PhysicalAssetActionWldtEvent
+        if(wldtEvent != null && wldtEvent.getBody() != null && wldtEvent.getBody() instanceof String)
+            // Find Storage interested to the target event
+            for (Map.Entry<String, WldtStorage> entry : storageMap.entrySet()) {
+                WldtStorage storage = entry.getValue();
+                if (storage != null && storage.isObserveLifeCycleEvents())
+                    storage.saveLifeCycleState(wldtEvent.getCreationTimestamp(), LifeCycleState.valueOf((String) wldtEvent.getBody()));
+            }
+        else
+            logger.error("Error saving the LifeCycleEvent Event ! The event body is not a String !");
     }
 }
