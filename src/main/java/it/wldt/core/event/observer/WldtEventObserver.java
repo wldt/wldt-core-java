@@ -89,8 +89,8 @@ public class WldtEventObserver implements WldtEventListener {
                 targetFilter.clear();
                 targetFilter = new WldtEventFilter();
             }
-            else
-                logger.warn("Warning Canceling Observation Observing Events ! Empty/Null Filter or List ...");
+            //else
+            //    logger.warn("Warning Canceling Observation Observing Events ! Empty/Null Filter or List ...");
         }catch (Exception e){
             logger.error("Error Canceling Observation for Events ! Error: {}, Filter: {}", e.getLocalizedMessage(), targetFilter);
         }

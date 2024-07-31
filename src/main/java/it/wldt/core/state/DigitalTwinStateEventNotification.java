@@ -23,7 +23,7 @@ public class DigitalTwinStateEventNotification<T> {
 
     private Long timestamp;
 
-    public DigitalTwinStateEventNotification(String digitalEventKey, T body, Long timestamp) throws EventBusException {
+    public DigitalTwinStateEventNotification(String digitalEventKey, T body, Long timestamp) {
         this.digitalEventKey = digitalEventKey;
         this.body = body;
         this.timestamp = timestamp;

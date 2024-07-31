@@ -6,6 +6,7 @@ import it.wldt.core.engine.LifeCycleState;
 import it.wldt.core.engine.LifeCycleStateVariation;
 import it.wldt.core.state.DigitalTwinState;
 import it.wldt.core.state.DigitalTwinStateChange;
+import it.wldt.core.state.DigitalTwinStateEventNotification;
 import it.wldt.exception.StorageException;
 
 import java.util.List;
@@ -50,7 +51,7 @@ public abstract class WldtStorage {
     /**
      * Default Constructor
      */
-    public WldtStorage(String storageId) {
+    protected WldtStorage(String storageId) {
         this.storageId = storageId;
     }
 
@@ -59,7 +60,7 @@ public abstract class WldtStorage {
      * @param storageId the id of the storage instance
      * @param observeAll if true the storage manager will observe all events and receive callback to handle the storage
      */
-    public WldtStorage(String storageId, boolean observeAll){
+    protected WldtStorage(String storageId, boolean observeAll){
         this(storageId);
         this.observeStateEvents = observeAll;
         this.observerPhysicalAssetEvents = observeAll;
@@ -79,7 +80,7 @@ public abstract class WldtStorage {
      * @param observerDigitalActionEvents if true the storage manager will observe digital action events and receive callback to handle the storage
      * @param observeLifeCycleEvents if true the storage manager will observe life cycle events and receive callback to handle the storage
      */
-    public WldtStorage(String storageId,
+    protected WldtStorage(String storageId,
                        boolean observeStateEvents,
                        boolean observerPhysicalAssetEvents,
                        boolean observerPhysicalAssetActionEvents,
@@ -204,6 +205,36 @@ public abstract class WldtStorage {
     public abstract List<DigitalTwinState> getDigitalTwinStateInRange(int startIndex, int endIndex) throws StorageException, IndexOutOfBoundsException, IllegalArgumentException;
 
     /**
+     * Save the Digital Twin State Event Notification
+     * @param digitalTwinStateEventNotification the Digital Twin State Event Notification to be saved
+     */
+    public abstract void saveDigitalTwinStateEventNotification(DigitalTwinStateEventNotification<?> digitalTwinStateEventNotification) throws StorageException;
+
+    /**
+     * Get the number of Digital Twin State Event Notification
+     * @return the number of Digital Twin State Event Notification
+     */
+    public abstract int getDigitalTwinStateEventNotificationCount() throws StorageException;
+
+    /**
+     * Get the Digital Twin State Event Notification in the specified time range
+     * @param startTimestampMs the start timestamp of the time range
+     * @param endTimestampMs the end timestamp of the time range
+     * @return the list of Digital Twin State Event Notification in the specified time range
+     */
+    public abstract List<DigitalTwinStateEventNotification<?>> getDigitalTwinStateEventNotificationInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException;
+
+    /**
+     * Get the Digital Twin State Event Notification in the specified range of indices
+     * @param startIndex the index of the first Digital Twin State Event Notification to retrieve (inclusive). Starting index is 0.
+     * @param endIndex the index of the last Digital Twin State Event Notification to retrieve (inclusive)
+     * @return a list of Digital Twin State Event Notification within the specified index range
+     * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
+     * @throws IllegalArgumentException if startIndex is greater than endIndex
+     */
+    public abstract List<DigitalTwinStateEventNotification<?>> getDigitalTwinStateEventNotificationInRange(int startIndex, int endIndex) throws StorageException, IllegalArgumentException;
+
+    /**
      * Save the LifeCycleState of the Digital Twin
      * @param lifeCycleStateVariation the LifeCycleStateVariation to be saved
      */
@@ -232,6 +263,36 @@ public abstract class WldtStorage {
     public abstract Map<Long, LifeCycleState> getLifeCycleStateInRange(int startIndex, int endIndex) throws StorageException, IndexOutOfBoundsException, IllegalArgumentException;
 
     /**
+     * Save the Physical Asset Event Notification
+     * @param physicalAssetEventNotification the Physical Asset Event Notification to be saved
+     */
+    public abstract void savePhysicalAssetEventNotification(PhysicalAssetEventNotification physicalAssetEventNotification) throws StorageException;
+
+    /**
+     * Get the number of Physical Asset Event Notification
+     * @return the number of Physical Asset Event Notification
+     */
+    public abstract int getPhysicalAssetEventNotificationCount() throws StorageException;
+
+    /**
+     * Get the Physical Asset Event Notification in the specified time range
+     * @param startTimestampMs the start timestamp of the time range
+     * @param endTimestampMs the end timestamp of the time range
+     * @return the list of Physical Asset Event Notification in the specified time range
+     */
+    public abstract List<PhysicalAssetEventNotification> getPhysicalAssetEventNotificationInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException;
+
+    /**
+     * Get the Physical Asset Event Notification in the specified range of indices
+     * @param startIndex the index of the first Physical Asset Event Notification to retrieve (inclusive). Starting index is 0.
+     * @param endIndex the index of the last Physical Asset Event Notification to retrieve (inclusive)
+     * @return a list of Physical Asset Event Notification within the specified index range
+     * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
+     * @throws IllegalArgumentException if startIndex is greater than endIndex
+     */
+    public abstract List<PhysicalAssetEventNotification> getPhysicalAssetEventNotificationInRange(int startIndex, int endIndex) throws StorageException, IndexOutOfBoundsException, IllegalArgumentException;
+
+    /**
      * Save Physical Asset Action Request
      * @param physicalAssetActionRequest the Physical Asset Action Request to be saved
      */
@@ -241,7 +302,7 @@ public abstract class WldtStorage {
      * Get the number of Physical Asset Action Request
      * @return the number of Physical Asset Action Request
      */
-    public abstract int getPhysicalAssetActionEventCount() throws StorageException;
+    public abstract int getPhysicalAssetActionRequestCount() throws StorageException;
 
     /**
      * Get the Physical Asset Action Request in the specified time range
@@ -265,13 +326,13 @@ public abstract class WldtStorage {
      * Save a Digital Action Request
      * @param digitalActionRequest the Digital Action Request to be saved
      */
-    public abstract void saveDigitalActionEvent(DigitalActionRequest digitalActionRequest) throws StorageException;
+    public abstract void saveDigitalActionRequest(DigitalActionRequest digitalActionRequest) throws StorageException;
 
     /**
      * Get the number of Digital Action Request Stored
      * @return the number of Digital Action Request
      */
-    public abstract int getDigitalActionEventCount() throws StorageException;
+    public abstract int getDigitalActionRequestCount() throws StorageException;
 
     /**
      * Get the Digital Action Request in the specified time range
@@ -442,8 +503,13 @@ public abstract class WldtStorage {
     public abstract List<PhysicalRelationshipInstanceVariation> getPhysicalAssetRelationshipInstanceDeletedEventInRange(int startIndex, int endIndex) throws StorageException, IndexOutOfBoundsException, IllegalArgumentException;
 
     /**
+     * Initialize the WLDT Storage
+     */
+    protected abstract void init() throws StorageException;
+
+    /**
      * Clear all the store information in the WLDT Storage
      */
-    public abstract void clear();
+    protected abstract void clear() throws StorageException;
 
 }

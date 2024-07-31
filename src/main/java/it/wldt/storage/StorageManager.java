@@ -14,6 +14,7 @@ import it.wldt.core.event.observer.IWldtEventObserverListener;
 import it.wldt.core.event.observer.WldtEventObserver;
 import it.wldt.core.state.DigitalTwinState;
 import it.wldt.core.state.DigitalTwinStateChange;
+import it.wldt.core.state.DigitalTwinStateEventNotification;
 import it.wldt.core.state.DigitalTwinStateManager;
 import it.wldt.exception.StorageException;
 import it.wldt.exception.WldtRuntimeException;
@@ -34,7 +35,7 @@ import java.util.Map;
  * The StorageManager class is an observer of the WldtEventBus and it is able to save the data in the storage.
  * The StorageManager class is also a DigitalTwinWorker and it is able to start and stop the storage manager.
  */
-public abstract class StorageManager extends DigitalTwinWorker implements IWldtEventObserverListener {
+public class StorageManager extends DigitalTwinWorker implements IWldtEventObserverListener {
 
     private static final Logger logger = LoggerFactory.getLogger(StorageManager.class);
 
@@ -52,6 +53,7 @@ public abstract class StorageManager extends DigitalTwinWorker implements IWldtE
     public StorageManager(String digitalTwinId){
         this.digitalTwinId = digitalTwinId;
         this.storageMap = new HashMap<>();
+        logger.info("StorageManager created for the DigitalTwin with id: {}", digitalTwinId);
     }
 
     /**
@@ -110,6 +112,8 @@ public abstract class StorageManager extends DigitalTwinWorker implements IWldtE
             wldtEventObserver.observeDigitalActionEvents();
             wldtEventObserver.observeLifeCycleEvents();
 
+            logger.info("WldtEventObserver for the StorageManager initialized !");
+
         }catch (Exception e){
             logger.error("Error initializing the StorageManager WldtEventObserver ! Error: {}", e.getLocalizedMessage());
         }
@@ -134,6 +138,9 @@ public abstract class StorageManager extends DigitalTwinWorker implements IWldtE
                 wldtEventObserver.unObservePhysicalAssetDescriptionEvents();
                 wldtEventObserver.unObserveDigitalActionEvents();
                 wldtEventObserver.unObserveLifeCycleEvents();
+
+                // Clear all the references to Storage Instances
+                this.storageMap.clear();
 
             }
             else
@@ -193,6 +200,16 @@ public abstract class StorageManager extends DigitalTwinWorker implements IWldtE
                 }
 
             }
+            else if(wldtEvent != null && wldtEvent.getBody() != null && wldtEvent.getBody() instanceof DigitalTwinStateEventNotification){
+                DigitalTwinStateEventNotification<?> eventNotification = (DigitalTwinStateEventNotification<?>) wldtEvent.getBody();
+
+                // Find Storage interested to the target event
+                for (Map.Entry<String, WldtStorage> entry : storageMap.entrySet()) {
+                    WldtStorage storage = entry.getValue();
+                    if(storage != null && storage.isObserveStateEvents())
+                        storage.saveDigitalTwinStateEventNotification(eventNotification);
+                }
+            }
             else
                 logger.error("Error saving the DigitalTwinState ! The event is not a DigitalTwinState !");
         }catch (Exception e){
@@ -219,7 +236,7 @@ public abstract class StorageManager extends DigitalTwinWorker implements IWldtE
                     if (storage != null && storage.isObserverPhysicalAssetEvents()){
 
                         // Save the PhysicalAsset Property Variation
-                        if(WldtEventBus.getInstance().matchWildCardType(event.getType(), WldtEventTypes.ALL_PHYSICAL_PROPERTY_VARIATION_EVENT_TYPE) && event.getBody() instanceof PhysicalAssetPropertyWldtEvent<?>){
+                        if(WldtEventBus.getInstance().matchWildCardType(event.getType(), WldtEventTypes.ALL_PHYSICAL_PROPERTY_VARIATION_EVENT_TYPE) && event instanceof PhysicalAssetPropertyWldtEvent<?>){
                             PhysicalAssetPropertyWldtEvent<?> propertyVariationEvent = (PhysicalAssetPropertyWldtEvent<?>) event;
                             storage.savePhysicalAssetPropertyVariation(new PhysicalAssetPropertyVariation(propertyVariationEvent.getCreationTimestamp(),
                                     propertyVariationEvent.getPhysicalPropertyId(),
@@ -228,16 +245,16 @@ public abstract class StorageManager extends DigitalTwinWorker implements IWldtE
                         }
 
                         // Save the PhysicalAsset Event
-                        if(WldtEventBus.getInstance().matchWildCardType(event.getType(), WldtEventTypes.ALL_PHYSICAL_EVENT_NOTIFICATION_EVENT_TYPE) && event.getBody() instanceof PhysicalAssetEventWldtEvent<?>){
+                        if(WldtEventBus.getInstance().matchWildCardType(event.getType(), WldtEventTypes.ALL_PHYSICAL_EVENT_NOTIFICATION_EVENT_TYPE) && event instanceof PhysicalAssetEventWldtEvent<?>){
                             PhysicalAssetEventWldtEvent<?> physicalEvent = (PhysicalAssetEventWldtEvent<?>) event;
-                            storage.savePhysicalAssetActionRequest(new PhysicalAssetActionRequest(physicalEvent.getCreationTimestamp(),
+                            storage.savePhysicalAssetEventNotification(new PhysicalAssetEventNotification(physicalEvent.getCreationTimestamp(),
                                     physicalEvent.getPhysicalEventKey(),
                                     physicalEvent.getBody(),
                                     physicalEvent.getMetadata()));
                         }
 
                         // Save the PhysicalAsset Relationship Instance Created
-                        if(WldtEventBus.getInstance().matchWildCardType(event.getType(), WldtEventTypes.ALL_PHYSICAL_RELATIONSHIP_INSTANCE_CREATION_EVENT_TYPE) && event.getBody() instanceof PhysicalAssetRelationshipInstanceCreatedWldtEvent<?>){
+                        if(WldtEventBus.getInstance().matchWildCardType(event.getType(), WldtEventTypes.ALL_PHYSICAL_RELATIONSHIP_INSTANCE_CREATION_EVENT_TYPE) && event instanceof PhysicalAssetRelationshipInstanceCreatedWldtEvent<?>){
                             PhysicalAssetRelationshipInstanceCreatedWldtEvent<?> physicalEvent = (PhysicalAssetRelationshipInstanceCreatedWldtEvent<?>) event;
                             PhysicalAssetRelationshipInstance<?> relationshipInstance = physicalEvent.getBody();
                             storage.savePhysicalAssetRelationshipInstanceCreatedEvent(new PhysicalRelationshipInstanceVariation(physicalEvent.getCreationTimestamp(),
@@ -245,7 +262,7 @@ public abstract class StorageManager extends DigitalTwinWorker implements IWldtE
                         }
 
                         // Save the PhysicalAsset Relationship Instance Deleted
-                        if(WldtEventBus.getInstance().matchWildCardType(event.getType(), WldtEventTypes.ALL_PHYSICAL_RELATIONSHIP_INSTANCE_DELETED_EVENT_TYPE) && event.getBody() instanceof PhysicalAssetRelationshipInstanceDeletedWldtEvent<?>){
+                        if(WldtEventBus.getInstance().matchWildCardType(event.getType(), WldtEventTypes.ALL_PHYSICAL_RELATIONSHIP_INSTANCE_DELETED_EVENT_TYPE) && event instanceof PhysicalAssetRelationshipInstanceDeletedWldtEvent<?>){
                             PhysicalAssetRelationshipInstanceDeletedWldtEvent<?> physicalEvent = (PhysicalAssetRelationshipInstanceDeletedWldtEvent<?>) event;
                             PhysicalAssetRelationshipInstance<?> relationshipInstance = physicalEvent.getBody();
                             storage.savePhysicalAssetRelationshipInstanceDeletedEvent(new PhysicalRelationshipInstanceVariation(physicalEvent.getCreationTimestamp(),
@@ -307,7 +324,7 @@ public abstract class StorageManager extends DigitalTwinWorker implements IWldtE
                     // Save the DigitalActionWldtEvent
                     if (storage != null && storage.isObserverDigitalActionEvents()) {
                         DigitalActionWldtEvent<?> digitalActionWldtEvent = (DigitalActionWldtEvent<?>) wldtEvent;
-                        storage.saveDigitalActionEvent(new DigitalActionRequest(
+                        storage.saveDigitalActionRequest(new DigitalActionRequest(
                                 digitalActionWldtEvent.getCreationTimestamp(),
                                 digitalActionWldtEvent.getActionKey(),
                                 digitalActionWldtEvent.getBody(),
@@ -376,7 +393,8 @@ public abstract class StorageManager extends DigitalTwinWorker implements IWldtE
                 for (Map.Entry<String, WldtStorage> entry : storageMap.entrySet()) {
                     WldtStorage storage = entry.getValue();
                     if (storage != null && storage.isObserveLifeCycleEvents())
-                        storage.saveLifeCycleState(new LifeCycleStateVariation(wldtEvent.getCreationTimestamp(), LifeCycleState.valueOf((String) wldtEvent.getBody())));
+                        //storage.saveLifeCycleState(new LifeCycleStateVariation(wldtEvent.getCreationTimestamp(), LifeCycleState.valueOf((String) wldtEvent.getBody())));
+                        storage.saveLifeCycleState(new LifeCycleStateVariation(wldtEvent.getCreationTimestamp(), LifeCycleState.fromValue((String) wldtEvent.getBody())));
                 }
             else
                 logger.error("Error saving the LifeCycleEvent Event ! The event body is not a String !");

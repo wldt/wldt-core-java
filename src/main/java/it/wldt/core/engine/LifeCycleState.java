@@ -25,4 +25,13 @@ public enum LifeCycleState {
         public void setValue(String value) {
             this.value = value;
         }
+
+        public static LifeCycleState fromValue(String value) {
+            for (LifeCycleState state : LifeCycleState.values()) {
+                if (state.getValue().equals(value)) {
+                    return state;
+                }
+            }
+            return null;
+        }
     }

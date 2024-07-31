@@ -24,15 +24,17 @@ public class PhysicalAssetRelationshipInstance<T> {
     private final PhysicalAssetRelationship<T> relationship;
     private final Map<String, Object> metadata = new HashMap<>();
 
-    protected PhysicalAssetRelationshipInstance(PhysicalAssetRelationship<T> relationship, T targetId) {
+    public PhysicalAssetRelationshipInstance(PhysicalAssetRelationship<T> relationship, T targetId) {
         this.key = String.format("%s.%s.%s", INSTANCE_PREFIX_KEY, relationship.getName(), targetId);
         this.targetId = targetId;
         this.relationship = relationship;
     }
 
-    protected PhysicalAssetRelationshipInstance(PhysicalAssetRelationship<T> relationship, T targetId, Map<String, Object> metadata){
+    public PhysicalAssetRelationshipInstance(PhysicalAssetRelationship<T> relationship, T targetId, Map<String, Object> metadata){
         this(relationship, targetId);
-        this.metadata.putAll(metadata);
+
+        if(metadata != null)
+            this.metadata.putAll(metadata);
     }
 
     public String getKey() {

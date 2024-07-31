@@ -1,17 +1,15 @@
 package it.wldt.storage;
 
 import it.wldt.adapter.digital.DigitalActionRequest;
-import it.wldt.adapter.digital.event.DigitalWldtEvent;
-import it.wldt.adapter.physical.PhysicalAssetActionRequest;
-import it.wldt.adapter.physical.PhysicalAssetDescriptionNotification;
-import it.wldt.adapter.physical.PhysicalAssetPropertyVariation;
-import it.wldt.adapter.physical.PhysicalRelationshipInstanceVariation;
-import it.wldt.adapter.physical.event.PhysicalAssetWldtEvent;
+import it.wldt.adapter.physical.*;
 import it.wldt.core.engine.LifeCycleState;
 import it.wldt.core.engine.LifeCycleStateVariation;
 import it.wldt.core.state.DigitalTwinState;
 import it.wldt.core.state.DigitalTwinStateChange;
+import it.wldt.core.state.DigitalTwinStateEventNotification;
 import it.wldt.exception.StorageException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
@@ -26,10 +24,14 @@ import java.util.*;
  */
 public class DefaultWldtStorage extends WldtStorage {
 
+    private static final Logger logger = LoggerFactory.getLogger(StorageManager.class);
+
     // Instance variables for storing digital twin states, state changes, physical asset events, and digital twin events
     private Map<Long, DigitalTwinState> digitalTwinStateMap;
+    private Map<Long, DigitalTwinStateEventNotification<?>> digitalStateEventNotificationMap;
     private Map<Long, List<DigitalTwinStateChange>> stateChangeMap;
     private Map<Long, PhysicalAssetActionRequest> physicalActionRequestMap;
+    private Map<Long, PhysicalAssetEventNotification> physicalEventNotificationsMap;
     private Map<Long, DigitalActionRequest> digitalActionRequestMap;
     private Map<Long, PhysicalAssetDescriptionNotification> newPhysicalAssetDescriptionNotificationMap;
     private Map<Long, PhysicalAssetDescriptionNotification> updatedPhysicalAssetDescriptionNotificationMap;
@@ -39,13 +41,78 @@ public class DefaultWldtStorage extends WldtStorage {
     private Map<Long, LifeCycleState> lifeCycleStateMap;
 
     /**
-     * Constructs a new DefaultWldtStorage object with empty storage containers.
+     * Default Constructor
      */
     public DefaultWldtStorage(String storageId) {
         super(storageId);
+
+        try{
+            init();
+        }catch (Exception e){
+            logger.error("Error during storage initialization: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Constructor with the possibility to enable/disable the observation of all events
+     * @param storageId the id of the storage instance
+     * @param observeAll if true the storage manager will observe all events and receive callback to handle the storage
+     */
+    public DefaultWldtStorage(String storageId, boolean observeAll){
+        super(storageId, observeAll);
+
+        try{
+            init();
+        }catch (Exception e){
+            logger.error("Error during storage initialization: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Constructor with the possibility to enable/disable the observation of specific events
+     * @param storageId the id of the storage instance
+     * @param observeStateEvents if true the storage manager will observe state events and receive callback to handle the storage
+     * @param observerPhysicalAssetEvents if true the storage manager will observe physical asset events and receive callback to handle the storage
+     * @param observerPhysicalAssetActionEvents if true the storage manager will observe physical asset action events and receive callback to handle the storage
+     * @param observePhysicalAssetDescriptionEvents if true the storage manager will observe physical asset description events and receive callback to handle the storage
+     * @param observerDigitalActionEvents if true the storage manager will observe digital action events and receive callback to handle the storage
+     * @param observeLifeCycleEvents if true the storage manager will observe life cycle events and receive callback to handle the storage
+     */
+    public DefaultWldtStorage(String storageId,
+                          boolean observeStateEvents,
+                          boolean observerPhysicalAssetEvents,
+                          boolean observerPhysicalAssetActionEvents,
+                          boolean observePhysicalAssetDescriptionEvents,
+                          boolean observerDigitalActionEvents,
+                          boolean observeLifeCycleEvents){
+        super(storageId,
+                observeStateEvents,
+                observerPhysicalAssetEvents,
+                observerPhysicalAssetActionEvents,
+                observePhysicalAssetDescriptionEvents,
+                observerDigitalActionEvents,
+                observeLifeCycleEvents);
+
+        try{
+            init();
+        }catch (Exception e){
+            logger.error("Error during storage initialization: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Initialize the WLDT Storage
+     */
+    @Override
+    protected void init() throws StorageException{
+
+        logger.info("Initializing Default WLDT Storage...");
+
         this.digitalTwinStateMap = new HashMap<>();
+        this.digitalStateEventNotificationMap= new HashMap<>();
         this.stateChangeMap = new HashMap<>();
         this.physicalActionRequestMap = new HashMap<>();
+        this.physicalEventNotificationsMap = new HashMap<>();
         this.digitalActionRequestMap = new HashMap<>();
         this.newPhysicalAssetDescriptionNotificationMap = new HashMap<>();
         this.updatedPhysicalAssetDescriptionNotificationMap = new HashMap<>();
@@ -55,7 +122,27 @@ public class DefaultWldtStorage extends WldtStorage {
         this.lifeCycleStateMap = new HashMap<>();
     }
 
-    ////////////////////////////////////// Digital Twin State Management //////////////////////////////////////////////
+    /**
+     * Clear the WLDT Storage canceling all the stored data and information
+     */
+    @Override
+    public void clear(){
+
+        logger.info("Clearing Default WLDT Storage...");
+
+        this.digitalTwinStateMap.clear();
+        this.digitalStateEventNotificationMap.clear();
+        this.stateChangeMap.clear();
+        this.physicalActionRequestMap.clear();
+        this.physicalEventNotificationsMap.clear();
+        this.digitalActionRequestMap.clear();
+        this.newPhysicalAssetDescriptionNotificationMap.clear();
+        this.updatedPhysicalAssetDescriptionNotificationMap.clear();
+        this.physicalAssetPropertyVariationMap.clear();
+        this.physicalRelationshipInstanceCreatedMap.clear();
+        this.physicalRelationshipInstanceDeletedMap.clear();
+        this.lifeCycleStateMap.clear();
+    }
 
     /**
      * Save a new computed instance of the DT State in the Storage together with the list of the changes with respect
@@ -160,6 +247,75 @@ public class DefaultWldtStorage extends WldtStorage {
     }
 
     /**
+     * Save the Digital Twin State Event Notification
+     *
+     * @param digitalTwinStateEventNotification the Digital Twin State Event Notification to be saved
+     */
+    @Override
+    public void saveDigitalTwinStateEventNotification(DigitalTwinStateEventNotification<?> digitalTwinStateEventNotification) throws StorageException {
+        if(digitalTwinStateEventNotification == null)
+            throw new StorageException("Digital Twin State Event Notification cannot be null.");
+
+        // Save the Digital Twin State Event Notification
+        this.digitalStateEventNotificationMap.put(digitalTwinStateEventNotification.getTimestamp(), digitalTwinStateEventNotification);
+    }
+
+    /**
+     * Get the number of Digital Twin State Event Notification
+     *
+     * @return the number of Digital Twin State Event Notification
+     */
+    @Override
+    public int getDigitalTwinStateEventNotificationCount() throws StorageException {
+        return this.digitalStateEventNotificationMap.size();
+    }
+
+    /**
+     * Get the Digital Twin State Event Notification in the specified time range
+     *
+     * @param startTimestampMs the start timestamp of the time range
+     * @param endTimestampMs   the end timestamp of the time range
+     * @return the list of Digital Twin State Event Notification in the specified time range
+     */
+    @Override
+    public List<DigitalTwinStateEventNotification<?>> getDigitalTwinStateEventNotificationInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException {
+        List<DigitalTwinStateEventNotification<?>> result = new ArrayList<>();
+        for (Map.Entry<Long, DigitalTwinStateEventNotification<?>> entry : digitalStateEventNotificationMap.entrySet()) {
+            long timestamp = entry.getKey();
+            if (timestamp >= startTimestampMs && timestamp <= endTimestampMs) {
+                result.add(entry.getValue());
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Get the Digital Twin State Event Notification in the specified range of indices
+     *
+     * @param startIndex the index of the first Digital Twin State Event Notification to retrieve (inclusive). Starting index is 0.
+     * @param endIndex   the index of the last Digital Twin State Event Notification to retrieve (inclusive)
+     * @return a list of Digital Twin State Event Notification within the specified index range
+     * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
+     * @throws IllegalArgumentException  if startIndex is greater than endIndex
+     */
+    @Override
+    public List<DigitalTwinStateEventNotification<?>> getDigitalTwinStateEventNotificationInRange(int startIndex, int endIndex) throws StorageException, IllegalArgumentException {
+        if (startIndex < 0 || endIndex < 0 || startIndex > endIndex) {
+            throw new IllegalArgumentException("Invalid index range.");
+        }
+        if (endIndex >= digitalStateEventNotificationMap.size()) {
+            throw new IndexOutOfBoundsException("End index out of bounds.");
+        }
+
+        List<DigitalTwinStateEventNotification<?>> result = new ArrayList<>();
+        List<Long> timestamps = new ArrayList<>(digitalStateEventNotificationMap.keySet());
+        for (int i = startIndex; i <= endIndex; i++) {
+            result.add(digitalStateEventNotificationMap.get(timestamps.get(i)));
+        }
+        return result;
+    }
+
+    /**
      * Save the LifeCycleState of the Digital Twin
      * @param lifeCycleStateVariation the LifeCycleState of the Digital Twin to be saved
      */
@@ -225,6 +381,74 @@ public class DefaultWldtStorage extends WldtStorage {
     }
 
     /**
+     * Save the Physical Asset Event Notification
+     *
+     * @param physicalAssetEventNotification the Physical Asset Event Notification to be saved
+     */
+    @Override
+    public void savePhysicalAssetEventNotification(PhysicalAssetEventNotification physicalAssetEventNotification) throws StorageException {
+        if(physicalAssetEventNotification == null)
+            throw new StorageException("Physical Asset Event Notification cannot be null.");
+
+        this.physicalEventNotificationsMap.put(physicalAssetEventNotification.getTimestamp(), physicalAssetEventNotification);
+    }
+
+    /**
+     * Get the number of Physical Asset Event Notification
+     *
+     * @return the number of Physical Asset Event Notification
+     */
+    @Override
+    public int getPhysicalAssetEventNotificationCount() throws StorageException {
+        return this.physicalEventNotificationsMap.size();
+    }
+
+    /**
+     * Get the Physical Asset Event Notification in the specified time range
+     *
+     * @param startTimestampMs the start timestamp of the time range
+     * @param endTimestampMs   the end timestamp of the time range
+     * @return the list of Physical Asset Event Notification in the specified time range
+     */
+    @Override
+    public List<PhysicalAssetEventNotification> getPhysicalAssetEventNotificationInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException {
+        List<PhysicalAssetEventNotification> result = new ArrayList<>();
+        for (Map.Entry<Long, PhysicalAssetEventNotification> entry : physicalEventNotificationsMap.entrySet()) {
+            long timestamp = entry.getKey();
+            if (timestamp >= startTimestampMs && timestamp <= endTimestampMs) {
+                result.add(entry.getValue());
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Get the Physical Asset Event Notification in the specified range of indices
+     *
+     * @param startIndex the index of the first Physical Asset Event Notification to retrieve (inclusive). Starting index is 0.
+     * @param endIndex   the index of the last Physical Asset Event Notification to retrieve (inclusive)
+     * @return a list of Physical Asset Event Notification within the specified index range
+     * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
+     * @throws IllegalArgumentException  if startIndex is greater than endIndex
+     */
+    @Override
+    public List<PhysicalAssetEventNotification> getPhysicalAssetEventNotificationInRange(int startIndex, int endIndex) throws StorageException, IndexOutOfBoundsException, IllegalArgumentException {
+        if (startIndex < 0 || endIndex < 0 || startIndex > endIndex) {
+            throw new IllegalArgumentException("Invalid index range.");
+        }
+        if (endIndex >= physicalEventNotificationsMap.size()) {
+            throw new IndexOutOfBoundsException("End index out of bounds.");
+        }
+
+        List<PhysicalAssetEventNotification> result = new ArrayList<>();
+        List<Long> timestamps = new ArrayList<>(physicalEventNotificationsMap.keySet());
+        for (int i = startIndex; i <= endIndex; i++) {
+            result.add(physicalEventNotificationsMap.get(timestamps.get(i)));
+        }
+        return result;
+    }
+
+    /**
      * Save Physical Asset Action Request
      *
      * @param physicalAssetActionRequest the Physical Asset Action Request to be saved
@@ -242,7 +466,7 @@ public class DefaultWldtStorage extends WldtStorage {
      * @return the number of Physical Asset Action Request
      */
     @Override
-    public int getPhysicalAssetActionEventCount() {
+    public int getPhysicalAssetActionRequestCount() {
         return this.physicalActionRequestMap.size();
     }
 
@@ -297,7 +521,7 @@ public class DefaultWldtStorage extends WldtStorage {
      * @param digitalActionRequest the Digital Action Request to be saved
      */
     @Override
-    public void saveDigitalActionEvent(DigitalActionRequest digitalActionRequest) throws StorageException {
+    public void saveDigitalActionRequest(DigitalActionRequest digitalActionRequest) throws StorageException {
         if(digitalActionRequest == null)
             throw new StorageException("Digital Action Request cannot be null.");
 
@@ -310,7 +534,7 @@ public class DefaultWldtStorage extends WldtStorage {
      * @return the number of Digital Action Request
      */
     @Override
-    public int getDigitalActionEventCount() {
+    public int getDigitalActionRequestCount() {
         return this.digitalActionRequestMap.size();
     }
 
@@ -515,7 +739,7 @@ public class DefaultWldtStorage extends WldtStorage {
      * @return the number of Physical Asset Property Variation
      */
     @Override
-    public int getPhysicalAssetPropertyVariationCount() {
+    public int getPhysicalAssetPropertyVariationCount() throws StorageException{
         return this.physicalAssetPropertyVariationMap.size();
     }
 
@@ -698,20 +922,6 @@ public class DefaultWldtStorage extends WldtStorage {
             result.add(physicalRelationshipInstanceDeletedMap.get(timestamps.get(i)));
         }
         return result;
-    }
-
-    @Override
-    public void clear(){
-        this.digitalTwinStateMap.clear();
-        this.stateChangeMap.clear();
-        this.physicalActionRequestMap.clear();
-        this.digitalActionRequestMap.clear();
-        this.newPhysicalAssetDescriptionNotificationMap.clear();
-        this.updatedPhysicalAssetDescriptionNotificationMap.clear();
-        this.physicalAssetPropertyVariationMap.clear();
-        this.physicalRelationshipInstanceCreatedMap.clear();
-        this.physicalRelationshipInstanceDeletedMap.clear();
-        this.lifeCycleStateMap.clear();
     }
 
 }

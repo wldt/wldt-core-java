@@ -16,6 +16,7 @@ import it.wldt.core.state.DigitalTwinState;
 import it.wldt.core.state.DigitalTwinStateManager;
 import it.wldt.exception.*;
 
+import it.wldt.storage.StorageManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,6 +39,7 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
     private static final Logger logger = LoggerFactory.getLogger(DigitalTwin.class);
 
     private static final String EVENT_PUBLISHER_ID = "dt_core";
+
 
     // Internal TAG fo Logs
     private static final String TAG = "[WLDT-DigitalTwin]";
@@ -118,6 +120,11 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
     private Thread modelEngineThread = null;
 
     /**
+     * Thread for the Storage Manager Execution
+     */
+    private Thread storageManagerThread = null;
+
+    /**
      * Reference to the Shadowing Function used by the Digital Twin and its Model Engine
      */
     private ShadowingFunction shadowingFunction = null;
@@ -128,6 +135,11 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
     private String digitalTwinId;
 
     private Object syncStateObject = new Object();
+
+    /**
+     * Storage Manager for the Digital Twin
+     */
+    private StorageManager storageManager = null;
 
     /**
      * Constructor for creating a DigitalTwin instance.
@@ -202,6 +214,9 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
         //Initialize the Digital Twin State
         this.digitalTwinStateManager = new DigitalTwinStateManager(this.digitalTwinId);
 
+        // Initialize the Storage Manager of the current Digital Twin instance
+        this.storageManager = new StorageManager(this.digitalTwinId);
+
         //Init DT Initial Life Cycle Phase
         this.currentLifeCycleState = LifeCycleState.NONE;
 
@@ -218,6 +233,9 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
 
         //Save the Model Engine as Digital Twin Life Cycle Listener
         addLifeCycleListener(this.modelEngine);
+
+        // Execute Storage Manager
+        executeStorageManager();
     }
 
     /**
@@ -227,6 +245,12 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
         modelEngineThread = new Thread(this.modelEngine);
         modelEngineThread.setName(String.format("%s-model-engine", this.getId()));
         modelEngineThread.start();
+    }
+
+    private void executeStorageManager(){
+        storageManagerThread = new Thread(this.storageManager);
+        storageManagerThread.setName(String.format("%s-storage-manager", this.getId()));
+        storageManagerThread.start();
     }
 
     /**
@@ -622,6 +646,14 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
             notifyLifeCycleOnStop();
             notifyLifeCycleOnDestroy();
 
+            // Wait to receive the latest events for the Storage Manager
+            Thread.sleep(2000);
+
+            // Stop Storage Manager
+            this.storageManagerThread.interrupt();
+            this.storageManagerThread = null;
+            this.storageManager.onWorkerStop();
+
         } catch (Exception e){
             logger.error("ERROR Stopping DT LifeCycle ! Error: {}", e.getLocalizedMessage());
         }
@@ -840,5 +872,12 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
         return digitalAdapterList;
     }
 
+    /**
+     * Returns the Storage Manager of the current Digital Twin
+     * @return
+     */
+    public StorageManager getStorageManager() {
+        return storageManager;
+    }
 
 }
