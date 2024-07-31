@@ -114,6 +114,16 @@ public class TestObserverListener implements IWldtEventObserverListener {
         handleNewEvent(this.lifeCycleEvents, wldtEvent);
     }
 
+    @Override
+    public void onQueryRequestEvent(WldtEvent<?> wldtEvent) {
+        // Not Implemented for this tests
+    }
+
+    @Override
+    public void onQueryResultEvent(WldtEvent<?> wldtEvent) {
+        // Not Implemented for this tests
+    }
+
     public Map<String, List<WldtEvent<?>>> getPhysicalAssetEvents() {
         return physicalAssetEvents;
     }

@@ -7,6 +7,7 @@ import it.wldt.adapter.physical.event.*;
 import it.wldt.core.engine.DigitalTwinWorker;
 import it.wldt.core.engine.LifeCycleState;
 import it.wldt.core.engine.LifeCycleStateVariation;
+import it.wldt.core.event.EventManager;
 import it.wldt.core.event.WldtEvent;
 import it.wldt.core.event.WldtEventBus;
 import it.wldt.core.event.WldtEventTypes;
@@ -18,11 +19,16 @@ import it.wldt.core.state.DigitalTwinStateEventNotification;
 import it.wldt.core.state.DigitalTwinStateManager;
 import it.wldt.exception.StorageException;
 import it.wldt.exception.WldtRuntimeException;
+import it.wldt.storage.query.DefaultQueryManager;
+import it.wldt.storage.query.IQueryManager;
+import it.wldt.storage.query.QueryRequest;
+import it.wldt.storage.query.QueryResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  *
@@ -30,16 +36,18 @@ import java.util.Map;
  *      Marco Picone, Ph.D. (picone.m@gmail.com)
  * Date: 25/07/2024
  *
- * The StorageManager class is an abstract class that represents the storage manager for a DigitalTwin.
+ * The StorageManager class is a class that represents the storage manager for a DigitalTwin.
  * It is responsible for managing the storage of the data related to the DigitalTwin.
- * The StorageManager class is an observer of the WldtEventBus and it is able to save the data in the storage.
- * The StorageManager class is also a DigitalTwinWorker and it is able to start and stop the storage manager.
+ * The StorageManager class is an observer of the WldtEventBus, and it is able to save the data in the storage.
+ * The StorageManager class is also a DigitalTwinWorker, and it is able to start and stop the storage manager.
  */
 public class StorageManager extends DigitalTwinWorker implements IWldtEventObserverListener {
 
     private static final Logger logger = LoggerFactory.getLogger(StorageManager.class);
 
-    private static final String STORAGE_MANAGER_OBSERVER_ID = "storage_manager";
+    private static final String STORAGE_MANAGER_EVENTBUS_CLIENT_ID = "storage_manager";
+
+    private IQueryManager queryManager;
 
     // Map containing the storage types for a DT
     private Map<String, WldtStorage> storageMap;
@@ -53,6 +61,10 @@ public class StorageManager extends DigitalTwinWorker implements IWldtEventObser
     public StorageManager(String digitalTwinId){
         this.digitalTwinId = digitalTwinId;
         this.storageMap = new HashMap<>();
+
+        // Set the Default Query Manager (can be updated through the setQueryManager method)
+        this.queryManager = new DefaultQueryManager();
+
         logger.info("StorageManager created for the DigitalTwin with id: {}", digitalTwinId);
     }
 
@@ -103,7 +115,7 @@ public class StorageManager extends DigitalTwinWorker implements IWldtEventObser
             // Check if the default storage is present and if the observation of any type is active
             logger.info("Initializing the WldtEventObserver for the StorageManager ...");
 
-            this.wldtEventObserver = new WldtEventObserver(this.digitalTwinId, STORAGE_MANAGER_OBSERVER_ID, this);
+            this.wldtEventObserver = new WldtEventObserver(this.digitalTwinId, STORAGE_MANAGER_EVENTBUS_CLIENT_ID, this);
 
             wldtEventObserver.observeStateEvents();
             wldtEventObserver.observePhysicalAssetEvents();
@@ -111,6 +123,9 @@ public class StorageManager extends DigitalTwinWorker implements IWldtEventObser
             wldtEventObserver.observePhysicalAssetDescriptionEvents();
             wldtEventObserver.observeDigitalActionEvents();
             wldtEventObserver.observeLifeCycleEvents();
+
+            // Observe the Query Request
+            wldtEventObserver.observeStorageQueryRequestEvents();
 
             logger.info("WldtEventObserver for the StorageManager initialized !");
 
@@ -138,6 +153,9 @@ public class StorageManager extends DigitalTwinWorker implements IWldtEventObser
                 wldtEventObserver.unObservePhysicalAssetDescriptionEvents();
                 wldtEventObserver.unObserveDigitalActionEvents();
                 wldtEventObserver.unObserveLifeCycleEvents();
+
+                // Cancel the observation for query Request
+                wldtEventObserver.unObserveStorageQueryRequestEvents();
 
                 // Clear all the references to Storage Instances
                 this.storageMap.clear();
@@ -401,5 +419,48 @@ public class StorageManager extends DigitalTwinWorker implements IWldtEventObser
         }catch (Exception e){
             logger.error("Error saving the LifeCycleEvent Event ! Error: {}", e.getLocalizedMessage());
         }
+    }
+
+    /**
+     * Method to be implemented by subclasses.
+     * Defines the logic to be executed when a QueryRequest is received.
+     *
+     * @param wldtEvent The QueryRequest received by the observer.
+     */
+    @Override
+    public void onQueryRequestEvent(WldtEvent<?> wldtEvent) {
+        try{
+            // Check if the event is a QueryRequest
+            if(wldtEvent != null && wldtEvent.getBody() != null && wldtEvent.getBody() instanceof QueryRequest) {
+                QueryRequest queryRequest = (QueryRequest) wldtEvent.getBody();
+                logger.info("Query Request Event Received ! Request: {}", queryRequest);
+
+                if (this.queryManager != null) {
+                    QueryResult<?> queryResult = this.queryManager.handleQuery(queryRequest, this.storageMap);
+                    EventManager.publishStorageQueryResult(this.digitalTwinId, STORAGE_MANAGER_EVENTBUS_CLIENT_ID, queryResult);
+                } else
+                    logger.error("Error handling the QueryRequest Event ! The QueryManager is not set !");
+            }
+            else
+                logger.error("Error handling the QueryRequest Event ! The event body is not a QueryRequest !");
+        }catch (Exception e){
+            logger.error("Error handling the QueryRequest Event ! Error: {}", e.getLocalizedMessage());
+        }
+    }
+
+    @Override
+    public void onQueryResultEvent(WldtEvent<?> wldtEvent) {
+        // Result of a query request are not used by the StorageManager
+    }
+
+    /**
+     * The method set the query manager for the StorageManager
+     * @param queryManager The query manager to be set
+     */
+    public void setQueryManager(IQueryManager queryManager) throws StorageException {
+        if(queryManager != null)
+            this.queryManager = queryManager;
+        else
+            throw new StorageException("The query manager cannot be null !");
     }
 }

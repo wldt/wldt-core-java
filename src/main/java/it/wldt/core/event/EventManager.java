@@ -3,6 +3,8 @@ package it.wldt.core.event;
 import it.wldt.adapter.physical.PhysicalAssetDescription;
 import it.wldt.core.engine.LifeCycleState;
 import it.wldt.exception.EventBusException;
+import it.wldt.storage.query.QueryRequest;
+import it.wldt.storage.query.QueryResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.HashMap;
@@ -59,7 +61,7 @@ public class EventManager {
     }
 
     /**
-     *
+     * Publishes a Physical Asset Description Updated Event
      * @param digitalTwinId
      * @param publisherId
      * @param adapterId
@@ -92,7 +94,7 @@ public class EventManager {
     }
 
     /**
-     *
+     * Publishes a Life Cycle Event
      * @param digitalTwinId
      * @param publisherId
      * @param lifeCycleState
@@ -117,7 +119,64 @@ public class EventManager {
                     targetEventType,
                     e.getLocalizedMessage());
         }
+    }
 
+    /**
+     * Publishes a Storage Query Request Event
+     * @param digitalTwinId Digital Twin Id
+     * @param publisherId Publisher Id
+     * @param request Query Request
+     */
+    public static void publishStorageQueryRequest(String digitalTwinId,
+                                                  String publisherId,
+                                                  QueryRequest request){
+
+        String targetEventType = WldtEventTypes.STORAGE_QUERY_REQUEST_EVENT_TYPE;
+
+        try {
+
+            WldtEvent<QueryRequest> event = new WldtEvent<>(
+                    targetEventType,
+                    request);
+
+            publishEvent(digitalTwinId, publisherId, event);
+
+        }catch (Exception e){
+            logger.error("Error Publishing Storage Query Request Event ! DT-Id: {} Event-Type: {} Error: {}",
+                    digitalTwinId,
+                    targetEventType,
+                    e.getLocalizedMessage());
+        }
+    }
+
+    /**
+     * Publishes a Storage Query Result Event
+     * @param digitalTwinId Digital Twin Id
+     * @param publisherId Publisher Id
+     * @param result Query Result
+     */
+    public static void publishStorageQueryResult(String digitalTwinId,
+                                                 String publisherId,
+                                                 QueryResult<?> result){
+
+        String targetEventType = String.format("%s.%s",
+                WldtEventTypes.STORAGE_QUERY_RESULT_EVENT_TYPE,
+                result.getOriginalRequest().getRequestId());
+
+        try {
+
+            WldtEvent<QueryResult<?>> event = new WldtEvent<>(
+                    targetEventType,
+                    result);
+
+            publishEvent(digitalTwinId, publisherId, event);
+
+        }catch (Exception e){
+            logger.error("Error Publishing Storage Query Result Event ! DT-Id: {} Event-Type: {} Error: {}",
+                    digitalTwinId,
+                    targetEventType,
+                    e.getLocalizedMessage());
+        }
     }
 
 }

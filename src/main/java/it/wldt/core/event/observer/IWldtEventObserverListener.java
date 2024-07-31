@@ -20,4 +20,7 @@ public interface IWldtEventObserverListener {
 
     public void onLifeCycleEvent(WldtEvent<?> wldtEvent);
 
+    public void onQueryRequestEvent(WldtEvent<?> wldtEvent);
+
+    public void onQueryResultEvent(WldtEvent<?> wldtEvent);
 }

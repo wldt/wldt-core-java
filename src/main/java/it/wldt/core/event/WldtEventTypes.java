@@ -48,4 +48,9 @@ public class WldtEventTypes {
     /* Life Cycle Events */
     public static final String DT_LIFE_CYCLE_EVENT_TYPE = "dt.lifecycle";
 
+    public static final String STORAGE_QUERY_REQUEST_EVENT_TYPE = "dt.storage.query.request";
+
+    public static final String STORAGE_QUERY_RESULT_EVENT_TYPE = "dt.storage.query.result";
+
+    public static final String ALL_STORAGE_QUERY_RESULT_EVENT_TYPE = String.format("%s.%s", STORAGE_QUERY_RESULT_EVENT_TYPE, MULTI_LEVEL_WILDCARD_VALUE);
 }

@@ -26,6 +26,10 @@ public class WldtEventObserver implements WldtEventListener {
 
     private WldtEventFilter lifeCycleEventFilter = null;
 
+    private WldtEventFilter queryRequestFilter = null;
+
+    private WldtEventFilter queryResultFilter = null;
+
     private String observerId;
 
     private String digitalTwinId;
@@ -56,6 +60,8 @@ public class WldtEventObserver implements WldtEventListener {
         this.digitalActionEventFilter = new WldtEventFilter();
         this.physicalAssetDescriptionEventFilter = new WldtEventFilter();
         this.lifeCycleEventFilter = new WldtEventFilter();
+        this.queryRequestFilter = new WldtEventFilter();
+        this.queryResultFilter = new WldtEventFilter();
 
         this.observerListener = observerListener;
     }
@@ -213,6 +219,42 @@ public class WldtEventObserver implements WldtEventListener {
         unObserveEventsWithFilter(this.lifeCycleEventFilter);
     }
 
+    /**
+     * Trigger the observation of events associated to the Storage Query Requests
+     * @throws EventBusException Event Bus Exception
+     */
+    public void observeStorageQueryRequestEvents() throws EventBusException {
+        observeEventsWithFilter(this.queryRequestFilter,
+                WldtEventTypes.STORAGE_QUERY_REQUEST_EVENT_TYPE);
+    }
+
+    /**
+     * Cancel the observation of events associated to the Storage Query Requests
+     * Notifications
+     * @throws EventBusException
+     */
+    public void unObserveStorageQueryRequestEvents() throws EventBusException {
+        unObserveEventsWithFilter(this.queryRequestFilter);
+    }
+
+    /**
+     * Trigger the observation of events associated to the Storage Query Results
+     * @throws EventBusException Event Bus Exception
+     */
+    public void observeStorageQueryResultEvents() throws EventBusException {
+        observeEventsWithFilter(this.queryResultFilter,
+                WldtEventTypes.ALL_STORAGE_QUERY_RESULT_EVENT_TYPE);
+    }
+
+    /**
+     * Cancel the observation of events associated to the Storage Query Results
+     * Notifications
+     * @throws EventBusException
+     */
+    public void unObserveStorageQueryResultEvents() throws EventBusException {
+        unObserveEventsWithFilter(this.queryResultFilter);
+    }
+
     @Override
     public void onEventSubscribed(String eventType) {
         if(this.observerListener != null)
@@ -260,6 +302,14 @@ public class WldtEventObserver implements WldtEventListener {
             // Life Cycle Events
             if(this.lifeCycleEventFilter != null && this.lifeCycleEventFilter.matchEventType(wldtEvent.getType()))
                 this.observerListener.onLifeCycleEvent(wldtEvent);
+
+            // Check Query Request Events
+            if(this.queryRequestFilter != null && this.queryRequestFilter.matchEventType(wldtEvent.getType()))
+                this.observerListener.onQueryRequestEvent(wldtEvent);
+
+            // Check Query Result Events
+            if(this.queryResultFilter != null && this.queryResultFilter.matchEventType(wldtEvent.getType()))
+                this.observerListener.onQueryResultEvent(wldtEvent);
         }
         else
             logger.error("WldtEventObserver({}) onEvent - Wrong or Null WldtEvent: {}", this.observerId, wldtEvent);

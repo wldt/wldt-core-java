@@ -3,6 +3,7 @@ package it.wldt.storage.query;
 public enum QueryRequestType {
 
     TIME_RANGE("TIME_RANGE"),
+    SAMPLE_RANGE("SAMPLE_RANGE"),
     LAST_VALUE("LAST_VALUE"),
     COUNT("COUNT");
 
