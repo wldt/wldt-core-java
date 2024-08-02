@@ -8,6 +8,12 @@ import it.wldt.core.state.DigitalTwinState;
 import it.wldt.core.state.DigitalTwinStateChange;
 import it.wldt.core.state.DigitalTwinStateEventNotification;
 import it.wldt.exception.StorageException;
+import it.wldt.adapter.physical.PhysicalAssetPropertyVariation;
+import it.wldt.storage.model.digital.DigitalActionRequestRecord;
+import it.wldt.storage.model.lifecycle.LifeCycleVariationRecord;
+import it.wldt.storage.model.physical.*;
+import it.wldt.storage.model.state.DigitalTwinStateEventNotificationRecord;
+import it.wldt.storage.model.state.DigitalTwinStateRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,18 +33,17 @@ public class DefaultWldtStorage extends WldtStorage {
     private static final Logger logger = LoggerFactory.getLogger(StorageManager.class);
 
     // Instance variables for storing digital twin states, state changes, physical asset events, and digital twin events
-    private Map<Long, DigitalTwinState> digitalTwinStateMap;
-    private Map<Long, DigitalTwinStateEventNotification<?>> digitalStateEventNotificationMap;
-    private Map<Long, List<DigitalTwinStateChange>> stateChangeMap;
-    private Map<Long, PhysicalAssetActionRequest> physicalActionRequestMap;
-    private Map<Long, PhysicalAssetEventNotification> physicalEventNotificationsMap;
-    private Map<Long, DigitalActionRequest> digitalActionRequestMap;
-    private Map<Long, PhysicalAssetDescriptionNotification> newPhysicalAssetDescriptionNotificationMap;
-    private Map<Long, PhysicalAssetDescriptionNotification> updatedPhysicalAssetDescriptionNotificationMap;
-    private Map<Long, PhysicalAssetPropertyVariation> physicalAssetPropertyVariationMap;
-    private Map<Long, PhysicalRelationshipInstanceVariation> physicalRelationshipInstanceCreatedMap;
-    private Map<Long, PhysicalRelationshipInstanceVariation> physicalRelationshipInstanceDeletedMap;
-    private Map<Long, LifeCycleState> lifeCycleStateMap;
+    private Map<Long, DigitalTwinStateRecord> digitalTwinStateMap;
+    private Map<Long, DigitalTwinStateEventNotificationRecord> digitalStateEventNotificationMap;
+    private Map<Long, PhysicalAssetActionRequestRecord> physicalActionRequestMap;
+    private Map<Long, PhysicalAssetEventNotificationRecord> physicalEventNotificationsMap;
+    private Map<Long, DigitalActionRequestRecord> digitalActionRequestMap;
+    private Map<Long, PhysicalAssetDescriptionNotificationRecord> newPhysicalAssetDescriptionNotificationMap;
+    private Map<Long, PhysicalAssetDescriptionNotificationRecord> updatedPhysicalAssetDescriptionNotificationMap;
+    private Map<Long, PhysicalAssetPropertyVariationRecord> physicalAssetPropertyVariationMap;
+    private Map<Long, PhysicalRelationshipInstanceVariationRecord> physicalRelationshipInstanceCreatedMap;
+    private Map<Long, PhysicalRelationshipInstanceVariationRecord> physicalRelationshipInstanceDeletedMap;
+    private Map<Long, LifeCycleVariationRecord> lifeCycleStateMap;
 
     /**
      * Default Constructor
@@ -110,7 +115,6 @@ public class DefaultWldtStorage extends WldtStorage {
 
         this.digitalTwinStateMap = new HashMap<>();
         this.digitalStateEventNotificationMap= new HashMap<>();
-        this.stateChangeMap = new HashMap<>();
         this.physicalActionRequestMap = new HashMap<>();
         this.physicalEventNotificationsMap = new HashMap<>();
         this.digitalActionRequestMap = new HashMap<>();
@@ -132,7 +136,6 @@ public class DefaultWldtStorage extends WldtStorage {
 
         this.digitalTwinStateMap.clear();
         this.digitalStateEventNotificationMap.clear();
-        this.stateChangeMap.clear();
         this.physicalActionRequestMap.clear();
         this.physicalEventNotificationsMap.clear();
         this.digitalActionRequestMap.clear();
@@ -156,8 +159,7 @@ public class DefaultWldtStorage extends WldtStorage {
         if (digitalTwinState == null) {
             throw new IllegalArgumentException("Digital twin state cannot be null.");
         }
-        digitalTwinStateMap.put(digitalTwinState.getEvaluationInstant().toEpochMilli(), digitalTwinState);
-        stateChangeMap.put(digitalTwinState.getEvaluationInstant().toEpochMilli(), digitalTwinStateChangeList);
+        digitalTwinStateMap.put(digitalTwinState.getEvaluationInstant().toEpochMilli(), new DigitalTwinStateRecord(digitalTwinState, digitalTwinStateChangeList));
     }
 
     /**
@@ -165,28 +167,13 @@ public class DefaultWldtStorage extends WldtStorage {
      * @return the latest computed Digital Twin State
      */
     @Override
-    public Optional<DigitalTwinState> getLastDigitalTwinState() {
+    public Optional<DigitalTwinStateRecord> getLastDigitalTwinStateVariation() {
 
         if (digitalTwinStateMap.isEmpty()) {
             return Optional.empty();
         }
         long lastTimestamp = Collections.max(digitalTwinStateMap.keySet());
         return Optional.ofNullable(digitalTwinStateMap.get(lastTimestamp));
-    }
-
-    /**
-     * Retrieves a list of Digital Twin state changes associated with the given digital twin state that characterized
-     * is computation and the transition from the previous state.
-     *
-     * @param digitalTwinState the digital twin state for which to retrieve the state changes
-     * @return a list of digital twin state changes associated with the given digital twin state
-     */
-    @Override
-    public List<DigitalTwinStateChange> getDigitalTwinStateChangeList(DigitalTwinState digitalTwinState) {
-        if (digitalTwinState == null || !stateChangeMap.containsKey(digitalTwinState.getEvaluationInstant().toEpochMilli())) {
-            return Collections.emptyList();
-        }
-        return stateChangeMap.get(digitalTwinState.getEvaluationInstant().toEpochMilli());
     }
 
     /**
@@ -207,12 +194,12 @@ public class DefaultWldtStorage extends WldtStorage {
      * @throws IllegalArgumentException If the start timestamp is greater than the end timestamp.
      */
     @Override
-    public List<DigitalTwinState> getDigitalTwinStateInTimeRange(long startTimestampMs, long endTimestampMs) throws IllegalArgumentException {
+    public List<DigitalTwinStateRecord> getDigitalTwinStateInTimeRange(long startTimestampMs, long endTimestampMs) throws IllegalArgumentException {
         if (startTimestampMs > endTimestampMs) {
             throw new IllegalArgumentException("Start timestamp cannot be greater than end timestamp.");
         }
-        List<DigitalTwinState> result = new ArrayList<>();
-        for (Map.Entry<Long, DigitalTwinState> entry : digitalTwinStateMap.entrySet()) {
+        List<DigitalTwinStateRecord> result = new ArrayList<>();
+        for (Map.Entry<Long, DigitalTwinStateRecord> entry : digitalTwinStateMap.entrySet()) {
             long timestamp = entry.getKey();
             if (timestamp >= startTimestampMs && timestamp <= endTimestampMs) {
                 result.add(entry.getValue());
@@ -231,14 +218,14 @@ public class DefaultWldtStorage extends WldtStorage {
      * @throws IllegalArgumentException  if startIndex is greater than endIndex
      */
     @Override
-    public List<DigitalTwinState> getDigitalTwinStateInRange(int startIndex, int endIndex) throws IndexOutOfBoundsException, IllegalArgumentException {
+    public List<DigitalTwinStateRecord> getDigitalTwinStateInRange(int startIndex, int endIndex) throws IndexOutOfBoundsException, IllegalArgumentException {
         if (startIndex < 0 || endIndex < 0 || startIndex > endIndex) {
             throw new IllegalArgumentException("Invalid index range.");
         }
         if (endIndex >= digitalTwinStateMap.size()) {
             throw new IndexOutOfBoundsException("End index out of bounds.");
         }
-        List<DigitalTwinState> result = new ArrayList<>();
+        List<DigitalTwinStateRecord> result = new ArrayList<>();
         List<Long> timestamps = new ArrayList<>(digitalTwinStateMap.keySet());
         for (int i = startIndex; i <= endIndex; i++) {
             result.add(digitalTwinStateMap.get(timestamps.get(i)));
@@ -257,7 +244,11 @@ public class DefaultWldtStorage extends WldtStorage {
             throw new StorageException("Digital Twin State Event Notification cannot be null.");
 
         // Save the Digital Twin State Event Notification
-        this.digitalStateEventNotificationMap.put(digitalTwinStateEventNotification.getTimestamp(), digitalTwinStateEventNotification);
+        this.digitalStateEventNotificationMap.put(digitalTwinStateEventNotification.getTimestamp(),
+                new DigitalTwinStateEventNotificationRecord(
+                        digitalTwinStateEventNotification.getDigitalEventKey(),
+                        digitalTwinStateEventNotification.getBody(),
+                        digitalTwinStateEventNotification.getTimestamp()));
     }
 
     /**
@@ -278,9 +269,9 @@ public class DefaultWldtStorage extends WldtStorage {
      * @return the list of Digital Twin State Event Notification in the specified time range
      */
     @Override
-    public List<DigitalTwinStateEventNotification<?>> getDigitalTwinStateEventNotificationInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException {
-        List<DigitalTwinStateEventNotification<?>> result = new ArrayList<>();
-        for (Map.Entry<Long, DigitalTwinStateEventNotification<?>> entry : digitalStateEventNotificationMap.entrySet()) {
+    public List<DigitalTwinStateEventNotificationRecord> getDigitalTwinStateEventNotificationInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException {
+        List<DigitalTwinStateEventNotificationRecord> result = new ArrayList<>();
+        for (Map.Entry<Long, DigitalTwinStateEventNotificationRecord> entry : digitalStateEventNotificationMap.entrySet()) {
             long timestamp = entry.getKey();
             if (timestamp >= startTimestampMs && timestamp <= endTimestampMs) {
                 result.add(entry.getValue());
@@ -299,7 +290,7 @@ public class DefaultWldtStorage extends WldtStorage {
      * @throws IllegalArgumentException  if startIndex is greater than endIndex
      */
     @Override
-    public List<DigitalTwinStateEventNotification<?>> getDigitalTwinStateEventNotificationInRange(int startIndex, int endIndex) throws StorageException, IllegalArgumentException {
+    public List<DigitalTwinStateEventNotificationRecord> getDigitalTwinStateEventNotificationInRange(int startIndex, int endIndex) throws StorageException, IllegalArgumentException {
         if (startIndex < 0 || endIndex < 0 || startIndex > endIndex) {
             throw new IllegalArgumentException("Invalid index range.");
         }
@@ -307,7 +298,7 @@ public class DefaultWldtStorage extends WldtStorage {
             throw new IndexOutOfBoundsException("End index out of bounds.");
         }
 
-        List<DigitalTwinStateEventNotification<?>> result = new ArrayList<>();
+        List<DigitalTwinStateEventNotificationRecord> result = new ArrayList<>();
         List<Long> timestamps = new ArrayList<>(digitalStateEventNotificationMap.keySet());
         for (int i = startIndex; i <= endIndex; i++) {
             result.add(digitalStateEventNotificationMap.get(timestamps.get(i)));
@@ -322,7 +313,9 @@ public class DefaultWldtStorage extends WldtStorage {
     @Override
     public void saveLifeCycleState(LifeCycleStateVariation lifeCycleStateVariation) {
         // Implement this method using the variable lifeCycleStateMap
-        lifeCycleStateMap.put(lifeCycleStateVariation.getTimestamp(), lifeCycleStateVariation.getLifeCycleState());
+        lifeCycleStateMap.put(lifeCycleStateVariation.getTimestamp(),
+                new LifeCycleVariationRecord(lifeCycleStateVariation.getLifeCycleState(),
+                        lifeCycleStateVariation.getTimestamp()));
 
     }
 
@@ -342,12 +335,12 @@ public class DefaultWldtStorage extends WldtStorage {
      * @return the last LifeCycleState of the Digital Twin
      */
     @Override
-    public Map<Long, LifeCycleState> getLifeCycleStateInTimeRange(long startTimestampMs, long endTimestampMs) throws IllegalArgumentException {
-        Map<Long, LifeCycleState> result = new HashMap<>();
-        for (Map.Entry<Long, LifeCycleState> entry : lifeCycleStateMap.entrySet()) {
+    public List<LifeCycleVariationRecord> getLifeCycleStateInTimeRange(long startTimestampMs, long endTimestampMs) throws IllegalArgumentException {
+        List<LifeCycleVariationRecord> result = new ArrayList<>();
+        for (Map.Entry<Long, LifeCycleVariationRecord> entry : lifeCycleStateMap.entrySet()) {
             long timestamp = entry.getKey();
             if (timestamp >= startTimestampMs && timestamp <= endTimestampMs) {
-                result.put(timestamp, entry.getValue());
+                result.add(entry.getValue());
             }
         }
         return result;
@@ -363,8 +356,7 @@ public class DefaultWldtStorage extends WldtStorage {
      * @throws IllegalArgumentException  if startIndex is greater than endIndex
      */
     @Override
-    public Map<Long, LifeCycleState> getLifeCycleStateInRange(int startIndex, int endIndex) throws IndexOutOfBoundsException, IllegalArgumentException {
-
+    public List<LifeCycleVariationRecord> getLifeCycleStateInRange(int startIndex, int endIndex) throws IndexOutOfBoundsException, IllegalArgumentException {
         if (startIndex < 0 || endIndex < 0 || startIndex > endIndex) {
             throw new IllegalArgumentException("Invalid index range.");
         }
@@ -372,10 +364,10 @@ public class DefaultWldtStorage extends WldtStorage {
             throw new IndexOutOfBoundsException("End index out of bounds.");
         }
 
-        Map<Long, LifeCycleState> result = new HashMap<>();
+        List<LifeCycleVariationRecord> result = new ArrayList<>();
         List<Long> timestamps = new ArrayList<>(lifeCycleStateMap.keySet());
         for (int i = startIndex; i <= endIndex; i++) {
-            result.put(timestamps.get(i), lifeCycleStateMap.get(timestamps.get(i)));
+            result.add(lifeCycleStateMap.get(timestamps.get(i)));
         }
         return result;
     }
@@ -390,7 +382,12 @@ public class DefaultWldtStorage extends WldtStorage {
         if(physicalAssetEventNotification == null)
             throw new StorageException("Physical Asset Event Notification cannot be null.");
 
-        this.physicalEventNotificationsMap.put(physicalAssetEventNotification.getTimestamp(), physicalAssetEventNotification);
+        this.physicalEventNotificationsMap.put(physicalAssetEventNotification.getTimestamp(),
+                new PhysicalAssetEventNotificationRecord(
+                        physicalAssetEventNotification.getTimestamp(),
+                        physicalAssetEventNotification.getEventkey(),
+                        physicalAssetEventNotification.getBody(),
+                        physicalAssetEventNotification.getMetadata()));
     }
 
     /**
@@ -411,9 +408,9 @@ public class DefaultWldtStorage extends WldtStorage {
      * @return the list of Physical Asset Event Notification in the specified time range
      */
     @Override
-    public List<PhysicalAssetEventNotification> getPhysicalAssetEventNotificationInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException {
-        List<PhysicalAssetEventNotification> result = new ArrayList<>();
-        for (Map.Entry<Long, PhysicalAssetEventNotification> entry : physicalEventNotificationsMap.entrySet()) {
+    public List<PhysicalAssetEventNotificationRecord> getPhysicalAssetEventNotificationInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException {
+        List<PhysicalAssetEventNotificationRecord> result = new ArrayList<>();
+        for (Map.Entry<Long, PhysicalAssetEventNotificationRecord> entry : physicalEventNotificationsMap.entrySet()) {
             long timestamp = entry.getKey();
             if (timestamp >= startTimestampMs && timestamp <= endTimestampMs) {
                 result.add(entry.getValue());
@@ -432,7 +429,7 @@ public class DefaultWldtStorage extends WldtStorage {
      * @throws IllegalArgumentException  if startIndex is greater than endIndex
      */
     @Override
-    public List<PhysicalAssetEventNotification> getPhysicalAssetEventNotificationInRange(int startIndex, int endIndex) throws StorageException, IndexOutOfBoundsException, IllegalArgumentException {
+    public List<PhysicalAssetEventNotificationRecord> getPhysicalAssetEventNotificationInRange(int startIndex, int endIndex) throws StorageException, IndexOutOfBoundsException, IllegalArgumentException {
         if (startIndex < 0 || endIndex < 0 || startIndex > endIndex) {
             throw new IllegalArgumentException("Invalid index range.");
         }
@@ -440,7 +437,7 @@ public class DefaultWldtStorage extends WldtStorage {
             throw new IndexOutOfBoundsException("End index out of bounds.");
         }
 
-        List<PhysicalAssetEventNotification> result = new ArrayList<>();
+        List<PhysicalAssetEventNotificationRecord> result = new ArrayList<>();
         List<Long> timestamps = new ArrayList<>(physicalEventNotificationsMap.keySet());
         for (int i = startIndex; i <= endIndex; i++) {
             result.add(physicalEventNotificationsMap.get(timestamps.get(i)));
@@ -458,7 +455,12 @@ public class DefaultWldtStorage extends WldtStorage {
         if(physicalAssetActionRequest == null)
             throw new StorageException("Physical Asset Action Request cannot be null.");
 
-        this.physicalActionRequestMap.put(physicalAssetActionRequest.getRequestTimestamp(), physicalAssetActionRequest);
+        this.physicalActionRequestMap.put(physicalAssetActionRequest.getRequestTimestamp(),
+                new PhysicalAssetActionRequestRecord(
+                        physicalAssetActionRequest.getRequestTimestamp(),
+                        physicalAssetActionRequest.getActionkey(),
+                        physicalAssetActionRequest.getRequestBody(),
+                        physicalAssetActionRequest.getRequestMetadata()));
     }
 
     /**
@@ -478,9 +480,9 @@ public class DefaultWldtStorage extends WldtStorage {
      * @return the list of Physical Asset Action Request in the specified time range
      */
     @Override
-    public List<PhysicalAssetActionRequest> getPhysicalAssetActionRequestInTimeRange(long startTimestampMs, long endTimestampMs) throws IllegalArgumentException {
-        List<PhysicalAssetActionRequest> result = new ArrayList<>();
-        for (Map.Entry<Long, PhysicalAssetActionRequest> entry : physicalActionRequestMap.entrySet()) {
+    public List<PhysicalAssetActionRequestRecord> getPhysicalAssetActionRequestInTimeRange(long startTimestampMs, long endTimestampMs) throws IllegalArgumentException {
+        List<PhysicalAssetActionRequestRecord> result = new ArrayList<>();
+        for (Map.Entry<Long, PhysicalAssetActionRequestRecord> entry : physicalActionRequestMap.entrySet()) {
             long timestamp = entry.getKey();
             if (timestamp >= startTimestampMs && timestamp <= endTimestampMs) {
                 result.add(entry.getValue());
@@ -499,7 +501,7 @@ public class DefaultWldtStorage extends WldtStorage {
      * @throws IllegalArgumentException  if startIndex is greater than endIndex
      */
     @Override
-    public List<PhysicalAssetActionRequest> getPhysicalAssetActionRequestInRange(int startIndex, int endIndex) throws IndexOutOfBoundsException, IllegalArgumentException {
+    public List<PhysicalAssetActionRequestRecord> getPhysicalAssetActionRequestInRange(int startIndex, int endIndex) throws IndexOutOfBoundsException, IllegalArgumentException {
         if (startIndex < 0 || endIndex < 0 || startIndex > endIndex) {
             throw new IllegalArgumentException("Invalid index range.");
         }
@@ -507,7 +509,7 @@ public class DefaultWldtStorage extends WldtStorage {
             throw new IndexOutOfBoundsException("End index out of bounds.");
         }
 
-        List<PhysicalAssetActionRequest> result = new ArrayList<>();
+        List<PhysicalAssetActionRequestRecord> result = new ArrayList<>();
         List<Long> timestamps = new ArrayList<>(physicalActionRequestMap.keySet());
         for (int i = startIndex; i <= endIndex; i++) {
             result.add(physicalActionRequestMap.get(timestamps.get(i)));
@@ -525,7 +527,12 @@ public class DefaultWldtStorage extends WldtStorage {
         if(digitalActionRequest == null)
             throw new StorageException("Digital Action Request cannot be null.");
 
-        this.digitalActionRequestMap.put(digitalActionRequest.getRequestTimestamp(), digitalActionRequest);
+        this.digitalActionRequestMap.put(digitalActionRequest.getRequestTimestamp(),
+                new DigitalActionRequestRecord(
+                        digitalActionRequest.getRequestTimestamp(),
+                        digitalActionRequest.getActionkey(),
+                        digitalActionRequest.getRequestBody(),
+                        digitalActionRequest.getRequestMetadata()));
     }
 
     /**
@@ -546,9 +553,9 @@ public class DefaultWldtStorage extends WldtStorage {
      * @return the list of Digital Action Request in the specified time range
      */
     @Override
-    public List<DigitalActionRequest> getDigitalActionRequestInTimeRange(long startTimestampMs, long endTimestampMs) throws IllegalArgumentException {
-        List<DigitalActionRequest> result = new ArrayList<>();
-        for (Map.Entry<Long, DigitalActionRequest> entry : digitalActionRequestMap.entrySet()) {
+    public List<DigitalActionRequestRecord> getDigitalActionRequestInTimeRange(long startTimestampMs, long endTimestampMs) throws IllegalArgumentException {
+        List<DigitalActionRequestRecord> result = new ArrayList<>();
+        for (Map.Entry<Long, DigitalActionRequestRecord> entry : digitalActionRequestMap.entrySet()) {
             long timestamp = entry.getKey();
             if (timestamp >= startTimestampMs && timestamp <= endTimestampMs) {
                 result.add(entry.getValue());
@@ -567,7 +574,7 @@ public class DefaultWldtStorage extends WldtStorage {
      * @throws IllegalArgumentException  if startIndex is greater than endIndex
      */
     @Override
-    public List<DigitalActionRequest> getDigitalActionRequestInRange(int startIndex, int endIndex) throws IndexOutOfBoundsException, IllegalArgumentException {
+    public List<DigitalActionRequestRecord> getDigitalActionRequestInRange(int startIndex, int endIndex) throws IndexOutOfBoundsException, IllegalArgumentException {
         if (startIndex < 0 || endIndex < 0 || startIndex > endIndex) {
             throw new IllegalArgumentException("Invalid index range.");
         }
@@ -575,7 +582,7 @@ public class DefaultWldtStorage extends WldtStorage {
             throw new IndexOutOfBoundsException("End index out of bounds.");
         }
 
-        List<DigitalActionRequest> result = new ArrayList<>();
+        List<DigitalActionRequestRecord> result = new ArrayList<>();
         List<Long> timestamps = new ArrayList<>(digitalActionRequestMap.keySet());
         for (int i = startIndex; i <= endIndex; i++) {
             result.add(digitalActionRequestMap.get(timestamps.get(i)));
@@ -593,7 +600,11 @@ public class DefaultWldtStorage extends WldtStorage {
         if(physicalAssetDescriptionNotification == null)
             throw new StorageException("Physical Asset Description Notification cannot be null.");
 
-        this.newPhysicalAssetDescriptionNotificationMap.put(physicalAssetDescriptionNotification.getNotificationTimestamp(), physicalAssetDescriptionNotification);
+        this.newPhysicalAssetDescriptionNotificationMap.put(physicalAssetDescriptionNotification.getNotificationTimestamp(),
+                new PhysicalAssetDescriptionNotificationRecord(
+                        physicalAssetDescriptionNotification.getNotificationTimestamp(),
+                        physicalAssetDescriptionNotification.getAdapterId(),
+                        physicalAssetDescriptionNotification.getPhysicalAssetDescription()));
     }
 
     /**
@@ -614,9 +625,9 @@ public class DefaultWldtStorage extends WldtStorage {
      * @return the list of New Physical Asset Description Available in the specified time range
      */
     @Override
-    public List<PhysicalAssetDescriptionNotification> getNewPhysicalAssetDescriptionNotificationInTimeRange(long startTimestampMs, long endTimestampMs) throws IllegalArgumentException {
-        List<PhysicalAssetDescriptionNotification> result = new ArrayList<>();
-        for (Map.Entry<Long, PhysicalAssetDescriptionNotification> entry : newPhysicalAssetDescriptionNotificationMap.entrySet()) {
+    public List<PhysicalAssetDescriptionNotificationRecord> getNewPhysicalAssetDescriptionNotificationInTimeRange(long startTimestampMs, long endTimestampMs) throws IllegalArgumentException {
+        List<PhysicalAssetDescriptionNotificationRecord> result = new ArrayList<>();
+        for (Map.Entry<Long, PhysicalAssetDescriptionNotificationRecord> entry : newPhysicalAssetDescriptionNotificationMap.entrySet()) {
             long timestamp = entry.getKey();
             if (timestamp >= startTimestampMs && timestamp <= endTimestampMs) {
                 result.add(entry.getValue());
@@ -635,7 +646,7 @@ public class DefaultWldtStorage extends WldtStorage {
      * @throws IllegalArgumentException  if startIndex is greater than endIndex
      */
     @Override
-    public List<PhysicalAssetDescriptionNotification> getNewPhysicalAssetDescriptionNotificationInRange(int startIndex, int endIndex) throws IndexOutOfBoundsException, IllegalArgumentException {
+    public List<PhysicalAssetDescriptionNotificationRecord> getNewPhysicalAssetDescriptionNotificationInRange(int startIndex, int endIndex) throws IndexOutOfBoundsException, IllegalArgumentException {
         if (startIndex < 0 || endIndex < 0 || startIndex > endIndex) {
             throw new IllegalArgumentException("Invalid index range.");
         }
@@ -643,7 +654,7 @@ public class DefaultWldtStorage extends WldtStorage {
             throw new IndexOutOfBoundsException("End index out of bounds.");
         }
 
-        List<PhysicalAssetDescriptionNotification> result = new ArrayList<>();
+        List<PhysicalAssetDescriptionNotificationRecord> result = new ArrayList<>();
         List<Long> timestamps = new ArrayList<>(newPhysicalAssetDescriptionNotificationMap.keySet());
         for (int i = startIndex; i <= endIndex; i++) {
             result.add(newPhysicalAssetDescriptionNotificationMap.get(timestamps.get(i)));
@@ -662,7 +673,11 @@ public class DefaultWldtStorage extends WldtStorage {
         if(physicalAssetDescriptionNotification == null)
             throw new StorageException("Physical Asset Description Notification cannot be null.");
 
-        this.updatedPhysicalAssetDescriptionNotificationMap.put(physicalAssetDescriptionNotification.getNotificationTimestamp(), physicalAssetDescriptionNotification);
+        this.updatedPhysicalAssetDescriptionNotificationMap.put(physicalAssetDescriptionNotification.getNotificationTimestamp(),
+                new PhysicalAssetDescriptionNotificationRecord(
+                        physicalAssetDescriptionNotification.getNotificationTimestamp(),
+                        physicalAssetDescriptionNotification.getAdapterId(),
+                        physicalAssetDescriptionNotification.getPhysicalAssetDescription()));
     }
 
     /**
@@ -683,9 +698,9 @@ public class DefaultWldtStorage extends WldtStorage {
      * @return the list of Updated Physical Asset Description in the specified time range
      */
     @Override
-    public List<PhysicalAssetDescriptionNotification> getUpdatedPhysicalAssetDescriptionNotificationInTimeRange(long startTimestampMs, long endTimestampMs) throws IllegalArgumentException {
-        List<PhysicalAssetDescriptionNotification> result = new ArrayList<>();
-        for (Map.Entry<Long, PhysicalAssetDescriptionNotification> entry : updatedPhysicalAssetDescriptionNotificationMap.entrySet()) {
+    public List<PhysicalAssetDescriptionNotificationRecord> getUpdatedPhysicalAssetDescriptionNotificationInTimeRange(long startTimestampMs, long endTimestampMs) throws IllegalArgumentException {
+        List<PhysicalAssetDescriptionNotificationRecord> result = new ArrayList<>();
+        for (Map.Entry<Long, PhysicalAssetDescriptionNotificationRecord> entry : updatedPhysicalAssetDescriptionNotificationMap.entrySet()) {
             long timestamp = entry.getKey();
             if (timestamp >= startTimestampMs && timestamp <= endTimestampMs) {
                 result.add(entry.getValue());
@@ -704,7 +719,7 @@ public class DefaultWldtStorage extends WldtStorage {
      * @throws IllegalArgumentException  if startIndex is greater than endIndex
      */
     @Override
-    public List<PhysicalAssetDescriptionNotification> getUpdatedPhysicalAssetDescriptionNotificationInRange(int startIndex, int endIndex) throws IndexOutOfBoundsException, IllegalArgumentException {
+    public List<PhysicalAssetDescriptionNotificationRecord> getUpdatedPhysicalAssetDescriptionNotificationInRange(int startIndex, int endIndex) throws IndexOutOfBoundsException, IllegalArgumentException {
         if (startIndex < 0 || endIndex < 0 || startIndex > endIndex) {
             throw new IllegalArgumentException("Invalid index range.");
         }
@@ -712,7 +727,7 @@ public class DefaultWldtStorage extends WldtStorage {
             throw new IndexOutOfBoundsException("End index out of bounds.");
         }
 
-        List<PhysicalAssetDescriptionNotification> result = new ArrayList<>();
+        List<PhysicalAssetDescriptionNotificationRecord> result = new ArrayList<>();
         List<Long> timestamps = new ArrayList<>(updatedPhysicalAssetDescriptionNotificationMap.keySet());
         for (int i = startIndex; i <= endIndex; i++) {
             result.add(updatedPhysicalAssetDescriptionNotificationMap.get(timestamps.get(i)));
@@ -730,7 +745,12 @@ public class DefaultWldtStorage extends WldtStorage {
         if(physicalAssetPropertyVariation == null)
             throw new StorageException("Physical Asset Property Variation cannot be null.");
 
-        this.physicalAssetPropertyVariationMap.put(physicalAssetPropertyVariation.getTimestamp(), physicalAssetPropertyVariation);
+        this.physicalAssetPropertyVariationMap.put(physicalAssetPropertyVariation.getTimestamp(),
+                new PhysicalAssetPropertyVariationRecord(
+                        physicalAssetPropertyVariation.getTimestamp(),
+                        physicalAssetPropertyVariation.getPropertykey(),
+                        physicalAssetPropertyVariation.getBody(),
+                        physicalAssetPropertyVariation.getVariationMetadata()));
     }
 
     /**
@@ -751,9 +771,9 @@ public class DefaultWldtStorage extends WldtStorage {
      * @return the list of Physical Asset Property Variation in the specified time range
      */
     @Override
-    public List<PhysicalAssetPropertyVariation> getPhysicalAssetPropertyVariationInTimeRange(long startTimestampMs, long endTimestampMs) throws IllegalArgumentException {
-        List<PhysicalAssetPropertyVariation> result = new ArrayList<>();
-        for (Map.Entry<Long, PhysicalAssetPropertyVariation> entry : physicalAssetPropertyVariationMap.entrySet()) {
+    public List<PhysicalAssetPropertyVariationRecord> getPhysicalAssetPropertyVariationInTimeRange(long startTimestampMs, long endTimestampMs) throws IllegalArgumentException {
+        List<PhysicalAssetPropertyVariationRecord> result = new ArrayList<>();
+        for (Map.Entry<Long, PhysicalAssetPropertyVariationRecord> entry : physicalAssetPropertyVariationMap.entrySet()) {
             long timestamp = entry.getKey();
             if (timestamp >= startTimestampMs && timestamp <= endTimestampMs) {
                 result.add(entry.getValue());
@@ -772,7 +792,7 @@ public class DefaultWldtStorage extends WldtStorage {
      * @throws IllegalArgumentException  if startIndex is greater than endIndex
      */
     @Override
-    public List<PhysicalAssetPropertyVariation> getPhysicalAssetPropertyVariationInRange(int startIndex, int endIndex) throws IndexOutOfBoundsException, IllegalArgumentException {
+    public List<PhysicalAssetPropertyVariationRecord> getPhysicalAssetPropertyVariationInRange(int startIndex, int endIndex) throws IndexOutOfBoundsException, IllegalArgumentException {
         if (startIndex < 0 || endIndex < 0 || startIndex > endIndex) {
             throw new IllegalArgumentException("Invalid index range.");
         }
@@ -780,7 +800,7 @@ public class DefaultWldtStorage extends WldtStorage {
             throw new IndexOutOfBoundsException("End index out of bounds.");
         }
 
-        List<PhysicalAssetPropertyVariation> result = new ArrayList<>();
+        List<PhysicalAssetPropertyVariationRecord> result = new ArrayList<>();
         List<Long> timestamps = new ArrayList<>(physicalAssetPropertyVariationMap.keySet());
         for (int i = startIndex; i <= endIndex; i++) {
             result.add(physicalAssetPropertyVariationMap.get(timestamps.get(i)));
@@ -798,7 +818,18 @@ public class DefaultWldtStorage extends WldtStorage {
         if(physicalRelationshipInstanceVariation == null)
             throw new StorageException("Physical Relationship Instance Variation cannot be null.");
 
-        this.physicalRelationshipInstanceCreatedMap.put(physicalRelationshipInstanceVariation.getNotificationTimestamp(), physicalRelationshipInstanceVariation);
+        Map<String, Object> metadata = new HashMap<>();
+        if(physicalRelationshipInstanceVariation.getPhysicalAssetRelationshipInstance().getMetadata().isPresent())
+            metadata = physicalRelationshipInstanceVariation.getPhysicalAssetRelationshipInstance().getMetadata().get();
+
+        this.physicalRelationshipInstanceCreatedMap.put(physicalRelationshipInstanceVariation.getNotificationTimestamp(),
+                new PhysicalRelationshipInstanceVariationRecord(
+                        physicalRelationshipInstanceVariation.getNotificationTimestamp(),
+                        physicalRelationshipInstanceVariation.getPhysicalAssetRelationshipInstance().getKey(),
+                        physicalRelationshipInstanceVariation.getPhysicalAssetRelationshipInstance().getTargetId(),
+                        physicalRelationshipInstanceVariation.getPhysicalAssetRelationshipInstance().getRelationship().getName(),
+                        physicalRelationshipInstanceVariation.getPhysicalAssetRelationshipInstance().getRelationship().getType(),
+                        metadata));
     }
 
     /**
@@ -819,9 +850,9 @@ public class DefaultWldtStorage extends WldtStorage {
      * @return the list of Physical Asset Relationship Instance Created Event in the specified time range
      */
     @Override
-    public List<PhysicalRelationshipInstanceVariation> getPhysicalAssetRelationshipInstanceCreatedEventInTimeRange(long startTimestampMs, long endTimestampMs) throws IllegalArgumentException {
-        List<PhysicalRelationshipInstanceVariation> result = new ArrayList<>();
-        for (Map.Entry<Long, PhysicalRelationshipInstanceVariation> entry : physicalRelationshipInstanceCreatedMap.entrySet()) {
+    public List<PhysicalRelationshipInstanceVariationRecord> getPhysicalAssetRelationshipInstanceCreatedEventInTimeRange(long startTimestampMs, long endTimestampMs) throws IllegalArgumentException {
+        List<PhysicalRelationshipInstanceVariationRecord> result = new ArrayList<>();
+        for (Map.Entry<Long, PhysicalRelationshipInstanceVariationRecord> entry : physicalRelationshipInstanceCreatedMap.entrySet()) {
             long timestamp = entry.getKey();
             if (timestamp >= startTimestampMs && timestamp <= endTimestampMs) {
                 result.add(entry.getValue());
@@ -840,7 +871,7 @@ public class DefaultWldtStorage extends WldtStorage {
      * @throws IllegalArgumentException  if startIndex is greater than endIndex
      */
     @Override
-    public List<PhysicalRelationshipInstanceVariation> getPhysicalAssetRelationshipInstanceCreatedEventInRange(int startIndex, int endIndex) throws IllegalArgumentException {
+    public List<PhysicalRelationshipInstanceVariationRecord> getPhysicalAssetRelationshipInstanceCreatedEventInRange(int startIndex, int endIndex) throws IllegalArgumentException {
         if (startIndex < 0 || endIndex < 0 || startIndex > endIndex) {
             throw new IllegalArgumentException("Invalid index range.");
         }
@@ -848,7 +879,7 @@ public class DefaultWldtStorage extends WldtStorage {
             throw new IndexOutOfBoundsException("End index out of bounds.");
         }
 
-        List<PhysicalRelationshipInstanceVariation> result = new ArrayList<>();
+        List<PhysicalRelationshipInstanceVariationRecord> result = new ArrayList<>();
         List<Long> timestamps = new ArrayList<>(physicalRelationshipInstanceCreatedMap.keySet());
         for (int i = startIndex; i <= endIndex; i++) {
             result.add(physicalRelationshipInstanceCreatedMap.get(timestamps.get(i)));
@@ -866,8 +897,19 @@ public class DefaultWldtStorage extends WldtStorage {
         if(physicalRelationshipInstanceVariation == null)
             throw new StorageException("Physical Relationship Instance Variation cannot be null.");
 
-        this.physicalRelationshipInstanceDeletedMap.put(physicalRelationshipInstanceVariation.getNotificationTimestamp(), physicalRelationshipInstanceVariation);
-    }
+        Map<String, Object> metadata = new HashMap<>();
+        if(physicalRelationshipInstanceVariation.getPhysicalAssetRelationshipInstance().getMetadata().isPresent())
+            metadata = physicalRelationshipInstanceVariation.getPhysicalAssetRelationshipInstance().getMetadata().get();
+
+        this.physicalRelationshipInstanceDeletedMap.put(physicalRelationshipInstanceVariation.getNotificationTimestamp(),
+                new PhysicalRelationshipInstanceVariationRecord(
+                    physicalRelationshipInstanceVariation.getNotificationTimestamp(),
+                    physicalRelationshipInstanceVariation.getPhysicalAssetRelationshipInstance().getKey(),
+                    physicalRelationshipInstanceVariation.getPhysicalAssetRelationshipInstance().getTargetId(),
+                    physicalRelationshipInstanceVariation.getPhysicalAssetRelationshipInstance().getRelationship().getName(),
+                    physicalRelationshipInstanceVariation.getPhysicalAssetRelationshipInstance().getRelationship().getType(),
+                    metadata));
+        }
 
     /**
      * Get the number of Physical Asset Relationship Instance Updated Event
@@ -887,9 +929,9 @@ public class DefaultWldtStorage extends WldtStorage {
      * @return the list of Physical Asset Relationship Instance Updated Event in the specified time range
      */
     @Override
-    public List<PhysicalRelationshipInstanceVariation> getPhysicalAssetRelationshipInstanceDeletedEventInTimeRange(long startTimestampMs, long endTimestampMs) throws IllegalArgumentException {
-        List<PhysicalRelationshipInstanceVariation> result = new ArrayList<>();
-        for (Map.Entry<Long, PhysicalRelationshipInstanceVariation> entry : physicalRelationshipInstanceDeletedMap.entrySet()) {
+    public List<PhysicalRelationshipInstanceVariationRecord> getPhysicalAssetRelationshipInstanceDeletedEventInTimeRange(long startTimestampMs, long endTimestampMs) throws IllegalArgumentException {
+        List<PhysicalRelationshipInstanceVariationRecord> result = new ArrayList<>();
+        for (Map.Entry<Long, PhysicalRelationshipInstanceVariationRecord> entry : physicalRelationshipInstanceDeletedMap.entrySet()) {
             long timestamp = entry.getKey();
             if (timestamp >= startTimestampMs && timestamp <= endTimestampMs) {
                 result.add(entry.getValue());
@@ -908,7 +950,7 @@ public class DefaultWldtStorage extends WldtStorage {
      * @throws IllegalArgumentException  if startIndex is greater than endIndex
      */
     @Override
-    public List<PhysicalRelationshipInstanceVariation> getPhysicalAssetRelationshipInstanceDeletedEventInRange(int startIndex, int endIndex) throws IndexOutOfBoundsException, IllegalArgumentException {
+    public List<PhysicalRelationshipInstanceVariationRecord> getPhysicalAssetRelationshipInstanceDeletedEventInRange(int startIndex, int endIndex) throws IndexOutOfBoundsException, IllegalArgumentException {
         if (startIndex < 0 || endIndex < 0 || startIndex > endIndex) {
             throw new IllegalArgumentException("Invalid index range.");
         }
@@ -916,7 +958,7 @@ public class DefaultWldtStorage extends WldtStorage {
             throw new IndexOutOfBoundsException("End index out of bounds.");
         }
 
-        List<PhysicalRelationshipInstanceVariation> result = new ArrayList<>();
+        List<PhysicalRelationshipInstanceVariationRecord> result = new ArrayList<>();
         List<Long> timestamps = new ArrayList<>(physicalRelationshipInstanceDeletedMap.keySet());
         for (int i = startIndex; i <= endIndex; i++) {
             result.add(physicalRelationshipInstanceDeletedMap.get(timestamps.get(i)));

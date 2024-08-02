@@ -19,6 +19,7 @@ import it.wldt.core.state.DigitalTwinStateEventNotification;
 import it.wldt.core.state.DigitalTwinStateManager;
 import it.wldt.exception.StorageException;
 import it.wldt.exception.WldtRuntimeException;
+import it.wldt.adapter.physical.PhysicalAssetPropertyVariation;
 import it.wldt.storage.query.DefaultQueryManager;
 import it.wldt.storage.query.QueryManager;
 import it.wldt.storage.query.QueryRequest;

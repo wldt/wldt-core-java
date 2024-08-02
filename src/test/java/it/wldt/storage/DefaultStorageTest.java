@@ -6,6 +6,12 @@ import it.wldt.core.engine.LifeCycleState;
 import it.wldt.core.engine.LifeCycleStateVariation;
 import it.wldt.core.state.*;
 import it.wldt.exception.*;
+import it.wldt.adapter.physical.PhysicalAssetPropertyVariation;
+import it.wldt.storage.model.digital.DigitalActionRequestRecord;
+import it.wldt.storage.model.lifecycle.LifeCycleVariationRecord;
+import it.wldt.storage.model.physical.*;
+import it.wldt.storage.model.state.DigitalTwinStateEventNotificationRecord;
+import it.wldt.storage.model.state.DigitalTwinStateRecord;
 import org.junit.jupiter.api.*;
 
 import java.util.*;
@@ -57,18 +63,18 @@ public class DefaultStorageTest {
         digitalTwinStateManager.commitStateTransaction();
     }
 
-    private void testStatesStructure(DigitalTwinState referenceDigitalTwinState, DigitalTwinState targetdigitalTwinState) throws WldtDigitalTwinStatePropertyException {
+    private void testStatesStructure(DigitalTwinState referenceDigitalTwinState, DigitalTwinStateRecord targetdigitalTwinStateRecord) throws WldtDigitalTwinStatePropertyException {
 
         assertTrue(referenceDigitalTwinState.getPropertyList().isPresent());
-        assertTrue(targetdigitalTwinState.getPropertyList().isPresent());
-        assertEquals(referenceDigitalTwinState.getPropertyList().get().size(), targetdigitalTwinState.getPropertyList().get().size());
+        assertTrue(targetdigitalTwinStateRecord.getCurrentState().getPropertyList().isPresent());
+        assertEquals(referenceDigitalTwinState.getPropertyList().get().size(), targetdigitalTwinStateRecord.getCurrentState().getPropertyList().get().size());
 
     }
 
-    private void testStateProperty(DigitalTwinState digitalTwinState, String propertyKey, Object propertyValue) throws WldtDigitalTwinStatePropertyException, WldtDigitalTwinStatePropertyBadRequestException, WldtDigitalTwinStatePropertyNotFoundException {
+    private void testStateProperty(DigitalTwinStateRecord digitalTwinStateRecord, String propertyKey, Object propertyValue) throws WldtDigitalTwinStatePropertyException, WldtDigitalTwinStatePropertyBadRequestException, WldtDigitalTwinStatePropertyNotFoundException {
 
-        assertTrue(digitalTwinState.readProperty(propertyKey).isPresent());
-        assertEquals(propertyValue, digitalTwinState.readProperty(propertyKey).get().getValue());
+        assertTrue(digitalTwinStateRecord.getCurrentState().readProperty(propertyKey).isPresent());
+        assertEquals(propertyValue, digitalTwinStateRecord.getCurrentState().readProperty(propertyKey).get().getValue());
 
     }
 
@@ -100,18 +106,18 @@ public class DefaultStorageTest {
 
         wldtStorage.saveDigitalTwinState(digitalTwinState, null);
 
-        Optional<DigitalTwinState> lastDigitalTwinStateOptional = wldtStorage.getLastDigitalTwinState();
+        Optional<DigitalTwinStateRecord> lastDigitalTwinStateOptional = wldtStorage.getLastDigitalTwinStateVariation();
 
         //Check if the Last DT State is available in the Storage
         assertTrue(lastDigitalTwinStateOptional.isPresent());
 
         // Load the last DT State in the Storage
-        DigitalTwinState lastDigitalTwinState = lastDigitalTwinStateOptional.get();
+        DigitalTwinStateRecord lastDigitalTwinStateRecord = lastDigitalTwinStateOptional.get();
 
         // Test DT State Validity
-        testStatesStructure(digitalTwinState, lastDigitalTwinState);
-        testStateProperty(digitalTwinState, TEST_KEY_0001, TEST_VALUE_0001);
-        testStateProperty(lastDigitalTwinState, TEST_KEY_0001, TEST_VALUE_0001);
+        testStatesStructure(digitalTwinState, lastDigitalTwinStateRecord);
+        testStateProperty(lastDigitalTwinStateRecord, TEST_KEY_0001, TEST_VALUE_0001);
+        testStateProperty(lastDigitalTwinStateRecord, TEST_KEY_0001, TEST_VALUE_0001);
     }
 
     @Test
@@ -125,21 +131,20 @@ public class DefaultStorageTest {
         digitalTwinState = digitalTwinStateManager.getDigitalTwinState();
         wldtStorage.saveDigitalTwinState(digitalTwinState, currentChangeList);
 
-        Optional<DigitalTwinState> lastDigitalTwinStateOptional = wldtStorage.getLastDigitalTwinState();
+        Optional<DigitalTwinStateRecord> lastDigitalTwinStateOptional = wldtStorage.getLastDigitalTwinStateVariation();
 
         //Check if the Last DT State is available in the Storage
         assertTrue(lastDigitalTwinStateOptional.isPresent());
 
         // Load the last DT State in the Storage
-        DigitalTwinState lastDigitalTwinState = lastDigitalTwinStateOptional.get();
+        DigitalTwinStateRecord lastDigitalTwinState = lastDigitalTwinStateOptional.get();
 
         // Test DT State Validity
         testStatesStructure(digitalTwinState, lastDigitalTwinState);
-        testStateProperty(digitalTwinState, TEST_KEY_0001, TEST_VALUE_0001);
         testStateProperty(lastDigitalTwinState, TEST_KEY_0001, TEST_VALUE_0001);
 
         // Check Digital Twin State Change List associated to our State
-        List<DigitalTwinStateChange> storedChangeList = wldtStorage.getDigitalTwinStateChangeList(lastDigitalTwinState);
+        List<DigitalTwinStateChange> storedChangeList = lastDigitalTwinState.getStateChangeList();
         assertNotNull(currentChangeList);
         assertFalse(currentChangeList.isEmpty());
         assertNotNull(storedChangeList);
@@ -226,7 +231,7 @@ public class DefaultStorageTest {
         assertEquals(TOTAL_TARGET_UPDATE_COUNT, wldtStorage.getDigitalTwinStateCount());
 
         // Check Complete Range
-        List<DigitalTwinState> digitalTwinStateList = wldtStorage.getDigitalTwinStateInTimeRange(startTimeStamp, endTimeStamp);
+        List<DigitalTwinStateRecord> digitalTwinStateList = wldtStorage.getDigitalTwinStateInTimeRange(startTimeStamp, endTimeStamp);
         assertNotNull(digitalTwinStateList);
         assertFalse(digitalTwinStateList.isEmpty());
         assertEquals(TOTAL_TARGET_UPDATE_COUNT, digitalTwinStateList.size());
@@ -283,7 +288,7 @@ public class DefaultStorageTest {
         assertEquals(TOTAL_TARGET_UPDATE_COUNT, wldtStorage.getDigitalTwinStateCount());
 
         // Check Complete Range
-        List<DigitalTwinState> digitalTwinStateList = wldtStorage.getDigitalTwinStateInRange(0, TOTAL_TARGET_UPDATE_COUNT-1);
+        List<DigitalTwinStateRecord> digitalTwinStateList = wldtStorage.getDigitalTwinStateInRange(0, TOTAL_TARGET_UPDATE_COUNT-1);
         assertNotNull(digitalTwinStateList);
         assertFalse(digitalTwinStateList.isEmpty());
         assertEquals(TOTAL_TARGET_UPDATE_COUNT, digitalTwinStateList.size());
@@ -329,27 +334,27 @@ public class DefaultStorageTest {
         long endTimeStamp = System.currentTimeMillis();
 
         // Check the LifeCycle States in the complete range
-        Map<Long, LifeCycleState> lifeCycleStateMap = wldtStorage.getLifeCycleStateInTimeRange(startTimeStamp, endTimeStamp);
+        List<LifeCycleVariationRecord> lifeCycleStateMap = wldtStorage.getLifeCycleStateInTimeRange(startTimeStamp, endTimeStamp);
 
         // Check the number of LifeCycle States stored in the target range
         assertEquals(LIFE_CYCLE_STATE_CHANGE_NUMBER, lifeCycleStateMap.size());
 
         // Check validity of the LifeCycle States in the target range
-        for(Map.Entry<Long, LifeCycleState> entry : lifeCycleStateMap.entrySet()){
-            assertNotNull(entry.getKey());
-            assertNotNull(entry.getValue());
+        for(LifeCycleVariationRecord entry : lifeCycleStateMap) {
+            assertNotNull(entry);
+            assertNotNull(entry.getLifeCycleState());
         }
 
         // Retrieve the LifeCycle States in the target range
-        Map<Long, LifeCycleState> lifeCycleStateMapInRange = wldtStorage.getLifeCycleStateInRange(0, LIFE_CYCLE_STATE_CHANGE_NUMBER-1);
+        List<LifeCycleVariationRecord> lifeCycleStateMapInRange = wldtStorage.getLifeCycleStateInRange(0, LIFE_CYCLE_STATE_CHANGE_NUMBER-1);
 
         // Check the number of LifeCycle States stored in the target range
         assertEquals(LIFE_CYCLE_STATE_CHANGE_NUMBER, lifeCycleStateMapInRange.size());
 
         // Check validity of the LifeCycle States in the target range
-        for(Map.Entry<Long, LifeCycleState> entry : lifeCycleStateMapInRange.entrySet()){
-            assertNotNull(entry.getKey());
-            assertNotNull(entry.getValue());
+        for(LifeCycleVariationRecord entry : lifeCycleStateMapInRange) {
+            assertNotNull(entry);
+            assertNotNull(entry.getLifeCycleState());
         }
     }
 
@@ -382,13 +387,13 @@ public class DefaultStorageTest {
         long endTimeStamp = System.currentTimeMillis();
 
         // Check the Physical Asset Action Requests in the target range
-        List<PhysicalAssetActionRequest> resultList = wldtStorage.getPhysicalAssetActionRequestInTimeRange(startTimeStamp, endTimeStamp);
+        List<PhysicalAssetActionRequestRecord> resultList = wldtStorage.getPhysicalAssetActionRequestInTimeRange(startTimeStamp, endTimeStamp);
 
         // Check the number of Physical Asset Action Requests stored in the target range
         assertEquals(EVENT_TEST_NUMBER, resultList.size());
 
         // Check validity of the Physical Asset Action Requests in the target range
-        for(PhysicalAssetActionRequest entry : resultList){
+        for(PhysicalAssetActionRequestRecord entry : resultList){
             assertNotNull(entry);
             assertNotNull(entry.getActionkey());
             assertNotNull(entry.getRequestBody());
@@ -401,7 +406,7 @@ public class DefaultStorageTest {
         assertEquals(EVENT_TEST_NUMBER, resultList.size());
 
         // Check validity of the Physical Asset Action Requests in the target range
-        for(PhysicalAssetActionRequest entry : resultList){
+        for(PhysicalAssetActionRequestRecord entry : resultList){
             assertNotNull(entry);
             assertNotNull(entry.getActionkey());
             assertNotNull(entry.getRequestBody());
@@ -437,13 +442,13 @@ public class DefaultStorageTest {
         long endTimeStamp = System.currentTimeMillis();
 
         // Check the Digital Action Requests in the target range
-        List<DigitalActionRequest> resultList = wldtStorage.getDigitalActionRequestInTimeRange(startTimeStamp, endTimeStamp);
+        List<DigitalActionRequestRecord> resultList = wldtStorage.getDigitalActionRequestInTimeRange(startTimeStamp, endTimeStamp);
 
         // Check the number of Digital Action Requests stored in the target range
         assertEquals(EVENT_TEST_NUMBER, resultList.size());
 
         // Check validity of the Digital Action Requests in the target range
-        for(DigitalActionRequest entry : resultList){
+        for(DigitalActionRequestRecord entry : resultList){
             assertNotNull(entry);
             assertNotNull(entry.getActionkey());
             assertNotNull(entry.getRequestBody());
@@ -456,7 +461,7 @@ public class DefaultStorageTest {
         assertEquals(EVENT_TEST_NUMBER, resultList.size());
 
         // Check validity of the Digital Action Requests in the target range
-        for(DigitalActionRequest entry : resultList){
+        for(DigitalActionRequestRecord entry : resultList){
             assertNotNull(entry);
             assertNotNull(entry.getActionkey());
             assertNotNull(entry.getRequestBody());
@@ -495,13 +500,13 @@ public class DefaultStorageTest {
         long endTimeStamp = System.currentTimeMillis();
 
         // Check the Digital Action Requests in the target range
-        List<PhysicalAssetDescriptionNotification> resultList = wldtStorage.getNewPhysicalAssetDescriptionNotificationInTimeRange(startTimeStamp, endTimeStamp);
+        List<PhysicalAssetDescriptionNotificationRecord> resultList = wldtStorage.getNewPhysicalAssetDescriptionNotificationInTimeRange(startTimeStamp, endTimeStamp);
 
         // Check the number of Physical Asset Description Notification stored in the target range
         assertEquals(EVENT_TEST_NUMBER, resultList.size());
 
         // Check validity of the Physical Asset Description Notification in the target range
-        for(PhysicalAssetDescriptionNotification entry : resultList){
+        for(PhysicalAssetDescriptionNotificationRecord entry : resultList){
             assertNotNull(entry);
             assertNotNull(entry.getAdapterId());
             assertNotNull(entry.getPhysicalAssetDescription());
@@ -517,7 +522,7 @@ public class DefaultStorageTest {
         assertEquals(EVENT_TEST_NUMBER, resultList.size());
 
         // Check validity of thePhysical Asset Description Notification in the target range
-        for(PhysicalAssetDescriptionNotification entry : resultList){
+        for(PhysicalAssetDescriptionNotificationRecord entry : resultList){
             assertNotNull(entry);
             assertNotNull(entry.getAdapterId());
             assertNotNull(entry.getPhysicalAssetDescription());
@@ -559,13 +564,13 @@ public class DefaultStorageTest {
         long endTimeStamp = System.currentTimeMillis();
 
         // Check the Digital Action Requests in the target range
-        List<PhysicalAssetDescriptionNotification> resultList = wldtStorage.getUpdatedPhysicalAssetDescriptionNotificationInTimeRange(startTimeStamp, endTimeStamp);
+        List<PhysicalAssetDescriptionNotificationRecord> resultList = wldtStorage.getUpdatedPhysicalAssetDescriptionNotificationInTimeRange(startTimeStamp, endTimeStamp);
 
         // Check the number of Physical Asset Description Notification stored in the target range
         assertEquals(EVENT_TEST_NUMBER, resultList.size());
 
         // Check validity of the Physical Asset Description Notification in the target range
-        for(PhysicalAssetDescriptionNotification entry : resultList){
+        for(PhysicalAssetDescriptionNotificationRecord entry : resultList){
             assertNotNull(entry);
             assertNotNull(entry.getAdapterId());
             assertNotNull(entry.getPhysicalAssetDescription());
@@ -581,7 +586,7 @@ public class DefaultStorageTest {
         assertEquals(EVENT_TEST_NUMBER, resultList.size());
 
         // Check validity of thePhysical Asset Description Notification in the target range
-        for(PhysicalAssetDescriptionNotification entry : resultList){
+        for(PhysicalAssetDescriptionNotificationRecord entry : resultList){
             assertNotNull(entry);
             assertNotNull(entry.getAdapterId());
             assertNotNull(entry.getPhysicalAssetDescription());
@@ -621,13 +626,13 @@ public class DefaultStorageTest {
         long endTimeStamp = System.currentTimeMillis();
 
         // Check the entities in the target range
-        List<PhysicalAssetPropertyVariation> resultList = wldtStorage.getPhysicalAssetPropertyVariationInTimeRange(startTimeStamp, endTimeStamp);
+        List<PhysicalAssetPropertyVariationRecord> resultList = wldtStorage.getPhysicalAssetPropertyVariationInTimeRange(startTimeStamp, endTimeStamp);
 
         // Check the number of entities stored in the target range
         assertEquals(EVENT_TEST_NUMBER, resultList.size());
 
         // Check validity of the entities in the target range
-        for(PhysicalAssetPropertyVariation entry : resultList){
+        for(PhysicalAssetPropertyVariationRecord entry : resultList){
             assertNotNull(entry);
             assertNotNull(entry.getPropertykey());
             assertNotNull(entry.getBody());
@@ -640,7 +645,7 @@ public class DefaultStorageTest {
         assertEquals(EVENT_TEST_NUMBER, resultList.size());
 
         // Check validity of the entities in the target range
-        for(PhysicalAssetPropertyVariation entry : resultList){
+        for(PhysicalAssetPropertyVariationRecord entry : resultList){
             assertNotNull(entry);
             assertNotNull(entry.getPropertykey());
             assertNotNull(entry.getBody());
@@ -678,15 +683,18 @@ public class DefaultStorageTest {
         long endTimeStamp = System.currentTimeMillis();
 
         // Check the entities in the target range
-        List<PhysicalRelationshipInstanceVariation> resultList = wldtStorage.getPhysicalAssetRelationshipInstanceCreatedEventInTimeRange(startTimeStamp, endTimeStamp);
+        List<PhysicalRelationshipInstanceVariationRecord> resultList = wldtStorage.getPhysicalAssetRelationshipInstanceCreatedEventInTimeRange(startTimeStamp, endTimeStamp);
 
         // Check the number of entities stored in the target range
         assertEquals(EVENT_TEST_NUMBER, resultList.size());
 
         // Check validity of the entities in the target range
-        for(PhysicalRelationshipInstanceVariation entry : resultList){
+        for(PhysicalRelationshipInstanceVariationRecord entry : resultList){
             assertNotNull(entry);
-            assertNotNull(entry.getPhysicalAssetRelationshipInstance());
+            assertNotNull(entry.getInstanceKey());
+            assertNotNull(entry.getInstanceTargetId());
+            assertNotNull(entry.getRelationshipName());
+            assertNotNull(entry.getRelationshipType());
         }
 
         // Retrieve the entities in the target range
@@ -696,9 +704,12 @@ public class DefaultStorageTest {
         assertEquals(EVENT_TEST_NUMBER, resultList.size());
 
         // Check validity of the entities in the target range
-        for(PhysicalRelationshipInstanceVariation entry : resultList){
+        for(PhysicalRelationshipInstanceVariationRecord entry : resultList){
             assertNotNull(entry);
-            assertNotNull(entry.getPhysicalAssetRelationshipInstance());
+            assertNotNull(entry.getInstanceKey());
+            assertNotNull(entry.getInstanceTargetId());
+            assertNotNull(entry.getRelationshipName());
+            assertNotNull(entry.getRelationshipType());
         }
     }
 
@@ -733,15 +744,18 @@ public class DefaultStorageTest {
         long endTimeStamp = System.currentTimeMillis();
 
         // Check the entities in the target range
-        List<PhysicalRelationshipInstanceVariation> resultList = wldtStorage.getPhysicalAssetRelationshipInstanceDeletedEventInTimeRange(startTimeStamp, endTimeStamp);
+        List<PhysicalRelationshipInstanceVariationRecord> resultList = wldtStorage.getPhysicalAssetRelationshipInstanceDeletedEventInTimeRange(startTimeStamp, endTimeStamp);
 
         // Check the number of entities stored in the target range
         assertEquals(EVENT_TEST_NUMBER, resultList.size());
 
         // Check validity of the entities in the target range
-        for(PhysicalRelationshipInstanceVariation entry : resultList){
+        for(PhysicalRelationshipInstanceVariationRecord entry : resultList){
             assertNotNull(entry);
-            assertNotNull(entry.getPhysicalAssetRelationshipInstance());
+            assertNotNull(entry.getInstanceKey());
+            assertNotNull(entry.getInstanceTargetId());
+            assertNotNull(entry.getRelationshipName());
+            assertNotNull(entry.getRelationshipType());
         }
 
         // Retrieve the entities in the target range
@@ -751,9 +765,12 @@ public class DefaultStorageTest {
         assertEquals(EVENT_TEST_NUMBER, resultList.size());
 
         // Check validity of the entities in the target range
-        for(PhysicalRelationshipInstanceVariation entry : resultList){
+        for(PhysicalRelationshipInstanceVariationRecord entry : resultList){
             assertNotNull(entry);
-            assertNotNull(entry.getPhysicalAssetRelationshipInstance());
+            assertNotNull(entry.getInstanceKey());
+            assertNotNull(entry.getInstanceTargetId());
+            assertNotNull(entry.getRelationshipName());
+            assertNotNull(entry.getRelationshipType());
         }
     }
 
@@ -786,15 +803,15 @@ public class DefaultStorageTest {
         long endTimeStamp = System.currentTimeMillis();
 
         // Check the entities in the target range
-        List<DigitalTwinStateEventNotification<?>> resultList = wldtStorage.getDigitalTwinStateEventNotificationInTimeRange(startTimeStamp, endTimeStamp);
+        List<DigitalTwinStateEventNotificationRecord> resultList = wldtStorage.getDigitalTwinStateEventNotificationInTimeRange(startTimeStamp, endTimeStamp);
 
         // Check the number of entities stored in the target range
         assertEquals(EVENT_TEST_NUMBER, resultList.size());
 
         // Check validity of the entities in the target range
-        for(DigitalTwinStateEventNotification<?> entry : resultList){
+        for(DigitalTwinStateEventNotificationRecord entry : resultList){
             assertNotNull(entry);
-            assertNotNull(entry.getDigitalEventKey());
+            assertNotNull(entry.getEventKey());
             assertNotNull(entry.getBody());
         }
 
@@ -805,9 +822,9 @@ public class DefaultStorageTest {
         assertEquals(EVENT_TEST_NUMBER, resultList.size());
 
         // Check validity of the entities in the target range
-        for(DigitalTwinStateEventNotification<?> entry : resultList){
+        for(DigitalTwinStateEventNotificationRecord entry : resultList){
             assertNotNull(entry);
-            assertNotNull(entry.getDigitalEventKey());
+            assertNotNull(entry.getEventKey());
             assertNotNull(entry.getBody());
         }
     }
@@ -841,13 +858,13 @@ public class DefaultStorageTest {
         long endTimeStamp = System.currentTimeMillis();
 
         // Check the entities in the target range
-        List<PhysicalAssetEventNotification> resultList = wldtStorage.getPhysicalAssetEventNotificationInTimeRange(startTimeStamp, endTimeStamp);
+        List<PhysicalAssetEventNotificationRecord> resultList = wldtStorage.getPhysicalAssetEventNotificationInTimeRange(startTimeStamp, endTimeStamp);
 
         // Check the number of entities stored in the target range
         assertEquals(EVENT_TEST_NUMBER, resultList.size());
 
         // Check validity of the entities in the target range
-        for(PhysicalAssetEventNotification entry : resultList){
+        for(PhysicalAssetEventNotificationRecord entry : resultList){
             assertNotNull(entry);
             assertNotNull(entry.getEventkey());
             assertNotNull(entry.getBody());
@@ -860,7 +877,7 @@ public class DefaultStorageTest {
         assertEquals(EVENT_TEST_NUMBER, resultList.size());
 
         // Check validity of the entities in the target range
-        for(PhysicalAssetEventNotification entry : resultList){
+        for(PhysicalAssetEventNotificationRecord entry : resultList){
             assertNotNull(entry);
             assertNotNull(entry.getEventkey());
             assertNotNull(entry.getBody());

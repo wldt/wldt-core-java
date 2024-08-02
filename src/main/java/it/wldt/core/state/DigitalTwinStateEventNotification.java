@@ -1,8 +1,5 @@
 package it.wldt.core.state;
 
-import it.wldt.exception.EventBusException;
-import java.util.Map;
-
 /**
  * Authors:
  *          Marco Picone, Ph.D. (picone.m@gmail.com)

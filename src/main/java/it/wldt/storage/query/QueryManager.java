@@ -37,7 +37,7 @@ public class QueryManager {
      * @param queryRequest Query Request Object
      * @param storageMap   Storage Map containing the storage objects to be used for the query management
      */
-    private QueryResult<?> handleQuery(QueryRequest queryRequest, Map<String, WldtStorage> storageMap) {
+    public QueryResult<?> handleQuery(QueryRequest queryRequest, Map<String, WldtStorage> storageMap) {
 
         try{
 

@@ -2,15 +2,19 @@ package it.wldt.storage;
 
 import it.wldt.adapter.digital.DigitalActionRequest;
 import it.wldt.adapter.physical.*;
-import it.wldt.core.engine.LifeCycleState;
 import it.wldt.core.engine.LifeCycleStateVariation;
 import it.wldt.core.state.DigitalTwinState;
 import it.wldt.core.state.DigitalTwinStateChange;
 import it.wldt.core.state.DigitalTwinStateEventNotification;
 import it.wldt.exception.StorageException;
+import it.wldt.adapter.physical.PhysicalAssetPropertyVariation;
+import it.wldt.storage.model.digital.DigitalActionRequestRecord;
+import it.wldt.storage.model.lifecycle.LifeCycleVariationRecord;
+import it.wldt.storage.model.physical.*;
+import it.wldt.storage.model.state.DigitalTwinStateEventNotificationRecord;
+import it.wldt.storage.model.state.DigitalTwinStateRecord;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -24,6 +28,13 @@ import java.util.Optional;
  *      ii) Digital Twin State Change List storage and retrieval;
  *      iii) Received Physical Events;
  *      iv) Generated Digital Events;
+ *      v) Life Cycle State storage and retrieval;
+ *      vi) Physical Asset Description storage and retrieval;
+ *      vii) Physical Asset Property Variation storage and retrieval;
+ *      viii) Physical Asset Relationship Instance storage and retrieval;
+ *      ix) Digital Action Request storage and retrieval;
+ *      x) Physical Asset Action Request storage and retrieval;
+ *      xi) Physical Asset Event Notification storage and retrieval;
  */
 public abstract class WldtStorage {
 
@@ -166,16 +177,7 @@ public abstract class WldtStorage {
      * Returns the latest computed Digital Twin State of the target Digital Twin instance
      * @return the latest computed Digital Twin State
      */
-    public abstract Optional<DigitalTwinState> getLastDigitalTwinState() throws StorageException;
-
-    /**
-     * Retrieves a list of Digital Twin state changes associated with the given digital twin state that characterized
-     * is computation and the transition from the previous state.
-     *
-     * @param digitalTwinState the digital twin state for which to retrieve the state changes
-     * @return a list of digital twin state changes associated with the given digital twin state
-     */
-    public abstract List<DigitalTwinStateChange> getDigitalTwinStateChangeList(DigitalTwinState digitalTwinState) throws StorageException;
+    public abstract Optional<DigitalTwinStateRecord> getLastDigitalTwinStateVariation() throws StorageException;
 
     /**
      * Returns the number of computed and stored Digital Twin States
@@ -191,7 +193,7 @@ public abstract class WldtStorage {
      * @return A list of DigitalTwinState objects representing the state of the digital twin within the specified time range.
      * @throws IllegalArgumentException If the start timestamp is greater than the end timestamp.
      */
-    public abstract List<DigitalTwinState> getDigitalTwinStateInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException;
+    public abstract List<DigitalTwinStateRecord> getDigitalTwinStateInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException;
 
     /**
      * Retrieves a list of Digital Twin states within the specified range of indices.
@@ -202,7 +204,7 @@ public abstract class WldtStorage {
      * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
      * @throws IllegalArgumentException  if startIndex is greater than endIndex
      */
-    public abstract List<DigitalTwinState> getDigitalTwinStateInRange(int startIndex, int endIndex) throws StorageException, IndexOutOfBoundsException, IllegalArgumentException;
+    public abstract List<DigitalTwinStateRecord> getDigitalTwinStateInRange(int startIndex, int endIndex) throws StorageException, IndexOutOfBoundsException, IllegalArgumentException;
 
     /**
      * Save the Digital Twin State Event Notification
@@ -222,7 +224,7 @@ public abstract class WldtStorage {
      * @param endTimestampMs the end timestamp of the time range
      * @return the list of Digital Twin State Event Notification in the specified time range
      */
-    public abstract List<DigitalTwinStateEventNotification<?>> getDigitalTwinStateEventNotificationInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException;
+    public abstract List<DigitalTwinStateEventNotificationRecord> getDigitalTwinStateEventNotificationInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException;
 
     /**
      * Get the Digital Twin State Event Notification in the specified range of indices
@@ -232,7 +234,7 @@ public abstract class WldtStorage {
      * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
      * @throws IllegalArgumentException if startIndex is greater than endIndex
      */
-    public abstract List<DigitalTwinStateEventNotification<?>> getDigitalTwinStateEventNotificationInRange(int startIndex, int endIndex) throws StorageException, IllegalArgumentException;
+    public abstract List<DigitalTwinStateEventNotificationRecord> getDigitalTwinStateEventNotificationInRange(int startIndex, int endIndex) throws StorageException, IllegalArgumentException;
 
     /**
      * Save the LifeCycleState of the Digital Twin
@@ -250,7 +252,7 @@ public abstract class WldtStorage {
      * Get the last LifeCycleState of the Digital Twin
      * @return the last LifeCycleState of the Digital Twin
      */
-    public abstract Map<Long, LifeCycleState> getLifeCycleStateInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException;
+    public abstract List<LifeCycleVariationRecord> getLifeCycleStateInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException;
 
     /**
      * Get the LifeCycleState of the Digital Twin in the specified range of indices
@@ -260,7 +262,7 @@ public abstract class WldtStorage {
      * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
      * @throws IllegalArgumentException if startIndex is greater than endIndex
      */
-    public abstract Map<Long, LifeCycleState> getLifeCycleStateInRange(int startIndex, int endIndex) throws StorageException, IndexOutOfBoundsException, IllegalArgumentException;
+    public abstract List<LifeCycleVariationRecord> getLifeCycleStateInRange(int startIndex, int endIndex) throws StorageException, IndexOutOfBoundsException, IllegalArgumentException;
 
     /**
      * Save the Physical Asset Event Notification
@@ -280,7 +282,7 @@ public abstract class WldtStorage {
      * @param endTimestampMs the end timestamp of the time range
      * @return the list of Physical Asset Event Notification in the specified time range
      */
-    public abstract List<PhysicalAssetEventNotification> getPhysicalAssetEventNotificationInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException;
+    public abstract List<PhysicalAssetEventNotificationRecord> getPhysicalAssetEventNotificationInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException;
 
     /**
      * Get the Physical Asset Event Notification in the specified range of indices
@@ -290,7 +292,7 @@ public abstract class WldtStorage {
      * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
      * @throws IllegalArgumentException if startIndex is greater than endIndex
      */
-    public abstract List<PhysicalAssetEventNotification> getPhysicalAssetEventNotificationInRange(int startIndex, int endIndex) throws StorageException, IndexOutOfBoundsException, IllegalArgumentException;
+    public abstract List<PhysicalAssetEventNotificationRecord> getPhysicalAssetEventNotificationInRange(int startIndex, int endIndex) throws StorageException, IndexOutOfBoundsException, IllegalArgumentException;
 
     /**
      * Save Physical Asset Action Request
@@ -310,7 +312,7 @@ public abstract class WldtStorage {
      * @param endTimestampMs the end timestamp of the time range
      * @return the list of Physical Asset Action Request in the specified time range
      */
-    public abstract List<PhysicalAssetActionRequest> getPhysicalAssetActionRequestInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException;
+    public abstract List<PhysicalAssetActionRequestRecord> getPhysicalAssetActionRequestInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException;
 
     /**
      * Get the Physical Asset Action Request in the specified range of indices
@@ -320,7 +322,7 @@ public abstract class WldtStorage {
      * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
      * @throws IllegalArgumentException if startIndex is greater than endIndex
      */
-    public abstract List<PhysicalAssetActionRequest> getPhysicalAssetActionRequestInRange(int startIndex, int endIndex) throws StorageException, IndexOutOfBoundsException, IllegalArgumentException;
+    public abstract List<PhysicalAssetActionRequestRecord> getPhysicalAssetActionRequestInRange(int startIndex, int endIndex) throws StorageException, IndexOutOfBoundsException, IllegalArgumentException;
 
     /**
      * Save a Digital Action Request
@@ -340,7 +342,7 @@ public abstract class WldtStorage {
      * @param endTimestampMs the end timestamp of the time range
      * @return the list of Digital Action Request in the specified time range
      */
-    public abstract List<DigitalActionRequest> getDigitalActionRequestInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException;
+    public abstract List<DigitalActionRequestRecord> getDigitalActionRequestInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException;
 
     /**
      * Get the Digital Action Request in the specified range of indices
@@ -350,7 +352,7 @@ public abstract class WldtStorage {
      * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
      * @throws IllegalArgumentException if startIndex is greater than endIndex
      */
-    public abstract List<DigitalActionRequest> getDigitalActionRequestInRange(int startIndex, int endIndex) throws StorageException, IndexOutOfBoundsException, IllegalArgumentException;
+    public abstract List<DigitalActionRequestRecord> getDigitalActionRequestInRange(int startIndex, int endIndex) throws StorageException, IndexOutOfBoundsException, IllegalArgumentException;
 
     /**
      * Save a new Physical Asset Description Available
@@ -370,7 +372,7 @@ public abstract class WldtStorage {
      * @param endTimestampMs the end timestamp of the time range
      * @return the list of New Physical Asset Description Available in the specified time range
      */
-    public abstract List<PhysicalAssetDescriptionNotification> getNewPhysicalAssetDescriptionNotificationInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException;
+    public abstract List<PhysicalAssetDescriptionNotificationRecord> getNewPhysicalAssetDescriptionNotificationInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException;
 
     /**
      * Get the New Physical Asset Description Available in the specified range of indices
@@ -380,7 +382,7 @@ public abstract class WldtStorage {
      * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
      * @throws IllegalArgumentException if startIndex is greater than endIndex
      */
-    public abstract List<PhysicalAssetDescriptionNotification> getNewPhysicalAssetDescriptionNotificationInRange(int startIndex, int endIndex) throws StorageException, IndexOutOfBoundsException, IllegalArgumentException;
+    public abstract List<PhysicalAssetDescriptionNotificationRecord> getNewPhysicalAssetDescriptionNotificationInRange(int startIndex, int endIndex) throws StorageException, IndexOutOfBoundsException, IllegalArgumentException;
 
     /**
      * Save the updated Physical Asset Description
@@ -400,7 +402,7 @@ public abstract class WldtStorage {
      * @param endTimestampMs the end timestamp of the time range
      * @return the list of Updated Physical Asset Description in the specified time range
      */
-    public abstract List<PhysicalAssetDescriptionNotification> getUpdatedPhysicalAssetDescriptionNotificationInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException;
+    public abstract List<PhysicalAssetDescriptionNotificationRecord> getUpdatedPhysicalAssetDescriptionNotificationInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException;
 
     /**
      * Get the Updated Physical Asset Description in the specified range of indices
@@ -410,7 +412,7 @@ public abstract class WldtStorage {
      * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
      * @throws IllegalArgumentException if startIndex is greater than endIndex
      */
-    public abstract List<PhysicalAssetDescriptionNotification> getUpdatedPhysicalAssetDescriptionNotificationInRange(int startIndex, int endIndex) throws StorageException, IndexOutOfBoundsException, IllegalArgumentException;
+    public abstract List<PhysicalAssetDescriptionNotificationRecord> getUpdatedPhysicalAssetDescriptionNotificationInRange(int startIndex, int endIndex) throws StorageException, IndexOutOfBoundsException, IllegalArgumentException;
 
     /**
      * Save the Physical Asset Property Variation
@@ -430,7 +432,7 @@ public abstract class WldtStorage {
      * @param endTimestampMs the end timestamp of the time range
      * @return the list of Physical Asset Property Variation in the specified time range
      */
-    public abstract List<PhysicalAssetPropertyVariation> getPhysicalAssetPropertyVariationInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException;
+    public abstract List<PhysicalAssetPropertyVariationRecord> getPhysicalAssetPropertyVariationInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException;
 
     /**
      * Get the Physical Asset Property Variation in the specified range of indices
@@ -440,7 +442,7 @@ public abstract class WldtStorage {
      * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
      * @throws IllegalArgumentException if startIndex is greater than endIndex
      */
-    public abstract List<PhysicalAssetPropertyVariation> getPhysicalAssetPropertyVariationInRange(int startIndex, int endIndex) throws StorageException, IndexOutOfBoundsException, IllegalArgumentException;
+    public abstract List<PhysicalAssetPropertyVariationRecord> getPhysicalAssetPropertyVariationInRange(int startIndex, int endIndex) throws StorageException, IndexOutOfBoundsException, IllegalArgumentException;
 
     /**
      * Save the Physical Asset Relationship Instance Created Event
@@ -460,7 +462,7 @@ public abstract class WldtStorage {
      * @param endTimestampMs the end timestamp of the time range
      * @return the list of Physical Asset Relationship Instance Created Event in the specified time range
      */
-    public abstract List<PhysicalRelationshipInstanceVariation> getPhysicalAssetRelationshipInstanceCreatedEventInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException;
+    public abstract List<PhysicalRelationshipInstanceVariationRecord> getPhysicalAssetRelationshipInstanceCreatedEventInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException;
 
     /**
      * Get the Physical Asset Relationship Instance Created Event in the specified range of indices
@@ -470,7 +472,7 @@ public abstract class WldtStorage {
      * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
      * @throws IllegalArgumentException if startIndex is greater than endIndex
      */
-    public abstract List<PhysicalRelationshipInstanceVariation> getPhysicalAssetRelationshipInstanceCreatedEventInRange(int startIndex, int endIndex) throws StorageException, IllegalArgumentException;
+    public abstract List<PhysicalRelationshipInstanceVariationRecord> getPhysicalAssetRelationshipInstanceCreatedEventInRange(int startIndex, int endIndex) throws StorageException, IllegalArgumentException;
 
     /**
      * Save the Physical Asset Relationship Instance Updated Event
@@ -490,7 +492,7 @@ public abstract class WldtStorage {
      * @param endTimestampMs the end timestamp of the time range
      * @return the list of Physical Asset Relationship Instance Updated Event in the specified time range
      */
-    public abstract List<PhysicalRelationshipInstanceVariation> getPhysicalAssetRelationshipInstanceDeletedEventInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException;
+    public abstract List<PhysicalRelationshipInstanceVariationRecord> getPhysicalAssetRelationshipInstanceDeletedEventInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException;
 
     /**
      * Get the Physical Asset Relationship Instance Updated Event in the specified range of indices
@@ -500,7 +502,7 @@ public abstract class WldtStorage {
      * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
      * @throws IllegalArgumentException if startIndex is greater than endIndex
      */
-    public abstract List<PhysicalRelationshipInstanceVariation> getPhysicalAssetRelationshipInstanceDeletedEventInRange(int startIndex, int endIndex) throws StorageException, IndexOutOfBoundsException, IllegalArgumentException;
+    public abstract List<PhysicalRelationshipInstanceVariationRecord> getPhysicalAssetRelationshipInstanceDeletedEventInRange(int startIndex, int endIndex) throws StorageException, IndexOutOfBoundsException, IllegalArgumentException;
 
     /**
      * Initialize the WLDT Storage

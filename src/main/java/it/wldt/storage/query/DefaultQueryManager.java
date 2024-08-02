@@ -3,6 +3,7 @@ package it.wldt.storage.query;
 import it.wldt.core.state.DigitalTwinState;
 import it.wldt.exception.StorageException;
 import it.wldt.storage.WldtStorage;
+import it.wldt.storage.model.state.DigitalTwinStateRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.Collections;
@@ -61,12 +62,12 @@ public class DefaultQueryManager extends QueryManager{
             return new QueryResult<>(queryRequest,
                     true,
                     null,
-                    Collections.singletonList(storage.getLastDigitalTwinState()),
+                    Collections.singletonList(storage.getLastDigitalTwinStateVariation()),
                     1);
         else if(queryRequest.getRequestType().equals(QueryRequestType.TIME_RANGE)){
 
             // Get the Digital Twin State in the Time Range
-            List<DigitalTwinState> result = storage.getDigitalTwinStateInTimeRange(
+            List<DigitalTwinStateRecord> result = storage.getDigitalTwinStateInTimeRange(
                     queryRequest.getStartTimestampMs(),
                     queryRequest.getEndTimestampMs());
 
@@ -79,7 +80,7 @@ public class DefaultQueryManager extends QueryManager{
         } else if (queryRequest.getRequestType().equals(QueryRequestType.SAMPLE_RANGE)){
 
             // Get the Digital Twin State in the Sample Range
-            List<DigitalTwinState> result = storage.getDigitalTwinStateInRange(
+            List<DigitalTwinStateRecord> result = storage.getDigitalTwinStateInRange(
                     queryRequest.getStartIndex(),
                     queryRequest.getEndIndex());
 

@@ -1,4 +1,4 @@
-package it.wldt.adapter.physical;
+package it.wldt.storage.model.physical;
 
 import it.wldt.storage.model.StorageRecord;
 
@@ -8,9 +8,9 @@ import java.util.Map;
  * Author: Marco Picone (picone.m@gmail.com)
  * Date: 01/08/2024
  * Physical Asset Property Variation Class
- * Represents a Physical Asset Property Variation in the Digital Twin Framework
+ * Represents a Physical Asset Property Variation in the storage
  */
-public class PhysicalAssetPropertyVariation {
+public class PhysicalAssetPropertyVariationRecord extends StorageRecord {
 
     // Timestamp of the variation
     private long timestamp;
@@ -27,7 +27,7 @@ public class PhysicalAssetPropertyVariation {
     /**
      * Default Constructor
      */
-    private PhysicalAssetPropertyVariation() {
+    private PhysicalAssetPropertyVariationRecord() {
     }
 
     /**
@@ -38,7 +38,7 @@ public class PhysicalAssetPropertyVariation {
      * @param body Body of the variation
      * @param variationMetadata Metadata associated to the variation
      */
-    public PhysicalAssetPropertyVariation(long timestamp, String propertykey, Object body, Map<String, Object> variationMetadata) {
+    public PhysicalAssetPropertyVariationRecord(long timestamp, String propertykey, Object body, Map<String, Object> variationMetadata) {
         this.timestamp = timestamp;
         this.propertykey = propertykey;
         this.body = body;
@@ -112,6 +112,7 @@ public class PhysicalAssetPropertyVariation {
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder("PhysicalAssetPropertyVariation{");
+        sb.append("recordId=").append(getId());
         sb.append("timestamp=").append(timestamp);
         sb.append(", propertykey='").append(propertykey).append('\'');
         sb.append(", body=").append(body);
