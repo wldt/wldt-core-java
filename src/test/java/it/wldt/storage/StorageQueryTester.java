@@ -226,15 +226,19 @@ public class StorageQueryTester {
         queryRequest.setResourceType(QueryResourceType.DIGITAL_TWIN_STATE);
         queryRequest.setRequestType(QueryRequestType.LAST_VALUE);
 
+        final QueryResult<?>[] receivedQueryResult = {null};
+
         // Send the Query Request to the Storage Manager for the target DT
         queryExecutor.asyncQueryExecute(queryRequest, new IQueryResultListener() {
             @Override
             public void onQueryResult(QueryResult<?> queryResult) {
-                assertNotNull(queryResult);
-                assertEquals(queryResult.getOriginalRequest().getRequestType(), QueryRequestType.LAST_VALUE);
-                assertEquals(queryResult.getOriginalRequest().getResourceType(), QueryResourceType.DIGITAL_TWIN_STATE);
+                receivedQueryResult[0] = queryResult;
             }
         });
+
+        assertNotNull(receivedQueryResult[0]);
+        assertEquals(receivedQueryResult[0].getOriginalRequest().getRequestType(), QueryRequestType.LAST_VALUE);
+        assertEquals(receivedQueryResult[0].getOriginalRequest().getResourceType(), QueryResourceType.DIGITAL_TWIN_STATE);
 
         Thread.sleep(10000);
     }

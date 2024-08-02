@@ -164,7 +164,7 @@ public class QueryExecutor implements WldtEventListener {
             // Subscribe to the Query Result Event
             WldtEventFilter wldtEventFilter = new WldtEventFilter();
             wldtEventFilter.add(targetEventType);
-            WldtEventBus.getInstance().subscribe(this.digitalTwinId, this.queryExecutorId, new WldtEventFilter(), this);
+            WldtEventBus.getInstance().subscribe(this.digitalTwinId, this.queryExecutorId, wldtEventFilter, this);
 
             // Add the Query Result Listener to the Map
             this.queryResultListenerMap.put(queryRequest.getRequestId(), queryResultListener);
