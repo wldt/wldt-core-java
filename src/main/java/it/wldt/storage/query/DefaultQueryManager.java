@@ -1,62 +1,50 @@
 package it.wldt.storage.query;
 
+import it.wldt.core.state.DigitalTwinState;
 import it.wldt.exception.StorageException;
 import it.wldt.storage.WldtStorage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-public class DefaultQueryManager implements IQueryManager{
+public class DefaultQueryManager extends QueryManager{
 
     private static final Logger logger = LoggerFactory.getLogger(DefaultQueryManager.class);
 
-    /**
-     * Return the desired storage object from the storage map to be used for the query management
-     * @param storageMap Storage Map containing the storage objects
-     * @return Desired Storage Object to be used for the query management
-     */
-    private Optional<WldtStorage> getDesiredStorage(Map<String, WldtStorage> storageMap) {
-        if(!storageMap.isEmpty()) {
-            WldtStorage targetStorage = storageMap.entrySet().iterator().next().getValue();
-            if(targetStorage != null)
-                return Optional.of(targetStorage);
-            else
-                return Optional.empty();
-        }
-        else
-            return Optional.empty();
+    public DefaultQueryManager() {
+        super();
     }
 
     /**
-     * Handle Query Request allowing its management through the storage map and the associated storage objects
+     * The method has been designed to return the desired storage object from the storage map to be used for the query management.
+     * Recall the default implementation of the method for the query manager.
+     * In the default implementation, the method returns the first storage object available in the storage map.
      *
-     * @param queryRequest Query Request Object
-     * @param storageMap   Storage Map containing the storage objects to be used for the query management
+     * The behavior can be changed by overriding the method in the custom query manager implementation.
+     * In the custom implementation, the method can be used to select different storage according to the query.
+     *
+     * @param queryRequest Query Request Object, that can be used to select different storage according to the query
+     * @param storageMap   Storage Map containing the storage objects
+     * @return Desired Storage Object to be used for the query management
      */
     @Override
-    public QueryResult<?> handleQuery(QueryRequest queryRequest, Map<String, WldtStorage> storageMap) {
+    public Optional<WldtStorage> getTargetStorage(QueryRequest queryRequest, Map<String, WldtStorage> storageMap) {
+        return super.getTargetStorage(queryRequest, storageMap);
+    }
 
-        try{
-            logger.info("Handling Query Request: {}", queryRequest);
-            Optional<WldtStorage> storageOptional = getDesiredStorage(storageMap);
-
-            if(storageOptional.isPresent()) {
-
-                logger.info("Storage Available for the Query Request ! Storage Id: {}", storageOptional.get().getStorageId());
-
-                // Digital Twin State Query Request
-                if(queryRequest.getResourceType().equals(QueryResourceType.DIGITAL_TWIN_STATE))
-                    return handleDigitalTwinStateQuery(queryRequest, storageOptional.get());
-                else
-                    return new QueryResult<>(queryRequest, false, "Invalid Query Request Type !");
-            }
-            else
-                return new QueryResult<>(queryRequest, false, "No Storage Available for the Query Request !");
-        }catch (Exception e){
-            return new QueryResult<>(queryRequest, false, e.getMessage());
-        }
+    /**
+     * Handle Digital Twin State Change List Query Request
+     *
+     * @param queryRequest Query Request Object
+     * @param wldtStorage  Storage Object to be used for the query management
+     * @return Query Result Object containing the query result
+     */
+    @Override
+    public QueryResult<?> handleStateChangeListQuery(QueryRequest queryRequest, WldtStorage wldtStorage) throws StorageException {
+        return super.handleStateChangeListQuery(queryRequest, wldtStorage);
     }
 
     /**
@@ -67,7 +55,7 @@ public class DefaultQueryManager implements IQueryManager{
      * @return Query Result Object containing the query result
      * @throws StorageException Storage Exception
      */
-    public QueryResult<?> handleDigitalTwinStateQuery(QueryRequest queryRequest, WldtStorage storage) throws StorageException {
+    public QueryResult<?> handleStateQuery(QueryRequest queryRequest, WldtStorage storage) throws StorageException {
 
         if(queryRequest.getRequestType().equals(QueryRequestType.LAST_VALUE))
             return new QueryResult<>(queryRequest,
@@ -75,7 +63,45 @@ public class DefaultQueryManager implements IQueryManager{
                     null,
                     Collections.singletonList(storage.getLastDigitalTwinState()),
                     1);
-        else
+        else if(queryRequest.getRequestType().equals(QueryRequestType.TIME_RANGE)){
+
+            // Get the Digital Twin State in the Time Range
+            List<DigitalTwinState> result = storage.getDigitalTwinStateInTimeRange(
+                    queryRequest.getStartTimestampMs(),
+                    queryRequest.getEndTimestampMs());
+
+            // Return the Query Result
+            return new QueryResult<>(queryRequest,
+                    true,
+                    null,
+                    result,
+                    result.size());
+        } else if (queryRequest.getRequestType().equals(QueryRequestType.SAMPLE_RANGE)){
+
+            // Get the Digital Twin State in the Sample Range
+            List<DigitalTwinState> result = storage.getDigitalTwinStateInRange(
+                    queryRequest.getStartIndex(),
+                    queryRequest.getEndIndex());
+
+            // Return the Query Result
+            return new QueryResult<>(queryRequest,
+                    true,
+                    null,
+                    result,
+                    result.size());
+        } else if (queryRequest.getRequestType().equals(QueryRequestType.COUNT)){
+
+            // Get the Digital Twin State Count
+            int result = storage.getDigitalTwinStateCount();
+
+            // Return the Query Result
+            return new QueryResult<>(queryRequest,
+                    true,
+                    null,
+                    Collections.singletonList(result),
+                    1);
+
+        } else
             return new QueryResult<>(queryRequest, false, "Invalid Digital Twin State Query Request Type !");
     }
 }

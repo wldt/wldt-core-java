@@ -20,7 +20,7 @@ import it.wldt.core.state.DigitalTwinStateManager;
 import it.wldt.exception.StorageException;
 import it.wldt.exception.WldtRuntimeException;
 import it.wldt.storage.query.DefaultQueryManager;
-import it.wldt.storage.query.IQueryManager;
+import it.wldt.storage.query.QueryManager;
 import it.wldt.storage.query.QueryRequest;
 import it.wldt.storage.query.QueryResult;
 import org.slf4j.Logger;
@@ -28,7 +28,6 @@ import org.slf4j.LoggerFactory;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  *
@@ -47,7 +46,7 @@ public class StorageManager extends DigitalTwinWorker implements IWldtEventObser
 
     private static final String STORAGE_MANAGER_EVENTBUS_CLIENT_ID = "storage_manager";
 
-    private IQueryManager queryManager;
+    private QueryManager queryManager;
 
     // Map containing the storage types for a DT
     private Map<String, WldtStorage> storageMap;
@@ -457,7 +456,7 @@ public class StorageManager extends DigitalTwinWorker implements IWldtEventObser
      * The method set the query manager for the StorageManager
      * @param queryManager The query manager to be set
      */
-    public void setQueryManager(IQueryManager queryManager) throws StorageException {
+    public void setQueryManager(QueryManager queryManager) throws StorageException {
         if(queryManager != null)
             this.queryManager = queryManager;
         else
