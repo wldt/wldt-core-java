@@ -51,8 +51,6 @@ public class QueryManager {
                 // Digital Twin State Query Request
                 if(queryRequest.getResourceType().equals(QueryResourceType.DIGITAL_TWIN_STATE))
                     return handleStateQuery(queryRequest, storageOptional.get());
-                else if(queryRequest.getResourceType().equals(QueryResourceType.DIGITAL_TWIN_STATE_CHANGE_LIST))
-                    return handleStateChangeListQuery(queryRequest, storageOptional.get());
                 else if(queryRequest.getResourceType().equals(QueryResourceType.PHYSICAL_ASSET_PROPERTY_VARIATION))
                     return handlePhysicalAssetPropertyVariationQuery(queryRequest, storageOptional.get());
                 else if(queryRequest.getResourceType().equals(QueryResourceType.PHYSICAL_ASSET_EVENT_NOTIFICATION))
@@ -88,7 +86,7 @@ public class QueryManager {
      * @param wldtStorage  Storage Object to be used for the query management
      * @return Query Result Object containing the query result
      */
-    private QueryResult<?> handleLifeCycleEventQuery(QueryRequest queryRequest, WldtStorage wldtStorage) throws StorageException {
+    public QueryResult<?> handleLifeCycleEventQuery(QueryRequest queryRequest, WldtStorage wldtStorage) throws StorageException {
         return new QueryResult<>(queryRequest, false, "Query not supported by the current implementation !");
     }
 
@@ -99,7 +97,7 @@ public class QueryManager {
      * @param wldtStorage  Storage Object to be used for the query management
      * @return Query Result Object containing the query result
      */
-    private QueryResult<?> handlePhysicalRelationshipInstanceDeletedNotificationQuery(QueryRequest queryRequest, WldtStorage wldtStorage) throws StorageException {
+    public QueryResult<?> handlePhysicalRelationshipInstanceDeletedNotificationQuery(QueryRequest queryRequest, WldtStorage wldtStorage) throws StorageException {
         return new QueryResult<>(queryRequest, false, "Query not supported by the current implementation !");
     }
 
@@ -110,7 +108,7 @@ public class QueryManager {
      * @param wldtStorage  Storage Object to be used for the query management
      * @return Query Result Object containing the query result
      */
-    private QueryResult<?> handlePhysicalRelationshipInstanceCreatedNotificationQuery(QueryRequest queryRequest, WldtStorage wldtStorage) throws StorageException {
+    public QueryResult<?> handlePhysicalRelationshipInstanceCreatedNotificationQuery(QueryRequest queryRequest, WldtStorage wldtStorage) throws StorageException {
         return new QueryResult<>(queryRequest, false, "Query not supported by the current implementation !");
     }
 
@@ -121,7 +119,7 @@ public class QueryManager {
      * @param wldtStorage  Storage Object to be used for the query management
      * @return Query Result Object containing the query result
      */
-    private QueryResult<?> handleUpdatedPadNotification(QueryRequest queryRequest, WldtStorage wldtStorage) throws StorageException {
+    public QueryResult<?> handleUpdatedPadNotification(QueryRequest queryRequest, WldtStorage wldtStorage) throws StorageException {
         return new QueryResult<>(queryRequest, false, "Query not supported by the current implementation !");
     }
 
@@ -132,7 +130,7 @@ public class QueryManager {
      * @param wldtStorage  Storage Object to be used for the query management
      * @return Query Result Object containing the query result
      */
-    private QueryResult<?> handleNewPadNotification(QueryRequest queryRequest, WldtStorage wldtStorage) throws StorageException {
+    public QueryResult<?> handleNewPadNotification(QueryRequest queryRequest, WldtStorage wldtStorage) throws StorageException {
         return new QueryResult<>(queryRequest, false, "Query not supported by the current implementation !");
     }
 
@@ -143,7 +141,7 @@ public class QueryManager {
      * @param wldtStorage  Storage Object to be used for the query management
      * @return Query Result Object containing the query result
      */
-    private QueryResult<?> handleDigitalActionRequestQuery(QueryRequest queryRequest, WldtStorage wldtStorage) throws StorageException{
+    public QueryResult<?> handleDigitalActionRequestQuery(QueryRequest queryRequest, WldtStorage wldtStorage) throws StorageException{
         return new QueryResult<>(queryRequest, false, "Query not supported by the current implementation !");
     }
 
@@ -155,7 +153,7 @@ public class QueryManager {
      * @param wldtStorage  Storage Object to be used for the query management
      * @return Query Result Object containing the query result
      */
-    private QueryResult<?> handlePhysicalActionRequestQuery(QueryRequest queryRequest, WldtStorage wldtStorage) throws StorageException{
+    public QueryResult<?> handlePhysicalActionRequestQuery(QueryRequest queryRequest, WldtStorage wldtStorage) throws StorageException{
         return new QueryResult<>(queryRequest, false, "Query not supported by the current implementation !");
     }
 
@@ -166,7 +164,7 @@ public class QueryManager {
      * @param wldtStorage  Storage Object to be used for the query management
      * @return Query Result Object containing the query result
      */
-    private QueryResult<?> handlePhysicalAssetEventNotificationQuery(QueryRequest queryRequest, WldtStorage wldtStorage) throws StorageException{
+    public QueryResult<?> handlePhysicalAssetEventNotificationQuery(QueryRequest queryRequest, WldtStorage wldtStorage) throws StorageException{
         return new QueryResult<>(queryRequest, false, "Query not supported by the current implementation !");
     }
 
@@ -177,18 +175,7 @@ public class QueryManager {
      * @param wldtStorage  Storage Object to be used for the query management
      * @return Query Result Object containing the query result
      */
-    private QueryResult<?> handlePhysicalAssetPropertyVariationQuery(QueryRequest queryRequest, WldtStorage wldtStorage) throws StorageException{
-        return new QueryResult<>(queryRequest, false, "Query not supported by the current implementation !");
-    }
-
-    /**
-     * Handle Digital Twin State Change List Query Request
-     *
-     * @param queryRequest Query Request Object
-     * @param wldtStorage  Storage Object to be used for the query management
-     * @return Query Result Object containing the query result
-     */
-    public QueryResult<?> handleStateChangeListQuery(QueryRequest queryRequest, WldtStorage wldtStorage) throws StorageException {
+    public QueryResult<?> handlePhysicalAssetPropertyVariationQuery(QueryRequest queryRequest, WldtStorage wldtStorage) throws StorageException{
         return new QueryResult<>(queryRequest, false, "Query not supported by the current implementation !");
     }
 

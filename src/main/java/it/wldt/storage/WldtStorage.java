@@ -24,17 +24,15 @@ import java.util.Optional;
  * Project: White Label Digital Twin Java Framework - (whitelabel-digitaltwin)
  * Defines an Interface allowing the Digital Twin developer to implement its internal storage system for the Digital Twin instance.
  * The interface defines methods for the management of:
- *      i) Digital Twin State storage and retrieval;
- *      ii) Digital Twin State Change List storage and retrieval;
- *      iii) Received Physical Events;
- *      iv) Generated Digital Events;
- *      v) Life Cycle State storage and retrieval;
- *      vi) Physical Asset Description storage and retrieval;
- *      vii) Physical Asset Property Variation storage and retrieval;
- *      viii) Physical Asset Relationship Instance storage and retrieval;
- *      ix) Digital Action Request storage and retrieval;
- *      x) Physical Asset Action Request storage and retrieval;
- *      xi) Physical Asset Event Notification storage and retrieval;
+ *      - Digital Twin State storage and retrieval with the associated change list;
+ *      - Generated State Digital Events;
+ *      - Life Cycle State storage and retrieval;
+ *      - Physical Asset Description storage and retrieval;
+ *      - Physical Asset Property Variation storage and retrieval;
+ *      - Physical Asset Relationship Instance storage and retrieval;
+ *      - Digital Action Request storage and retrieval;
+ *      - Physical Asset Action Request storage and retrieval;
+ *      - Physical Asset Event Notification storage and retrieval;
  */
 public abstract class WldtStorage {
 
@@ -177,7 +175,7 @@ public abstract class WldtStorage {
      * Returns the latest computed Digital Twin State of the target Digital Twin instance
      * @return the latest computed Digital Twin State
      */
-    public abstract Optional<DigitalTwinStateRecord> getLastDigitalTwinStateVariation() throws StorageException;
+    public abstract Optional<DigitalTwinStateRecord> getLastDigitalTwinState() throws StorageException;
 
     /**
      * Returns the number of computed and stored Digital Twin States
@@ -241,6 +239,12 @@ public abstract class WldtStorage {
      * @param lifeCycleStateVariation the LifeCycleStateVariation to be saved
      */
     public abstract void saveLifeCycleState(LifeCycleStateVariation lifeCycleStateVariation) throws StorageException;
+
+    /**
+     * Get the last LifeCycleState of the Digital Twin
+     * @return the last LifeCycleState of the Digital Twin
+     */
+    public abstract LifeCycleVariationRecord getLastLifeCycleState() throws StorageException;
 
     /**
      * Get the number of LifeCycleState of the Digital Twin
@@ -448,13 +452,13 @@ public abstract class WldtStorage {
      * Save the Physical Asset Relationship Instance Created Event
      * @param physicalRelationshipInstanceVariation the Physical Relationship Instance Variation to be saved
      */
-    public abstract void savePhysicalAssetRelationshipInstanceCreatedEvent(PhysicalRelationshipInstanceVariation physicalRelationshipInstanceVariation) throws StorageException;
+    public abstract void savePhysicalAssetRelationshipInstanceCreatedNotification(PhysicalRelationshipInstanceVariation physicalRelationshipInstanceVariation) throws StorageException;
 
     /**
      * Get the number of Physical Asset Relationship Instance Created Event
      * @return the number of Physical Asset Relationship Instance Created Event
      */
-    public abstract int getPhysicalAssetRelationshipInstanceCreatedEventCount() throws StorageException;
+    public abstract int getPhysicalAssetRelationshipInstanceCreatedNotificationCount() throws StorageException;
 
     /**
      * Get the Physical Asset Relationship Instance Created Event in the specified time range
@@ -462,7 +466,7 @@ public abstract class WldtStorage {
      * @param endTimestampMs the end timestamp of the time range
      * @return the list of Physical Asset Relationship Instance Created Event in the specified time range
      */
-    public abstract List<PhysicalRelationshipInstanceVariationRecord> getPhysicalAssetRelationshipInstanceCreatedEventInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException;
+    public abstract List<PhysicalRelationshipInstanceVariationRecord> getPhysicalAssetRelationshipInstanceCreatedNotificationInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException;
 
     /**
      * Get the Physical Asset Relationship Instance Created Event in the specified range of indices
@@ -472,19 +476,19 @@ public abstract class WldtStorage {
      * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
      * @throws IllegalArgumentException if startIndex is greater than endIndex
      */
-    public abstract List<PhysicalRelationshipInstanceVariationRecord> getPhysicalAssetRelationshipInstanceCreatedEventInRange(int startIndex, int endIndex) throws StorageException, IllegalArgumentException;
+    public abstract List<PhysicalRelationshipInstanceVariationRecord> getPhysicalAssetRelationshipInstanceCreatedNotificationInRange(int startIndex, int endIndex) throws StorageException, IllegalArgumentException;
 
     /**
      * Save the Physical Asset Relationship Instance Updated Event
      * @param physicalRelationshipInstanceVariation the Physical Relationship Instance Variation to be saved
      */
-    public abstract void savePhysicalAssetRelationshipInstanceDeletedEvent(PhysicalRelationshipInstanceVariation physicalRelationshipInstanceVariation) throws StorageException;
+    public abstract void savePhysicalAssetRelationshipInstanceDeletedNotification(PhysicalRelationshipInstanceVariation physicalRelationshipInstanceVariation) throws StorageException;
 
     /**
      * Get the number of Physical Asset Relationship Instance Updated Event
      * @return the number of Physical Asset Relationship Instance Updated Event
      */
-    public abstract int getPhysicalAssetRelationshipInstanceDeletedEventCount() throws StorageException;
+    public abstract int getPhysicalAssetRelationshipInstanceDeletedNotificationCount() throws StorageException;
 
     /**
      * Get the Physical Asset Relationship Instance Updated Event in the specified time range
@@ -492,7 +496,7 @@ public abstract class WldtStorage {
      * @param endTimestampMs the end timestamp of the time range
      * @return the list of Physical Asset Relationship Instance Updated Event in the specified time range
      */
-    public abstract List<PhysicalRelationshipInstanceVariationRecord> getPhysicalAssetRelationshipInstanceDeletedEventInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException;
+    public abstract List<PhysicalRelationshipInstanceVariationRecord> getPhysicalAssetRelationshipInstanceDeletedNotificationInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException;
 
     /**
      * Get the Physical Asset Relationship Instance Updated Event in the specified range of indices
@@ -502,7 +506,7 @@ public abstract class WldtStorage {
      * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
      * @throws IllegalArgumentException if startIndex is greater than endIndex
      */
-    public abstract List<PhysicalRelationshipInstanceVariationRecord> getPhysicalAssetRelationshipInstanceDeletedEventInRange(int startIndex, int endIndex) throws StorageException, IndexOutOfBoundsException, IllegalArgumentException;
+    public abstract List<PhysicalRelationshipInstanceVariationRecord> getPhysicalAssetRelationshipInstanceDeletedNotificationInRange(int startIndex, int endIndex) throws StorageException, IndexOutOfBoundsException, IllegalArgumentException;
 
     /**
      * Initialize the WLDT Storage

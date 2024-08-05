@@ -106,7 +106,7 @@ public class DefaultStorageTest {
 
         wldtStorage.saveDigitalTwinState(digitalTwinState, null);
 
-        Optional<DigitalTwinStateRecord> lastDigitalTwinStateOptional = wldtStorage.getLastDigitalTwinStateVariation();
+        Optional<DigitalTwinStateRecord> lastDigitalTwinStateOptional = wldtStorage.getLastDigitalTwinState();
 
         //Check if the Last DT State is available in the Storage
         assertTrue(lastDigitalTwinStateOptional.isPresent());
@@ -131,7 +131,7 @@ public class DefaultStorageTest {
         digitalTwinState = digitalTwinStateManager.getDigitalTwinState();
         wldtStorage.saveDigitalTwinState(digitalTwinState, currentChangeList);
 
-        Optional<DigitalTwinStateRecord> lastDigitalTwinStateOptional = wldtStorage.getLastDigitalTwinStateVariation();
+        Optional<DigitalTwinStateRecord> lastDigitalTwinStateOptional = wldtStorage.getLastDigitalTwinState();
 
         //Check if the Last DT State is available in the Storage
         assertTrue(lastDigitalTwinStateOptional.isPresent());
@@ -365,7 +365,7 @@ public class DefaultStorageTest {
         // Save Initial experiment time
         long startTimeStamp = System.currentTimeMillis();
 
-        // Generate 50 different random LifeCycle States
+        // Generate 50 different random action
         int EVENT_TEST_NUMBER = 50;
         for(int i=0; i<EVENT_TEST_NUMBER; i++){
 
@@ -671,19 +671,19 @@ public class DefaultStorageTest {
                             String.format("%s-%d", "test-relationship-target", i), null));
 
             // Save the Physical Asset Description Notification
-            wldtStorage.savePhysicalAssetRelationshipInstanceCreatedEvent(newData);
+            wldtStorage.savePhysicalAssetRelationshipInstanceCreatedNotification(newData);
 
             Thread.sleep(100);
         }
 
         // Check the number of entities
-        assertEquals(EVENT_TEST_NUMBER, wldtStorage.getPhysicalAssetRelationshipInstanceCreatedEventCount());
+        assertEquals(EVENT_TEST_NUMBER, wldtStorage.getPhysicalAssetRelationshipInstanceCreatedNotificationCount());
 
         // Save Final experiment time
         long endTimeStamp = System.currentTimeMillis();
 
         // Check the entities in the target range
-        List<PhysicalRelationshipInstanceVariationRecord> resultList = wldtStorage.getPhysicalAssetRelationshipInstanceCreatedEventInTimeRange(startTimeStamp, endTimeStamp);
+        List<PhysicalRelationshipInstanceVariationRecord> resultList = wldtStorage.getPhysicalAssetRelationshipInstanceCreatedNotificationInTimeRange(startTimeStamp, endTimeStamp);
 
         // Check the number of entities stored in the target range
         assertEquals(EVENT_TEST_NUMBER, resultList.size());
@@ -698,7 +698,7 @@ public class DefaultStorageTest {
         }
 
         // Retrieve the entities in the target range
-        resultList = wldtStorage.getPhysicalAssetRelationshipInstanceCreatedEventInRange(0, EVENT_TEST_NUMBER-1);
+        resultList = wldtStorage.getPhysicalAssetRelationshipInstanceCreatedNotificationInRange(0, EVENT_TEST_NUMBER-1);
 
         // Check the number of entities stored in the target range
         assertEquals(EVENT_TEST_NUMBER, resultList.size());
@@ -732,19 +732,19 @@ public class DefaultStorageTest {
                             String.format("%s-%d", "test-relationship-target", i), null));
 
             // Save the Physical Asset Description Notification
-            wldtStorage.savePhysicalAssetRelationshipInstanceDeletedEvent(newData);
+            wldtStorage.savePhysicalAssetRelationshipInstanceDeletedNotification(newData);
 
             Thread.sleep(100);
         }
 
         // Check the number of entities
-        assertEquals(EVENT_TEST_NUMBER, wldtStorage.getPhysicalAssetRelationshipInstanceDeletedEventCount());
+        assertEquals(EVENT_TEST_NUMBER, wldtStorage.getPhysicalAssetRelationshipInstanceDeletedNotificationCount());
 
         // Save Final experiment time
         long endTimeStamp = System.currentTimeMillis();
 
         // Check the entities in the target range
-        List<PhysicalRelationshipInstanceVariationRecord> resultList = wldtStorage.getPhysicalAssetRelationshipInstanceDeletedEventInTimeRange(startTimeStamp, endTimeStamp);
+        List<PhysicalRelationshipInstanceVariationRecord> resultList = wldtStorage.getPhysicalAssetRelationshipInstanceDeletedNotificationInTimeRange(startTimeStamp, endTimeStamp);
 
         // Check the number of entities stored in the target range
         assertEquals(EVENT_TEST_NUMBER, resultList.size());
@@ -759,7 +759,7 @@ public class DefaultStorageTest {
         }
 
         // Retrieve the entities in the target range
-        resultList = wldtStorage.getPhysicalAssetRelationshipInstanceDeletedEventInRange(0, EVENT_TEST_NUMBER-1);
+        resultList = wldtStorage.getPhysicalAssetRelationshipInstanceDeletedNotificationInRange(0, EVENT_TEST_NUMBER-1);
 
         // Check the number of entities stored in the target range
         assertEquals(EVENT_TEST_NUMBER, resultList.size());

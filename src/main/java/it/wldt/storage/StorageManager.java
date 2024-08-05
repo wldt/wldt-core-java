@@ -275,7 +275,7 @@ public class StorageManager extends DigitalTwinWorker implements IWldtEventObser
                         if(WldtEventBus.getInstance().matchWildCardType(event.getType(), WldtEventTypes.ALL_PHYSICAL_RELATIONSHIP_INSTANCE_CREATION_EVENT_TYPE) && event instanceof PhysicalAssetRelationshipInstanceCreatedWldtEvent<?>){
                             PhysicalAssetRelationshipInstanceCreatedWldtEvent<?> physicalEvent = (PhysicalAssetRelationshipInstanceCreatedWldtEvent<?>) event;
                             PhysicalAssetRelationshipInstance<?> relationshipInstance = physicalEvent.getBody();
-                            storage.savePhysicalAssetRelationshipInstanceCreatedEvent(new PhysicalRelationshipInstanceVariation(physicalEvent.getCreationTimestamp(),
+                            storage.savePhysicalAssetRelationshipInstanceCreatedNotification(new PhysicalRelationshipInstanceVariation(physicalEvent.getCreationTimestamp(),
                                     relationshipInstance));
                         }
 
@@ -283,7 +283,7 @@ public class StorageManager extends DigitalTwinWorker implements IWldtEventObser
                         if(WldtEventBus.getInstance().matchWildCardType(event.getType(), WldtEventTypes.ALL_PHYSICAL_RELATIONSHIP_INSTANCE_DELETED_EVENT_TYPE) && event instanceof PhysicalAssetRelationshipInstanceDeletedWldtEvent<?>){
                             PhysicalAssetRelationshipInstanceDeletedWldtEvent<?> physicalEvent = (PhysicalAssetRelationshipInstanceDeletedWldtEvent<?>) event;
                             PhysicalAssetRelationshipInstance<?> relationshipInstance = physicalEvent.getBody();
-                            storage.savePhysicalAssetRelationshipInstanceDeletedEvent(new PhysicalRelationshipInstanceVariation(physicalEvent.getCreationTimestamp(),
+                            storage.savePhysicalAssetRelationshipInstanceDeletedNotification(new PhysicalRelationshipInstanceVariation(physicalEvent.getCreationTimestamp(),
                                     relationshipInstance));
                         }
                     }

@@ -167,7 +167,7 @@ public class DefaultWldtStorage extends WldtStorage {
      * @return the latest computed Digital Twin State
      */
     @Override
-    public Optional<DigitalTwinStateRecord> getLastDigitalTwinStateVariation() {
+    public Optional<DigitalTwinStateRecord> getLastDigitalTwinState() {
 
         if (digitalTwinStateMap.isEmpty()) {
             return Optional.empty();
@@ -317,6 +317,16 @@ public class DefaultWldtStorage extends WldtStorage {
                 new LifeCycleVariationRecord(lifeCycleStateVariation.getLifeCycleState(),
                         lifeCycleStateVariation.getTimestamp()));
 
+    }
+
+    /**
+     * Get the last LifeCycleState of the Digital Twin
+     *
+     * @return the last LifeCycleState of the Digital Twin
+     */
+    @Override
+    public LifeCycleVariationRecord getLastLifeCycleState() throws StorageException {
+        return lifeCycleStateMap.isEmpty() ? null : lifeCycleStateMap.get(Collections.max(lifeCycleStateMap.keySet()));
     }
 
     /**
@@ -814,7 +824,7 @@ public class DefaultWldtStorage extends WldtStorage {
      * @param physicalRelationshipInstanceVariation the Physical Relationship Instance Variation to be saved
      */
     @Override
-    public void savePhysicalAssetRelationshipInstanceCreatedEvent(PhysicalRelationshipInstanceVariation physicalRelationshipInstanceVariation) throws StorageException {
+    public void savePhysicalAssetRelationshipInstanceCreatedNotification(PhysicalRelationshipInstanceVariation physicalRelationshipInstanceVariation) throws StorageException {
         if(physicalRelationshipInstanceVariation == null)
             throw new StorageException("Physical Relationship Instance Variation cannot be null.");
 
@@ -838,7 +848,7 @@ public class DefaultWldtStorage extends WldtStorage {
      * @return the number of Physical Asset Relationship Instance Created Event
      */
     @Override
-    public int getPhysicalAssetRelationshipInstanceCreatedEventCount() {
+    public int getPhysicalAssetRelationshipInstanceCreatedNotificationCount() {
         return this.physicalRelationshipInstanceCreatedMap.size();
     }
 
@@ -850,7 +860,7 @@ public class DefaultWldtStorage extends WldtStorage {
      * @return the list of Physical Asset Relationship Instance Created Event in the specified time range
      */
     @Override
-    public List<PhysicalRelationshipInstanceVariationRecord> getPhysicalAssetRelationshipInstanceCreatedEventInTimeRange(long startTimestampMs, long endTimestampMs) throws IllegalArgumentException {
+    public List<PhysicalRelationshipInstanceVariationRecord> getPhysicalAssetRelationshipInstanceCreatedNotificationInTimeRange(long startTimestampMs, long endTimestampMs) throws IllegalArgumentException {
         List<PhysicalRelationshipInstanceVariationRecord> result = new ArrayList<>();
         for (Map.Entry<Long, PhysicalRelationshipInstanceVariationRecord> entry : physicalRelationshipInstanceCreatedMap.entrySet()) {
             long timestamp = entry.getKey();
@@ -871,7 +881,7 @@ public class DefaultWldtStorage extends WldtStorage {
      * @throws IllegalArgumentException  if startIndex is greater than endIndex
      */
     @Override
-    public List<PhysicalRelationshipInstanceVariationRecord> getPhysicalAssetRelationshipInstanceCreatedEventInRange(int startIndex, int endIndex) throws IllegalArgumentException {
+    public List<PhysicalRelationshipInstanceVariationRecord> getPhysicalAssetRelationshipInstanceCreatedNotificationInRange(int startIndex, int endIndex) throws IllegalArgumentException {
         if (startIndex < 0 || endIndex < 0 || startIndex > endIndex) {
             throw new IllegalArgumentException("Invalid index range.");
         }
@@ -893,7 +903,7 @@ public class DefaultWldtStorage extends WldtStorage {
      * @param physicalRelationshipInstanceVariation the Physical Relationship Instance Variation to be saved
      */
     @Override
-    public void savePhysicalAssetRelationshipInstanceDeletedEvent(PhysicalRelationshipInstanceVariation physicalRelationshipInstanceVariation) throws StorageException {
+    public void savePhysicalAssetRelationshipInstanceDeletedNotification(PhysicalRelationshipInstanceVariation physicalRelationshipInstanceVariation) throws StorageException {
         if(physicalRelationshipInstanceVariation == null)
             throw new StorageException("Physical Relationship Instance Variation cannot be null.");
 
@@ -917,7 +927,7 @@ public class DefaultWldtStorage extends WldtStorage {
      * @return the number of Physical Asset Relationship Instance Updated Event
      */
     @Override
-    public int getPhysicalAssetRelationshipInstanceDeletedEventCount() {
+    public int getPhysicalAssetRelationshipInstanceDeletedNotificationCount() {
         return this.physicalRelationshipInstanceDeletedMap.size();
     }
 
@@ -929,7 +939,7 @@ public class DefaultWldtStorage extends WldtStorage {
      * @return the list of Physical Asset Relationship Instance Updated Event in the specified time range
      */
     @Override
-    public List<PhysicalRelationshipInstanceVariationRecord> getPhysicalAssetRelationshipInstanceDeletedEventInTimeRange(long startTimestampMs, long endTimestampMs) throws IllegalArgumentException {
+    public List<PhysicalRelationshipInstanceVariationRecord> getPhysicalAssetRelationshipInstanceDeletedNotificationInTimeRange(long startTimestampMs, long endTimestampMs) throws IllegalArgumentException {
         List<PhysicalRelationshipInstanceVariationRecord> result = new ArrayList<>();
         for (Map.Entry<Long, PhysicalRelationshipInstanceVariationRecord> entry : physicalRelationshipInstanceDeletedMap.entrySet()) {
             long timestamp = entry.getKey();
@@ -950,7 +960,7 @@ public class DefaultWldtStorage extends WldtStorage {
      * @throws IllegalArgumentException  if startIndex is greater than endIndex
      */
     @Override
-    public List<PhysicalRelationshipInstanceVariationRecord> getPhysicalAssetRelationshipInstanceDeletedEventInRange(int startIndex, int endIndex) throws IndexOutOfBoundsException, IllegalArgumentException {
+    public List<PhysicalRelationshipInstanceVariationRecord> getPhysicalAssetRelationshipInstanceDeletedNotificationInRange(int startIndex, int endIndex) throws IndexOutOfBoundsException, IllegalArgumentException {
         if (startIndex < 0 || endIndex < 0 || startIndex > endIndex) {
             throw new IllegalArgumentException("Invalid index range.");
         }

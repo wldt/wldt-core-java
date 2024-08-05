@@ -122,10 +122,10 @@ public class StorageManagerTester {
         assertEquals(TestPhysicalAdapter.TARGET_PHYSICAL_ASSET_EVENT_UPDATES, defaultWldtStorage.getPhysicalAssetEventNotificationCount());
 
         // we have 2 Relationship Instance Created
-        assertEquals(2, defaultWldtStorage.getPhysicalAssetRelationshipInstanceCreatedEventCount());
+        assertEquals(2, defaultWldtStorage.getPhysicalAssetRelationshipInstanceCreatedNotificationCount());
 
         // we have 2 Relationship Instance Deleted
-        assertEquals(2, defaultWldtStorage.getPhysicalAssetRelationshipInstanceDeletedEventCount());
+        assertEquals(2, defaultWldtStorage.getPhysicalAssetRelationshipInstanceDeletedNotificationCount());
 
         Thread.sleep(2000);
     }
@@ -158,10 +158,10 @@ public class StorageManagerTester {
         assertEquals(TestPhysicalAdapter.TARGET_PHYSICAL_ASSET_EVENT_UPDATES, defaultWldtStorage.getPhysicalAssetEventNotificationCount());
 
         // we have 2 Relationship Instance Created
-        assertEquals(2, defaultWldtStorage.getPhysicalAssetRelationshipInstanceCreatedEventCount());
+        assertEquals(2, defaultWldtStorage.getPhysicalAssetRelationshipInstanceCreatedNotificationCount());
 
         // we have 2 Relationship Instance Deleted
-        assertEquals(2, defaultWldtStorage.getPhysicalAssetRelationshipInstanceDeletedEventCount());
+        assertEquals(2, defaultWldtStorage.getPhysicalAssetRelationshipInstanceDeletedNotificationCount());
 
         // The total number of DT State Update (according to the current ShadowingFunction) is equals to the number
         // of received physical asset property variation events + the initial State publication at the Sync moment (+1)
@@ -211,10 +211,10 @@ public class StorageManagerTester {
         assertEquals(TestPhysicalAdapter.TARGET_PHYSICAL_ASSET_EVENT_UPDATES, defaultWldtStorage.getPhysicalAssetEventNotificationCount());
 
         // we have 2 Relationship Instance Created
-        assertEquals(2, defaultWldtStorage.getPhysicalAssetRelationshipInstanceCreatedEventCount());
+        assertEquals(2, defaultWldtStorage.getPhysicalAssetRelationshipInstanceCreatedNotificationCount());
 
         // we have 2 Relationship Instance Deleted
-        assertEquals(2, defaultWldtStorage.getPhysicalAssetRelationshipInstanceDeletedEventCount());
+        assertEquals(2, defaultWldtStorage.getPhysicalAssetRelationshipInstanceDeletedNotificationCount());
 
         // The total number of DT State Update (according to the current ShadowingFunction) is equals to the number
         // of received physical asset property variation events + the initial State publication at the Sync moment (+1)
