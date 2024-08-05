@@ -12,6 +12,7 @@ import it.wldt.core.engine.DigitalTwinWorker;
 import it.wldt.exception.EventBusException;
 import it.wldt.exception.WldtDigitalTwinStateEventException;
 import it.wldt.exception.WldtRuntimeException;
+import it.wldt.storage.query.QueryExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,20 +23,17 @@ import java.util.stream.Collectors;
  * Authors:
  *          Marco Picone, Ph.D. (picone.m@gmail.com)
  *          Marta Spadoni (marta.spadoni2@studio.unibo.it)
- *
- * Date: 01/02/2023
+ * Date: 05/08/2024
  * Project: White Label Digital Twin Java Framework - (whitelabel-digitaltwin)
- *
  * This class defines the core capabilities and responsibilities of a Digital Adapter in the Digital Twin's Instance
  * A Digital Adapter is the architectural component in charge of handling the interaction of the Digital Twin
  * with the external digital world exposing information coming from the Digital Twin State and receiving information and
  * action from other digital applications or twins.
- *
  * This class can be extended in order to create custom Digital Adapter shaping specific behaviours of the twin and
  * allowing a simplified interaction with the external digital world.
- *
  * Multiple Digital Adapters can be active at the same time on the Digital Twin with the aim to handle different
  * interaction with the digital layer according to the nature of the twin and its operation context.
+ * The class integrates a Query Executor to send query to the storage layer in both synchronous and asynchronous way.
  */
 public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements WldtEventListener, LifeCycleListener {
 
@@ -67,17 +65,21 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
 
     private DigitalAdapterLifeCycleListener digitalAdapterLifeCycleListener;
 
+    // Query Executor to send query to the storage layer in both synchronous and asynchronous way
+    protected QueryExecutor queryExecutor = null;
+
     private DigitalAdapter() {
+        super();
     }
 
     public DigitalAdapter(String id, C configuration) {
-        super();
+        this(id);
         this.id = id;
         this.configuration = configuration;
     }
 
     public DigitalAdapter(String id) {
-        super();
+        this();
         this.id = id;
     }
 
@@ -314,6 +316,11 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
     @Override
     public void onWorkerStart() throws WldtRuntimeException {
         try{
+
+            // Init the Query Executor
+            if(this.queryExecutor == null)
+                this.queryExecutor = new QueryExecutor(this.digitalTwinId, String.format("query-executor-%s", this.id));
+
             onAdapterStart();
         }catch (Exception e){
             throw new WldtRuntimeException(e.getLocalizedMessage());

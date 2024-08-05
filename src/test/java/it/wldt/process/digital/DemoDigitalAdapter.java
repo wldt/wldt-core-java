@@ -7,6 +7,9 @@ import it.wldt.core.state.DigitalTwinStateEvent;
 import it.wldt.core.state.DigitalTwinStateEventNotification;
 import it.wldt.exception.EventBusException;
 import it.wldt.process.metrics.SharedTestMetrics;
+import it.wldt.storage.query.IQueryResultListener;
+import it.wldt.storage.query.QueryRequest;
+import it.wldt.storage.query.QueryResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
@@ -93,6 +96,30 @@ public class DemoDigitalAdapter extends DigitalAdapter<DemoDigitalAdapterConfigu
             publishDigitalActionWldtEvent(actionKey, body);
         } catch (EventBusException e) {
             e.printStackTrace();
+        }
+    }
+
+    /**
+     * This method is used to test the sync query execution
+     * @param queryRequest - The query request
+     * @return - The query result
+     */
+    public QueryResult<?> testSyncQuery(QueryRequest queryRequest){
+        if(this.queryExecutor != null){
+            return this.queryExecutor.syncQueryExecute(queryRequest);
+        }
+        else
+            return null;
+    }
+
+    /**
+     * This method is used to test the async query execution
+     * @param queryRequest - The query request
+     * @param queryResultListener - The query result listener
+     */
+    public void testAsyncQuery(QueryRequest queryRequest, IQueryResultListener queryResultListener){
+        if(this.queryExecutor != null){
+            this.queryExecutor.asyncQueryExecute(queryRequest, queryResultListener);
         }
     }
 }

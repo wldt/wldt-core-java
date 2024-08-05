@@ -1174,4 +1174,66 @@ public class StorageQueryTester {
         // Check the last Life Cycle State is SYNCHRONIZED
         assertEquals(LifeCycleState.SYNCHRONIZED, ((LifeCycleVariationRecord)resultList.get(0)).getLifeCycleState());
     }
+
+    @Test
+    @Order(14)
+    public void testDigitalAdapterQueryExecutorSync() throws WldtConfigurationException, EventBusException, ModelException, InterruptedException, WldtRuntimeException, StorageException {
+
+        //Set EventBus Logger
+        WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
+
+        //Wait until all the messages have been received
+        Thread.sleep((DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS + ((DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES + DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_EVENT_UPDATES) * DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS)));
+
+        Thread.sleep(5000);
+
+        // Create Query Request to the Storage Manager for the Last Digital Twin State
+        QueryRequest queryRequest = new QueryRequest();
+        queryRequest.setResourceType(QueryResourceType.DIGITAL_TWIN_STATE);
+        queryRequest.setRequestType(QueryRequestType.LAST_VALUE);
+
+        // Send the Query Request to the Storage Manager for the target DT
+        QueryResult<?> queryResult = digitalAdapter.testSyncQuery(queryRequest);
+
+        assertNotNull(queryResult);
+        assertEquals(queryResult.getOriginalRequest().getRequestType(), QueryRequestType.LAST_VALUE);
+        assertEquals(queryResult.getOriginalRequest().getResourceType(), QueryResourceType.DIGITAL_TWIN_STATE);
+
+    }
+
+    @Test
+    @Order(15)
+    public void testDigitalAdapterQueryExecutorAsync() throws InterruptedException {
+
+        //Set EventBus Logger
+        WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
+
+        //Wait until all the messages have been received
+        Thread.sleep((DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS + ((DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES + DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_EVENT_UPDATES) * DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS)));
+
+        Thread.sleep(5000);
+
+        // Create Query Request to the Storage Manager for the Last Digital Twin State
+        QueryRequest queryRequest = new QueryRequest();
+        queryRequest.setResourceType(QueryResourceType.DIGITAL_TWIN_STATE);
+        queryRequest.setRequestType(QueryRequestType.LAST_VALUE);
+
+        final QueryResult<?>[] receivedQueryResult = {null};
+
+        // Send the Query Request to the Storage Manager for the target DT
+        digitalAdapter.testAsyncQuery(queryRequest, new IQueryResultListener() {
+            @Override
+            public void onQueryResult(QueryResult<?> queryResult) {
+                receivedQueryResult[0] = queryResult;
+            }
+        });
+
+        Thread.sleep(5000);
+
+        assertNotNull(receivedQueryResult[0]);
+        assertEquals(receivedQueryResult[0].getOriginalRequest().getRequestType(), QueryRequestType.LAST_VALUE);
+        assertEquals(receivedQueryResult[0].getOriginalRequest().getResourceType(), QueryResourceType.DIGITAL_TWIN_STATE);
+
+        Thread.sleep(10000);
+    }
 }
