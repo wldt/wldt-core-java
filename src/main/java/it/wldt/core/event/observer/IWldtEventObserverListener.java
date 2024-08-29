@@ -2,6 +2,9 @@ package it.wldt.core.event.observer;
 
 import it.wldt.core.event.WldtEvent;
 
+/**
+ * Interface for the WldtEventObserverListener allowing to listen to the events of the WldtEventObserver
+ */
 public interface IWldtEventObserverListener {
 
     public void onEventSubscribed(String eventType);

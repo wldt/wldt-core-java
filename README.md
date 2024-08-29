@@ -1990,3 +1990,11 @@ public class TestDigitalTwin {
     }
 }
 ````
+## Storage Layer 
+
+The storage layer is a fundamental component of the WLDT library that allows the storage of the Digital Twin's state
+and the related events (both from physical and digital spaces). The package associated to the Storage Layer are the following:
+
+- ```it.wldt.storage```: Contains the main interfaces and classes to manage the storage layer.
+- ```it.wldt.storage.model```: Contains the main classes and data structure to manage the storage layer data model.
+- ```it.wldt.storage.query```: Contains the main classes and data structure to query the storage layer from other WLDT components (e.g., Digital Adapters).

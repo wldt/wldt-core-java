@@ -29,12 +29,20 @@ public class WldtEventBus {
         this.subscriberMap = new HashMap<>();
     }
 
+    /**
+     * Get the current instance of the WLDT Event Bus
+     * @return the current instance of the WLDT Event Bus
+     */
     public static WldtEventBus getInstance(){
         if(instance == null)
             instance = new WldtEventBus();
         return instance;
     }
 
+    /**
+     * Set the Event Logger for the current EventBus instance
+     * @param eventLogger the Event Logger to set
+     */
     public void setEventLogger(IWldtEventLogger eventLogger){
         this.eventLogger = eventLogger;
     }
@@ -51,6 +59,13 @@ public class WldtEventBus {
             return Optional.empty();
     }
 
+    /**
+     * Publish a new event on the event bus
+     * @param digitalTwinId the digital twin id
+     * @param publisherId the publisher id
+     * @param wldtEvent the event to publish
+     * @throws EventBusException in case of error contains the exception with the error message
+     */
     public void publishEvent(String digitalTwinId, String publisherId, WldtEvent<?> wldtEvent) throws EventBusException {
 
         if(this.subscriberMap == null)
@@ -97,6 +112,11 @@ public class WldtEventBus {
         }
     }
 
+    /**
+     * Check if the provided event type is a WildCard Type
+     * @param filterEventType the event type to check
+     * @return true if the event type is a WildCard Type, false otherwise
+     */
     private boolean isWildCardType(String filterEventType){
         try{
             if(filterEventType != null){
@@ -115,6 +135,12 @@ public class WldtEventBus {
         }
     }
 
+    /**
+     * Check if the provided event type match the WildCard Type
+     * @param eventType the event type to check
+     * @param filterType the filter type to check
+     * @return true if the event type is a WildCard Type, false otherwise
+     */
     public boolean matchWildCardType(String eventType, String filterType){
         // If the filter type is a wild card filter
         if(isWildCardType(filterType)){
@@ -126,6 +152,14 @@ public class WldtEventBus {
             return false;
     }
 
+    /**
+     * Subscribe a new client to the event bus
+     * @param digitalTwinId the digital twin id
+     * @param subscriberId the subscriber id
+     * @param wldtEventFilter the event filter
+     * @param wldtEventListener the event listener
+     * @throws EventBusException in case of error contains the exception with the error message
+     */
     public void subscribe(String digitalTwinId, String subscriberId, WldtEventFilter wldtEventFilter, WldtEventListener wldtEventListener) throws EventBusException{
 
         if(this.subscriberMap == null)
@@ -162,6 +196,14 @@ public class WldtEventBus {
         }
     }
 
+    /**
+     * Unsubscribe a client from the event bus
+     * @param digitalTwinId the digital twin id
+     * @param subscriberId the subscriber id
+     * @param wldtEventFilter the event filter
+     * @param wldtEventListener the event listener
+     * @throws EventBusException in case of error contains the exception with the error message
+     */
     public void unSubscribe(String digitalTwinId, String subscriberId, WldtEventFilter wldtEventFilter, WldtEventListener wldtEventListener) throws EventBusException{
 
         if(this.subscriberMap == null)

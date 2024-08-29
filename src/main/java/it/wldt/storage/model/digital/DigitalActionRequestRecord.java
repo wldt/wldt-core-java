@@ -1,7 +1,6 @@
 package it.wldt.storage.model.digital;
 
 import it.wldt.storage.model.StorageRecord;
-
 import java.util.Map;
 
 /**

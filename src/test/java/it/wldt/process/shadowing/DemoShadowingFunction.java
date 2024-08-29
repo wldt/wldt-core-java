@@ -158,6 +158,9 @@ public class DemoShadowingFunction extends ShadowingFunction {
 
         try {
 
+            // Access the Storage Manager to retrieve the last value of the property
+            this.
+
             logger.info("ShadowingFunction Physical Event Received: {}", physicalPropertyEventMessage);
 
             SharedTestMetrics.getInstance().addShadowingFunctionPropertyEvent(this.digitalTwinStateManager.getDigitalTwinId(), physicalPropertyEventMessage);

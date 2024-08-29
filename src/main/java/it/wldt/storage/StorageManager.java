@@ -35,7 +35,6 @@ import java.util.Map;
  * Authors:
  *      Marco Picone, Ph.D. (picone.m@gmail.com)
  * Date: 25/07/2024
- *
  * The StorageManager class is a class that represents the storage manager for a DigitalTwin.
  * It is responsible for managing the storage of the data related to the DigitalTwin.
  * The StorageManager class is an observer of the WldtEventBus, and it is able to save the data in the storage.

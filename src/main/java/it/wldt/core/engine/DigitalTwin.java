@@ -40,7 +40,6 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
 
     private static final String EVENT_PUBLISHER_ID = "dt_core";
 
-
     // Internal TAG fo Logs
     private static final String TAG = "[WLDT-DigitalTwin]";
 
@@ -134,6 +133,9 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
      */
     private String digitalTwinId;
 
+    /**
+     * Object used to synchronize the state of the Digital Twin
+     */
     private Object syncStateObject = new Object();
 
     /**
@@ -229,6 +231,8 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
         //Set ShadowingListener, Init Model Engine & Add to the List of Workers
         this.shadowingFunction = shadowingFunction;
         this.shadowingFunction.setShadowingModelListener(this);
+
+        // Initialize the Digital Twin Model with digital twin ID, state manager, and shadowing function
         this.modelEngine = new ModelEngine(this.digitalTwinId, this.digitalTwinStateManager, this.shadowingFunction);
 
         //Save the Model Engine as Digital Twin Life Cycle Listener

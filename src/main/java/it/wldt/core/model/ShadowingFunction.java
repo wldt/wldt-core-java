@@ -1,7 +1,5 @@
 package it.wldt.core.model;
 
-
-import it.wldt.adapter.digital.DigitalAdapter;
 import it.wldt.adapter.digital.event.DigitalActionWldtEvent;
 import it.wldt.adapter.physical.PhysicalAssetDescription;
 import it.wldt.adapter.physical.PhysicalAssetEvent;
@@ -12,10 +10,8 @@ import it.wldt.core.state.DigitalTwinStateManager;
 import it.wldt.exception.EventBusException;
 import it.wldt.exception.ModelException;
 import it.wldt.adapter.physical.event.*;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -25,7 +21,6 @@ import java.util.Objects;
  *          Marco Picone, Ph.D. (picone.m@gmail.com)
  * Date: 01/02/2023
  * Project: White Label Digital Twin Java Framework - (whitelabel-digitaltwin)
- *
  * This class implement the shadowing process (also known as replication of digitalization) responsible to keep the
  * Digital Twin State synchronized with that of the corresponding physical resource
  * according to what is defined by the Model. It handles:
@@ -72,10 +67,10 @@ public abstract class ShadowingFunction implements WldtEventListener {
     }
 
     /**
-     *
-     * @param physicalAssetPropertyList
-     * @throws EventBusException
-     * @throws ModelException
+     * Observe a list of PhysicalAssetProperty
+     * @param physicalAssetPropertyList List of PhysicalAssetProperty to observe
+     * @throws EventBusException If an error occurs during the event subscription
+     * @throws ModelException If the provided list is NULL
      */
     protected void observePhysicalAssetProperties(List<PhysicalAssetProperty<?>> physicalAssetPropertyList) throws EventBusException, ModelException {
 
@@ -96,10 +91,10 @@ public abstract class ShadowingFunction implements WldtEventListener {
     }
 
     /**
-     *
-     * @param physicalAssetProperty
-     * @throws EventBusException
-     * @throws ModelException
+     * Un-Observe a PhysicalAssetProperty
+     * @param physicalAssetProperty PhysicalAssetProperty to un-observe
+     * @throws EventBusException If an error occurs during the event un-subscription
+     * @throws ModelException If the provided PhysicalAssetProperty is NULL
      */
     protected void unObservePhysicalAssetProperty(PhysicalAssetProperty<?> physicalAssetProperty) throws EventBusException, ModelException {
 
@@ -117,10 +112,10 @@ public abstract class ShadowingFunction implements WldtEventListener {
     }
 
     /**
-     *
-     * @param physicalAssetPropertyList
-     * @throws EventBusException
-     * @throws ModelException
+     * Un-Observe a list of PhysicalAssetProperty
+     * @param physicalAssetPropertyList List of PhysicalAssetProperty to un-observe
+     * @throws EventBusException If an error occurs during the event un-subscription
+     * @throws ModelException If the provided list is NULL
      */
     protected void unObservePhysicalAssetProperties(List<PhysicalAssetProperty<?>> physicalAssetPropertyList) throws EventBusException, ModelException {
 
@@ -142,10 +137,10 @@ public abstract class ShadowingFunction implements WldtEventListener {
     ///////////////////// PHYSICAL ASSET EVENT OBSERVATION MANAGEMENT ////////////////////////////////
 
     /**
-     *
-     * @param physicalAssetEvent
-     * @throws EventBusException
-     * @throws ModelException
+     * Observe a PhysicalAssetEvent
+     * @param physicalAssetEvent PhysicalAssetEvent to observe
+     * @throws EventBusException If an error occurs during the event subscription
+     * @throws ModelException If the provided PhysicalAssetEvent is NULL
      */
     protected void observePhysicalAssetEvent(PhysicalAssetEvent physicalAssetEvent) throws EventBusException, ModelException {
         if(physicalAssetEvent == null)
@@ -162,10 +157,10 @@ public abstract class ShadowingFunction implements WldtEventListener {
     }
 
     /**
-     *
-     * @param physicalAssetEventList
-     * @throws EventBusException
-     * @throws ModelException
+     * Observe a list of PhysicalAssetEvent
+     * @param physicalAssetEventList List of PhysicalAssetEvent to observe
+     * @throws EventBusException If an error occurs during the event subscription
+     * @throws ModelException If the provided list is NULL
      */
     protected void observePhysicalAssetEvents(List<PhysicalAssetEvent> physicalAssetEventList) throws EventBusException, ModelException {
 
@@ -186,10 +181,10 @@ public abstract class ShadowingFunction implements WldtEventListener {
     }
 
     /**
-     *
-     * @param physicalAssetEvent
-     * @throws EventBusException
-     * @throws ModelException
+     * Un-Observe a PhysicalAssetEvent
+     * @param physicalAssetEvent PhysicalAssetEvent to un-observe
+     * @throws EventBusException If an error occurs during the event un-subscription
+     * @throws ModelException If the provided PhysicalAssetEvent is NULL
      */
     protected void unObservePhysicalAssetEvent(PhysicalAssetEvent physicalAssetEvent) throws EventBusException, ModelException {
 
@@ -207,10 +202,10 @@ public abstract class ShadowingFunction implements WldtEventListener {
     }
 
     /**
-     *
-     * @param physicalAssetEventList
-     * @throws EventBusException
-     * @throws ModelException
+     * Un-Observe a list of PhysicalAssetEvent
+     * @param physicalAssetEventList List of PhysicalAssetEvent to un-observe
+     * @throws EventBusException If an error occurs during the event un-subscription
+     * @throws ModelException If the provided list is NULL
      */
     protected void unObservePhysicalAssetEvents(List<PhysicalAssetEvent> physicalAssetEventList) throws EventBusException, ModelException {
 
@@ -231,6 +226,12 @@ public abstract class ShadowingFunction implements WldtEventListener {
 
     ///////////////////// PHYSICAL ASSET RELATIONSHIP OBSERVATION MANAGEMENT ////////////////////////////////
 
+    /**
+     * Observe a PhysicalAssetRelationship
+     * @param physicalAssetRelationship PhysicalAssetRelationship to observe
+     * @throws EventBusException If an error occurs during the event subscription
+     * @throws ModelException If the provided PhysicalAssetRelationship is NULL
+     */
     protected void observePhysicalAssetRelationship(PhysicalAssetRelationship<?> physicalAssetRelationship) throws EventBusException, ModelException {
         if(physicalAssetRelationship == null)
             throw new ModelException("Error ! NULL Physical Relationship ...");
@@ -246,6 +247,11 @@ public abstract class ShadowingFunction implements WldtEventListener {
         WldtEventBus.getInstance().subscribe(this.digitalTwinStateManager.getDigitalTwinId(), this.id, wldtEventFilter, this);
     }
 
+    /** Observe a list of PhysicalAssetRelationship
+     * @param physicalAssetRelationships List of PhysicalAssetRelationship to observe
+     * @throws EventBusException If an error occurs during the event subscription
+     * @throws ModelException If the provided list is NULL
+     */
     protected void observePhysicalAssetRelationships(List<PhysicalAssetRelationship<?>> physicalAssetRelationships) throws ModelException, EventBusException {
         if(physicalAssetRelationships == null)
             throw new ModelException("Error ! NULL PhysicalAssetRelationship List ...");
@@ -264,6 +270,12 @@ public abstract class ShadowingFunction implements WldtEventListener {
         WldtEventBus.getInstance().subscribe(this.digitalTwinStateManager.getDigitalTwinId(), this.id, wldtEventFilter, this);
     }
 
+    /**
+     * Un-Observe a PhysicalAssetRelationship
+     * @param physicalAssetRelationship PhysicalAssetRelationship to un-observe
+     * @throws EventBusException If an error occurs during the event un-subscription
+     * @throws ModelException If the provided PhysicalAssetRelationship is NULL
+     */
     protected void unObservePhysicalAssetRelationship(PhysicalAssetRelationship<?> physicalAssetRelationship) throws EventBusException, ModelException {
 
         if(physicalAssetRelationship == null)
@@ -279,6 +291,12 @@ public abstract class ShadowingFunction implements WldtEventListener {
         WldtEventBus.getInstance().unSubscribe(this.digitalTwinStateManager.getDigitalTwinId(), this.id, wldtEventFilter, this);
     }
 
+    /**
+     * Un-Observe a list of PhysicalAssetRelationship
+     * @param physicalAssetRelationshipList List of PhysicalAssetRelationship to un-observe
+     * @throws EventBusException If an error occurs during the event un-subscription
+     * @throws ModelException If the provided list is NULL
+     */
     protected void unObservePhysicalAssetRelationships(List<PhysicalAssetRelationship<?>> physicalAssetRelationshipList) throws EventBusException, ModelException {
 
         if(physicalAssetRelationshipList == null)
@@ -301,6 +319,10 @@ public abstract class ShadowingFunction implements WldtEventListener {
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+    /**
+     * Observe all the Physical Events
+     * @throws EventBusException If an error occurs during the event subscription
+     */
     protected void observeDigitalActionEvents() throws EventBusException {
         WldtEventFilter wldtEventFilter = new WldtEventFilter();
         //wldtEventFilter.add(DigitalAdapter.DIGITAL_ACTION_EVENT);
@@ -309,6 +331,10 @@ public abstract class ShadowingFunction implements WldtEventListener {
         WldtEventBus.getInstance().subscribe(this.digitalTwinStateManager.getDigitalTwinId(), this.id, wldtEventFilter, this);
     }
 
+    /**
+     * Un-Observe all the Physical Events
+     * @throws EventBusException If an error occurs during the event un-subscription
+     */
     protected void unObserveDigitalActionEvents() throws EventBusException {
         WldtEventFilter wldtEventFilter = new WldtEventFilter();
         //wldtEventFilter.add(DigitalAdapter.DIGITAL_ACTION_EVENT);
@@ -317,6 +343,13 @@ public abstract class ShadowingFunction implements WldtEventListener {
         WldtEventBus.getInstance().unSubscribe(this.digitalTwinStateManager.getDigitalTwinId(), this.id, wldtEventFilter, this);
     }
 
+    /**
+     * Publish a Physical Asset Action Event
+     * @param actionKey Key of the action to publish
+     * @param body Body of the action to publish
+     * @param <T> Type of the action body
+     * @throws EventBusException If an error occurs during the event publication
+     */
     protected <T> void publishPhysicalAssetActionWldtEvent(String actionKey, T body) throws EventBusException {
         WldtEventBus.getInstance().publishEvent(this.digitalTwinStateManager.getDigitalTwinId(), this.id, new PhysicalAssetActionWldtEvent<>(actionKey, body));
     }
@@ -358,6 +391,10 @@ public abstract class ShadowingFunction implements WldtEventListener {
 
     }
 
+    /**
+     * Initialize the Shadowing Model Function with the current Digital Twin State Manager
+     * @param digitalTwinStateManager DigitalTwinStateManager instance
+     */
     protected void init(DigitalTwinStateManager digitalTwinStateManager){
         this.digitalTwinStateManager = digitalTwinStateManager;
     }
@@ -404,11 +441,17 @@ public abstract class ShadowingFunction implements WldtEventListener {
         this.shadowingModelListener = shadowingModelListener;
     }
 
+    /**
+     * Notify the Shadowing Model Listener that the Shadowing Model is synchronized with the Physical Asset
+     */
     protected void notifyShadowingSync(){
         if(getShadowingModelListener() != null)
             getShadowingModelListener().onShadowingSync(digitalTwinStateManager.getDigitalTwinState());
     }
 
+    /**
+     * Notify the Shadowing Model Listener that the Shadowing Model is out of sync with the Physical Asset
+     */
     protected void notifyShadowingOutOfSync(){
         if(getShadowingModelListener() != null)
             getShadowingModelListener().onShadowingOutOfSync(digitalTwinStateManager.getDigitalTwinState());

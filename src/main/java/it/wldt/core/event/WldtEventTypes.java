@@ -1,5 +1,10 @@
 package it.wldt.core.event;
 
+/**
+ * Author: Marco Picone (picone.m@gmail.com)
+ * Date: 01/08/2024
+ * This class contains all the event types used in the WLDT Framework
+ */
 public class WldtEventTypes {
 
     public static final String MULTI_LEVEL_WILDCARD_VALUE = "*";

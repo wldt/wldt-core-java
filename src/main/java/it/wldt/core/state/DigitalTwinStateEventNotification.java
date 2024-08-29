@@ -4,10 +4,8 @@ package it.wldt.core.state;
  * Authors:
  *          Marco Picone, Ph.D. (picone.m@gmail.com)
  *          Marta Spadoni (marta.spadoni2@studio.unibo.it)
- *
  * Date: 01/02/2023
  * Project: White Label Digital Twin Java Framework - (whitelabel-digitaltwin)
- *
  * Notification associated to events of the Digital Twin State
  */
 public class DigitalTwinStateEventNotification<T> {

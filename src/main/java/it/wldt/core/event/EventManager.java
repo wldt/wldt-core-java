@@ -9,16 +9,24 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.HashMap;
 
+/**
+ * Author: Marco Picone (picone.m@gmail.com)
+ * Date: 01/08/2024
+ * Project: WLDT Framework
+ * Event Manager class used centralize and simplify the event management in the WLDT Framework.
+ * The Event Manager class provides a set of static methods to publish events associated to a target digital twin
+ * and publisher (e.g., the physical adapter of the twin).
+ */
 public class EventManager {
 
     private static final Logger logger = LoggerFactory.getLogger(EventManager.class);
 
     /**
-     *
-     * @param digitalTwinId
-     * @param publisherId
-     * @param event
-     * @throws EventBusException
+     * Publishes an Event associated to a target digital twin and publisher
+     * @param digitalTwinId Digital Twin Id
+     * @param publisherId Publisher Id
+     * @param event Event to be published
+     * @throws EventBusException EventBus Exception in case of error
      */
     private static void publishEvent(String digitalTwinId,
                                           String publisherId,
@@ -28,11 +36,12 @@ public class EventManager {
     }
 
     /**
-     *
-     * @param digitalTwinId
-     * @param publisherId
-     * @param adapterId
-     * @param physicalAssetDescription
+     * Notifies that a new Physical Asset Description (PAD) is available from a Physical Adapter associated
+     * to a Digital Twin. The notification generates a Physical Asset Description Available Event.
+     * @param digitalTwinId Digital Twin Id
+     * @param publisherId Publisher Id
+     * @param adapterId Adapter Id
+     * @param physicalAssetDescription Physical Asset Description
      */
     public static void notifyPhysicalAdapterPadAvailable(String digitalTwinId,
                                                          String publisherId,
@@ -61,11 +70,11 @@ public class EventManager {
     }
 
     /**
-     * Publishes a Physical Asset Description Updated Event
-     * @param digitalTwinId
-     * @param publisherId
-     * @param adapterId
-     * @param physicalAssetDescription
+     * Publishes a Physical Asset Description Updated Event associated to a target digital twin and publisher
+     * @param digitalTwinId Digital Twin Id
+     * @param publisherId Publisher Id
+     * @param adapterId Adapter Id
+     * @param physicalAssetDescription Physical Asset Description
      */
     public static void notifyPhysicalAdapterPadUpdated(String digitalTwinId,
                                                          String publisherId,
@@ -94,10 +103,10 @@ public class EventManager {
     }
 
     /**
-     * Publishes a Life Cycle Event
-     * @param digitalTwinId
-     * @param publisherId
-     * @param lifeCycleState
+     * Publishes a Life Cycle Event associated to a target digital twin and publisher
+     * @param digitalTwinId Digital Twin Id
+     * @param publisherId Publisher Id
+     * @param lifeCycleState Life Cycle State
      */
     public static void publishLifeCycleEvent(String digitalTwinId,
                                              String publisherId,

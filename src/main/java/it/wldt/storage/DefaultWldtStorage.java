@@ -2,7 +2,6 @@ package it.wldt.storage;
 
 import it.wldt.adapter.digital.DigitalActionRequest;
 import it.wldt.adapter.physical.*;
-import it.wldt.core.engine.LifeCycleState;
 import it.wldt.core.engine.LifeCycleStateVariation;
 import it.wldt.core.state.DigitalTwinState;
 import it.wldt.core.state.DigitalTwinStateChange;
@@ -16,7 +15,6 @@ import it.wldt.storage.model.state.DigitalTwinStateEventNotificationRecord;
 import it.wldt.storage.model.state.DigitalTwinStateRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.util.*;
 
 /**

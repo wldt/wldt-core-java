@@ -22,8 +22,8 @@ import java.util.Optional;
  *          Marco Picone, Ph.D. (picone.m@gmail.com)
  * Date: 29/03/2024
  * Project: White Label Digital Twin Java Framework - (whitelabel-digitaltwin)
- * Defines an Interface allowing the Digital Twin developer to implement its internal storage system for the Digital Twin instance.
- * The interface defines methods for the management of:
+ * Defines an abstract class allowing the Digital Twin developer to implement its internal storage system for the Digital Twin instance.
+ * The class defines methods for the management of:
  *      - Digital Twin State storage and retrieval with the associated change list;
  *      - Generated State Digital Events;
  *      - Life Cycle State storage and retrieval;
