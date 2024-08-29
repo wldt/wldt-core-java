@@ -9,7 +9,7 @@ import it.wldt.adapter.physical.PhysicalAssetDescription;
 import it.wldt.core.event.DefaultWldtEventLogger;
 import it.wldt.core.event.EventManager;
 import it.wldt.core.event.WldtEventBus;
-import it.wldt.core.model.ModelEngine;
+import it.wldt.core.model.DigitalTwinModel;
 import it.wldt.core.model.ShadowingFunction;
 import it.wldt.core.model.ShadowingModelListener;
 import it.wldt.core.state.DigitalTwinState;
@@ -101,7 +101,7 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
     /**
      * Instance of the Model Engine of the current Digital Twin
      */
-    private ModelEngine modelEngine = null;
+    private DigitalTwinModel digitalTwinModel = null;
 
     /**
      * List of Life Cycle Listener for the current Digital Twin
@@ -232,11 +232,11 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
         this.shadowingFunction = shadowingFunction;
         this.shadowingFunction.setShadowingModelListener(this);
 
-        // Initialize the Digital Twin Model with digital twin ID, state manager, and shadowing function
-        this.modelEngine = new ModelEngine(this.digitalTwinId, this.digitalTwinStateManager, this.shadowingFunction);
+        // Initialize the Digital Twin Model with digital twin ID, state manager, shadowing function, and storage manager
+        this.digitalTwinModel = new DigitalTwinModel(this.digitalTwinId, this.digitalTwinStateManager, this.shadowingFunction, this.storageManager);
 
         //Save the Model Engine as Digital Twin Life Cycle Listener
-        addLifeCycleListener(this.modelEngine);
+        addLifeCycleListener(this.digitalTwinModel);
 
         // Execute Storage Manager
         executeStorageManager();
@@ -246,7 +246,7 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
      * Executes the model engine in a dedicated thread.
      */
     private void executeModelEngine(){
-        modelEngineThread = new Thread(this.modelEngine);
+        modelEngineThread = new Thread(this.digitalTwinModel);
         modelEngineThread.setName(String.format("%s-model-engine", this.getId()));
         modelEngineThread.start();
     }
@@ -632,8 +632,8 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
             //Stop and Notify Model Engine
             this.modelEngineThread.interrupt();
             this.modelEngineThread = null;
-            this.modelEngine.onWorkerStop();
-            removeLifeCycleListener(this.modelEngine);
+            this.digitalTwinModel.onWorkerStop();
+            removeLifeCycleListener(this.digitalTwinModel);
 
             //Stop and Notify Physical Adapters
             this.physicalAdapterExecutor.shutdownNow();

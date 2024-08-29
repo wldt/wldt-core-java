@@ -2,13 +2,13 @@ package it.wldt.core.model;
 
 import it.wldt.adapter.physical.PhysicalAssetDescription;
 import it.wldt.core.engine.LifeCycleListener;
-import it.wldt.core.event.EventManager;
 import it.wldt.core.state.DigitalTwinState;
 import it.wldt.core.state.DigitalTwinStateManager;
 import it.wldt.exception.ModelException;
 import it.wldt.exception.WldtRuntimeException;
 import it.wldt.core.engine.DigitalTwinWorker;
 import it.wldt.exception.WldtWorkerException;
+import it.wldt.storage.StorageManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,19 +19,29 @@ import java.util.Map;
  *          Marco Picone, Ph.D. (picone.m@gmail.com)
  * Date: 01/02/2023
  * Project: White Label Digital Twin Java Framework - (whitelabel-digitaltwin)
- *
  * This a fundamental core component responsible to handle the Model associated to the DT instance
  * maintaining its internal state and executing/coordinating its shadowing function
  */
-public class ModelEngine extends DigitalTwinWorker implements LifeCycleListener {
+public class DigitalTwinModel extends DigitalTwinWorker implements LifeCycleListener {
 
-    private static final Logger logger = LoggerFactory.getLogger(ModelEngine.class);
+    private static final Logger logger = LoggerFactory.getLogger(DigitalTwinModel.class);
 
     private static final String MODEL_ENGINE_PUBLISHER_ID = "model_engine";
 
+    private String digitalTwinId = null;
+
     private final ShadowingFunction shadowingFunction;
 
-    public ModelEngine(String digitalTwinId, DigitalTwinStateManager digitalTwinStateManager, ShadowingFunction shadowingFunction) throws ModelException, WldtWorkerException {
+    /**
+     * Digital Twin Model Constructor
+     * @param digitalTwinId Digital Twin ID
+     * @param digitalTwinStateManager Digital Twin State Manager
+     * @param shadowingFunction Shadowing Function to be executed by the Model
+     * @param storageManager Storage Manager to be used by the Model
+     * @throws ModelException Model Exception
+     * @throws WldtWorkerException Wldt Worker Exception
+     */
+    public DigitalTwinModel(String digitalTwinId, DigitalTwinStateManager digitalTwinStateManager, ShadowingFunction shadowingFunction, StorageManager storageManager) throws ModelException, WldtWorkerException {
 
         super();
 
@@ -44,7 +54,7 @@ public class ModelEngine extends DigitalTwinWorker implements LifeCycleListener 
 
             //Init the Shadowing Model Function with the current Digital Twin State and call the associated onCreate method
             this.shadowingFunction = shadowingFunction;
-            this.shadowingFunction.init(digitalTwinStateManager);
+            this.shadowingFunction.init(digitalTwinStateManager, storageManager);
             this.shadowingFunction.onCreate();
         }
         else {

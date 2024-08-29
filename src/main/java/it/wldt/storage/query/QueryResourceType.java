@@ -1,5 +1,12 @@
 package it.wldt.storage.query;
 
+/**
+ * Authors:
+ *          Marco Picone, Ph.D. (picone.m@gmail.com)
+ * Date: 25/07/2024
+ * This Enum represents the Query Resource Type used to specify the type of resource to be queried
+ * on the storage system (e.g., Physical Asset Property Variation, Physical Asset Event Notification, Physical Action Request)
+ */
 public enum QueryResourceType {
 
     PHYSICAL_ASSET_PROPERTY_VARIATION("storage_physical_property_variation"),

@@ -26,6 +26,7 @@ import it.wldt.storage.query.QueryRequest;
 import it.wldt.storage.query.QueryResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -461,5 +462,20 @@ public class StorageManager extends DigitalTwinWorker implements IWldtEventObser
             this.queryManager = queryManager;
         else
             throw new StorageException("The query manager cannot be null !");
+    }
+
+    /**
+     * Check if a target Storage Id is available in the Storage Manager
+     */
+    public boolean isStorageAvailable(String storageId){
+        return this.storageMap.containsKey(storageId);
+    }
+
+    /**
+     * Return the list of id of the WldtStorage in the StorageManager
+     * @return The list of id of the WldtStorage in the StorageManager
+     */
+    public List<String> getStorageIdList() {
+        return new ArrayList<>(this.storageMap.keySet());
     }
 }

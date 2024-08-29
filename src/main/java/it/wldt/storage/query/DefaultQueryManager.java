@@ -10,6 +10,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * Authors:
+ *          Marco Picone, Ph.D. (picone.m@gmail.com)
+ * Date: 25/07/2024
+ * Default Query Manager Class
+ * This class is responsible to manage the query request received by the Query Engine.
+ * The class is responsible to handle the query request and return the query result to the caller.
+ * This class extends the QueryManager class and implements the default behavior for the query management.
+ */
 public class DefaultQueryManager extends QueryManager{
 
     private static final Logger logger = LoggerFactory.getLogger(DefaultQueryManager.class);

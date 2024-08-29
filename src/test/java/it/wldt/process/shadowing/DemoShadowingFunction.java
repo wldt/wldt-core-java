@@ -11,9 +11,13 @@ import it.wldt.core.state.*;
 import it.wldt.exception.EventBusException;
 import it.wldt.process.metrics.SharedTestMetrics;
 import it.wldt.process.physical.DemoPhysicalAdapter;
+import it.wldt.storage.WldtStorage;
+import it.wldt.storage.model.physical.PhysicalAssetActionRequestRecord;
+import it.wldt.storage.model.physical.PhysicalAssetPropertyVariationRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.Map;
 
 public class DemoShadowingFunction extends ShadowingFunction {
@@ -157,9 +161,6 @@ public class DemoShadowingFunction extends ShadowingFunction {
     protected void onPhysicalAssetPropertyVariation(PhysicalAssetPropertyWldtEvent<?> physicalPropertyEventMessage) {
 
         try {
-
-            // Access the Storage Manager to retrieve the last value of the property
-            this.
 
             logger.info("ShadowingFunction Physical Event Received: {}", physicalPropertyEventMessage);
 

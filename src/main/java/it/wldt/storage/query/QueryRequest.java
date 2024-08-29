@@ -2,6 +2,13 @@ package it.wldt.storage.query;
 
 import java.util.UUID;
 
+/**
+ * Authors:
+ *          Marco Picone, Ph.D. (picone.m@gmail.com)
+ * Date: 25/07/2024
+ * This class represents a Query Request to be sent to the Query Executor
+ * The Query Request contains all the information needed to perform a query on the storage system
+ */
 public class QueryRequest {
 
     // Query Resource Type

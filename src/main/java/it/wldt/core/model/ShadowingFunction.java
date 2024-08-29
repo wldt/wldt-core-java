@@ -10,6 +10,7 @@ import it.wldt.core.state.DigitalTwinStateManager;
 import it.wldt.exception.EventBusException;
 import it.wldt.exception.ModelException;
 import it.wldt.adapter.physical.event.*;
+import it.wldt.storage.StorageManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.List;
@@ -35,15 +36,42 @@ public abstract class ShadowingFunction implements WldtEventListener {
 
     private String id = null;
 
+    /**
+     * Event Filter used to manage the subscription to the Physical Events
+     */
     private WldtEventFilter physicalEventsFilter = null;
 
+    /**
+     * Reference to the Digital Twin State Manager
+     */
     protected DigitalTwinStateManager digitalTwinStateManager = null;
 
+    /**
+     * Reference to the Storage Manager
+     */
+    protected StorageManager storageManager = null;
+
+    /**
+     * Reference to the Shadowing Model Listener
+     */
     private ShadowingModelListener shadowingModelListener;
 
+    /**
+     * Default Constructor
+     * @param id Unique Identifier of the Shadowing Model Function
+     */
     public ShadowingFunction(String id){
         this.id = id;
         this.physicalEventsFilter = new WldtEventFilter();
+    }
+
+    /**
+     * Initialize the Shadowing Model Function with the current Digital Twin State Manager
+     * @param digitalTwinStateManager DigitalTwinStateManager instance
+     */
+    protected void init(DigitalTwinStateManager digitalTwinStateManager, StorageManager storageManager){
+        this.digitalTwinStateManager = digitalTwinStateManager;
+        this.storageManager = storageManager;
     }
 
     /**
@@ -389,14 +417,6 @@ public abstract class ShadowingFunction implements WldtEventListener {
         //if(wldtEvent.getType().equals(DigitalAdapter.DIGITAL_ACTION_EVENT))
         //    onDigitalActionEvent((DigitalActionWldtEvent<?>) wldtEvent.getBody());
 
-    }
-
-    /**
-     * Initialize the Shadowing Model Function with the current Digital Twin State Manager
-     * @param digitalTwinStateManager DigitalTwinStateManager instance
-     */
-    protected void init(DigitalTwinStateManager digitalTwinStateManager){
-        this.digitalTwinStateManager = digitalTwinStateManager;
     }
 
     abstract protected void onCreate();

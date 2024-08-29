@@ -7,6 +7,14 @@ import org.slf4j.LoggerFactory;
 import java.util.Map;
 import java.util.Optional;
 
+
+/**
+ * Authors:
+ *      Marco Picone, Ph.D. (picone.m@gmail.com)
+ * Date: 25/07/2024
+ * This class represents the Query Manager responsible to handle the query request and manage the query execution.
+ * This class is designed to be extended by the user to implement the desired query management logic.
+ */
 public class QueryManager {
 
     private static final Logger logger = LoggerFactory.getLogger(DefaultQueryManager.class);

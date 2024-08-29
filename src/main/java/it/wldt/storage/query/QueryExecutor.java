@@ -12,6 +12,14 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+/**
+ * Authors:
+ *          Marco Picone, Ph.D. (picone.m@gmail.com)
+ * Date: 25/07/2024
+ * This class represents the Query Executor used to execute queries on the storage system
+ * supporting both synchronous and asynchronous query execution. Internally is implemented through
+ * an event-based mechanism to handle the query request and response.
+ */
 public class QueryExecutor implements WldtEventListener {
 
     private static final Logger logger = LoggerFactory.getLogger(WldtEventObserver.class);
@@ -28,6 +36,11 @@ public class QueryExecutor implements WldtEventListener {
 
     private Map<String, IQueryResultListener> queryResultListenerMap = null;
 
+    /**
+     * Default Constructor
+     * @param digitalTwinId Digital Twin Id
+     * @param queryExecutorId Query Executor Id
+     */
     public QueryExecutor(String digitalTwinId, String queryExecutorId) {
         // Set the Digital Twin Id and the Query Executor Id and create the Query Result Filter
         this.digitalTwinId = digitalTwinId;
@@ -153,6 +166,11 @@ public class QueryExecutor implements WldtEventListener {
         }
     }
 
+    /**
+     * Asynchronous Query Execution
+     * @param queryRequest Query Request Object
+     * @param queryResultListener Query Result Listener to be used to receive the query result
+     */
     public void asyncQueryExecute(QueryRequest queryRequest, IQueryResultListener queryResultListener) {
         try{
 
