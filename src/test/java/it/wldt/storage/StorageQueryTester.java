@@ -17,6 +17,8 @@ import it.wldt.process.metrics.SharedTestMetrics;
 import it.wldt.process.physical.DemoPhysicalAdapter;
 import it.wldt.process.physical.DemoPhysicalAdapterConfiguration;
 import it.wldt.process.shadowing.DemoShadowingFunction;
+import it.wldt.storage.model.StorageStats;
+import it.wldt.storage.model.StorageStatsRecord;
 import it.wldt.storage.model.digital.DigitalActionRequestRecord;
 import it.wldt.storage.model.lifecycle.LifeCycleVariationRecord;
 import it.wldt.storage.model.physical.*;
@@ -1235,5 +1237,44 @@ public class StorageQueryTester {
         assertEquals(receivedQueryResult[0].getOriginalRequest().getResourceType(), QueryResourceType.DIGITAL_TWIN_STATE);
 
         Thread.sleep(10000);
+    }
+
+    @Test
+    @Order(16)
+    public void testSyncStorageStatsQuery() throws InterruptedException {
+
+        //Set EventBus Logger
+        WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
+
+        //Wait until all the messages have been received
+        Thread.sleep((DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS + ((DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES + DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_EVENT_UPDATES) * DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS)));
+
+        Thread.sleep(5000);
+
+        // Save Final experiment time
+        long endTimeStamp = System.currentTimeMillis();
+
+        QueryExecutor queryExecutor = new QueryExecutor(TEST_DIGITAL_TWIN_ID, "query-executor");
+
+        /////////////////// Query in Time Range //////////////////////
+
+        // Create Query Request to the Storage Manager
+        QueryRequest queryRequest = new QueryRequest();
+        queryRequest.setResourceType(QueryResourceType.STORAGE_STATS);
+        queryRequest.setRequestType(QueryRequestType.LAST_VALUE);
+
+        // Send the Query Request to the Storage Manager for the target DT
+        QueryResult<?> queryResult = queryExecutor.syncQueryExecute(queryRequest);
+
+        assertNotNull(queryResult);
+        assertEquals(queryResult.getOriginalRequest().getRequestType(), QueryRequestType.LAST_VALUE);
+        assertEquals(queryResult.getOriginalRequest().getResourceType(), QueryResourceType.STORAGE_STATS);
+
+        List<?> resultList =  queryResult.getResults();
+
+        // Check the result list is not null and contains only the correct instance type
+        assertTrue(resultList != null && !resultList.isEmpty());
+        assertTrue(resultList.stream().allMatch(item -> item instanceof StorageStats));
+
     }
 }

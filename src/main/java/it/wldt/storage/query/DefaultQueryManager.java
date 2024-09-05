@@ -627,4 +627,30 @@ public class DefaultQueryManager extends QueryManager{
             return new QueryResult<>(queryRequest, false, e.getMessage());
         }
     }
+
+    /**
+     * Handle Storage Stats Query
+     *
+     * @param queryRequest Query Request Object
+     * @param storage      Storage Object to be used for the query management
+     * @return Query Result Object containing the query result
+     * @throws StorageException Storage Exception
+     */
+    @Override
+    public QueryResult<?> handleStorageStatsQuery(QueryRequest queryRequest, WldtStorage storage) throws StorageException {
+        try {
+
+            if (queryRequest.getRequestType().equals(QueryRequestType.LAST_VALUE)){
+                return new QueryResult<>(queryRequest,
+                        true,
+                        null,
+                        Collections.singletonList(storage.getStorageStats()),
+                        1);
+            } else
+                return new QueryResult<>(queryRequest, false, "Invalid Digital Twin State Query Request Type !");
+
+        }catch (Exception e){
+            return new QueryResult<>(queryRequest, false, e.getMessage());
+        }
+    }
 }

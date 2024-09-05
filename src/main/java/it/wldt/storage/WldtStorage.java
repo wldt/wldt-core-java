@@ -8,6 +8,7 @@ import it.wldt.core.state.DigitalTwinStateChange;
 import it.wldt.core.state.DigitalTwinStateEventNotification;
 import it.wldt.exception.StorageException;
 import it.wldt.adapter.physical.PhysicalAssetPropertyVariation;
+import it.wldt.storage.model.StorageStats;
 import it.wldt.storage.model.digital.DigitalActionRequestRecord;
 import it.wldt.storage.model.lifecycle.LifeCycleVariationRecord;
 import it.wldt.storage.model.physical.*;
@@ -390,7 +391,6 @@ public abstract class WldtStorage {
 
     /**
      * Save the updated Physical Asset Description
-     * @return the number of Physical Asset Description Available
      */
     public abstract void saveUpdatedPhysicalAssetDescriptionNotification(PhysicalAssetDescriptionNotification physicalAssetDescriptionNotification) throws StorageException;
 
@@ -507,6 +507,14 @@ public abstract class WldtStorage {
      * @throws IllegalArgumentException if startIndex is greater than endIndex
      */
     public abstract List<PhysicalRelationshipInstanceVariationRecord> getPhysicalAssetRelationshipInstanceDeletedNotificationInRange(int startIndex, int endIndex) throws StorageException, IndexOutOfBoundsException, IllegalArgumentException;
+
+    /**
+     * Retrieve and returns storage statistics in terms of the number of stored records for each type and the
+     * associated time range of the stored records (start and end timestamp)
+     * @return the storage statistics
+     * @throws StorageException if an error occurs while retrieving the storage statistics
+     */
+    public abstract StorageStats getStorageStats() throws StorageException;
 
     /**
      * Initialize the WLDT Storage

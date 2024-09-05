@@ -8,6 +8,9 @@ import it.wldt.core.state.DigitalTwinStateChange;
 import it.wldt.core.state.DigitalTwinStateEventNotification;
 import it.wldt.exception.StorageException;
 import it.wldt.adapter.physical.PhysicalAssetPropertyVariation;
+import it.wldt.storage.model.StorageRecord;
+import it.wldt.storage.model.StorageStats;
+import it.wldt.storage.model.StorageStatsRecord;
 import it.wldt.storage.model.digital.DigitalActionRequestRecord;
 import it.wldt.storage.model.lifecycle.LifeCycleVariationRecord;
 import it.wldt.storage.model.physical.*;
@@ -672,9 +675,7 @@ public class DefaultWldtStorage extends WldtStorage {
 
     /**
      * Save the updated Physical Asset Description
-     *
-     * @param physicalAssetDescriptionNotification
-     * @return the number of Physical Asset Description Available
+     * @param physicalAssetDescriptionNotification the updated Physical Asset Description
      */
     @Override
     public void saveUpdatedPhysicalAssetDescriptionNotification(PhysicalAssetDescriptionNotification physicalAssetDescriptionNotification) throws StorageException {
@@ -972,6 +973,52 @@ public class DefaultWldtStorage extends WldtStorage {
             result.add(physicalRelationshipInstanceDeletedMap.get(timestamps.get(i)));
         }
         return result;
+    }
+
+    /**
+     * Get the number stored information of the target Map
+     * @return th StorageStatsRecord associated to the target Map
+     */
+    private StorageStatsRecord getStorageStatsFromMap(Map<Long, ? extends StorageRecord> targetMap){
+
+        StorageStatsRecord storageStatsRecord = new StorageStatsRecord();
+        storageStatsRecord.setRecordCount(targetMap.size());
+
+        if(!targetMap.isEmpty()){
+            List<Long> timestamps = new ArrayList<>(targetMap.keySet());
+            storageStatsRecord.setRecordStartTimestampMs(Collections.min(timestamps));
+            storageStatsRecord.setRecordEndTimestampMs(Collections.max(timestamps));
+        }
+
+        return storageStatsRecord;
+    }
+
+    /**
+     * Retrieve and returns storage statistics in terms of the number of stored records for each type and the
+     * associated time range of the stored records (start and end timestamp)
+     * @return the storage statistics
+     * @throws StorageException if an error occurs while retrieving the storage statistics
+     */
+    @Override
+    public StorageStats getStorageStats() throws StorageException {
+        try {
+            // Set the StorageStateRecords in the final class
+            StorageStats storageStats = new StorageStats();
+            storageStats.setStateVariationStats(getStorageStatsFromMap(digitalTwinStateMap));
+            storageStats.setLifeCycleVariationStats(getStorageStatsFromMap(lifeCycleStateMap));
+            storageStats.setPhysicalAssetPropertyVariationStats(getStorageStatsFromMap(physicalAssetPropertyVariationMap));
+            storageStats.setPhysicalAssetEventNotificationStats(getStorageStatsFromMap(physicalEventNotificationsMap));
+            storageStats.setPhysicalAssetActionRequestStats(getStorageStatsFromMap(physicalActionRequestMap));
+            storageStats.setDigitalActionRequestStats(getStorageStatsFromMap(digitalActionRequestMap));
+            storageStats.setNewPhysicalAssetDescriptionNotificationStats(getStorageStatsFromMap(newPhysicalAssetDescriptionNotificationMap));
+            storageStats.setUpdatedPhysicalAssetDescriptionNotificationStats(getStorageStatsFromMap(updatedPhysicalAssetDescriptionNotificationMap));
+            storageStats.setPhysicalRelationshipInstanceCreatedNotificationStats(getStorageStatsFromMap(physicalRelationshipInstanceCreatedMap));
+            storageStats.setPhysicalRelationshipInstanceDeletedNotificationStats(getStorageStatsFromMap(physicalRelationshipInstanceDeletedMap));
+
+            return storageStats;
+        }catch (Exception e){
+            throw new StorageException("Error while retrieving the storage statistics: " + e.getMessage());
+        }
     }
 
 }

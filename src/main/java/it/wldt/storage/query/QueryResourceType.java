@@ -18,7 +18,8 @@ public enum QueryResourceType {
     UPDATED_PAD_NOTIFICATION("storage_updated_pad_notification"),
     PHYSICAL_RELATIONSHIP_INSTANCE_CREATED_NOTIFICATION("storage_physical_relationship_instance_created_notification"),
     PHYSICAL_RELATIONSHIP_INSTANCE_DELETED_NOTIFICATION("storage_physical_relationship_instance_deleted_notification"),
-    LIFE_CYCLE_EVENT("storage_life_cycle_event");
+    LIFE_CYCLE_EVENT("storage_life_cycle_event"),
+    STORAGE_STATS("storage_stats");
 
     private String value;
 

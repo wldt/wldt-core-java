@@ -12,6 +12,7 @@ import it.wldt.process.metrics.SharedTestMetrics;
 import it.wldt.process.physical.DemoPhysicalAdapter;
 import it.wldt.process.physical.DemoPhysicalAdapterConfiguration;
 import it.wldt.process.shadowing.DemoShadowingFunction;
+import it.wldt.storage.model.StorageStats;
 import org.junit.jupiter.api.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -296,6 +297,46 @@ public class StorageManagerTester {
         int targetMessages = 7;
         assertEquals(targetMessages, defaultWldtStorage.getLifeCycleStateCount());
 
+    }
+
+    @Test
+    @Order(6)
+    public void testStorageStats() throws InterruptedException, WldtEngineException, StorageException {
+
+        //Set EventBus Logger
+        WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
+
+        //Wait until all the messages have been received
+        Thread.sleep((DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS + ((DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES + DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_EVENT_UPDATES) * DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS)));
+
+        DefaultWldtStorage defaultWldtStorage = null;
+
+        if(digitalTwin.getStorageManager().getStorage(DEFAULT_STORAGE_ID) instanceof DefaultWldtStorage)
+            defaultWldtStorage = (DefaultWldtStorage) digitalTwin.getStorageManager().getStorage(DEFAULT_STORAGE_ID);
+
+        // Check if the Default Storage has been correctly initialized
+        assertNotNull(defaultWldtStorage);
+
+        // Forcing Digital Twin Stop
+        if(digitalTwinEngine != null && digitalTwin != null) {
+            digitalTwinEngine.stopDigitalTwin(TEST_DIGITAL_TWIN_ID);
+            Thread.sleep(2000);
+            digitalTwinEngine.removeDigitalTwin(TEST_DIGITAL_TWIN_ID);
+            Thread.sleep(2000);
+            //digitalTwin = null;
+            //digitalTwinEngine = null;
+        }
+
+        while(digitalTwinEngine != null && digitalTwinEngine.getDigitalTwinCount() > 0)
+            Thread.sleep(1000);
+
+
+        StorageStats storageStats = defaultWldtStorage.getStorageStats();
+
+        // Check the Storage Stats
+        assertEquals(7, storageStats.getLifeCycleVariationStats().getRecordCount());
+        assertEquals(1, storageStats.getNewPhysicalAssetDescriptionNotificationStats().getRecordCount());
+        assertEquals(10, storageStats.getPhysicalAssetPropertyVariationStats().getRecordCount());;
     }
 
 }

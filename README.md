@@ -1,5 +1,10 @@
 # WhiteLabel Digital Twin Framework
 
+The White Label Digital Twin (WLDT) library aims to support the design, development, and deployment of Digital Twins within the Internet of Things (IoT) ecosystems.
+The library has been designed following the latest DT definitions coming from both Industrial and Scientific domains and identifying DTs as active, flexible and scalable software components.
+
+The complete Documentation of the Library is available at the following link: [https://wldt.github.io/](https://wldt.github.io/)
+
 ## Library Dependency Import
 
 The official library repository is available at the following link [https://central.sonatype.com/artifact/io.github.wldt/wldt-core/](https://central.sonatype.com/artifact/io.github.wldt/wldt-core/)
@@ -10,14 +15,14 @@ For Maven projects you can import the WLDT Library into your ``<dependencies></d
 <dependency>
     <groupId>io.github.wldt</groupId>
     <artifactId>wldt-core</artifactId>
-    <version>0.3.0</version>
+    <version>0.4.0</version>
 </dependency>
 ```
 
 If you are using Gradle use instead the following: 
 
 ```groovy
-implementation group: 'io.github.wldt', name: 'wldt-core', version: '0.3.0'
+implementation group: 'io.github.wldt', name: 'wldt-core', version: '0.4.0'
 ```
 
 ## Scientitic Citation & Reference 

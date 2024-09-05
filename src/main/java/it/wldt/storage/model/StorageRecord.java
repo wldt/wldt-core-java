@@ -1,8 +1,10 @@
 package it.wldt.storage.model;
 
 /**
+ * Author: Marco Picone (picone.m@gmail.com)
+ * Date: 01/08/2024
  * Storage Record Class
- * Represents a singola record in the storage with a unique id
+ * Represents a single record in the storage with a unique id
  */
 public class StorageRecord {
 
