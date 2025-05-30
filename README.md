@@ -15,14 +15,14 @@ For Maven projects you can import the WLDT Library into your ``<dependencies></d
 <dependency>
     <groupId>io.github.wldt</groupId>
     <artifactId>wldt-core</artifactId>
-    <version>0.4.0</version>
+    <version>0.5.0</version>
 </dependency>
 ```
 
 If you are using Gradle use instead the following: 
 
 ```groovy
-implementation group: 'io.github.wldt', name: 'wldt-core', version: '0.4.0'
+implementation group: 'io.github.wldt', name: 'wldt-core', version: '0.5.0'
 ```
 
 ## Scientitic Citation & Reference 
@@ -41,6 +41,14 @@ If you use the WLDT Library in a Scientific Paper please use this reference:
     url = {https://www.sciencedirect.com/science/article/pii/S2352711021000066},
     author = {Marco Picone and Marco Mamei and Franco Zambonelli},
     keywords = {Internet of Things, Digital twin, Library, Software agent}
+}
+```
+
+TODO ... ADD DCOSS Paper
+
+```
+@article{PICONE2025DCOSS,
+  ...
 }
 ```
 
