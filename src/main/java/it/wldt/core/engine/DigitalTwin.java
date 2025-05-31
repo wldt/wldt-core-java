@@ -16,6 +16,8 @@ import it.wldt.core.state.DigitalTwinState;
 import it.wldt.core.state.DigitalTwinStateManager;
 import it.wldt.exception.*;
 
+import it.wldt.management.ManagementInterface;
+import it.wldt.management.ResourceManager;
 import it.wldt.storage.StorageManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,7 +32,6 @@ import java.util.stream.Collectors;
  *          Marco Picone, Ph.D. (picone.m@gmail.com)
  * Date: 01/02/2023
  * Project: White Label Digital Twin Java Framework - (whitelabel-digitaltwin)
- *
  * Digital Twin class of the library responsible for encapsulating the behaviour and the coordination of a Digital Twin
  * instance in the library. Each instance of a Digital Twin class can be executed on the Digital Twin Engine.
  */
@@ -122,6 +123,23 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
      * Thread for the Storage Manager Execution
      */
     private Thread storageManagerThread = null;
+
+    /**
+     * Resource Manager for the Digital Twin
+     * It is used to manage the resources associated with the Digital Twin.
+     */
+    private ResourceManager resourceManager = null;
+
+    /**
+     * Management Interface for the Digital Twin
+     * It is used to manage the Digital Twin Resource and its components.
+     */
+    private ManagementInterface managementInterface = null;
+
+    /**
+     * Thread for the Management Interface Execution
+     */
+    private Thread managementInterfaceThread = null;
 
     /**
      * Reference to the Shadowing Function used by the Digital Twin and its Model Engine
@@ -219,6 +237,9 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
         // Initialize the Storage Manager of the current Digital Twin instance
         this.storageManager = new StorageManager(this.digitalTwinId);
 
+        // Initialize the Resource Manager of the current Digital Twin instance
+        this.resourceManager = new ResourceManager(this.digitalTwinId);
+
         //Init DT Initial Life Cycle Phase
         this.currentLifeCycleState = LifeCycleState.NONE;
 
@@ -251,10 +272,34 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
         modelEngineThread.start();
     }
 
+    /**
+     * Executes the storage manager in a dedicated thread.
+     * This method is responsible for starting the storage manager thread, which handles data storage operations for the digital twin.
+     */
     private void executeStorageManager(){
         storageManagerThread = new Thread(this.storageManager);
         storageManagerThread.setName(String.format("%s-storage-manager", this.getId()));
         storageManagerThread.start();
+    }
+
+    /**
+     * Executes the management interface in a dedicated thread.
+     * This method is responsible for starting the management interface thread, which handles management operations for the digital twin.
+     */
+    private void executeManagementInterface() {
+
+        if(this.managementInterface != null){
+
+            // Set the Resource Manager for the Management Interface
+            this.managementInterface.setResourceManager(this.resourceManager);
+
+            // Run the Management Interface on a dedicated thread
+            managementInterfaceThread = new Thread(this.managementInterface);
+            managementInterfaceThread.setName(String.format("%s-management-interface", this.getId()));
+            managementInterfaceThread.start();
+        }
+        else
+            logger.warn("{} Management Interface is not initialized !", TAG);
     }
 
     /**
@@ -588,6 +633,9 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
         // Start Executing as first component the Model Engine
         executeModelEngine();
 
+        // Execute Management Interface if it is set
+        executeManagementInterface();
+
         //In order to start its LifeCycle the Digital Twin need at least one Physical and one Digital Adapter in order
         //to properly bridge the physical and the digital world
         //TODO Check -> Does it make sense to force to have at least one Digital Adapter in order to start the Life Cycle ?
@@ -657,6 +705,13 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
             this.storageManagerThread.interrupt();
             this.storageManagerThread = null;
             this.storageManager.onWorkerStop();
+
+            // Stop Management Interface
+            if(this.managementInterface != null) {
+                this.managementInterfaceThread.interrupt();
+                this.managementInterfaceThread = null;
+                this.managementInterface.onWorkerStop();
+            }
 
         } catch (Exception e){
             logger.error("ERROR Stopping DT LifeCycle ! Error: {}", e.getLocalizedMessage());
@@ -884,4 +939,34 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
         return storageManager;
     }
 
+    /**
+     * Returns the management interface of the Digital Twin.
+     * @return ManagementInterface instance associated with the Digital Twin.
+     */
+    public ManagementInterface getManagementInterface() {
+        return managementInterface;
+    }
+
+    /**
+     * Sets the management interface for the Digital Twin.
+     * @param managementInterface The ManagementInterface instance to be set.
+     */
+    public void setManagementInterface(ManagementInterface managementInterface) {
+        try{
+            // Set the management interface for the Digital Twin
+            this.managementInterface = managementInterface;
+            // Add the Digital Twin Id to the Management Interface in order to properly start it as DigitalTwin Worker
+            this.managementInterface.setDigitalTwinId(this.digitalTwinId);
+        }catch (Exception e){
+            logger.error("Error setting Management Interface: {}", e.getLocalizedMessage());
+        }
+    }
+
+    /**
+     * Returns the Resource Manager of the current Digital Twin.
+     * @return ResourceManager instance associated with the Digital Twin.
+     */
+    public ResourceManager getResourceManager() {
+        return resourceManager;
+    }
 }
