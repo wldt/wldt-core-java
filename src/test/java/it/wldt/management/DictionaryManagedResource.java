@@ -14,15 +14,25 @@ public class DictionaryManagedResource extends ManagedResource<Map<String, Objec
     }
 
     @Override
-    public ResourceResponse<Object> create(ResourceRequest<Object> resourceRequest) {
-        String key = resourceRequest.getResourceId();
+    protected ResourceResponse<Object> onCreate(ResourceRequest<Object> resourceRequest) {
+        // In this case the creation means adding a new key-value pair to the dictionary
+        // so we have to take the sub-resource ID as the key and the content as the value since
+        // the resource ID is the ID of the dictionary itself.
+
+        if (resourceRequest == null ||
+                resourceRequest.getResourceId() == null ||
+                resourceRequest.getContent() == null ||
+                resourceRequest.getSubResourceId().isEmpty())
+            return new ResourceResponse<Object>(400, "Invalid Resource Request!");
+
+        String key = resourceRequest.getSubResourceId();
         Object value = resourceRequest.getContent();
         resource.put(key, value);
-        return new ResourceResponse<Object>(resourceRequest.getResourceId(), value, null);
+        return new ResourceResponse<Object>(resourceRequest.getResourceId(), key, value, null);
     }
 
     @Override
-    public ResourceResponse<Object> read(ResourceRequest<Object> resourceRequest) {
+    protected ResourceResponse<Object> onRead(ResourceRequest<Object> resourceRequest) {
 
         // Validate the resource request
         if(resourceRequest == null || resourceRequest.getResourceId() == null)
@@ -46,16 +56,18 @@ public class DictionaryManagedResource extends ManagedResource<Map<String, Objec
     }
 
     @Override
-    public ResourceResponse<Object> update(ResourceRequest<Object> resourceRequest) {
-        String key = resourceRequest.getResourceId();
+    protected ResourceResponse<Object> onUpdate(ResourceRequest<Object> resourceRequest) {
+        // The key is the sub-resource ID and the value is the content of the request.
+        String key = resourceRequest.getSubResourceId();
         Object value = resourceRequest.getContent();
         resource.put(key, value);
         return new ResourceResponse<Object>(resourceRequest.getResourceId(), value, null);
     }
 
     @Override
-    public ResourceResponse<Object> delete(ResourceRequest<Object> resourceRequest) {
-        String key = resourceRequest.getResourceId();
+    protected ResourceResponse<Object> onDelete(ResourceRequest<Object> resourceRequest) {
+        // The key is the sub-resource ID and the value is the content of the request.
+        String key = resourceRequest.getSubResourceId();
         Object value = resource.remove(key);
         return new ResourceResponse<Object>(resourceRequest.getResourceId(), value, null);
     }

@@ -8,6 +8,7 @@ import it.wldt.exception.ModelException;
 import it.wldt.exception.WldtRuntimeException;
 import it.wldt.core.engine.DigitalTwinWorker;
 import it.wldt.exception.WldtWorkerException;
+import it.wldt.management.ResourceManager;
 import it.wldt.storage.StorageManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,7 +42,11 @@ public class DigitalTwinModel extends DigitalTwinWorker implements LifeCycleList
      * @throws ModelException Model Exception
      * @throws WldtWorkerException Wldt Worker Exception
      */
-    public DigitalTwinModel(String digitalTwinId, DigitalTwinStateManager digitalTwinStateManager, ShadowingFunction shadowingFunction, StorageManager storageManager) throws ModelException, WldtWorkerException {
+    public DigitalTwinModel(String digitalTwinId,
+                            DigitalTwinStateManager digitalTwinStateManager,
+                            ShadowingFunction shadowingFunction,
+                            StorageManager storageManager,
+                            ResourceManager resourceManager) throws ModelException, WldtWorkerException {
 
         super();
 
@@ -54,7 +59,7 @@ public class DigitalTwinModel extends DigitalTwinWorker implements LifeCycleList
 
             //Init the Shadowing Model Function with the current Digital Twin State and call the associated onCreate method
             this.shadowingFunction = shadowingFunction;
-            this.shadowingFunction.init(digitalTwinStateManager, storageManager);
+            this.shadowingFunction.init(digitalTwinStateManager, storageManager, resourceManager);
             this.shadowingFunction.onCreate();
         }
         else {

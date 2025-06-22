@@ -254,7 +254,11 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
         this.shadowingFunction.setShadowingModelListener(this);
 
         // Initialize the Digital Twin Model with digital twin ID, state manager, shadowing function, and storage manager
-        this.digitalTwinModel = new DigitalTwinModel(this.digitalTwinId, this.digitalTwinStateManager, this.shadowingFunction, this.storageManager);
+        this.digitalTwinModel = new DigitalTwinModel(this.digitalTwinId,
+                this.digitalTwinStateManager,
+                this.shadowingFunction,
+                this.storageManager,
+                this.resourceManager);
 
         //Save the Model Engine as Digital Twin Life Cycle Listener
         addLifeCycleListener(this.digitalTwinModel);

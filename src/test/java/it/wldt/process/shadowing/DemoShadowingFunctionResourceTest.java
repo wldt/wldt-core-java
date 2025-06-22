@@ -9,24 +9,25 @@ import it.wldt.adapter.physical.event.PhysicalAssetRelationshipInstanceDeletedWl
 import it.wldt.core.model.ShadowingFunction;
 import it.wldt.core.state.*;
 import it.wldt.exception.EventBusException;
+import it.wldt.management.DictionaryManagedResource;
+import it.wldt.management.IResourceObserver;
+import it.wldt.management.ManagedResource;
+import it.wldt.management.ManagementInterfaceTester;
 import it.wldt.process.metrics.SharedTestMetrics;
 import it.wldt.process.physical.DemoPhysicalAdapter;
-import it.wldt.storage.WldtStorage;
-import it.wldt.storage.model.physical.PhysicalAssetActionRequestRecord;
-import it.wldt.storage.model.physical.PhysicalAssetPropertyVariationRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
-public class DemoShadowingFunction extends ShadowingFunction {
+public class DemoShadowingFunctionResourceTest extends ShadowingFunction implements IResourceObserver {
 
-    private static final Logger logger = LoggerFactory.getLogger(DemoShadowingFunction.class);
+    private static final Logger logger = LoggerFactory.getLogger(DemoShadowingFunctionResourceTest.class);
 
     private boolean isShadowed = false;
 
-    public DemoShadowingFunction() {
+    public DemoShadowingFunctionResourceTest() {
         super("dummy-shadowing-function");
     }
 
@@ -139,7 +140,26 @@ public class DemoShadowingFunction extends ShadowingFunction {
                 }
             }
 
+            // Observe all the target available Physical Asset Relationships for each Adapter
             observeDigitalActionEvents();
+
+            // If present observe the target Resource of Interest
+            if(this.resourceManager != null
+                    && this.resourceManager.getResourceList() != null
+                    && !this.resourceManager.getResourceList().isEmpty()
+                    && this.resourceManager.containsResource(ManagementInterfaceTester.RESOURCE_ID)){
+
+                logger.info("ShadowingFunction - Observing Resources: {}", ManagementInterfaceTester.RESOURCE_ID);
+
+                // Get the Resource by ID and register the observer
+                this.resourceManager.getResourceById(ManagementInterfaceTester.RESOURCE_ID)
+                        .ifPresent(resource -> {
+                            resource.addObserver(this);
+                            logger.info("ShadowingFunction - Resource {} is now being observed.", ManagementInterfaceTester.RESOURCE_ID);
+                        });
+            }
+            else
+                logger.info("ShadowingFunction - Empty Resource list. Nothing to observe !");
 
         }catch (Exception e){
             e.printStackTrace();
@@ -295,4 +315,18 @@ public class DemoShadowingFunction extends ShadowingFunction {
         }
     }
 
+    @Override
+    public void onResourceCreated(String resourceId, String subResourceId) {
+        logger.info("Resource Created - Resource ID: {}, Sub-Resource ID: {}", resourceId, subResourceId);
+    }
+
+    @Override
+    public void onResourceUpdated(String resourceId, String subResourceId) {
+        logger.info("Resource Updated - Resource ID: {}, Sub-Resource ID: {}", resourceId, subResourceId);
+    }
+
+    @Override
+    public void onResourceDeleted(String resourceId, String subResourceId) {
+        logger.info("Resource Deleted - Resource ID: {}, Sub-Resource ID: {}", resourceId, subResourceId);
+    }
 }

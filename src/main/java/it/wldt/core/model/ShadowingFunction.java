@@ -10,6 +10,7 @@ import it.wldt.core.state.DigitalTwinStateManager;
 import it.wldt.exception.EventBusException;
 import it.wldt.exception.ModelException;
 import it.wldt.adapter.physical.event.*;
+import it.wldt.management.ResourceManager;
 import it.wldt.storage.StorageManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,6 +53,11 @@ public abstract class ShadowingFunction implements WldtEventListener {
     protected StorageManager storageManager = null;
 
     /**
+     * Reference to the Resource Manager
+     */
+    protected ResourceManager resourceManager = null;
+
+    /**
      * Reference to the Shadowing Model Listener
      */
     private ShadowingModelListener shadowingModelListener;
@@ -69,9 +75,12 @@ public abstract class ShadowingFunction implements WldtEventListener {
      * Initialize the Shadowing Model Function with the current Digital Twin State Manager
      * @param digitalTwinStateManager DigitalTwinStateManager instance
      */
-    protected void init(DigitalTwinStateManager digitalTwinStateManager, StorageManager storageManager){
+    protected void init(DigitalTwinStateManager digitalTwinStateManager,
+                        StorageManager storageManager,
+                        ResourceManager resourceManager){
         this.digitalTwinStateManager = digitalTwinStateManager;
         this.storageManager = storageManager;
+        this.resourceManager = resourceManager;
     }
 
     /**
