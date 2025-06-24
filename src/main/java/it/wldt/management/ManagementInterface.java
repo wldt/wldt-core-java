@@ -1,6 +1,22 @@
+/*
+ * Copyright [2025] [Marco Picone, Ph.D. - picone.m@gmail.com]
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Author: Marco Picone <picone.m@gmail.com> - https://www.marcopicone.net/
+ */
 package it.wldt.management;
 
-import it.wldt.core.engine.DigitalTwin;
 import it.wldt.core.engine.DigitalTwinWorker;
 import it.wldt.exception.WldtRuntimeException;
 import org.slf4j.Logger;
@@ -13,7 +29,7 @@ import java.util.List;
  * @project wldt-core
  * @created 30/05/2025 - 22:22
  */
-public abstract class ManagementInterface extends DigitalTwinWorker {
+public abstract class ManagementInterface extends DigitalTwinWorker implements IResourceManagerObserver {
 
     private static final Logger logger = LoggerFactory.getLogger(ManagementInterface.class);
 
@@ -57,7 +73,37 @@ public abstract class ManagementInterface extends DigitalTwinWorker {
      * @param resourceManager the ResourceManager instance to set
      */
     public void setResourceManager(ResourceManager resourceManager) {
-        this.resourceManager = resourceManager;
+        // Ensure that the ResourceManager is not null
+        if (resourceManager == null) {
+            throw new IllegalArgumentException("ResourceManager cannot be null");
+        }
+        else {
+            // Set the ResourceManager for this Management Interface
+            this.resourceManager = resourceManager;
+
+            // Register this Management Interface as an observer of the ResourceManager
+            this.resourceManager.addObserver(this);
+        }
+    }
+
+    @Override
+    public void onManagerResourceAdded(String resourceId) {
+        this.onResourceAdded(resourceId);
+    }
+
+    @Override
+    public void onManagerResourceRemoved(String resourceId) {
+        this.onResourceRemoved(resourceId);
+    }
+
+    @Override
+    public void onManagerResourceUpdated(String resourceId) {
+        this.onResourceUpdated(resourceId);
+    }
+
+    @Override
+    public void onManagerResourceListCleared() {
+        this.onResourceListCleared();
     }
 
     /**
@@ -73,17 +119,23 @@ public abstract class ManagementInterface extends DigitalTwinWorker {
 
 
     /**
-     * Callback when a resource is added to the Digital Twin and the Management Interface should handle it
+     * Callback when a resource is added on the Resource Manager to and the Management Interface should handle it
      */
-    abstract protected void onResourceAdded(ManagedResource<?, ?, ?> resource);
+    abstract protected void onResourceAdded(String resourceId);
 
     /**
-     * Callback when a resource has been updated and the Management Interface should handle it
+     * Callback when a resource has been updated on the Resource Manager and the Management Interface should handle it
      */
-    abstract protected void onResourceUpdated(ManagedResource<?, ?, ?> resource);
+    abstract protected void onResourceUpdated(String resourceId);
 
     /**
      * Callback when a resource has been removed and the Management Interface should handle it
      */
-    abstract protected void onResourceRemoved(ManagedResource<?, ?, ?> resource);
+    abstract protected void onResourceRemoved(String resourceId);
+
+    /**
+     * Callback when the resource list has been cleared on the Resource Manager
+     * and the Management Interface should handle it
+     */
+    abstract protected void onResourceListCleared();
 }

@@ -1,3 +1,20 @@
+/*
+ * Copyright [2025] [Marco Picone, Ph.D. - picone.m@gmail.com]
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Author: Marco Picone <picone.m@gmail.com> - https://www.marcopicone.net/
+ */
 package it.wldt.management;
 
 import java.util.List;
@@ -11,16 +28,28 @@ import java.util.List;
  */
 public abstract class ManagedResource<R, I, O> {
 
-    // Unique identifier of the resource
+    /**
+     * The unique identifier of the resource.
+     * This ID is used to identify the resource in the system.
+     */
     protected String id;
 
-    // Type of the resource
+    /**
+     * The type of the resource.
+     * This can be used to categorize or identify the resource type.
+     */
     protected String type;
 
-    // Display Name of the resource
+    /**
+     * The display name of the resource.
+     * This is used for user-friendly identification of the resource.
+     */
     protected String name;
 
-    // The resource itself, which can be of any type.
+    /**
+     * The actual resource object.
+     * This is the core resource that is being managed.
+     */
     protected R resource;
 
     /**
@@ -51,26 +80,50 @@ public abstract class ManagedResource<R, I, O> {
         this.resource = resource;
     }
 
+    /**
+     * Gets the unique identifier of the resource.
+     * @return the unique identifier of the resource
+     */
     public String getId() {
         return id;
     }
 
+    /**
+     * Sets the unique identifier of the resource.
+     * @param id the unique identifier to set
+     */
     public void setId(String id) {
         this.id = id;
     }
 
+    /**
+     * Gets the type of the resource.
+     * @return the type of the resource
+     */
     public String getType() {
         return type;
     }
 
+    /**
+     * Sets the type of the resource.
+     * @param type the type to set
+     */
     public void setType(String type) {
         this.type = type;
     }
 
+    /**
+     * Gets the display name of the resource.
+     * @return the display name of the resource
+     */
     public String getName() {
         return name;
     }
 
+    /**
+     * Sets the display name of the resource.
+     * @param name the display name to set
+     */
     public void setName(String name) {
         this.name = name;
     }
@@ -87,7 +140,7 @@ public abstract class ManagedResource<R, I, O> {
         // Notify observers about the deletion of the resource
         if (observers != null && !result.isError()) {
             for (IResourceObserver observer : observers) {
-                observer.onResourceCreated(result.getResourceId(), resourceRequest.getSubResourceId());
+                observer.onCreate(result.getResourceId(), resourceRequest.getSubResourceId());
             }
         }
 
@@ -115,7 +168,7 @@ public abstract class ManagedResource<R, I, O> {
         // Notify observers about the deletion of the resource
         if (observers != null && !result.isError()) {
             for (IResourceObserver observer : observers) {
-                observer.onResourceDeleted(result.getResourceId(), resourceRequest.getSubResourceId());
+                observer.onDelete(result.getResourceId(), resourceRequest.getSubResourceId());
             }
         }
 
@@ -134,7 +187,7 @@ public abstract class ManagedResource<R, I, O> {
         // Notify observers about the deletion of the resource
         if (observers != null && !result.isError()) {
             for (IResourceObserver observer : observers) {
-                observer.onResourceUpdated(result.getResourceId(), resourceRequest.getSubResourceId());
+                observer.onUpdate(result.getResourceId(), resourceRequest.getSubResourceId());
             }
         }
 

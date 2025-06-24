@@ -44,19 +44,25 @@ public class DemoManagementInterface extends ManagementInterface {
     }
 
     @Override
-    protected void onResourceAdded(ManagedResource<?, ?, ?> resource) {
-        logger.info("Resource added: {}", resource.getId());
+    protected void onResourceAdded(String resourceId) {
+        logger.info("Resource added: {}", resourceId);
     }
 
     @Override
-    protected void onResourceUpdated(ManagedResource<?, ?, ?> resource) {
-        logger.info("Resource updated: {}", resource.getId());
+    protected void onResourceUpdated(String resourceId) {
+        logger.info("Resource updated: {}", resourceId);
     }
 
     @Override
-    protected void onResourceRemoved(ManagedResource<?, ?, ?> resource) {
-        logger.info("Resource removed: {}", resource.getId());
+    protected void onResourceRemoved(String resourceId) {
+        logger.info("Resource removed: {}", resourceId);
     }
+
+    @Override
+    protected void onResourceListCleared() {
+        logger.info("Resource list cleared.");
+    }
+
 
     /**
      * Validates the ResourceRequest and retrieves the associated ManagedResource
