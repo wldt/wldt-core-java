@@ -2,7 +2,7 @@
 
 In the Digital Twin framework, introducing the concepts of resources, resource management, 
 and a management interface provides a structured and extensible way to configure, 
-monitor, and control the behavior of a Digital Twin at runtime. 
+monitor, and control the behavior of a Digital Twin at runtime (as schematically represented in the following Figure). 
 Resources represent configurable parameters or entities—such as 
 thresholds, operational limits, or mappings—that directly 
 influence the Digital Twin’s logic and interactions. 
@@ -15,6 +15,10 @@ resources through standardized operations (create, read, update, delete).
 This architecture promotes modularity, flexibility, and interoperability, a
 llowing both internal logic and external applications to adapt the Digital Twin’s 
 behavior in real time without modifying its core implementation.
+
+<div align="center">
+  <img class="center" src="../images/resources_and_management_interface.jpg" width="80%">
+</div>
 
 ## Digital Twin Resources & Management Interface
 
