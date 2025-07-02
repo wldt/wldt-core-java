@@ -52,6 +52,14 @@ TODO ... ADD DCOSS Paper
 }
 ```
 
+## Documentation & References
+
+With the aim to support redability of the documentation and to provide a better understanding of the library's functionalities,
+the documentation is structured in the following sections through independent pages:
+
+- [Resources & Management Interface](docs/resources_management_interface.md): Provides the details about 
+he management interface of the WLDT library and how to use it to handle the manageable DT's resource through its life cycle.
+
 ## Digital Twin "Definition" & Main Concepts
 
 The White Label Digital Twin (WLDT) library aims to support the design, development and deployment of Digital Twins (DTs) 
