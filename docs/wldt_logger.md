@@ -1,7 +1,17 @@
 # 📝 Logging in WLDT
 
 
-The WLDT logging layer provides a flexible and extensible way to handle logging within your digital twin applications. It's designed to allow developers to easily switch between different logging implementations without modifying core application code.
+In order to keep the core of the library independent from external dependencies, WLDT introduces a flexible and configurable logging layer. 
+This design allows developers to extend and integrate the logging system according to the specific requirements of their projects, 
+without being tied to any particular logging framework. The logging API interfaces and methods are inspired by popular libraries such as Log4j 
+and Logback, making it easier for developers to integrate WLDT logging with their preferred solutions.
+
+Furthermore, the library provides a default implementation that uses classic Java `System.out.*` output, ensuring basic logging 
+functionality is available out-of-the-box for immediate usability. This approach enables both quick adoption and 
+advanced customization as needed.
+
+The WLDT logging layer provides a flexible and extensible way to handle logging within your digital twin applications. 
+It's designed to allow developers to easily switch between different logging implementations without modifying core application code.
 The core components of the WLDT logging layer are:
 
 * `WldtLogger`: An interface defining the standard logging methods (e.g., `info`, `debug`, `error`).

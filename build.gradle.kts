@@ -18,8 +18,6 @@ repositories {
 }
 
 dependencies {
-    api("org.apache.commons:commons-lang3:3.9")
-    api("javax.inject:javax.inject:1")
     testImplementation("org.junit.jupiter:junit-jupiter-engine:5.10.1")
 }
 
