@@ -13,14 +13,14 @@ import it.wldt.core.state.DigitalTwinStateEvent;
 import it.wldt.core.state.DigitalTwinStateEventNotification;
 import it.wldt.core.state.DigitalTwinStateProperty;
 import it.wldt.exception.EventBusException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import it.wldt.log.WldtLogger;
+import it.wldt.log.WldtLoggerProvider;
 
 import java.util.Map;
 
 public class TestShadowingFunction extends ShadowingFunction {
 
-    private static final Logger logger = LoggerFactory.getLogger(TestShadowingFunction.class);
+    private static final WldtLogger logger = WldtLoggerProvider.getLogger(TestShadowingFunction.class);
 
     private boolean isShadowed = false;
 

@@ -1,3 +1,23 @@
+/*
+ * Copyright [2025] [Marco Picone, Ph.D. - picone.m@gmail.com]
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Author: Marco Picone <picone.m@gmail.com> - https://www.marcopicone.net/
+ * Contributors:
+ *         Marta Spadoni (marta.spadoni2@studio.unibo.it)
+ *         Samuele Burattini (samuele.burattini@unibo.it)
+ */
 package it.wldt.adapter.physical;
 
 import it.wldt.core.event.*;
@@ -6,8 +26,8 @@ import it.wldt.exception.EventBusException;
 import it.wldt.exception.PhysicalAdapterException;
 import it.wldt.exception.WldtRuntimeException;
 import it.wldt.adapter.physical.event.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import it.wldt.log.WldtLogger;
+import it.wldt.log.WldtLoggerProvider;
 
 import java.util.Objects;
 
@@ -16,15 +36,12 @@ import java.util.Objects;
  *          Marco Picone, Ph.D. (picone.m@gmail.com)
  *          Marta Spadoni (marta.spadoni2@studio.unibo.it)
  *          Samuele Burattini (samuele.burattini@unibo.it)
- *
  * Date: 01/02/2023
  * Project: White Label Digital Twin Java Framework - (whitelabel-digitaltwin)
- *
  * This class defines the core capabilities and responsibilities of a Physical Adapter in the Digital Twin's Instance
  * A Digital Adapter is the architectural component in charge of handling the interaction of the Digital Twin
  * with the external physical world exposing information and feed the Shadowing Function and in generale the digitalization
  * of the associated physical counterpart.
- *
  * This class can be extended in order to create custom Physical Adapters shaping specific behaviours of the twin and
  * allowing a simplified interaction with the external physical world. Multiple Physical Adapters can be active at the
  * same time on the Digital Twin with the aim to handle different interaction with the physical layer according to the
@@ -32,7 +49,7 @@ import java.util.Objects;
  */
 public abstract class PhysicalAdapter extends DigitalTwinWorker implements WldtEventListener {
 
-    private static final Logger logger = LoggerFactory.getLogger(ConfigurablePhysicalAdapter.class);
+    private static final WldtLogger logger = WldtLoggerProvider.getLogger(ConfigurablePhysicalAdapter.class);
 
     private String id;
 

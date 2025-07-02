@@ -1,3 +1,20 @@
+/*
+ * Copyright [2025] [Marco Picone, Ph.D. - picone.m@gmail.com]
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Author: Marco Picone <picone.m@gmail.com> - https://www.marcopicone.net/
+ */
 package it.wldt.storage;
 
 import it.wldt.adapter.digital.DigitalActionRequest;
@@ -20,12 +37,12 @@ import it.wldt.core.state.DigitalTwinStateManager;
 import it.wldt.exception.StorageException;
 import it.wldt.exception.WldtRuntimeException;
 import it.wldt.adapter.physical.PhysicalAssetPropertyVariation;
+import it.wldt.log.WldtLogger;
+import it.wldt.log.WldtLoggerProvider;
 import it.wldt.storage.query.DefaultQueryManager;
 import it.wldt.storage.query.QueryManager;
 import it.wldt.storage.query.QueryRequest;
 import it.wldt.storage.query.QueryResult;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -43,7 +60,7 @@ import java.util.Map;
  */
 public class StorageManager extends DigitalTwinWorker implements IWldtEventObserverListener {
 
-    private static final Logger logger = LoggerFactory.getLogger(StorageManager.class);
+    private static final WldtLogger logger = WldtLoggerProvider.getLogger(StorageManager.class);
 
     private static final String STORAGE_MANAGER_EVENTBUS_CLIENT_ID = "storage_manager";
 

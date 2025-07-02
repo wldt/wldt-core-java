@@ -5,6 +5,8 @@ import it.wldt.core.engine.DigitalTwinEngine;
 import it.wldt.core.event.DefaultWldtEventLogger;
 import it.wldt.core.event.WldtEventBus;
 import it.wldt.exception.*;
+import it.wldt.log.WldtLogger;
+import it.wldt.log.WldtLoggerProvider;
 import it.wldt.process.digital.DemoDigitalAdapter;
 import it.wldt.process.digital.DemoDigitalAdapterConfiguration;
 import it.wldt.process.metrics.SharedTestMetrics;
@@ -15,8 +17,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -30,7 +30,7 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 public class ResourceManagerTester {
 
-    private static final Logger logger = LoggerFactory.getLogger(ResourceManagerTester.class);
+    private static final WldtLogger logger = WldtLoggerProvider.getLogger(ResourceManagerTester.class);
 
     private static final String TEST_DIGITAL_TWIN_ID = "dtTest0001";
 

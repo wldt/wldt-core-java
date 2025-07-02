@@ -19,8 +19,8 @@ package it.wldt.management;
 
 import it.wldt.core.engine.DigitalTwinWorker;
 import it.wldt.exception.WldtRuntimeException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import it.wldt.log.WldtLogger;
+import it.wldt.log.WldtLoggerProvider;
 
 import java.util.List;
 
@@ -31,7 +31,7 @@ import java.util.List;
  */
 public abstract class ManagementInterface extends DigitalTwinWorker implements IResourceManagerObserver {
 
-    private static final Logger logger = LoggerFactory.getLogger(ManagementInterface.class);
+    private static final WldtLogger logger = WldtLoggerProvider.getLogger(ManagementInterface.class);
 
     protected ResourceManager resourceManager;
 

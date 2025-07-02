@@ -12,19 +12,19 @@ import it.wldt.core.engine.DigitalTwinEngine;
 import it.wldt.core.model.ShadowingFunction;
 import it.wldt.core.state.*;
 import it.wldt.exception.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.*;
 import java.util.stream.Collectors;
 
 import static it.wldt.core.adapter.DigitalAdapterCallbacksTester.DigitalAdapterCallbacks.*;
+
+import it.wldt.log.WldtLogger;
+import it.wldt.log.WldtLoggerProvider;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class DigitalAdapterCallbacksTester {
 
-    private static final Logger logger = LoggerFactory.getLogger(DigitalAdapterCallbacksTester.class);
+    private static final WldtLogger logger = WldtLoggerProvider.getLogger(DigitalAdapterCallbacksTester.class);
 
     public final String DIGITAL_TWIN_ID = "dt00001";
 

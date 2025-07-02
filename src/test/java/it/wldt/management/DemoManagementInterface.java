@@ -2,8 +2,9 @@ package it.wldt.management;
 
 import it.wldt.exception.WldtManagedResourceException;
 import it.wldt.exception.WldtManagementInterfaceException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import it.wldt.log.WldtLogger;
+import it.wldt.log.WldtLoggerProvider;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -14,7 +15,7 @@ import java.util.Optional;
  */
 public class DemoManagementInterface extends ManagementInterface {
 
-    private static final Logger logger = LoggerFactory.getLogger(DemoManagementInterface.class);
+    private static final WldtLogger logger = WldtLoggerProvider.getLogger(DemoManagementInterface.class);
 
     // Flag to indicate if the management interface has been started
     private boolean isStarted = false;

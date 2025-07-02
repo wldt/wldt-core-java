@@ -1,6 +1,5 @@
 package it.wldt.core.shadowing;
 
-
 import it.wldt.adapter.digital.event.DigitalActionWldtEvent;
 import it.wldt.adapter.physical.PhysicalAssetDescription;
 import it.wldt.adapter.physical.PhysicalAssetEvent;
@@ -21,11 +20,11 @@ import it.wldt.core.state.DigitalTwinStateProperty;
 import it.wldt.core.adapter.digital.TestDigitalAdapter;
 import it.wldt.core.adapter.digital.TestDigitalAdapterConfiguration;
 import it.wldt.exception.*;
+import it.wldt.log.WldtLogger;
+import it.wldt.log.WldtLoggerProvider;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.TestMethodOrder;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -37,7 +36,7 @@ public class ShadowingFunctionTester {
 
     public final String DIGITAL_TWIN_ID = "dt00001";
 
-    private static final Logger logger = LoggerFactory.getLogger(ShadowingFunctionTester.class);
+    private static final WldtLogger logger = WldtLoggerProvider.getLogger(ShadowingFunctionTester.class);
 
     private static CountDownLatch testCountDownLatch = null;
 

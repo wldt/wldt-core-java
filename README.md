@@ -46,6 +46,7 @@ that led the design and development of the WLDT library.
 - 🗄 [Storage & Query System](docs/storage_query_system.md): Explains the storage and query system of the WLDT library, detailing how to store and retrieve data from the Digital Twin.
 - ️️⚙️ [Resources & Management Interface](docs/resources_management_interface.md): Provides the details about 
 the management interface of the WLDT library and how to use it to handle the manageable DT's resource through its life cycle.
+- 📝 [Logging in WLDT](docs/wldt_logger.md): Describes the logging system of the WLDT library, including how to configure, customize and use it.
 
 ## 📚 Scientitic Citation & Reference
 

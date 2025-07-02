@@ -1,5 +1,21 @@
+/*
+ * Copyright [2025] [Marco Picone, Ph.D. - picone.m@gmail.com]
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Author: Marco Picone <picone.m@gmail.com> - https://www.marcopicone.net/
+ */
 package it.wldt.core.engine;
-
 
 import it.wldt.adapter.digital.DigitalAdapter;
 import it.wldt.adapter.digital.DigitalAdapterListener;
@@ -15,13 +31,11 @@ import it.wldt.core.model.ShadowingModelListener;
 import it.wldt.core.state.DigitalTwinState;
 import it.wldt.core.state.DigitalTwinStateManager;
 import it.wldt.exception.*;
-
+import it.wldt.log.WldtLogger;
+import it.wldt.log.WldtLoggerProvider;
 import it.wldt.management.ManagementInterface;
 import it.wldt.management.ResourceManager;
 import it.wldt.storage.StorageManager;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -37,7 +51,7 @@ import java.util.stream.Collectors;
  */
 public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListener, DigitalAdapterListener {
 
-    private static final Logger logger = LoggerFactory.getLogger(DigitalTwin.class);
+    private static final WldtLogger logger = WldtLoggerProvider.getLogger(DigitalTwin.class);
 
     private static final String EVENT_PUBLISHER_ID = "dt_core";
 

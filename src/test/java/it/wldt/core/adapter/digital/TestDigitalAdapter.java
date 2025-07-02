@@ -2,8 +2,8 @@ package it.wldt.core.adapter.digital;
 
 import it.wldt.adapter.digital.DigitalAdapter;
 import it.wldt.core.state.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import it.wldt.log.WldtLogger;
+import it.wldt.log.WldtLoggerProvider;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class TestDigitalAdapter extends DigitalAdapter<TestDigitalAdapterConfiguration> {
 
-    private static final Logger logger = LoggerFactory.getLogger(TestDigitalAdapter.class);
+    private static final WldtLogger logger = WldtLoggerProvider.getLogger(TestDigitalAdapter.class);
 
     private List<DigitalTwinStateEventNotification<?>> receivedEventNotificationList = null;
 

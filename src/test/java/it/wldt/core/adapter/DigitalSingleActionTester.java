@@ -9,21 +9,18 @@ import it.wldt.core.adapter.shadowing.TestShadowingFunction;
 import it.wldt.core.engine.DigitalTwin;
 import it.wldt.core.engine.DigitalTwinEngine;
 import it.wldt.exception.*;
+import it.wldt.log.WldtLogger;
+import it.wldt.log.WldtLoggerProvider;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class DigitalSingleActionTester {
@@ -33,7 +30,7 @@ public class DigitalSingleActionTester {
     private final static String ACTION1_KEY = "switch-on";
     private final static String ACTION2_KEY = "switch-off";
 
-    private final static Logger logger = LoggerFactory.getLogger(DigitalSingleActionTester.class);
+    private static final WldtLogger logger = WldtLoggerProvider.getLogger(DigitalSingleActionTester.class);
 
     private PhysicalAdapter createPhysicalAdapter(String id, String actionKey, CountDownLatch countDown, List<PhysicalAssetActionWldtEvent<?>> physicalAssetActionEventReceived){
         return new PhysicalAdapter(id) {

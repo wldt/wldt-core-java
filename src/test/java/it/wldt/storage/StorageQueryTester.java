@@ -11,6 +11,8 @@ import it.wldt.core.event.WldtEventBus;
 import it.wldt.core.event.observer.IWldtEventObserverListener;
 import it.wldt.core.event.observer.WldtEventObserver;
 import it.wldt.exception.*;
+import it.wldt.log.WldtLogger;
+import it.wldt.log.WldtLoggerProvider;
 import it.wldt.process.digital.DemoDigitalAdapter;
 import it.wldt.process.digital.DemoDigitalAdapterConfiguration;
 import it.wldt.process.metrics.SharedTestMetrics;
@@ -18,18 +20,13 @@ import it.wldt.process.physical.DemoPhysicalAdapter;
 import it.wldt.process.physical.DemoPhysicalAdapterConfiguration;
 import it.wldt.process.shadowing.DemoShadowingFunction;
 import it.wldt.storage.model.StorageStats;
-import it.wldt.storage.model.StorageStatsRecord;
 import it.wldt.storage.model.digital.DigitalActionRequestRecord;
 import it.wldt.storage.model.lifecycle.LifeCycleVariationRecord;
 import it.wldt.storage.model.physical.*;
 import it.wldt.storage.model.state.DigitalTwinStateRecord;
 import it.wldt.storage.query.*;
 import org.junit.jupiter.api.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.List;
-
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -41,7 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class StorageQueryTester {
 
-    private static final Logger logger = LoggerFactory.getLogger(StorageQueryTester.class);
+    private static final WldtLogger logger = WldtLoggerProvider.getLogger(StorageQueryTester.class);
 
     private static final String TEST_DIGITAL_TWIN_ID = "dtTest0001";
 

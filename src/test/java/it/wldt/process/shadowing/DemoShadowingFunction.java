@@ -9,20 +9,15 @@ import it.wldt.adapter.physical.event.PhysicalAssetRelationshipInstanceDeletedWl
 import it.wldt.core.model.ShadowingFunction;
 import it.wldt.core.state.*;
 import it.wldt.exception.EventBusException;
+import it.wldt.log.WldtLogger;
+import it.wldt.log.WldtLoggerProvider;
 import it.wldt.process.metrics.SharedTestMetrics;
 import it.wldt.process.physical.DemoPhysicalAdapter;
-import it.wldt.storage.WldtStorage;
-import it.wldt.storage.model.physical.PhysicalAssetActionRequestRecord;
-import it.wldt.storage.model.physical.PhysicalAssetPropertyVariationRecord;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.List;
 import java.util.Map;
 
 public class DemoShadowingFunction extends ShadowingFunction {
 
-    private static final Logger logger = LoggerFactory.getLogger(DemoShadowingFunction.class);
+    private static final WldtLogger logger = WldtLoggerProvider.getLogger(DemoShadowingFunction.class);
 
     private boolean isShadowed = false;
 

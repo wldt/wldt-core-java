@@ -6,16 +6,16 @@ import it.wldt.core.state.DigitalTwinStateChange;
 import it.wldt.core.state.DigitalTwinStateEvent;
 import it.wldt.core.state.DigitalTwinStateEventNotification;
 import it.wldt.exception.EventBusException;
+import it.wldt.log.WldtLogger;
+import it.wldt.log.WldtLoggerProvider;
 import it.wldt.process.metrics.SharedTestMetrics;
 import it.wldt.storage.query.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.stream.Collectors;
 
 public class DemoDigitalAdapter extends DigitalAdapter<DemoDigitalAdapterConfiguration> {
 
-    private static final Logger logger = LoggerFactory.getLogger(DemoDigitalAdapter.class);
+    private static final WldtLogger logger = WldtLoggerProvider.getLogger(DemoDigitalAdapter.class);
 
     public DemoDigitalAdapter(String id, DemoDigitalAdapterConfiguration configuration) {
         super(id, configuration);

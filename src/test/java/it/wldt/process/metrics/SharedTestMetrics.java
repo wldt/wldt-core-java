@@ -4,8 +4,8 @@ import it.wldt.adapter.physical.event.PhysicalAssetEventWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetPropertyWldtEvent;
 import it.wldt.core.state.DigitalTwinState;
 import it.wldt.core.state.DigitalTwinStateEventNotification;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import it.wldt.log.WldtLogger;
+import it.wldt.log.WldtLoggerProvider;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -19,7 +19,7 @@ import java.util.Map;
  */
 public class SharedTestMetrics {
 
-    private static final Logger logger = LoggerFactory.getLogger(SharedTestMetrics.class);
+    private static final WldtLogger logger = WldtLoggerProvider.getLogger(SharedTestMetrics.class);
 
     private static SharedTestMetrics instance = null;
 

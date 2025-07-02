@@ -1,14 +1,10 @@
 package it.wldt.core.state.event;
 
 import it.wldt.core.state.DigitalTwinState;
-import it.wldt.core.state.DigitalTwinStateAction;
 import it.wldt.core.state.DigitalTwinStateEvent;
 import it.wldt.core.state.DigitalTwinStateManager;
 import it.wldt.exception.*;
 import org.junit.jupiter.api.Test;
-
-import java.util.Optional;
-
 import static org.junit.jupiter.api.Assertions.*;
 
 public class DigitalTwinStateEventCRUDTester {

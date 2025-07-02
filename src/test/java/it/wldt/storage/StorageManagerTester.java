@@ -6,6 +6,8 @@ import it.wldt.core.engine.DigitalTwinEngine;
 import it.wldt.core.event.DefaultWldtEventLogger;
 import it.wldt.core.event.WldtEventBus;
 import it.wldt.exception.*;
+import it.wldt.log.WldtLogger;
+import it.wldt.log.WldtLoggerProvider;
 import it.wldt.process.digital.DemoDigitalAdapter;
 import it.wldt.process.digital.DemoDigitalAdapterConfiguration;
 import it.wldt.process.metrics.SharedTestMetrics;
@@ -14,9 +16,6 @@ import it.wldt.process.physical.DemoPhysicalAdapterConfiguration;
 import it.wldt.process.shadowing.DemoShadowingFunction;
 import it.wldt.storage.model.StorageStats;
 import org.junit.jupiter.api.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -28,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class StorageManagerTester {
 
-    private static final Logger logger = LoggerFactory.getLogger(StorageManagerTester.class);
+    private static final WldtLogger logger = WldtLoggerProvider.getLogger(StorageManagerTester.class);
 
     private static final String TEST_DIGITAL_TWIN_ID = "dtTest0001";
 

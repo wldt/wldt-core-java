@@ -6,6 +6,8 @@ import it.wldt.core.event.WldtEventBus;
 import it.wldt.core.engine.DigitalTwin;
 import it.wldt.core.engine.LifeCycleState;
 import it.wldt.exception.*;
+import it.wldt.log.WldtLogger;
+import it.wldt.log.WldtLoggerProvider;
 import it.wldt.process.digital.DemoDigitalAdapter;
 import it.wldt.process.digital.DemoDigitalAdapterConfiguration;
 import it.wldt.process.metrics.SharedTestMetrics;
@@ -13,9 +15,6 @@ import it.wldt.process.physical.DemoPhysicalAdapter;
 import it.wldt.process.physical.DemoPhysicalAdapterConfiguration;
 import it.wldt.process.shadowing.DemoShadowingFunction;
 import org.junit.jupiter.api.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -26,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class EngineTester {
 
-    private static final Logger logger = LoggerFactory.getLogger(EngineTester.class);
+    private static final WldtLogger logger = WldtLoggerProvider.getLogger(EngineTester.class);
 
     private final String TEST_DIGITAL_TWIN_ID_1 = "dtTest0001";
 

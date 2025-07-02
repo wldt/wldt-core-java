@@ -1,6 +1,5 @@
 package it.wldt.core.state.action;
 
-import it.wldt.core.state.DigitalTwinState;
 import it.wldt.core.state.DigitalTwinStateManager;
 import it.wldt.core.state.DigitalTwinStateAction;
 import it.wldt.exception.WldtDigitalTwinStateActionConflictException;

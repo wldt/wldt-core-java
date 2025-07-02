@@ -5,7 +5,6 @@ import it.wldt.core.event.*;
 import it.wldt.core.state.*;
 import it.wldt.exception.*;
 import org.junit.jupiter.api.Test;
-
 import java.util.ArrayList;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;

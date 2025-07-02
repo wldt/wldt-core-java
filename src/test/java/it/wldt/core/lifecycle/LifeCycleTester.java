@@ -18,12 +18,10 @@ import it.wldt.core.model.ShadowingFunction;
 import it.wldt.core.adapter.digital.TestDigitalAdapterConfiguration;
 import it.wldt.core.state.DigitalTwinState;
 import it.wldt.exception.*;
+import it.wldt.log.WldtLogger;
+import it.wldt.log.WldtLoggerProvider;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.TestMethodOrder;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -33,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @TestMethodOrder(MethodOrderer.MethodName.class)
 public class LifeCycleTester {
 
-    private static final Logger logger = LoggerFactory.getLogger(LifeCycleTester.class);
+    private static final WldtLogger logger = WldtLoggerProvider.getLogger(LifeCycleTester.class);
 
     public final String DIGITAL_TWIN_ID = "dt00001";
 

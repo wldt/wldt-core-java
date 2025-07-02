@@ -1,6 +1,5 @@
 package it.wldt.core.event;
 
-import it.wldt.core.event.*;
 import it.wldt.exception.EventBusException;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;

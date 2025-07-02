@@ -4,16 +4,15 @@ import it.wldt.adapter.physical.*;
 import it.wldt.adapter.physical.event.*;
 import it.wldt.core.event.WldtEventBus;
 import it.wldt.exception.EventBusException;
+import it.wldt.log.WldtLogger;
+import it.wldt.log.WldtLoggerProvider;
 import it.wldt.process.metrics.SharedTestMetrics;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.Random;
 
 public class DemoPhysicalAdapter extends ConfigurablePhysicalAdapter<DemoPhysicalAdapterConfiguration> {
 
-    private static final Logger logger = LoggerFactory.getLogger(DemoPhysicalAdapter.class);
+    private static final WldtLogger logger = WldtLoggerProvider.getLogger(DemoPhysicalAdapter.class);
 
     public static final int DEFAULT_TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES = 10;
 

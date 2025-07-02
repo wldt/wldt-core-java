@@ -5,14 +5,15 @@ import it.wldt.core.event.WldtEventBus;
 import it.wldt.adapter.physical.event.PhysicalAssetActionWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetEventWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetPropertyWldtEvent;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import it.wldt.log.WldtLogger;
+import it.wldt.log.WldtLoggerProvider;
+
 import java.util.ArrayList;
 import java.util.Random;
 
 public class TestPhysicalAdapter extends ConfigurablePhysicalAdapter<TestPhysicalAdapterConfiguration> {
 
-    private static final Logger logger = LoggerFactory.getLogger(TestPhysicalAdapter.class);
+    private static final WldtLogger logger = WldtLoggerProvider.getLogger(TestPhysicalAdapter.class);
 
     public static final int TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES = 10;
 

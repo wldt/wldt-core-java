@@ -2,8 +2,9 @@ package it.wldt.process.observer;
 
 import it.wldt.core.event.WldtEvent;
 import it.wldt.core.event.observer.IWldtEventObserverListener;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import it.wldt.log.WldtLogger;
+import it.wldt.log.WldtLoggerProvider;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -11,7 +12,7 @@ import java.util.Map;
 
 public class TestObserverListener implements IWldtEventObserverListener {
 
-    private static final Logger logger = LoggerFactory.getLogger(TestObserverListener.class);
+    private static final WldtLogger logger = WldtLoggerProvider.getLogger(TestObserverListener.class);
 
     // Physical Asset Events (Properties, Pad, Events)
     private Map<String, List<WldtEvent<?>>> physicalAssetEvents;
