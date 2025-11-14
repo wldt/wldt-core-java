@@ -23,7 +23,6 @@ package it.wldt.management;
  * allowing for the observation of changes in the list of managed resources.
  *
  * @author Marco Picone, Ph.D. - picone.m@gmail.com
- * @created 23/06/2025 - 15:56
  */
 public interface IResourceManagerObserver {
 
@@ -43,6 +42,7 @@ public interface IResourceManagerObserver {
 
     /**
      * This method is called when a resource is updated on the resource manager
+     * @param resourceId the unique identifier of the updated resource
      */
     void onManagerResourceUpdated(String resourceId);
 

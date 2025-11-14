@@ -5,6 +5,7 @@ group = "io.github.wldt"
 version = "0.5.0"
 description = "The core library to build White Label Digital Twins"
 java.sourceCompatibility = JavaVersion.VERSION_1_8
+java.targetCompatibility = JavaVersion.VERSION_1_8
 
 plugins {
     `java-library`
@@ -76,14 +77,14 @@ publishing {
 
             developers {
                 developer {
-                    id = "samubura"
-                    name = "Samuele Burattini"
-                    email = "samuele.burattini@unibo.it"
-                }
-                developer {
                     id = "piconem"
                     name = "Marco Picone"
                     email = "picone.m@gmail.com"
+                }
+                developer {
+                    id = "samubura"
+                    name = "Samuele Burattini"
+                    email = "samuele.burattini@unibo.it"
                 }
             }
 

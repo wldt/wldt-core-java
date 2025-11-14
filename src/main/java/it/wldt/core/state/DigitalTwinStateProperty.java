@@ -35,7 +35,7 @@ import java.util.Objects;
  * Class (e.g., java.lang.String) but it can be directly changed by the developer
  * to associate it to a specific ontology or data type.
  *
- * @param <T>
+ * @param <T> the type of the value associated to the property
  */
 public class DigitalTwinStateProperty<T> extends DigitalTwinStateResource {
 

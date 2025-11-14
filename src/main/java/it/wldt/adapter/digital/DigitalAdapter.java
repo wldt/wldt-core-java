@@ -105,7 +105,7 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
     /**
      * Enable the observation of all the Digital Twin State and any of its variations in terms of Properties, Actions,
      * Events and Relationships.
-     * @throws EventBusException
+     * @throws EventBusException Thrown if there is an error in the EventBus subscription
      */
     protected void observeDigitalTwinState() throws EventBusException {
 
@@ -121,7 +121,7 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
 
     /**
      * Cancel the observation of all the Digital Twin State variations and updates.
-     * @throws EventBusException
+     * @throws EventBusException Thrown if there is an error in the EventBus unsubscription
      */
     protected void unObserveDigitalTwinState() throws EventBusException {
 
@@ -143,10 +143,10 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
      * Publish an event associated to a Digital Action performed on the Digital Adapter and that should be forwarded
      * to the DT's core
      *
-     * @param actionKey
-     * @param body
-     * @param <T>
-     * @throws EventBusException
+     * @param actionKey the key of the action to be performed
+     * @param body the body of the action, which can be any type of object
+     * @param <T> the type of the body object
+     * @throws EventBusException Thrown if there is an error in the EventBus publishing
      */
     protected <T> void publishDigitalActionWldtEvent(String actionKey, T body) throws EventBusException {
         //WldtEvent<DigitalActionWldtEvent<T>> notification = new WldtEvent<>(DIGITAL_ACTION_EVENT, new DigitalActionWldtEvent<>(actionKey, body));
@@ -156,8 +156,8 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
     /**
      * Publish an event associated to a Digital Action performed on the Digital Adapter and that should be forwarded
      * to the DT's core
-     * @param actionWldtEvent
-     * @throws EventBusException
+     * @param actionWldtEvent the DigitalActionWldtEvent to be published
+     * @throws EventBusException Thrown if there is an error in the EventBus publishing
      */
     protected void publishDigitalActionWldtEvent(DigitalActionWldtEvent<?> actionWldtEvent) throws EventBusException {
         //WldtEvent<DigitalActionWldtEvent<?>> notification = new WldtEvent<>(DIGITAL_ACTION_EVENT, actionWldtEvent);
@@ -170,7 +170,8 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
     //////////////////////// EVENTS OBSERVATION //////////////////////////////////////////////////////////
     /**
      * Enable the observation of available Digital Twin State Events Notifications.
-     * @throws EventBusException
+     * @param digitalTwinState the Digital Twin State to observe
+     * @throws EventBusException Thrown if there is an error in the EventBus subscription
      */
     protected void observeAllDigitalTwinEventsNotifications(DigitalTwinState digitalTwinState) throws EventBusException, WldtDigitalTwinStateEventException {
 
@@ -183,7 +184,8 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
 
     /**
      * Cancel the observation of Digital Twin State Events Notifications
-     * @throws EventBusException
+     * @param digitalTwinState the Digital Twin State to unobserve
+     * @throws EventBusException Thrown if there is an error in the EventBus unsubscription
      */
     protected void unObserveAllDigitalTwinEventsNotifications(DigitalTwinState digitalTwinState) throws EventBusException, WldtDigitalTwinStateEventException {
 
@@ -197,8 +199,8 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
     /**
      * Enable the observation of the notification associated to a specific list of Digital Twin State events.
      * With respect to event a notification contains the new associated value
-     * @param eventsList
-     * @throws EventBusException
+     * @param eventsList the list of events to observe
+     * @throws EventBusException Thrown if there is an error in the EventBus subscription
      */
     protected void observeDigitalTwinEventsNotifications(List<String> eventsList) throws EventBusException {
 
@@ -218,7 +220,8 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
 
     /**
      * Cancel the observation of a target list of properties
-     * @throws EventBusException
+     * @param eventsList the list of events to unobserve
+     * @throws EventBusException Thrown if there is an error in the EventBus unsubscription
      */
     protected void unObserveDigitalTwinEventsNotifications(List<String> eventsList) throws EventBusException {
 
@@ -239,8 +242,8 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
     /**
      * Enable the observation of the notification associated to a single Digital Twin State event.
      * With respect to event a notification contains the new associated value
-     * @param eventKey
-     * @throws EventBusException
+     * @param eventKey the key of the event to observe
+     * @throws EventBusException Thrown if there is an error in the EventBus subscription
      */
     protected void observeDigitalTwinEventNotification(String eventKey) throws EventBusException {
 
@@ -259,7 +262,8 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
 
     /**
      * Cancel the observation of a single target event
-     * @throws EventBusException
+     * @param eventKey the key of the event to unobserve
+     * @throws EventBusException Thrown if there is an error in the EventBus unsubscription
      */
     protected void unObserveDigitalTwinEventNotification(String eventKey) throws EventBusException {
 
@@ -282,7 +286,7 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
      * This method allows an implementation of a Digital Adapter to notify active listeners
      * when there is an issue in the binding with the Digital Asset.
      *
-     * @param errorMessage
+     * @param errorMessage the error message to be notified to the listeners
      */
     protected void notifyDigitalAdapterUnBound(String errorMessage){
         //Notify Listeners

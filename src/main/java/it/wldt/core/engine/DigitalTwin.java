@@ -556,8 +556,8 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
      * The method validates the request checking if the adapter is already in the list and if there is enough
      * thread to handle it within the thread pool
      *
-     * @param physicalAdapter
-     * @throws WldtConfigurationException
+     * @param physicalAdapter the Physical Adapter to be added
+     * @throws WldtConfigurationException if the physical adapter is invalid, already added, or the list limit is reached
      */
     public void addPhysicalAdapter(PhysicalAdapter physicalAdapter) throws WldtConfigurationException, WldtWorkerException {
 
@@ -582,7 +582,7 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
     /**
      * Clear the list of configured Physical Adapters
      *
-     * @throws WldtConfigurationException
+     * @throws WldtConfigurationException if there is an issue clearing the physical adapter list
      */
     public void clearPhysicalAdapterList() throws WldtConfigurationException{
         if(this.getPhysicalAdapterList() != null){
@@ -597,8 +597,8 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
      * The method validates the request checking if the adapter is already in the list and if there is enough
      * thread to handle it within the thread pool
      *
-     * @param digitalAdapter
-     * @throws WldtConfigurationException
+     * @param digitalAdapter the Digital Adapter to be added
+     * @throws WldtConfigurationException if the digital adapter is invalid, already added, or the list limit is reached
      */
     public void addDigitalAdapter(DigitalAdapter<?> digitalAdapter) throws WldtConfigurationException, WldtWorkerException {
 
@@ -626,7 +626,7 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
     /**
      * Clear the list of configured Digital Adapters
      *
-     * @throws WldtConfigurationException
+     * @throws WldtConfigurationException if there is an issue clearing the digital adapter list
      */
     public void clearDigitalAdapterList() throws WldtConfigurationException{
         if(this.getDigitalAdapterList() != null){
@@ -951,7 +951,7 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
 
     /**
      * Returns the Storage Manager of the current Digital Twin
-     * @return
+     * @return StorageManager instance associated with the Digital Twin.
      */
     public StorageManager getStorageManager() {
         return storageManager;

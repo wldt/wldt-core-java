@@ -67,12 +67,17 @@ If you use the WLDT Library in a Scientific Paper please use this reference:
 }
 ```
 
-TODO ... ADD DCOSS Paper
-
 ```
-@article{PICONE2025DCOSS,
-  ...
-}
+@INPROCEEDINGS{PICONE2025DCOSS,
+  author={Picone, Marco and Martinelli, Matteo and Burattini, Samuele and Giulianelli, Andrea and Ricci, Alessandro},
+  booktitle={2025 21st International Conference on Distributed Computing in Smart Systems and the Internet of Things (DCOSS-IoT)}, 
+  title={The Two Faces of Interoperability: Bridging Cyber and Physical Spaces with Digital Twins}, 
+  year={2025},
+  volume={},
+  number={},
+  pages={1-8},
+  keywords={Adaptation models;Technological innovation;Protocols;Software architecture;Soft sensors;Semantics;Smart systems;Digital twins;Interoperability;Standards;Digital Twins;Industrial Internet of Things;Cyber-Physical Systems;Interoperability},
+  doi={10.1109/DCOSS-IoT65416.2025.00078}}
 ```
 
 ## ℹ️ Disclaimer

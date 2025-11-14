@@ -11,6 +11,8 @@ The storage layer is designed for easy extension, allowing developers to create 
 
 The main module of the Storage Layer is the one associated to Storage Capabilities and it is composed by two main classes: `StorageManager` and `WldStorage` with the following characteristics and main methods:
 
+**Note**: In the WLDT storage layer, event observation within the Digital Twin is linked not only to the asynchronous reception of data, but also to the actual persistence of that data within the target storage module.
+
 - `StorageManager`: The StorageManager class is a class that represents the storage manager for a DigitalTwin.  It is responsible for managing the storage of the data related to the DigitalTwin. It is an observer of the `WldtEventBus`, and it is able to save the data in the available storages. The class extends a `DigitalTwinWorker`, in order to allow the component to work in a structure and integrated way on a different thread that the core of a DT can coordinate starting and stopping it when required. The manager allow the usage of different storage systems at the same time in order to allow the developers to memorize the information accordingly to their need in the right storage system at the same time (e.g., REDIS for quick cached information and MongDB for historical data). Main associated methods are:
     - `putStorage(WldtStorage storage)`: Add a new WldtStorage to the StorageManager
     - `getStorageIdList()`: Returns the list of id of the WldtStorage in the StorageManager

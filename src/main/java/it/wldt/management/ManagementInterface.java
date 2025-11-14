@@ -25,9 +25,9 @@ import it.wldt.log.WldtLoggerProvider;
 import java.util.List;
 
 /**
+ * ManagementInterface is an abstract class that extends DigitalTwinWorker
+ * and implements IResourceManagerObserver to manage resources in a Digital Twin environment.
  * @author Marco Picone, Ph.D. - picone.m@gmail.com
- * @project wldt-core
- * @created 30/05/2025 - 22:22
  */
 public abstract class ManagementInterface extends DigitalTwinWorker implements IResourceManagerObserver {
 
@@ -120,16 +120,19 @@ public abstract class ManagementInterface extends DigitalTwinWorker implements I
 
     /**
      * Callback when a resource is added on the Resource Manager to and the Management Interface should handle it
+     * @param resourceId the unique identifier of the added resource
      */
     abstract protected void onResourceAdded(String resourceId);
 
     /**
      * Callback when a resource has been updated on the Resource Manager and the Management Interface should handle it
+     * @param resourceId the unique identifier of the updated resource
      */
     abstract protected void onResourceUpdated(String resourceId);
 
     /**
      * Callback when a resource has been removed and the Management Interface should handle it
+     * @param resourceId the unique identifier of the removed resource
      */
     abstract protected void onResourceRemoved(String resourceId);
 
