@@ -8,6 +8,7 @@ java.sourceCompatibility = JavaVersion.VERSION_1_8
 java.targetCompatibility = JavaVersion.VERSION_1_8
 
 plugins {
+    id("com.vanniktech.maven.publish") version "0.35.0"
     `java-library`
     `maven-publish`
     signing
@@ -23,7 +24,7 @@ dependencies {
 }
 
 java {
-    withJavadocJar()
+    //withJavadocJar() // Removed to avoid double signing
     withSourcesJar()
 }
 
@@ -42,60 +43,47 @@ tasks.named<Test>("test") {
     useJUnitPlatform()
 }
 
-publishing {
-    repositories {
-        maven {
-            name = "Sonatype"
-            val releasesRepoUrl = "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
-            val snapshotsRepoUrl = "https://s01.oss.sonatype.org/content/repositories/snapshots"
-            url = uri(if (version.toString().endsWith("SNAPSHOT")) snapshotsRepoUrl else releasesRepoUrl)
-            credentials {
-                username = (properties["ossrhToken"] as String?)
-                password = (properties["ossrhTokenPassword"] as String?)
-            }
-        }
-        maven {
-            name = "Local"
-            val releasesRepoUrl = layout.buildDirectory.dir("repos/releases")
-            val snapshotsRepoUrl = layout.buildDirectory.dir("repos/snapshots")
-            url = uri(if (version.toString().endsWith("SNAPSHOT")) snapshotsRepoUrl else releasesRepoUrl)
-        }
-    }
-    publications.create<MavenPublication>("WLDTRelease") {
-        from(components["java"])
+// ✅ FIX ESATTO PER GRADLE 9.2.1 + vanniktech.maven.publish 0.35.0
+afterEvaluate {
+    val plainJavadocJarTask = tasks.findByName("plainJavadocJar")
+    val metadataTask = tasks.findByName("generateMetadataFileForMavenPublication")
 
-        pom {
-            name = "WLDT Core"
-            url = "https://wldt.github.io/"
-            description = project.description;
-            licenses {
-                license {
-                    name = "Apache-2.0 license"
-                    url = "https://raw.githubusercontent.com/wldt/wldt-core-java/master/LICENSE"
-                }
-            }
-
-            developers {
-                developer {
-                    id = "piconem"
-                    name = "Marco Picone"
-                    email = "picone.m@gmail.com"
-                }
-                developer {
-                    id = "samubura"
-                    name = "Samuele Burattini"
-                    email = "samuele.burattini@unibo.it"
-                }
-            }
-
-            scm {
-                connection = "scm:git:https://github.com/wldt/wldt-core-java.git"
-                url = "https://github.com/wldt/wldt-core-java"
-            }
-        }
+    if (plainJavadocJarTask != null && metadataTask != null) {
+        metadataTask.dependsOn(plainJavadocJarTask)
     }
 }
 
-signing {
-    sign(publishing.publications["WLDTRelease"])
+mavenPublishing {
+    coordinates(group.toString(), name.toString(), version.toString())
+
+    pom {
+        name.set("WLDT Core")
+        description.set("The WLDT Core Java Module to build Digital Twins")
+        inceptionYear.set("2025")
+        url.set("https://github.com/wldt/wldt-core-java")
+        licenses {
+            license {
+                name.set("WLDT License")
+                url.set("https://github.com/wldt/wldt-core-java/blob/main/LICENSE")
+                distribution.set("https://github.com/wldt/wldt-core-java/blob/main/LICENSE")
+            }
+        }
+        developers {
+            developer {
+                id.set("piconem")
+                name.set("Marco Picone")
+                url.set("https://github.com/piconem")
+            }
+            developer {
+                id.set("samubura")
+                name.set("Samuele Burattini")
+                url.set("https://github.com/samubura")
+            }
+        }
+        scm {
+            url.set("https://github.com/wldt/wldt-core-java")
+            connection.set("scm:git:git://github.com/wldt/wldt-core-java.git")
+            developerConnection.set("scm:git:ssh://git@github.com/wldt/wldt-core-java.git")
+        }
+    }
 }

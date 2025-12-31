@@ -1,0 +1,58 @@
+# Name of the workflow visible in the Actions tab
+name: Publish Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # Triggers ONLY on push of semver tags (v0.1.3, v1.0.0, etc.)
+
+permissions:
+  contents: write  # Allows creating/modifying releases and tags in the repo
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest  # Free Linux VM, optimal for Gradle/Java
+
+    steps:
+      # STEP 1: Clone the full repository
+      - name: Checkout
+        uses: actions/checkout@v4  # Official GitHub checkout action
+        with:
+          fetch-depth: 0  # Fetches FULL Git history (required for changelog)
+
+      # STEP 2: Install Java 25 (builds Java 8 compatible bytecode)
+      - name: Setup Java
+        uses: actions/setup-java@v4  # Official JDK setup action
+        with:
+          distribution: 'temurin'  # Adoptium Temurin (open source, stable)
+          java-version: '25'  # Modern Java for faster builds
+
+      # STEP 3: Setup Gradle with intelligent caching
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4  # Official Gradle action
+        # Auto-caches: ~/.gradle, dependencies, wrapper → reduces time from 10min to 1-2min
+
+      # STEP 4: Extract version from tag and pass to Gradle
+      - name: Set version from tag
+        run: echo "ORG_GRADLE_PROJECT_VERSION_NAME=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+        # Example: refs/tags/v0.1.3 → 0.1.3
+        # Temporary override of 'version' in build.gradle.kts
+
+      # STEP 5: Build → Test → Javadoc → Signing → Upload → Auto-Release to Maven Central
+      - name: Publish to Maven Central
+        run: ./gradlew publishToMavenCentral --no-configuration-cache -Psign=true
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.SONATYPE_NEXUS_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.SONATYPE_NEXUS_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_PRIVATE_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.SIGNING_KEY_ID }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
+
+      # STEP 6: Create automatic GitHub Release with changelog
+      #- name: Create GitHub Release
+      #  uses: softprops/action-gh-release@v2  # Popular release action
+      #  if: runner.os != 'Windows'  # Skip on Windows (known bugs)
+      #  with:
+      #    generate_release_notes: true  # Analyzes commits → auto changelog
+      #  env:
+      #    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Auto-generated GitHub token
