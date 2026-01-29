@@ -21,7 +21,8 @@ The main module of the Storage Layer is the one associated to Storage Capabiliti
     - `removeStorage(String storageId)`: Remove an existing WldtStorage by id from the StorageManager
 - `WldtStorage`: Defines an abstract class allowing the Digital Twin developer to implement its internal storage system for the Digital Twin instance.
     - The class defines methods for the management of:
-        - Digital Twin State storage and retrieval with the associated change list;
+        * Digital Twin State storage and retrieval with the associated change list;
+        * Digital Twin State Event Notification list;
         * Generated State Digital Events;
         * Life Cycle State storage and retrieval;
         * Physical Asset Description storage and retrieval;
@@ -192,17 +193,55 @@ The main classes associated to the Query System are the following:
     - SAMPLE_RANGE
     - LAST_VALUE
     - COUNT
-- `QueryResourceType`: This Enum represents the Query Resource Type used to specify the type of resource to be queried  on the storage system supporting the following resource types mapping those available and managed by the storage manager:
+- `QueryResourceType`: This Enum represents the Query Resource Type used to specify the type of resource to be queried  on the storage system supporting the following resource types mapping those available and managed by the storage manager (and the supported and associated RequestType):
     - PHYSICAL_ASSET_PROPERTY_VARIATION
+        - TIME_RANGE
+        - SAMPLE_RANGE
+        - COUNT
     - PHYSICAL_ASSET_EVENT_NOTIFICATION
+        - TIME_RANGE
+        - SAMPLE_RANGE
+        - COUNT
     - PHYSICAL_ACTION_REQUEST
+        - TIME_RANGE
+        - SAMPLE_RANGE
+        - COUNT
     - DIGITAL_ACTION_REQUEST
+        - TIME_RANGE
+        - SAMPLE_RANGE
+        - COUNT
     - DIGITAL_TWIN_STATE
+        - TIME_RANGE
+        - SAMPLE_RANGE
+        - COUNT
+        - LAST_VALUE
+    - DIGITAL_TWIN_STATE_EVENT_NOTIFICATION
+        - TIME_RANGE
+        - SAMPLE_RANGE
+        - COUNT
     - NEW_PAD_NOTIFICATION
+        - TIME_RANGE
+        - SAMPLE_RANGE
+        - COUNT
     - UPDATED_PAD_NOTIFICATION
+        - TIME_RANGE
+        - SAMPLE_RANGE
+        - COUNT
     - PHYSICAL_RELATIONSHIP_INSTANCE_CREATED_NOTIFICATION
+        - TIME_RANGE
+        - SAMPLE_RANGE
+        - COUNT
     - PHYSICAL_RELATIONSHIP_INSTANCE_DELETED_NOTIFICATION
+        - TIME_RANGE
+        - SAMPLE_RANGE
+        - COUNT
     - LIFE_CYCLE_EVENT
+        - TIME_RANGE
+        - SAMPLE_RANGE
+        - COUNT
+        - LAST_VALUE
+    - STORAGE_STATS
+        - LAST_VALUE
 - `QueryExecutor`: This class represents the Query Executor used to execute queries on the storage system supporting both synchronous and asynchronous query execution. Internally is implemented through an event-based mechanism to handle the query request and response
 - `QueryResult`: This class represents the Query Result returned by the Query Executor containing the query results and the query status (successful or not) and error message (if any) together with also the original request
 - `IQueryResultListener`: This interface represents the Query Result Listener used to receive the query results

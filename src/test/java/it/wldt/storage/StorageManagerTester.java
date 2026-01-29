@@ -338,4 +338,30 @@ public class StorageManagerTester {
         assertEquals(10, storageStats.getPhysicalAssetPropertyVariationStats().getRecordCount());;
     }
 
+    @Test
+    @Order(7)
+    public void testDigitalTwinStateNotifications() throws WldtConfigurationException, EventBusException, ModelException, InterruptedException, WldtRuntimeException, StorageException {
+
+        //Set EventBus Logger
+        WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
+
+        //Wait until all the messages have been received
+        Thread.sleep((DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS + ((DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES + DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_EVENT_UPDATES) * DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS)));
+
+        Thread.sleep(5000);
+
+        DefaultWldtStorage defaultWldtStorage = null;
+
+        if(digitalTwin.getStorageManager().getStorage(DEFAULT_STORAGE_ID) instanceof DefaultWldtStorage)
+            defaultWldtStorage = (DefaultWldtStorage) digitalTwin.getStorageManager().getStorage(DEFAULT_STORAGE_ID);
+
+        // Check if the Default Storage has been correctly initialized
+        assertNotNull(defaultWldtStorage);
+
+        // Check the number of received DT State Update Events
+        assertEquals(TestPhysicalAdapter.TARGET_PHYSICAL_ASSET_EVENT_UPDATES, defaultWldtStorage.getDigitalTwinStateEventNotificationCount());
+
+        Thread.sleep(2000);
+    }
+
 }

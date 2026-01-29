@@ -23,6 +23,7 @@ import it.wldt.storage.model.StorageStats;
 import it.wldt.storage.model.digital.DigitalActionRequestRecord;
 import it.wldt.storage.model.lifecycle.LifeCycleVariationRecord;
 import it.wldt.storage.model.physical.*;
+import it.wldt.storage.model.state.DigitalTwinStateEventNotificationRecord;
 import it.wldt.storage.model.state.DigitalTwinStateRecord;
 import it.wldt.storage.query.*;
 import org.junit.jupiter.api.*;
@@ -1274,4 +1275,100 @@ public class StorageQueryTester {
         assertTrue(resultList.stream().allMatch(item -> item instanceof StorageStats));
 
     }
+
+    @Test
+    @Order(17)
+    public void testSyncStateEventNotificationRangeQueries() throws WldtConfigurationException, EventBusException, ModelException, InterruptedException, WldtRuntimeException, StorageException {
+
+        //Set EventBus Logger
+        WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
+
+        //Wait until all the messages have been received
+        Thread.sleep((DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS + ((DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES + DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_EVENT_UPDATES) * DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS)));
+
+        Thread.sleep(5000);
+
+        // Save Final experiment time
+        long endTimeStamp = System.currentTimeMillis();
+
+        QueryExecutor queryExecutor = new QueryExecutor(TEST_DIGITAL_TWIN_ID, "query-executor");
+
+        /////////////////// Query in Time Range //////////////////////
+
+        // Create Query Request to the Storage Manager for the Last Digital Twin State
+        QueryRequest queryRequest = new QueryRequest();
+        queryRequest.setResourceType(QueryResourceType.DIGITAL_TWIN_STATE_EVENT_NOTIFICATION);
+        queryRequest.setRequestType(QueryRequestType.TIME_RANGE);
+        queryRequest.setStartTimestampMs(startTimeStamp);
+        queryRequest.setEndTimestampMs(endTimeStamp);
+
+        // Send the Query Request to the Storage Manager for the target DT
+        QueryResult<?> queryResult = queryExecutor.syncQueryExecute(queryRequest);
+
+        assertNotNull(queryResult);
+        assertEquals(queryResult.getOriginalRequest().getRequestType(), QueryRequestType.TIME_RANGE);
+        assertEquals(queryResult.getOriginalRequest().getResourceType(), QueryResourceType.DIGITAL_TWIN_STATE_EVENT_NOTIFICATION);
+
+        List<?> resultList =  queryResult.getResults();
+
+        // Check the result list is not null and contains only DigitalTwinStateEventNotificationRecord
+        assertTrue(resultList != null && !resultList.isEmpty());
+        assertTrue(resultList.stream().allMatch(item -> item instanceof DigitalTwinStateEventNotificationRecord));
+
+        // we have 10 Energy Updates, 4 Relationship Instance changes + 1 Initial State Update
+        int targetStateUpdates = TestPhysicalAdapter.TARGET_PHYSICAL_ASSET_EVENT_UPDATES;
+        assertEquals(targetStateUpdates, resultList.size());
+
+        ///////////////// Query in Sample Range //////////////////////
+
+        // Query to get the number of collectes samples
+        queryRequest = new QueryRequest();
+        queryRequest.setResourceType(QueryResourceType.DIGITAL_TWIN_STATE_EVENT_NOTIFICATION);
+        queryRequest.setRequestType(QueryRequestType.COUNT);
+
+        // Send the Query Request to the Storage Manager for the target DT
+        queryResult = queryExecutor.syncQueryExecute(queryRequest);
+
+        // Extract the number of collected samples
+        resultList =  queryResult.getResults();
+
+        assertNotNull(queryResult);
+        assertEquals(queryResult.getOriginalRequest().getRequestType(), QueryRequestType.COUNT);
+        assertEquals(queryResult.getOriginalRequest().getResourceType(), QueryResourceType.DIGITAL_TWIN_STATE_EVENT_NOTIFICATION);
+
+        // Check the result list is not null and contains only Integer
+        assertTrue(resultList != null && !resultList.isEmpty());
+        assertTrue(resultList.stream().allMatch(item -> item instanceof Integer));
+
+        // Get the State Count from the Query Result
+        int availableStateCount = (int)resultList.get(0);
+
+        // Check the number of collected samples
+        assertEquals(targetStateUpdates, availableStateCount);
+
+        // Create Query Request to the Storage Manager for the Last Digital Twin State
+        queryRequest = new QueryRequest();
+        queryRequest.setResourceType(QueryResourceType.DIGITAL_TWIN_STATE_EVENT_NOTIFICATION);
+        queryRequest.setRequestType(QueryRequestType.SAMPLE_RANGE);
+        queryRequest.setStartIndex(0);
+        queryRequest.setEndIndex(availableStateCount-1);
+
+        // Send the Query Request to the Storage Manager for the target DT
+        queryResult = queryExecutor.syncQueryExecute(queryRequest);
+
+        assertNotNull(queryResult);
+        assertEquals(queryResult.getOriginalRequest().getRequestType(), QueryRequestType.SAMPLE_RANGE);
+        assertEquals(queryResult.getOriginalRequest().getResourceType(), QueryResourceType.DIGITAL_TWIN_STATE_EVENT_NOTIFICATION);
+
+        resultList =  queryResult.getResults();
+
+        // Check the result list is not null and contains only DigitalTwinStateEventNotificationRecord
+        assertTrue(resultList != null && !resultList.isEmpty());
+        assertTrue(resultList.stream().allMatch(item -> item instanceof DigitalTwinStateEventNotificationRecord));
+
+        // we have 10 Energy Updates, 4 Relationship Instance changes
+        assertEquals(targetStateUpdates, resultList.size());
+
+    }
+
 }

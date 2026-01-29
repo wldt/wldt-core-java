@@ -79,6 +79,8 @@ public class QueryManager {
                 // Digital Twin State Query Request
                 if(queryRequest.getResourceType().equals(QueryResourceType.DIGITAL_TWIN_STATE))
                     return handleStateQuery(queryRequest, storageOptional.get());
+                else if(queryRequest.getResourceType().equals(QueryResourceType.DIGITAL_TWIN_STATE_EVENT_NOTIFICATION))
+                    return handleStateEventNotificationQuery(queryRequest, storageOptional.get());
                 else if(queryRequest.getResourceType().equals(QueryResourceType.PHYSICAL_ASSET_PROPERTY_VARIATION))
                     return handlePhysicalAssetPropertyVariationQuery(queryRequest, storageOptional.get());
                 else if(queryRequest.getResourceType().equals(QueryResourceType.PHYSICAL_ASSET_EVENT_NOTIFICATION))
@@ -218,6 +220,18 @@ public class QueryManager {
      * @throws StorageException Storage Exception
      */
     public QueryResult<?> handleStateQuery(QueryRequest queryRequest, WldtStorage storage) throws StorageException{
+        return new QueryResult<>(queryRequest, false, "Query not supported by the current implementation !");
+    }
+
+    /**
+     * Handle Digital Twin State Event Notification Query Request
+     *
+     * @param queryRequest Query Request Object
+     * @param storage      Storage Object to be used for the query management
+     * @return Query Result Object containing the query result
+     * @throws StorageException Storage Exception
+     */
+    public QueryResult<?> handleStateEventNotificationQuery(QueryRequest queryRequest, WldtStorage storage) throws StorageException{
         return new QueryResult<>(queryRequest, false, "Query not supported by the current implementation !");
     }
 

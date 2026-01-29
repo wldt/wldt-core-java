@@ -47,6 +47,7 @@ import java.util.Optional;
  * The class defines methods for the management of:
  *      - Digital Twin State storage and retrieval with the associated change list;
  *      - Generated State Digital Events;
+ *      - Generated State Event Notifications
  *      - Life Cycle State storage and retrieval;
  *      - Physical Asset Description storage and retrieval;
  *      - Physical Asset Property Variation storage and retrieval;

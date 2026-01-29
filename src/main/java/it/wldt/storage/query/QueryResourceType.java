@@ -34,6 +34,7 @@ public enum QueryResourceType {
     PHYSICAL_ACTION_REQUEST("storage_physical_action_request"),
     DIGITAL_ACTION_REQUEST("storage_digital_action_request"),
     DIGITAL_TWIN_STATE("storage_dt_state"),
+    DIGITAL_TWIN_STATE_EVENT_NOTIFICATION("storage_dt_state_event_notification"),
     NEW_PAD_NOTIFICATION("storage_new_pad_notification"),
     UPDATED_PAD_NOTIFICATION("storage_updated_pad_notification"),
     PHYSICAL_RELATIONSHIP_INSTANCE_CREATED_NOTIFICATION("storage_physical_relationship_instance_created_notification"),

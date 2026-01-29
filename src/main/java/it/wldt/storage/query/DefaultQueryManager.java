@@ -22,6 +22,7 @@ package it.wldt.storage.query;
 
 import it.wldt.exception.StorageException;
 import it.wldt.storage.WldtStorage;
+import it.wldt.storage.model.state.DigitalTwinStateEventNotificationRecord;
 import it.wldt.storage.model.state.DigitalTwinStateRecord;
 import java.util.Collections;
 import java.util.List;
@@ -638,6 +639,64 @@ public class DefaultQueryManager extends QueryManager{
 
             } else
                 return new QueryResult<>(queryRequest, false, "Invalid Digital Twin State Query Request Type !");
+
+        }catch (Exception e){
+            return new QueryResult<>(queryRequest, false, e.getMessage());
+        }
+    }
+
+    /**
+     * Handle Digital Twin State Event Notification Query Request
+     *
+     * @param queryRequest Query Request Object
+     * @param storage      Storage Object to be used for the query management
+     * @return Query Result Object containing the query result
+     * @throws StorageException Storage Exception
+     */
+    @Override
+    public QueryResult<?> handleStateEventNotificationQuery(QueryRequest queryRequest, WldtStorage storage) throws StorageException {
+        try{
+
+            if(queryRequest.getRequestType().equals(QueryRequestType.TIME_RANGE)){
+
+                // Get the Digital Twin State in the Time Range
+                List<DigitalTwinStateEventNotificationRecord> result = storage.getDigitalTwinStateEventNotificationInTimeRange(
+                        queryRequest.getStartTimestampMs(),
+                        queryRequest.getEndTimestampMs());
+
+                // Return the Query Result
+                return new QueryResult<>(queryRequest,
+                        true,
+                        null,
+                        result,
+                        result.size());
+            } else if (queryRequest.getRequestType().equals(QueryRequestType.SAMPLE_RANGE)){
+
+                // Get the Digital Twin State in the Sample Range
+                List<DigitalTwinStateEventNotificationRecord> result = storage.getDigitalTwinStateEventNotificationInRange(
+                        queryRequest.getStartIndex(),
+                        queryRequest.getEndIndex());
+
+                // Return the Query Result
+                return new QueryResult<>(queryRequest,
+                        true,
+                        null,
+                        result,
+                        result.size());
+            } else if (queryRequest.getRequestType().equals(QueryRequestType.COUNT)){
+
+                // Get the Digital Twin State Count
+                int result = storage.getDigitalTwinStateEventNotificationCount();
+
+                // Return the Query Result
+                return new QueryResult<>(queryRequest,
+                        true,
+                        null,
+                        Collections.singletonList(result),
+                        1);
+
+            } else
+                return new QueryResult<>(queryRequest, false, "Invalid Digital Twin State Event Notification Query Request Type !");
 
         }catch (Exception e){
             return new QueryResult<>(queryRequest, false, e.getMessage());

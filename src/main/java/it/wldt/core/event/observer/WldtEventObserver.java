@@ -173,7 +173,6 @@ public class WldtEventObserver implements WldtEventListener {
         unObserveEventsWithFilter(this.dtStateEventFilter);
     }
 
-
     /**
      * Trigger the observation of Physical Assets events generated from the active Physical Adapters
      * @throws EventBusException

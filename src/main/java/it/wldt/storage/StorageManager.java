@@ -79,7 +79,11 @@ public class StorageManager extends DigitalTwinWorker implements IWldtEventObser
      * Default constructor for the StorageManager class
      */
     public StorageManager(String digitalTwinId){
+
+        // Digital Twin Id
         this.digitalTwinId = digitalTwinId;
+
+        // New Storage Map to save WldtStorage to be handled by the manager
         this.storageMap = new HashMap<>();
 
         // Set the Default Query Manager (can be updated through the setQueryManager method)
