@@ -359,6 +359,7 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
                     this.currentLifeCycleState);
         }
 
+        // Notify all Listeners
         for(LifeCycleListener listener : this.lifeCycleListenerList)
             listener.onCreate();
     }
@@ -379,6 +380,7 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
                     this.currentLifeCycleState);
         }
 
+        // Notify all Listeners
         for(LifeCycleListener listener : this.lifeCycleListenerList)
             listener.onStart();
     }
@@ -398,6 +400,7 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
                     this.currentLifeCycleState);
         }
 
+        // Notify all Listeners
         for(LifeCycleListener listener : this.lifeCycleListenerList)
             listener.onDigitalTwinBound(this.physicalAdaptersPhysicalAssetDescriptionMap);
     }
@@ -418,6 +421,7 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
                     this.currentLifeCycleState);
         }
 
+        // Notify all Listeners
         for(LifeCycleListener listener : this.lifeCycleListenerList)
             listener.onDigitalTwinUnBound(this.physicalAdaptersPhysicalAssetDescriptionMap, errorMessage);
     }
@@ -429,6 +433,7 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
      * @param physicalAssetDescription The description of the associated physical asset.
      */
     private void notifyLifeCycleOnPhysicalAdapterBound(String adapterId, PhysicalAssetDescription physicalAssetDescription){
+        // Notify all Listeners
         for(LifeCycleListener listener : this.lifeCycleListenerList)
             listener.onPhysicalAdapterBound(adapterId, physicalAssetDescription);
     }
@@ -440,6 +445,7 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
      * @param physicalAssetDescription The updated description of the associated physical asset.
      */
     private void notifyLifeCycleOnPhysicalAdapterBindingUpdate(String adapterId, PhysicalAssetDescription physicalAssetDescription){
+        // Notify all Listeners
         for(LifeCycleListener listener : this.lifeCycleListenerList)
             listener.onPhysicalAdapterBindingUpdate(adapterId, physicalAssetDescription);
     }
@@ -452,6 +458,7 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
      * @param errorMessage            The error message associated with the unbound event.
      */
     private void notifyLifeCycleOnPhysicalAdapterUnBound(String adapterId, PhysicalAssetDescription physicalAssetDescription, String errorMessage){
+        // Notify all Listeners
         for(LifeCycleListener listener : this.lifeCycleListenerList)
             listener.onPhysicalAdapterUnBound(adapterId, physicalAssetDescription, errorMessage);
     }
@@ -462,6 +469,7 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
      * @param adapterId The ID of the bound digital adapter.
      */
     private void notifyLifeCycleOnDigitalAdapterBound(String adapterId){
+        // Notify all Listeners
         for(LifeCycleListener listener : this.lifeCycleListenerList)
             listener.onDigitalAdapterBound(adapterId);
     }
@@ -474,6 +482,7 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
      * @param errorMessage The error message associated with the unbound event.
      */
     private void notifyLifeCycleOnDigitalAdapterUnBound(String adapterId, String errorMessage){
+        // Notify all Listeners
         for(LifeCycleListener listener : this.lifeCycleListenerList)
             listener.onDigitalAdapterUnBound(adapterId, errorMessage);
     }
@@ -494,6 +503,7 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
                     this.currentLifeCycleState);
         }
 
+        // Notify all Listeners
         for(LifeCycleListener listener : this.lifeCycleListenerList)
             listener.onSync(digitalTwinState);
     }
@@ -514,6 +524,7 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
                     this.currentLifeCycleState);
         }
 
+        // Notify all Listeners
         for(LifeCycleListener listener : this.lifeCycleListenerList)
             listener.onUnSync(digitalTwinState);
     }
@@ -532,6 +543,7 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
                     this.currentLifeCycleState);
         }
 
+        // Notify all Listeners
         for(LifeCycleListener listener : this.lifeCycleListenerList)
             listener.onStop();
     }
@@ -550,6 +562,7 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
                     this.currentLifeCycleState);
         }
 
+        // Notify all Listeners
         for(LifeCycleListener listener : this.lifeCycleListenerList)
             listener.onDestroy();
     }
@@ -573,6 +586,9 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
             physicalAdapter.setPhysicalAdapterListener(this);
             this.getPhysicalAdapterList().add(physicalAdapter);
 
+            //Save the Physical Adapter as Digital Twin Life Cycle Listener to be notified about Life Cycle Changes
+            addLifeCycleListener(physicalAdapter);
+
             //Save BoundStatus to False. It will be changed through a call back by the adapter
             this.physicalAdaptersBoundStatusMap.put(physicalAdapter.getId(), false);
 
@@ -588,7 +604,13 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
      * @throws WldtConfigurationException if there is an issue clearing the physical adapter list
      */
     public void clearPhysicalAdapterList() throws WldtConfigurationException{
+
         if(this.getPhysicalAdapterList() != null){
+
+            // Before deleting the Physical Adapters remove them from the Life Cycle Listeners
+            for(PhysicalAdapter physicalAdapter : this.getPhysicalAdapterList())
+                removeLifeCycleListener(physicalAdapter);
+
             this.getPhysicalAdapterList().clear();
         }
         else
@@ -634,6 +656,7 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
     public void clearDigitalAdapterList() throws WldtConfigurationException{
         if(this.getDigitalAdapterList() != null){
 
+            // Before deleting the Digital Adapters remove them from the Life Cycle Listeners
             for(DigitalAdapter<?> digitalAdapter : this.getDigitalAdapterList())
                 removeLifeCycleListener(digitalAdapter);
 

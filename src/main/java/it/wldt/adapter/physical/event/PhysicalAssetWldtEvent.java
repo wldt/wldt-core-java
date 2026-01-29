@@ -35,16 +35,46 @@ import java.util.Map;
  * a Physical Adapter
  */
 public abstract class PhysicalAssetWldtEvent<T> extends WldtEvent<T> {
+
+    /**
+     * The identifier of the physical adapter that detected/produced the event.
+     * This field is not set in the constructor, but can be set later to associate the event with its source adapter.
+     * Is will be set by the Physical Adapter when publishing the event.
+     **/
+    private String physicalAdapterId;
+
+    /**
+     * Constructor of the PhysicalAssetWldtEvent<T> containing only the type of the event
+     * and calling the super constructor of WldtEvent.
+     * @param type
+     * @throws EventBusException
+     */
     public PhysicalAssetWldtEvent(String type) throws EventBusException {
         super(type);
         adaptEventType();
     }
 
+    /**
+     * Constructor of the PhysicalAssetWldtEvent<T> containing the type of the event and the body of the event
+     * and calling the super constructor of WldtEvent.
+     * @param type Type of the event
+     * @param body Body of the event
+     * @throws EventBusException Thrown if there is an error in the event bus
+     */
     public PhysicalAssetWldtEvent(String type, T body) throws EventBusException {
         super(type, body);
         adaptEventType();
     }
 
+    /**
+     * Constructor of the PhysicalAssetWldtEvent<T> containing the type of the event,
+     * the body of the event and the metadata of the event
+     * and calling the super constructor of WldtEvent.
+     * @param type Type of the event
+     * @param body Body of the event
+     * @param metadata Metadata of the event
+     * @throws EventBusException Thrown if there is an error in the event bus
+     */
     public PhysicalAssetWldtEvent(String type, T body, Map<String, Object> metadata) throws EventBusException {
         super(type, body, metadata);
         adaptEventType();
@@ -64,5 +94,19 @@ public abstract class PhysicalAssetWldtEvent<T> extends WldtEvent<T> {
             return null;
     }
 
+    /**
+     * Returns the identifier of the physical adapter that detected/produced the event.
+     * @return The identifier of the physical adapter that detected/produced the event.
+     */
+    public String getPhysicalAdapterId() {
+        return physicalAdapterId;
+    }
 
+    /**
+     * Sets the identifier of the physical adapter that detected/produced the event.
+     * @param physicalAdapterId The identifier of the physical adapter that detected/produced the event.
+     */
+    public void setPhysicalAdapterId(String physicalAdapterId) {
+        this.physicalAdapterId = physicalAdapterId;
+    }
 }

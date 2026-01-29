@@ -23,9 +23,9 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.jupiter.api.Assertions.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class AdaptersTester {
+public class AdaptersTest {
 
-    private static final WldtLogger logger = WldtLoggerProvider.getLogger(AdaptersTester.class);
+    private static final WldtLogger logger = WldtLoggerProvider.getLogger(AdaptersTest.class);
 
     public final String DIGITAL_TWIN_ID = "dt00001";
 
@@ -43,6 +43,8 @@ public class AdaptersTester {
 
     private static List<DigitalTwinState> receivedDigitalTwinStateUpdateList = null;
 
+    private static List<String> receivedLifeCycleUpdateList = null;
+
     private static TestDigitalAdapter testDigitalAdapter;
 
     private static TestPhysicalAdapter testPhysicalAdapter;
@@ -58,6 +60,7 @@ public class AdaptersTester {
         receivedPhysicalSwitchEventMessageList = new ArrayList<>();
         receivedEventNotificationList = new ArrayList<>();
         receivedDigitalTwinStateUpdateList = new ArrayList<>();
+        receivedLifeCycleUpdateList = new ArrayList<>();
 
         //Our target is to received two event changes associated to switch changes
         actionLock = new CountDownLatch(2);
@@ -74,6 +77,7 @@ public class AdaptersTester {
         receivedPhysicalSwitchEventMessageList = null;
         receivedEventNotificationList = null;
         receivedDigitalTwinStateUpdateList = null;
+        receivedLifeCycleUpdateList = null;
 
         actionLock = null;
         wldtEventsLock = null;
@@ -86,7 +90,10 @@ public class AdaptersTester {
     private void buildWldtEngine(boolean physicalTelemetryOn) throws WldtConfigurationException, ModelException, WldtRuntimeException, EventBusException, WldtWorkerException, WldtDigitalTwinStateException {
 
         //Create Physical Adapter
-        testPhysicalAdapter = new TestPhysicalAdapter("dummy-physical-adapter", new TestPhysicalAdapterConfiguration(), physicalTelemetryOn);
+        testPhysicalAdapter = new TestPhysicalAdapter("dummy-physical-adapter",
+                new TestPhysicalAdapterConfiguration(),
+                physicalTelemetryOn,
+                receivedLifeCycleUpdateList);
 
         //Create Digital Adapter
         testDigitalAdapter = new TestDigitalAdapter("dummy-digital-adapter", new TestDigitalAdapterConfiguration(),
@@ -129,6 +136,15 @@ public class AdaptersTester {
 
         //Check if Digital Twin State Events Notifications have been correctly received by the Digital Adapter after passing through the Shadowing Function
         assertEquals(TestPhysicalAdapter.TARGET_PHYSICAL_ASSET_EVENT_UPDATES, receivedEventNotificationList.size());
+
+        // Test that each received event has the correct associated physical adapter ID
+        for(PhysicalAssetPropertyWldtEvent<?> event : receivedPhysicalTelemetryEventMessageList)
+            assertEquals(testPhysicalAdapter.getId(), event.getPhysicalAdapterId());
+
+        Thread.sleep(2000);
+
+        // Test received LifeCycle updates on the Physical Adapter
+        assertNotNull(receivedLifeCycleUpdateList);
 
         Thread.sleep(2000);
 

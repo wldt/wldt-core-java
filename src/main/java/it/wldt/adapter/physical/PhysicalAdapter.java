@@ -20,8 +20,10 @@
  */
 package it.wldt.adapter.physical;
 
+import it.wldt.core.engine.LifeCycleListener;
 import it.wldt.core.event.*;
 import it.wldt.core.engine.DigitalTwinWorker;
+import it.wldt.core.state.DigitalTwinState;
 import it.wldt.exception.EventBusException;
 import it.wldt.exception.PhysicalAdapterException;
 import it.wldt.exception.WldtRuntimeException;
@@ -29,6 +31,7 @@ import it.wldt.adapter.physical.event.*;
 import it.wldt.log.WldtLogger;
 import it.wldt.log.WldtLoggerProvider;
 
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -47,22 +50,34 @@ import java.util.Objects;
  * same time on the Digital Twin with the aim to handle different interaction with the physical layer according to the
  * nature of the twin and the associated physical device.
  */
-public abstract class PhysicalAdapter extends DigitalTwinWorker implements WldtEventListener {
+public abstract class PhysicalAdapter extends DigitalTwinWorker implements WldtEventListener, LifeCycleListener {
 
+    /** Logger */
     private static final WldtLogger logger = WldtLoggerProvider.getLogger(ConfigurablePhysicalAdapter.class);
 
+    /** Physical Adapter Identifier */
     private String id;
 
+    /** Event Filter used to handle Physical Action Events */
     private WldtEventFilter physicalActionEventsFilter;
 
+    /** Physical Adapter Listener used to notify binding/unbinding and update events */
     private PhysicalAdapterListener physicalAdapterListener;
 
+    /** Physical Asset Description handled by the Physical Adapter */
     private PhysicalAssetDescription adapterPhysicalAssetDescription;
 
+    /**
+     * Default private constructor.
+     */
     private PhysicalAdapter(){
 
     }
 
+    /**
+     * Public constructor allowing to set the Physical Adapter Identifier and initialize the Physical Adapter instance.
+     * @param id Physical Adapter Identifier
+     */
     public PhysicalAdapter(String id) {
         super();
         this.id = id;
@@ -120,18 +135,26 @@ public abstract class PhysicalAdapter extends DigitalTwinWorker implements WldtE
     public abstract void onAdapterStop();
 
     protected void publishPhysicalAssetPropertyWldtEvent(PhysicalAssetPropertyWldtEvent<?> targetPhysicalPropertyEventMessage) throws EventBusException {
+        // Before publishing the event, set the physical adapter id
+        targetPhysicalPropertyEventMessage.setPhysicalAdapterId(this.id);
         WldtEventBus.getInstance().publishEvent(this.digitalTwinId, getId(), targetPhysicalPropertyEventMessage);
     }
 
     protected void publishPhysicalAssetEventWldtEvent(PhysicalAssetEventWldtEvent<?> targetPhysicalAssetEventWldtEvent) throws EventBusException {
+        // Before publishing the event, set the physical adapter id
+        targetPhysicalAssetEventWldtEvent.setPhysicalAdapterId(this.id);
         WldtEventBus.getInstance().publishEvent(this.digitalTwinId, getId(), targetPhysicalAssetEventWldtEvent);
     }
 
     protected void publishPhysicalAssetRelationshipCreatedWldtEvent(PhysicalAssetRelationshipInstanceCreatedWldtEvent<?> targetPhysicalAssetRelationshipWldtEvent) throws EventBusException {
+        // Before publishing the event, set the physical adapter id
+        targetPhysicalAssetRelationshipWldtEvent.setPhysicalAdapterId(this.id);
         WldtEventBus.getInstance().publishEvent(this.digitalTwinId, getId(), targetPhysicalAssetRelationshipWldtEvent);
     }
 
     protected void publishPhysicalAssetRelationshipDeletedWldtEvent(PhysicalAssetRelationshipInstanceDeletedWldtEvent<?> targetPhysicalAssetRelationshipWldtEvent) throws EventBusException {
+        // Before publishing the event, set the physical adapter id
+        targetPhysicalAssetRelationshipWldtEvent.setPhysicalAdapterId(this.id);
         WldtEventBus.getInstance().publishEvent(this.digitalTwinId, getId(), targetPhysicalAssetRelationshipWldtEvent);
     }
 
@@ -141,11 +164,12 @@ public abstract class PhysicalAdapter extends DigitalTwinWorker implements WldtE
 
     /**
      * This method allows an implementation of a PhysicalAdapter to update the representation
-     * of the PhysicalAssetState and to notify the DigitalTwin that the PhysicalAssetDescription is changed and should be potentially handled by other modules and core components.
+     * of the PhysicalAssetState and to notify the DigitalTwin that the PhysicalAssetDescription
+     * is changed and should be potentially handled by other modules and core components.
      *
-     * @param physicalAssetDescription
-     * @throws PhysicalAdapterException
-     * @throws EventBusException
+     * @param physicalAssetDescription Physical Asset Description to be updated
+     * @throws PhysicalAdapterException Exception thrown if there is an error in the Physical Adapter
+     * @throws EventBusException Exception thrown if there is an error in the Event Bus
      */
     protected void notifyPhysicalAssetBindingUpdate(PhysicalAssetDescription physicalAssetDescription) throws PhysicalAdapterException, EventBusException {
 
@@ -294,5 +318,98 @@ public abstract class PhysicalAdapter extends DigitalTwinWorker implements WldtE
     @Override
     public int hashCode() {
         return Objects.hash(id);
+    }
+
+    //////////////////////// DT Life Cycle Callback methods ////////////////////////////////////////////////////////
+
+    /**
+     * Callback method invoked when the Digital Twin is synchronized.
+     * In this case since it is a Physical Adapter the information about the Digital Twin State is not relevant, and
+     * it is removed from the method signature and the original received callback from
+     * the LifeCycleListener interface.
+     * By default, this method does nothing. It can be optionally overridden by subclasses.
+     */
+    public void onDigitalTwinSync(){
+        // Method intentionally left blank, it can be overridden by subclasses when needed to handle the callback
+        // associated to the Digital Twin synchronization event of the LifeCycleListener interface.
+    }
+
+    /**
+     * Callback method invoked when the Digital Twin is out of synchronization.
+     * In this case since it is a Physical Adapter the information about the Digital Twin State is not relevant, and
+     * it is removed from the method signature and the original received callback from
+     * the LifeCycleListener interface.
+     * By default, this method does nothing. It can be optionally overridden by subclasses.
+     */
+    public void onDigitalTwinUnSync(){
+        // Method intentionally left blank, it can be overridden by subclasses when needed to handle the callback
+        // associated to the Digital Twin out of synchronization event of the LifeCycleListener interface.
+    }
+
+    @Override
+    public void onCreate() {
+        // Nothing to do in a Physical Adapter
+    }
+
+    @Override
+    public void onStart() {
+        // Nothing to do in a Physical Adapter
+    }
+
+    @Override
+    public void onPhysicalAdapterBound(String adapterId, PhysicalAssetDescription physicalAssetDescription) {
+        // Nothing to do in a Physical Adapter
+    }
+
+    @Override
+    public void onPhysicalAdapterBindingUpdate(String adapterId, PhysicalAssetDescription physicalAssetDescription) {
+        // Nothing to do in a Physical Adapter
+    }
+
+    @Override
+    public void onPhysicalAdapterUnBound(String adapterId, PhysicalAssetDescription physicalAssetDescription, String errorMessage) {
+        // Nothing to do in a Physical Adapter
+    }
+
+    @Override
+    public void onDigitalAdapterBound(String adapterId) {
+        // Nothing to do in a Physical Adapter
+    }
+
+    @Override
+    public void onDigitalAdapterUnBound(String adapterId, String errorMessage) {
+        // Nothing to do in a Physical Adapter
+    }
+
+    @Override
+    public void onDigitalTwinBound(Map<String, PhysicalAssetDescription> adaptersPhysicalAssetDescriptionMap) {
+        // Nothing to do in a Physical Adapter
+    }
+
+    @Override
+    public void onDigitalTwinUnBound(Map<String, PhysicalAssetDescription> adaptersPhysicalAssetDescriptionMap, String errorMessage) {
+        // Nothing to do in a Physical Adapter
+    }
+
+    @Override
+    public void onSync(DigitalTwinState digitalTwinState) {
+        // Invoke the specialized method for Physical Adapters
+        onDigitalTwinSync();
+    }
+
+    @Override
+    public void onUnSync(DigitalTwinState digitalTwinState) {
+        // Invoke the specialized method for Physical Adapters
+        onDigitalTwinUnSync();
+    }
+
+    @Override
+    public void onStop() {
+        // Nothing to do in a Physical Adapter
+    }
+
+    @Override
+    public void onDestroy() {
+        // Nothing to do in a Physical Adapter
     }
 }

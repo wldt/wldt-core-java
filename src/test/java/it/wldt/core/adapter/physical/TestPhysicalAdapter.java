@@ -9,6 +9,7 @@ import it.wldt.log.WldtLogger;
 import it.wldt.log.WldtLoggerProvider;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 public class TestPhysicalAdapter extends ConfigurablePhysicalAdapter<TestPhysicalAdapterConfiguration> {
@@ -35,6 +36,9 @@ public class TestPhysicalAdapter extends ConfigurablePhysicalAdapter<TestPhysica
 
     private boolean isTelemetryOn = false;
 
+    // List to store received LifeCycle updates for testing purposes
+    private List<String> receivedLifeCycleUpdateList = null;
+
     private Random random = new Random();
 
     public TestPhysicalAdapter(String id, TestPhysicalAdapterConfiguration configuration) {
@@ -44,6 +48,11 @@ public class TestPhysicalAdapter extends ConfigurablePhysicalAdapter<TestPhysica
     public TestPhysicalAdapter(String id, TestPhysicalAdapterConfiguration configuration, boolean isTelemetryOn) {
         super(id, configuration);
         this.isTelemetryOn = isTelemetryOn;
+    }
+
+    public TestPhysicalAdapter(String id, TestPhysicalAdapterConfiguration configuration, boolean isTelemetryOn, List<String> receivedLifeCycleUpdateList) {
+       this(id, configuration, isTelemetryOn);
+       this.receivedLifeCycleUpdateList = receivedLifeCycleUpdateList;
     }
 
     @Override
@@ -125,5 +134,37 @@ public class TestPhysicalAdapter extends ConfigurablePhysicalAdapter<TestPhysica
     @Override
     public void onAdapterStop() {
         logger.info("DemoPhysicalAdapter Stopped !");
+    }
+
+    /**
+     * Callback method invoked when the Digital Twin is synchronized.
+     * In this case since it is a Physical Adapter the information about the Digital Twin State is not relevant, and
+     * it is removed from the method signature and the original received callback from
+     * the LifeCycleListener interface.
+     */
+    @Override
+    public void onDigitalTwinSync() {
+        logger.info("Received onDigitalTwinSync Callback!");
+
+        // Store the received LifeCycle update for testing purposes
+        if(this.receivedLifeCycleUpdateList != null) {
+            this.receivedLifeCycleUpdateList.add("onDigitalTwinSync");
+        }
+    }
+
+    /**
+     * Callback method invoked when the Digital Twin is out of synchronization.
+     * In this case since it is a Physical Adapter the information about the Digital Twin State is not relevant, and
+     * it is removed from the method signature and the original received callback from
+     * the LifeCycleListener interface.
+     */
+    @Override
+    public void onDigitalTwinUnSync() {
+        logger.info("Received onDigitalTwinUnSync Callback!");
+
+        // Store the received LifeCycle update for testing purposes
+        if(this.receivedLifeCycleUpdateList != null) {
+            this.receivedLifeCycleUpdateList.add("onDigitalTwinUnSync");
+        }
     }
 }
