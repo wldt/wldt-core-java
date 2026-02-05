@@ -27,9 +27,9 @@ package it.wldt.exception;
  *
  * Project: White Label Digital Twin Java Framework - (whitelabel-digitaltwin)
  */
-public class ModelException extends Exception {
+public class KernelException extends Exception {
 
-    public ModelException(String s) {
+    public KernelException(String s) {
         super(s);
     }
 

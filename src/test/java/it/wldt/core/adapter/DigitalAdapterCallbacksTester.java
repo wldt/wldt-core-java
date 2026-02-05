@@ -2,14 +2,14 @@ package it.wldt.core.adapter;
 
 import it.wldt.adapter.digital.DigitalAdapter;
 import it.wldt.adapter.digital.DigitalAdapterLifeCycleListener;
-import it.wldt.core.adapter.shadowing.TestShadowingFunction;
+import it.wldt.core.adapter.shadowing.TestDigitalTwinModel;
 import it.wldt.adapter.physical.PhysicalAdapter;
 import it.wldt.adapter.physical.PhysicalAssetDescription;
 import it.wldt.adapter.physical.PhysicalAssetProperty;
 import it.wldt.adapter.physical.event.PhysicalAssetActionWldtEvent;
 import it.wldt.core.engine.DigitalTwin;
 import it.wldt.core.engine.DigitalTwinEngine;
-import it.wldt.core.model.ShadowingFunction;
+import it.wldt.core.model.DigitalTwinModel;
 import it.wldt.core.state.*;
 import it.wldt.exception.*;
 import java.util.*;
@@ -28,9 +28,9 @@ public class DigitalAdapterCallbacksTester {
 
     public final String DIGITAL_TWIN_ID = "dt00001";
 
-    private DigitalTwin createDigitalTwin(ShadowingFunction shadowingFunction, List<PhysicalAdapter> paAdapters, List<DigitalAdapter<?>> daAdapters) throws ModelException, WldtRuntimeException, EventBusException, WldtWorkerException, WldtDigitalTwinStateException {
+    private DigitalTwin createDigitalTwin(DigitalTwinModel digitalTwinModel, List<PhysicalAdapter> paAdapters, List<DigitalAdapter<?>> daAdapters) throws KernelException, WldtRuntimeException, EventBusException, WldtWorkerException, WldtDigitalTwinStateException {
 
-        DigitalTwin dt = new DigitalTwin(DIGITAL_TWIN_ID, shadowingFunction);
+        DigitalTwin dt = new DigitalTwin(DIGITAL_TWIN_ID, digitalTwinModel);
 
         paAdapters.forEach(pa -> {
             try {
@@ -175,13 +175,13 @@ public class DigitalAdapterCallbacksTester {
     }
 
     @Test
-    public void digitalTwinLifeCycleCallbacksTest() throws WldtConfigurationException, ModelException, WldtRuntimeException, EventBusException, InterruptedException, WldtWorkerException, WldtDigitalTwinStateException, WldtEngineException {
+    public void digitalTwinLifeCycleCallbacksTest() throws WldtConfigurationException, KernelException, WldtRuntimeException, EventBusException, InterruptedException, WldtWorkerException, WldtDigitalTwinStateException, WldtEngineException {
 
         DigitalTwinEngine digitalTwinEngine = new DigitalTwinEngine();
 
         List<DigitalAdapterCallbacks> receivedCallbacks = new LinkedList<>();
 
-        TestShadowingFunction shadowingFunction = new TestShadowingFunction();
+        TestDigitalTwinModel shadowingFunction = new TestDigitalTwinModel();
 
         DigitalAdapter<String> da = createDigitalAdapter("test-digital-adapter", receivedCallbacks);
         da.setDigitalAdapterLifeCycleListener(createDigitalAdapterLifeCycleLister(receivedCallbacks));
@@ -214,7 +214,7 @@ public class DigitalAdapterCallbacksTester {
     }
 
     @Test
-    public void physicalAdaptersCallbacksTest() throws WldtConfigurationException, ModelException, WldtRuntimeException, EventBusException, InterruptedException, WldtWorkerException, WldtDigitalTwinStateException, WldtEngineException {
+    public void physicalAdaptersCallbacksTest() throws WldtConfigurationException, KernelException, WldtRuntimeException, EventBusException, InterruptedException, WldtWorkerException, WldtDigitalTwinStateException, WldtEngineException {
 
         DigitalTwinEngine digitalTwinEngine = new DigitalTwinEngine();
 
@@ -223,7 +223,7 @@ public class DigitalAdapterCallbacksTester {
         DigitalAdapter<String> da = createDigitalAdapter("test-digital-adapter", receivedCallbacks);
         da.setDigitalAdapterLifeCycleListener(createDigitalAdapterLifeCycleLister(receivedCallbacks));
 
-        DigitalTwin dt = createDigitalTwin(new TestShadowingFunction(),
+        DigitalTwin dt = createDigitalTwin(new TestDigitalTwinModel(),
                 Arrays.asList(createPhysicalAdapter("test-physical-adapter-1", new ArrayList<>(Collections.singletonList("temperature"))),
                         createPhysicalAdapter("test-physical-adapter-2", new ArrayList<>(Collections.singletonList("volume"))),
                         createPhysicalAdapter("test-physical-adapter-3", new ArrayList<>(Collections.singletonList("air-quality")))),
@@ -242,7 +242,7 @@ public class DigitalAdapterCallbacksTester {
     }
 
     @Test
-    public void digitalAdaptersCallbacksTest() throws WldtConfigurationException, ModelException, WldtRuntimeException, EventBusException, InterruptedException, WldtWorkerException, WldtDigitalTwinStateException, WldtEngineException {
+    public void digitalAdaptersCallbacksTest() throws WldtConfigurationException, KernelException, WldtRuntimeException, EventBusException, InterruptedException, WldtWorkerException, WldtDigitalTwinStateException, WldtEngineException {
 
         DigitalTwinEngine digitalTwinEngine = new DigitalTwinEngine();
 
@@ -259,7 +259,7 @@ public class DigitalAdapterCallbacksTester {
         DigitalAdapter<String> da3 = createDigitalAdapter("test-digital-adapter3", receivedCallbacks3);
         da3.setDigitalAdapterLifeCycleListener(createDigitalAdapterLifeCycleLister(receivedCallbacks3));
 
-        DigitalTwin dt = createDigitalTwin(new TestShadowingFunction(),
+        DigitalTwin dt = createDigitalTwin(new TestDigitalTwinModel(),
                 Collections.singletonList(createPhysicalAdapter("test-physical-adapter", new ArrayList<>(Collections.singletonList("temperature")))),
                 Arrays.asList(da1, da2, da3));
 

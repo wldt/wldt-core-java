@@ -20,162 +20,594 @@
  */
 package it.wldt.core.model;
 
+import it.wldt.adapter.digital.event.DigitalActionWldtEvent;
 import it.wldt.adapter.physical.PhysicalAssetDescription;
-import it.wldt.core.engine.LifeCycleListener;
-import it.wldt.core.state.DigitalTwinState;
+import it.wldt.adapter.physical.PhysicalAssetEvent;
+import it.wldt.adapter.physical.PhysicalAssetProperty;
+import it.wldt.adapter.physical.PhysicalAssetRelationship;
+import it.wldt.core.event.*;
 import it.wldt.core.state.DigitalTwinStateManager;
-import it.wldt.exception.ModelException;
-import it.wldt.exception.WldtRuntimeException;
-import it.wldt.core.engine.DigitalTwinWorker;
-import it.wldt.exception.WldtWorkerException;
+import it.wldt.exception.EventBusException;
+import it.wldt.exception.KernelException;
+import it.wldt.adapter.physical.event.*;
 import it.wldt.log.WldtLogger;
 import it.wldt.log.WldtLoggerProvider;
 import it.wldt.management.ResourceManager;
 import it.wldt.storage.StorageManager;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+
+import it.wldt.core.model.annotation.ShadowingFunction;
+import it.wldt.core.model.annotation.ShadowingType;
 
 /**
  * Authors:
  *          Marco Picone, Ph.D. (picone.m@gmail.com)
  * Date: 01/02/2023
  * Project: White Label Digital Twin Java Framework - (whitelabel-digitaltwin)
- * This a fundamental core component responsible to handle the Model associated to the DT instance
- * maintaining its internal state and executing/coordinating its shadowing function
+ * This class implement the shadowing process (also known as replication of digitalization) responsible to keep the
+ * Digital Twin State synchronized with that of the corresponding physical resource
+ * according to what is defined by the Model. It handles:
+ *  - Physical Asset Description Management
+ *  - Digital Twin State Management
+ *  - Life Cycle Management
+ *  - Incoming and outgoing events of both Physical and Digital Adapters
  */
-public class DigitalTwinModel extends DigitalTwinWorker implements LifeCycleListener {
+public abstract class DigitalTwinModel implements WldtEventListener {
 
     private static final WldtLogger logger = WldtLoggerProvider.getLogger(DigitalTwinModel.class);
 
-    private static final String MODEL_ENGINE_PUBLISHER_ID = "model_engine";
-
-    private String digitalTwinId = null;
-
-    private final ShadowingFunction shadowingFunction;
+    private String id = null;
 
     /**
-     * Digital Twin Model Constructor
-     * @param digitalTwinId Digital Twin ID
-     * @param digitalTwinStateManager Digital Twin State Manager
-     * @param shadowingFunction Shadowing Function to be executed by the Model
-     * @param storageManager Storage Manager to be used by the Model
-     * @throws ModelException Model Exception
-     * @throws WldtWorkerException Wldt Worker Exception
+     * Event Filter used to manage the subscription to the Physical Events
      */
-    public DigitalTwinModel(String digitalTwinId,
-                            DigitalTwinStateManager digitalTwinStateManager,
-                            ShadowingFunction shadowingFunction,
-                            StorageManager storageManager,
-                            ResourceManager resourceManager) throws ModelException, WldtWorkerException {
+    private WldtEventFilter physicalEventsFilter = null;
 
-        super();
+    /**
+     * Reference to the Digital Twin State Manager
+     */
+    protected DigitalTwinStateManager digitalTwinStateManager = null;
 
-        if(digitalTwinId == null)
-            throw new ModelException("Error ! Digital Twin ID cannot be NULL !");
-        else
-            this.digitalTwinId = digitalTwinId;
+    /**
+     * Reference to the Storage Manager
+     */
+    protected StorageManager storageManager = null;
 
-        if(shadowingFunction != null){
+    /**
+     * Reference to the Resource Manager
+     */
+    protected ResourceManager resourceManager = null;
 
-            //Init the Shadowing Model Function with the current Digital Twin State and call the associated onCreate method
-            this.shadowingFunction = shadowingFunction;
-            this.shadowingFunction.init(digitalTwinStateManager, storageManager, resourceManager);
-            this.shadowingFunction.onCreate();
+    /**
+     * Reference to the Shadowing Model Listener
+     */
+    private ShadowingModelListener shadowingModelListener;
+
+    /**
+     * Default Constructor
+     * @param id Unique Identifier of the Shadowing Model Function
+     */
+    public DigitalTwinModel(String id){
+        this.id = id;
+        this.physicalEventsFilter = new WldtEventFilter();
+    }
+
+    /**
+     * Initialize the Shadowing Model Function with the current Digital Twin State Manager
+     * @param digitalTwinStateManager DigitalTwinStateManager instance
+     */
+    protected void init(DigitalTwinStateManager digitalTwinStateManager,
+                        StorageManager storageManager,
+                        ResourceManager resourceManager){
+        this.digitalTwinStateManager = digitalTwinStateManager;
+        this.storageManager = storageManager;
+        this.resourceManager = resourceManager;
+    }
+
+    /**
+     *
+     * @param physicalAssetProperty
+     * @throws EventBusException
+     * @throws KernelException
+     */
+    protected void observePhysicalAssetProperty(PhysicalAssetProperty<?> physicalAssetProperty) throws EventBusException, KernelException {
+        if(physicalAssetProperty == null)
+            throw new KernelException("Error ! NULL PhysicalProperty ...");
+
+        //Define EventFilter and add the target topics
+        WldtEventFilter wldtEventFilter = new WldtEventFilter();
+        wldtEventFilter.add(PhysicalAssetPropertyWldtEvent.buildEventType(PhysicalAssetPropertyWldtEvent.PHYSICAL_EVENT_BASIC_TYPE, physicalAssetProperty.getKey()));
+
+        //Save the adopted EventFilter
+        this.physicalEventsFilter.addAll(wldtEventFilter);
+
+        WldtEventBus.getInstance().subscribe(this.digitalTwinStateManager.getDigitalTwinId(), this.id, wldtEventFilter, this);
+    }
+
+    /**
+     * Observe a list of PhysicalAssetProperty
+     * @param physicalAssetPropertyList List of PhysicalAssetProperty to observe
+     * @throws EventBusException If an error occurs during the event subscription
+     * @throws KernelException If the provided list is NULL
+     */
+    protected void observePhysicalAssetProperties(List<PhysicalAssetProperty<?>> physicalAssetPropertyList) throws EventBusException, KernelException {
+
+        if(physicalAssetPropertyList == null)
+            throw new KernelException("Error ! NULL PhysicalProperty List ...");
+
+        //Define EventFilter and add the target topics
+        WldtEventFilter wldtEventFilter = new WldtEventFilter();
+
+        for(PhysicalAssetProperty<?> physicalAssetProperty : physicalAssetPropertyList)
+            wldtEventFilter.add(PhysicalAssetPropertyWldtEvent.buildEventType(PhysicalAssetPropertyWldtEvent.PHYSICAL_EVENT_BASIC_TYPE, physicalAssetProperty.getKey()));
+
+        //Save the adopted EventFilter
+        this.physicalEventsFilter.addAll(wldtEventFilter);
+
+        WldtEventBus.getInstance().subscribe(this.digitalTwinStateManager.getDigitalTwinId(), this.id, wldtEventFilter, this);
+
+    }
+
+    /**
+     * Un-Observe a PhysicalAssetProperty
+     * @param physicalAssetProperty PhysicalAssetProperty to un-observe
+     * @throws EventBusException If an error occurs during the event un-subscription
+     * @throws KernelException If the provided PhysicalAssetProperty is NULL
+     */
+    protected void unObservePhysicalAssetProperty(PhysicalAssetProperty<?> physicalAssetProperty) throws EventBusException, KernelException {
+
+        if(physicalAssetProperty == null)
+            throw new KernelException("Error ! NULL PhysicalProperty ...");
+
+        //Define EventFilter and add the target topics
+        WldtEventFilter wldtEventFilter = new WldtEventFilter();
+        wldtEventFilter.add(PhysicalAssetPropertyWldtEvent.buildEventType(PhysicalAssetPropertyWldtEvent.PHYSICAL_EVENT_BASIC_TYPE, physicalAssetProperty.getKey()));
+
+        //Save the adopted EventFilter
+        this.physicalEventsFilter.removeAll(wldtEventFilter);
+
+        WldtEventBus.getInstance().unSubscribe(this.digitalTwinStateManager.getDigitalTwinId(), this.id, wldtEventFilter, this);
+    }
+
+    /**
+     * Un-Observe a list of PhysicalAssetProperty
+     * @param physicalAssetPropertyList List of PhysicalAssetProperty to un-observe
+     * @throws EventBusException If an error occurs during the event un-subscription
+     * @throws KernelException If the provided list is NULL
+     */
+    protected void unObservePhysicalAssetProperties(List<PhysicalAssetProperty<?>> physicalAssetPropertyList) throws EventBusException, KernelException {
+
+        if(physicalAssetPropertyList == null)
+            throw new KernelException("Error ! NULL PhysicalProperty List ...");
+
+        //Define EventFilter and add the target topics
+        WldtEventFilter wldtEventFilter = new WldtEventFilter();
+
+        for(PhysicalAssetProperty<?> physicalAssetProperty : physicalAssetPropertyList)
+            wldtEventFilter.add(PhysicalAssetPropertyWldtEvent.buildEventType(PhysicalAssetPropertyWldtEvent.PHYSICAL_EVENT_BASIC_TYPE, physicalAssetProperty.getKey()));
+
+        //Save the adopted EventFilter
+        this.physicalEventsFilter.removeAll(wldtEventFilter);
+
+        WldtEventBus.getInstance().unSubscribe(this.digitalTwinStateManager.getDigitalTwinId(), this.id, wldtEventFilter, this);
+    }
+
+    ///////////////////// PHYSICAL ASSET EVENT OBSERVATION MANAGEMENT ////////////////////////////////
+
+    /**
+     * Observe a PhysicalAssetEvent
+     * @param physicalAssetEvent PhysicalAssetEvent to observe
+     * @throws EventBusException If an error occurs during the event subscription
+     * @throws KernelException If the provided PhysicalAssetEvent is NULL
+     */
+    protected void observePhysicalAssetEvent(PhysicalAssetEvent physicalAssetEvent) throws EventBusException, KernelException {
+        if(physicalAssetEvent == null)
+            throw new KernelException("Error ! NULL PhysicalAssetEvent ...");
+
+        //Define EventFilter and add the target topics
+        WldtEventFilter wldtEventFilter = new WldtEventFilter();
+        wldtEventFilter.add(PhysicalAssetEventWldtEvent.buildEventType(PhysicalAssetEventWldtEvent.PHYSICAL_EVENT_BASIC_TYPE, physicalAssetEvent.getKey()));
+
+        //Save the adopted EventFilter
+        this.physicalEventsFilter.addAll(wldtEventFilter);
+
+        WldtEventBus.getInstance().subscribe(this.digitalTwinStateManager.getDigitalTwinId(), this.id, wldtEventFilter, this);
+    }
+
+    /**
+     * Observe a list of PhysicalAssetEvent
+     * @param physicalAssetEventList List of PhysicalAssetEvent to observe
+     * @throws EventBusException If an error occurs during the event subscription
+     * @throws KernelException If the provided list is NULL
+     */
+    protected void observePhysicalAssetEvents(List<PhysicalAssetEvent> physicalAssetEventList) throws EventBusException, KernelException {
+
+        if(physicalAssetEventList == null)
+            throw new KernelException("Error ! NULL PhysicalAssetEvent List ...");
+
+        //Define EventFilter and add the target topics
+        WldtEventFilter wldtEventFilter = new WldtEventFilter();
+
+        for(PhysicalAssetEvent physicalAssetEvent : physicalAssetEventList)
+            wldtEventFilter.add(PhysicalAssetEventWldtEvent.buildEventType(PhysicalAssetEventWldtEvent.PHYSICAL_EVENT_BASIC_TYPE, physicalAssetEvent.getKey()));
+
+        //Save the adopted EventFilter
+        this.physicalEventsFilter.addAll(wldtEventFilter);
+
+        WldtEventBus.getInstance().subscribe(this.digitalTwinStateManager.getDigitalTwinId(), this.id, wldtEventFilter, this);
+
+    }
+
+    /**
+     * Un-Observe a PhysicalAssetEvent
+     * @param physicalAssetEvent PhysicalAssetEvent to un-observe
+     * @throws EventBusException If an error occurs during the event un-subscription
+     * @throws KernelException If the provided PhysicalAssetEvent is NULL
+     */
+    protected void unObservePhysicalAssetEvent(PhysicalAssetEvent physicalAssetEvent) throws EventBusException, KernelException {
+
+        if(physicalAssetEvent == null)
+            throw new KernelException("Error ! NULL PhysicalAssetEvent ...");
+
+        //Define EventFilter and add the target topics
+        WldtEventFilter wldtEventFilter = new WldtEventFilter();
+        wldtEventFilter.add(PhysicalAssetEventWldtEvent.buildEventType(PhysicalAssetEventWldtEvent.PHYSICAL_EVENT_BASIC_TYPE, physicalAssetEvent.getKey()));
+
+        //Save the adopted EventFilter
+        this.physicalEventsFilter.removeAll(wldtEventFilter);
+
+        WldtEventBus.getInstance().unSubscribe(this.digitalTwinStateManager.getDigitalTwinId(), this.id, wldtEventFilter, this);
+    }
+
+    /**
+     * Un-Observe a list of PhysicalAssetEvent
+     * @param physicalAssetEventList List of PhysicalAssetEvent to un-observe
+     * @throws EventBusException If an error occurs during the event un-subscription
+     * @throws KernelException If the provided list is NULL
+     */
+    protected void unObservePhysicalAssetEvents(List<PhysicalAssetEvent> physicalAssetEventList) throws EventBusException, KernelException {
+
+        if(physicalAssetEventList == null)
+            throw new KernelException("Error ! NULL PhysicalAssetEvent List ...");
+
+        //Define EventFilter and add the target topics
+        WldtEventFilter wldtEventFilter = new WldtEventFilter();
+
+        for(PhysicalAssetEvent physicalAssetEvent : physicalAssetEventList)
+            wldtEventFilter.add(PhysicalAssetEventWldtEvent.buildEventType(PhysicalAssetEventWldtEvent.PHYSICAL_EVENT_BASIC_TYPE, physicalAssetEvent.getKey()));
+
+        //Save the adopted EventFilter
+        this.physicalEventsFilter.removeAll(wldtEventFilter);
+
+        WldtEventBus.getInstance().unSubscribe(this.digitalTwinStateManager.getDigitalTwinId(), this.id, wldtEventFilter, this);
+    }
+
+    ///////////////////// PHYSICAL ASSET RELATIONSHIP OBSERVATION MANAGEMENT ////////////////////////////////
+
+    /**
+     * Observe a PhysicalAssetRelationship
+     * @param physicalAssetRelationship PhysicalAssetRelationship to observe
+     * @throws EventBusException If an error occurs during the event subscription
+     * @throws KernelException If the provided PhysicalAssetRelationship is NULL
+     */
+    protected void observePhysicalAssetRelationship(PhysicalAssetRelationship<?> physicalAssetRelationship) throws EventBusException, KernelException {
+        if(physicalAssetRelationship == null)
+            throw new KernelException("Error ! NULL Physical Relationship ...");
+
+        // Define EventFilter and add the target topics
+        WldtEventFilter wldtEventFilter = new WldtEventFilter();
+        wldtEventFilter.add(PhysicalAssetRelationshipInstanceCreatedWldtEvent.buildEventType(PhysicalAssetRelationshipInstanceCreatedWldtEvent.EVENT_BASIC_TYPE, physicalAssetRelationship.getName()));
+        wldtEventFilter.add(PhysicalAssetRelationshipInstanceDeletedWldtEvent.buildEventType(PhysicalAssetRelationshipInstanceDeletedWldtEvent.EVENT_BASIC_TYPE, physicalAssetRelationship.getName()));
+
+        //Save the adopted EventFilter
+        this.physicalEventsFilter.addAll(wldtEventFilter);
+
+        WldtEventBus.getInstance().subscribe(this.digitalTwinStateManager.getDigitalTwinId(), this.id, wldtEventFilter, this);
+    }
+
+    /** Observe a list of PhysicalAssetRelationship
+     * @param physicalAssetRelationships List of PhysicalAssetRelationship to observe
+     * @throws EventBusException If an error occurs during the event subscription
+     * @throws KernelException If the provided list is NULL
+     */
+    protected void observePhysicalAssetRelationships(List<PhysicalAssetRelationship<?>> physicalAssetRelationships) throws KernelException, EventBusException {
+        if(physicalAssetRelationships == null)
+            throw new KernelException("Error ! NULL PhysicalAssetRelationship List ...");
+
+        //Define EventFilter and add the target topics
+        WldtEventFilter wldtEventFilter = new WldtEventFilter();
+
+        for(PhysicalAssetRelationship<?> physicalAssetRelationship : physicalAssetRelationships){
+            wldtEventFilter.add(PhysicalAssetRelationshipInstanceCreatedWldtEvent.buildEventType(PhysicalAssetRelationshipInstanceCreatedWldtEvent.EVENT_BASIC_TYPE, physicalAssetRelationship.getName()));
+            wldtEventFilter.add(PhysicalAssetRelationshipInstanceDeletedWldtEvent.buildEventType(PhysicalAssetRelationshipInstanceDeletedWldtEvent.EVENT_BASIC_TYPE, physicalAssetRelationship.getName()));
         }
-        else {
-            logger.error("MODEL ENGINE ERROR ! Shadowing Model Function = NULL !");
-            throw new ModelException("Error ! Provided ShadowingFunction == Null !");
+
+        //Save the adopted EventFilter
+        this.physicalEventsFilter.addAll(wldtEventFilter);
+
+        WldtEventBus.getInstance().subscribe(this.digitalTwinStateManager.getDigitalTwinId(), this.id, wldtEventFilter, this);
+    }
+
+    /**
+     * Un-Observe a PhysicalAssetRelationship
+     * @param physicalAssetRelationship PhysicalAssetRelationship to un-observe
+     * @throws EventBusException If an error occurs during the event un-subscription
+     * @throws KernelException If the provided PhysicalAssetRelationship is NULL
+     */
+    protected void unObservePhysicalAssetRelationship(PhysicalAssetRelationship<?> physicalAssetRelationship) throws EventBusException, KernelException {
+
+        if(physicalAssetRelationship == null)
+            throw new KernelException("Error ! NULL PhysicalAssetRelationship ...");
+
+        //Define EventFilter and add the target topics
+        WldtEventFilter wldtEventFilter = new WldtEventFilter();
+        wldtEventFilter.add(PhysicalAssetRelationshipInstanceCreatedWldtEvent.buildEventType(PhysicalAssetRelationshipInstanceCreatedWldtEvent.EVENT_BASIC_TYPE, physicalAssetRelationship.getName()));
+        wldtEventFilter.add(PhysicalAssetRelationshipInstanceDeletedWldtEvent.buildEventType(PhysicalAssetRelationshipInstanceDeletedWldtEvent.EVENT_BASIC_TYPE, physicalAssetRelationship.getName()));
+
+        this.physicalEventsFilter.removeAll(wldtEventFilter);
+
+        WldtEventBus.getInstance().unSubscribe(this.digitalTwinStateManager.getDigitalTwinId(), this.id, wldtEventFilter, this);
+    }
+
+    /**
+     * Un-Observe a list of PhysicalAssetRelationship
+     * @param physicalAssetRelationshipList List of PhysicalAssetRelationship to un-observe
+     * @throws EventBusException If an error occurs during the event un-subscription
+     * @throws KernelException If the provided list is NULL
+     */
+    protected void unObservePhysicalAssetRelationships(List<PhysicalAssetRelationship<?>> physicalAssetRelationshipList) throws EventBusException, KernelException {
+
+        if(physicalAssetRelationshipList == null)
+            throw new KernelException("Error ! NULL PhysicalAssetEvent List ...");
+
+        //Define EventFilter and add the target topics
+        WldtEventFilter wldtEventFilter = new WldtEventFilter();
+
+        for(PhysicalAssetRelationship<?> relationship : physicalAssetRelationshipList){
+            wldtEventFilter.add(PhysicalAssetEventWldtEvent.buildEventType(PhysicalAssetRelationshipInstanceCreatedWldtEvent.EVENT_BASIC_TYPE, relationship.getName()));
+            wldtEventFilter.add(PhysicalAssetRelationshipInstanceDeletedWldtEvent.buildEventType(PhysicalAssetRelationshipInstanceDeletedWldtEvent.EVENT_BASIC_TYPE, relationship.getName()));
         }
+
+        //Save the adopted EventFilter
+        this.physicalEventsFilter.removeAll(wldtEventFilter);
+
+        WldtEventBus.getInstance().unSubscribe(this.digitalTwinStateManager.getDigitalTwinId(), this.id, wldtEventFilter, this);
     }
 
 
-    @Override
-    public void onWorkerStop() {
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-        logger.info("Stopping Model Engine ....");
+    /**
+     * Observe all the Physical Events
+     * @throws EventBusException If an error occurs during the event subscription
+     */
+    protected void observeDigitalActionEvents() throws EventBusException {
+        WldtEventFilter wldtEventFilter = new WldtEventFilter();
+        //wldtEventFilter.add(DigitalAdapter.DIGITAL_ACTION_EVENT);
+        // Observe the Wildcard Event Type for Digital Action Event
+        wldtEventFilter.add(WldtEventTypes.ALL_DIGITAL_ACTION_EVENT_TYPE);
+        WldtEventBus.getInstance().subscribe(this.digitalTwinStateManager.getDigitalTwinId(), this.id, wldtEventFilter, this);
+    }
 
-        //Stop Shadowing Function
-        if(this.shadowingFunction != null)
-            this.shadowingFunction.onStop();
+    /**
+     * Un-Observe all the Physical Events
+     * @throws EventBusException If an error occurs during the event un-subscription
+     */
+    protected void unObserveDigitalActionEvents() throws EventBusException {
+        WldtEventFilter wldtEventFilter = new WldtEventFilter();
+        //wldtEventFilter.add(DigitalAdapter.DIGITAL_ACTION_EVENT);
+        // Un-Observe the Wildcard Event Type for Digital Action Event
+        wldtEventFilter.add(WldtEventTypes.ALL_DIGITAL_ACTION_EVENT_TYPE);
+        WldtEventBus.getInstance().unSubscribe(this.digitalTwinStateManager.getDigitalTwinId(), this.id, wldtEventFilter, this);
+    }
 
-        logger.info("Model Engine Correctly Stopped !");
+    /**
+     * Publish a Physical Asset Action Event
+     * @param actionKey Key of the action to publish
+     * @param body Body of the action to publish
+     * @param <T> Type of the action body
+     * @throws EventBusException If an error occurs during the event publication
+     */
+    protected <T> void publishPhysicalAssetActionWldtEvent(String actionKey, T body) throws EventBusException {
+        WldtEventBus.getInstance().publishEvent(this.digitalTwinStateManager.getDigitalTwinId(), this.id, new PhysicalAssetActionWldtEvent<>(actionKey, body));
     }
 
     @Override
-    public void onWorkerStart() throws WldtRuntimeException {
-        try {
-            this.shadowingFunction.onStart();
-        } catch (Exception e) {
-            String errorMessage = String.format("Shadowing Function Error Observing Physical Event: %s", e.getLocalizedMessage());
-            logger.error(errorMessage);
-            throw new WldtRuntimeException(errorMessage);
-        }
+    public void onEventSubscribed(String eventType) {
+        logger.info("Shadowing Model Function -> Subscribed to: {}", eventType);
     }
 
     @Override
-    public void onCreate() {
-        logger.debug("ModelEngine-Listener-DT-LifeCycle: onCreate()");
+    public void onEventUnSubscribed(String eventType) {
+        logger.info("Shadowing Model Function -> Unsubscribed from: {}", eventType);
     }
 
     @Override
-    public void onStart() {
-        logger.debug("ModelEngine-Listener-DT-LifeCycle: onStart()");
+    public void onEvent(WldtEvent<?> wldtEvent) {
+
+        logger.info("Shadowing Function -> Received Event: {} Class: {}", wldtEvent, wldtEvent.getClass());
+
+        // TODO Re-write all the following checks with Event Filters & Wildcard instead of Class Instances
+
+        if(wldtEvent instanceof PhysicalAssetPropertyWldtEvent)
+            onPhysicalAssetPropertyVariation((PhysicalAssetPropertyWldtEvent<?>) wldtEvent);
+
+        if(wldtEvent instanceof PhysicalAssetEventWldtEvent)
+            onPhysicalAssetEventNotification((PhysicalAssetEventWldtEvent<?>) wldtEvent);
+
+        if(wldtEvent instanceof PhysicalAssetRelationshipInstanceCreatedWldtEvent)
+            onPhysicalAssetRelationshipEstablished((PhysicalAssetRelationshipInstanceCreatedWldtEvent<?>) wldtEvent);
+
+        if(wldtEvent instanceof PhysicalAssetRelationshipInstanceDeletedWldtEvent)
+            onPhysicalAssetRelationshipDeleted((PhysicalAssetRelationshipInstanceDeletedWldtEvent<?>) wldtEvent);
+
+        if(wldtEvent instanceof DigitalActionWldtEvent<?>)
+            onDigitalActionEvent((DigitalActionWldtEvent<?>) wldtEvent);
+
+        //if(wldtEvent.getType().equals(DigitalAdapter.DIGITAL_ACTION_EVENT))
+        //    onDigitalActionEvent((DigitalActionWldtEvent<?>) wldtEvent.getBody());
+
+    }
+
+    abstract protected void onCreate();
+
+    abstract protected void onStart();
+
+    abstract protected void onStop();
+
+    abstract protected void onDigitalTwinBound(Map<String, PhysicalAssetDescription> adaptersPhysicalAssetDescriptionMap);
+
+    abstract protected void onDigitalTwinUnBound(Map<String, PhysicalAssetDescription> adaptersPhysicalAssetDescriptionMap, String errorMessage);
+
+    abstract protected void onPhysicalAdapterBidingUpdate(String adapterId, PhysicalAssetDescription adapterPhysicalAssetDescription);
+
+    // ========================================
+    // SHADOWING FUNCTION CALLBACKS
+    // ========================================
+    // The following abstract methods define the shadowing behavior of the Digital Twin.
+    // Each method is annotated with @ShadowingFunction to provide formal metadata
+    // about its role in the shadowing process.
+
+    /**
+     * Callback method invoked when a physical asset property changes.
+     * <p>
+     * This shadowing function is responsible for processing property variations
+     * received from Physical Adapters and updating the Digital Twin State accordingly.
+     * The implementation defines how the DT reacts to property changes, which may include:
+     * <ul>
+     *   <li>Updating corresponding DT state properties</li>
+     *   <li>Triggering derived computations or aggregations</li>
+     *   <li>Generating events for Digital Adapters</li>
+     *   <li>Applying business logic or validation rules</li>
+     * </ul>
+     *
+     * @param physicalPropertyEventMessage the event containing property variation details
+     */
+    @ShadowingFunction(
+            value = ShadowingType.PHYSICAL_PROPERTY_VARIATION,
+            description = "Processes physical asset property changes and updates DT state"
+    )
+    abstract protected void onPhysicalAssetPropertyVariation(PhysicalAssetPropertyWldtEvent<?> physicalPropertyEventMessage);
+
+    /**
+     * Callback method invoked when a physical asset emits an event notification.
+     * <p>
+     * This shadowing function processes event notifications from the physical world,
+     * allowing the DT to react to asynchronous occurrences on the physical asset.
+     *
+     * @param physicalAssetEventWldtEvent the event notification from the physical asset
+     */
+    @ShadowingFunction(
+            value = ShadowingType.PHYSICAL_EVENT_NOTIFICATION,
+            description = "Handles event notifications emitted by the physical asset"
+    )
+    abstract protected void onPhysicalAssetEventNotification(PhysicalAssetEventWldtEvent<?> physicalAssetEventWldtEvent);
+
+    /**
+     * Callback method invoked when a relationship is established on the physical asset.
+     * <p>
+     * This shadowing function manages the creation of relationships in the DT state,
+     * mirroring the relationship structure of the physical asset.
+     *
+     * @param physicalAssetRelationshipWldtEvent the relationship establishment event
+     */
+    @ShadowingFunction(
+            value = ShadowingType.PHYSICAL_RELATIONSHIP_ESTABLISHED,
+            description = "Mirrors relationship creation from physical asset to DT state"
+    )
+    abstract protected void onPhysicalAssetRelationshipEstablished(PhysicalAssetRelationshipInstanceCreatedWldtEvent<?> physicalAssetRelationshipWldtEvent);
+
+    /**
+     * Callback method invoked when a relationship is deleted from the physical asset.
+     * <p>
+     * This shadowing function manages the removal of relationships in the DT state,
+     * maintaining consistency with the physical asset's relationship model.
+     *
+     * @param physicalAssetRelationshipWldtEvent the relationship deletion event
+     */
+    @ShadowingFunction(
+            value = ShadowingType.PHYSICAL_RELATIONSHIP_DELETED,
+            description = "Removes relationships from DT state when deleted on physical asset"
+    )
+    abstract protected void onPhysicalAssetRelationshipDeleted(PhysicalAssetRelationshipInstanceDeletedWldtEvent<?> physicalAssetRelationshipWldtEvent);
+
+    /**
+     * Callback method invoked when a digital action is requested from external applications.
+     * <p>
+     * This shadowing function processes action requests originating from Digital Adapters
+     * and determines how to handle them, which may include:
+     * <ul>
+     *   <li>Validating action parameters against DT state</li>
+     *   <li>Forwarding actions to appropriate Physical Adapters</li>
+     *   <li>Executing DT-side computations before physical execution</li>
+     *   <li>Rejecting invalid or unsafe action requests</li>
+     * </ul>
+     *
+     * @param digitalActionWldtEvent the digital action request event
+     */
+    @ShadowingFunction(
+            value = ShadowingType.DIGITAL_ACTION_REQUEST,
+            description = "Processes digital action requests and coordinates execution with physical asset"
+    )
+    abstract protected void onDigitalActionEvent(DigitalActionWldtEvent<?> digitalActionWldtEvent);
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public WldtEventFilter getPhysicalEventsFilter() {
+        return physicalEventsFilter;
+    }
+
+    public ShadowingModelListener getShadowingModelListener() {
+        return shadowingModelListener;
+    }
+
+    public void setShadowingModelListener(ShadowingModelListener shadowingModelListener) {
+        this.shadowingModelListener = shadowingModelListener;
+    }
+
+    /**
+     * Notify the Shadowing Model Listener that the Shadowing Model is synchronized with the Physical Asset
+     */
+    protected void notifyShadowingSync(){
+        if(getShadowingModelListener() != null)
+            getShadowingModelListener().onShadowingSync(digitalTwinStateManager.getDigitalTwinState());
+    }
+
+    /**
+     * Notify the Shadowing Model Listener that the Shadowing Model is out of sync with the Physical Asset
+     */
+    protected void notifyShadowingOutOfSync(){
+        if(getShadowingModelListener() != null)
+            getShadowingModelListener().onShadowingOutOfSync(digitalTwinStateManager.getDigitalTwinState());
     }
 
     @Override
-    public void onPhysicalAdapterBound(String adapterId, PhysicalAssetDescription physicalAssetDescription) {
-        logger.debug("ModelEngine-Listener-DT-LifeCycle: onPhysicalAdapterBound({})", adapterId);
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        DigitalTwinModel that = (DigitalTwinModel) o;
+        return id.equals(that.id);
     }
 
     @Override
-    public void onPhysicalAdapterBindingUpdate(String adapterId, PhysicalAssetDescription physicalAssetDescription) {
-        logger.debug("ModelEngine-Listener-DT-LifeCycle: onPhysicalAdapterBindingUpdate()");
-        this.shadowingFunction.onPhysicalAdapterBidingUpdate(adapterId, physicalAssetDescription);
+    public int hashCode() {
+        return Objects.hash(id);
     }
 
     @Override
-    public void onPhysicalAdapterUnBound(String adapterId, PhysicalAssetDescription physicalAssetDescription, String errorMessage) {
-        logger.debug("ModelEngine-Listener-DT-LifeCycle: onPhysicalAdapterUnBound({})", adapterId);
-    }
-
-    @Override
-    public void onDigitalAdapterBound(String adapterId) {
-        logger.debug("ModelEngine-Listener-DT-LifeCycle: onDigitalAdapterBound({})", adapterId);
-    }
-
-    @Override
-    public void onDigitalAdapterUnBound(String adapterId, String errorMessage) {
-        logger.debug("ModelEngine-Listener-DT-LifeCycle: onDigitalAdapterUnBound({})", adapterId);
-    }
-
-    @Override
-    public void onDigitalTwinBound(Map<String, PhysicalAssetDescription> adaptersPhysicalAssetDescriptionMap) {
-        logger.debug("ModelEngine-Listener-DT-LifeCycle: onDigitalTwinBound()");
-        this.shadowingFunction.onDigitalTwinBound(adaptersPhysicalAssetDescriptionMap);
-    }
-
-    @Override
-    public void onDigitalTwinUnBound(Map<String, PhysicalAssetDescription> adaptersPhysicalAssetDescriptionMap, String errorMessage) {
-        logger.debug("ModelEngine-Listener-DT-LifeCycle: onDigitalTwinUnBound()");
-        this.shadowingFunction.onDigitalTwinUnBound(adaptersPhysicalAssetDescriptionMap, errorMessage);
-    }
-
-    @Override
-    public void onSync(DigitalTwinState digitalTwinState) {
-        logger.debug("ModelEngine-Listener-DT-LifeCycle: onSync() - DT State: {}", digitalTwinState);
-    }
-
-    @Override
-    public void onUnSync(DigitalTwinState digitalTwinState) {
-        logger.debug("ModelEngine-Listener-DT-LifeCycle: onUnSync() - DT State: {}", digitalTwinState);
-    }
-
-    @Override
-    public void onStop() {
-        logger.debug("ModelEngine-Listener-DT-LifeCycle: onStop()");
-    }
-
-    @Override
-    public void onDestroy() {
-        logger.debug("ModelEngine-Listener-DT-LifeCycle: onDestroy()");
+    public String toString() {
+        final StringBuilder sb = new StringBuilder("ModelFunction{");
+        sb.append("id='").append(id).append('\'');
+        sb.append(", physicalEventsFilter=").append(physicalEventsFilter);
+        sb.append('}');
+        return sb.toString();
     }
 }

@@ -1,6 +1,6 @@
 package it.wldt.core.adapter;
 
-import it.wldt.core.adapter.shadowing.TestShadowingFunction;
+import it.wldt.core.adapter.shadowing.TestDigitalTwinModel;
 import it.wldt.core.adapter.digital.SwitchDigitalAdapter;
 import it.wldt.adapter.physical.PhysicalAdapter;
 import it.wldt.adapter.physical.PhysicalAssetAction;
@@ -64,7 +64,7 @@ public class DigitalMultipleActionsTester {
 
     @Test
     @Order(1)
-    public void multiplePhysicalAdapterTest() throws WldtConfigurationException, InterruptedException, ModelException, WldtRuntimeException, EventBusException, WldtWorkerException, WldtDigitalTwinStateException, WldtEngineException {
+    public void multiplePhysicalAdapterTest() throws WldtConfigurationException, InterruptedException, KernelException, WldtRuntimeException, EventBusException, WldtWorkerException, WldtDigitalTwinStateException, WldtEngineException {
 
         DigitalTwinEngine digitalTwinEngine = new DigitalTwinEngine();
 
@@ -73,7 +73,7 @@ public class DigitalMultipleActionsTester {
         List<PhysicalAssetActionWldtEvent<?>> physicalAssetActionEventReceived1 = new ArrayList<>();
         List<PhysicalAssetActionWldtEvent<?>> physicalAssetActionEventReceived2 = new ArrayList<>();
 
-        DigitalTwin dt = new DigitalTwin(DIGITAL_TWIN_ID, new TestShadowingFunction());
+        DigitalTwin dt = new DigitalTwin(DIGITAL_TWIN_ID, new TestDigitalTwinModel());
         dt.addPhysicalAdapter(createPhysicalAdapter("test.digital.actions.pa", ACTION1_KEY, countDown, physicalAssetActionEventReceived1));
         dt.addPhysicalAdapter(createPhysicalAdapter("test.digital.actions.pa2", ACTION2_KEY, countDown, physicalAssetActionEventReceived2));
 

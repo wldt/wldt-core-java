@@ -364,7 +364,7 @@ import it.wldt.adapter.physical.event.PhysicalAssetEventWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetPropertyWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetRelationshipInstanceCreatedWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetRelationshipInstanceDeletedWldtEvent;
-import it.wldt.core.model.ShadowingFunction;
+import it.wldt.core.model.DigitalTwinModel;
 import java.util.Map;
 
 public class TestShadowingFunction extends ShadowingModelFunction {

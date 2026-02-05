@@ -13,7 +13,7 @@ import it.wldt.process.digital.DemoDigitalAdapterConfiguration;
 import it.wldt.process.metrics.SharedTestMetrics;
 import it.wldt.process.physical.DemoPhysicalAdapter;
 import it.wldt.process.physical.DemoPhysicalAdapterConfiguration;
-import it.wldt.process.shadowing.DemoShadowingFunction;
+import it.wldt.process.shadowing.DemoDigitalTwinModel;
 import org.junit.jupiter.api.*;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -35,10 +35,10 @@ public class EngineTester {
 
     private DigitalTwinEngine digitalTwinEngine = null;
 
-    private DigitalTwin createNewDigitalTwin(String digitalTwinId) throws ModelException, WldtRuntimeException, EventBusException, WldtConfigurationException, WldtWorkerException, WldtDigitalTwinStateException {
+    private DigitalTwin createNewDigitalTwin(String digitalTwinId) throws KernelException, WldtRuntimeException, EventBusException, WldtConfigurationException, WldtWorkerException, WldtDigitalTwinStateException {
 
         // Create the new Digital Twin with its Shadowing Function
-        DigitalTwin digitalTwin = new DigitalTwin(digitalTwinId, new DemoShadowingFunction());
+        DigitalTwin digitalTwin = new DigitalTwin(digitalTwinId, new DemoDigitalTwinModel());
 
         // Physical Adapter with Configuration
         digitalTwin.addPhysicalAdapter(
@@ -61,7 +61,7 @@ public class EngineTester {
     }
 
     @BeforeEach
-    public void setUp() throws ModelException, WldtRuntimeException, EventBusException, WldtConfigurationException, WldtEngineException, WldtWorkerException, WldtDigitalTwinStateException {
+    public void setUp() throws KernelException, WldtRuntimeException, EventBusException, WldtConfigurationException, WldtEngineException, WldtWorkerException, WldtDigitalTwinStateException {
 
         logger.info("Setting up Test Environment ...");
 

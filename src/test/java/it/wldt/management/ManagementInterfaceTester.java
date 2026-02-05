@@ -12,7 +12,7 @@ import it.wldt.process.digital.DemoDigitalAdapterConfiguration;
 import it.wldt.process.metrics.SharedTestMetrics;
 import it.wldt.process.physical.DemoPhysicalAdapter;
 import it.wldt.process.physical.DemoPhysicalAdapterConfiguration;
-import it.wldt.process.shadowing.DemoShadowingFunction;
+import it.wldt.process.shadowing.DemoDigitalTwinModel;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Order;
@@ -64,13 +64,13 @@ public class ManagementInterfaceTester {
     private static final String PROPERTY_VALUE_4 = "newValue";
 
     @BeforeEach
-    public void setUp() throws ModelException, WldtRuntimeException, EventBusException, WldtConfigurationException, WldtWorkerException, WldtDigitalTwinStateException, WldtEngineException {
+    public void setUp() throws KernelException, WldtRuntimeException, EventBusException, WldtConfigurationException, WldtWorkerException, WldtDigitalTwinStateException, WldtEngineException {
 
         logger.info("Setting up Test Environment ...");
 
         digitalTwinEngine = new DigitalTwinEngine();
 
-        digitalTwin = new DigitalTwin(TEST_DIGITAL_TWIN_ID, new DemoShadowingFunction());
+        digitalTwin = new DigitalTwin(TEST_DIGITAL_TWIN_ID, new DemoDigitalTwinModel());
         //digitalTwin = new DigitalTwin(TEST_DIGITAL_TWIN_ID, new DemoShadowingFunctionResourceTest());
 
         // Physical Adapter with Configuration

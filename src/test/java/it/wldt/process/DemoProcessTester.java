@@ -13,7 +13,7 @@ import it.wldt.process.digital.DemoDigitalAdapterConfiguration;
 import it.wldt.process.metrics.SharedTestMetrics;
 import it.wldt.process.physical.DemoPhysicalAdapter;
 import it.wldt.process.physical.DemoPhysicalAdapterConfiguration;
-import it.wldt.process.shadowing.DemoShadowingFunction;
+import it.wldt.process.shadowing.DemoDigitalTwinModel;
 import org.junit.jupiter.api.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -36,13 +36,13 @@ public class DemoProcessTester {
     private DigitalTwinEngine digitalTwinEngine = null;
 
     @BeforeEach
-    public void setUp() throws ModelException, WldtRuntimeException, EventBusException, WldtConfigurationException, WldtWorkerException, WldtDigitalTwinStateException, WldtEngineException {
+    public void setUp() throws KernelException, WldtRuntimeException, EventBusException, WldtConfigurationException, WldtWorkerException, WldtDigitalTwinStateException, WldtEngineException {
 
         logger.info("Setting up Test Environment ...");
 
         digitalTwinEngine = new DigitalTwinEngine();
 
-        digitalTwin = new DigitalTwin(TEST_DIGITAL_TWIN_ID, new DemoShadowingFunction());
+        digitalTwin = new DigitalTwin(TEST_DIGITAL_TWIN_ID, new DemoDigitalTwinModel());
 
         // Physical Adapter with Configuration
         digitalTwin.addPhysicalAdapter(
@@ -82,7 +82,7 @@ public class DemoProcessTester {
 
     @Test
     @Order(1)
-    public void testPhysicalAdapterEvents() throws WldtConfigurationException, EventBusException, ModelException, InterruptedException, WldtRuntimeException {
+    public void testPhysicalAdapterEvents() throws WldtConfigurationException, EventBusException, KernelException, InterruptedException, WldtRuntimeException {
 
         //Set EventBus Logger
         WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
@@ -107,7 +107,7 @@ public class DemoProcessTester {
 
     @Test
     @Order(2)
-    public void testDigitalTwinStateUpdates() throws WldtConfigurationException, EventBusException, ModelException, InterruptedException, WldtRuntimeException {
+    public void testDigitalTwinStateUpdates() throws WldtConfigurationException, EventBusException, KernelException, InterruptedException, WldtRuntimeException {
 
         //Set EventBus Logger
         WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());

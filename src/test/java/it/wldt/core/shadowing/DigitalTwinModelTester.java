@@ -13,7 +13,7 @@ import it.wldt.adapter.physical.event.PhysicalAssetEventWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetPropertyWldtEvent;
 import it.wldt.core.engine.DigitalTwinEngine;
 import it.wldt.core.event.*;
-import it.wldt.core.model.ShadowingFunction;
+import it.wldt.core.model.DigitalTwinModel;
 import it.wldt.core.state.DigitalTwinState;
 import it.wldt.core.state.DigitalTwinStateManager;
 import it.wldt.core.state.DigitalTwinStateProperty;
@@ -32,11 +32,11 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 @TestMethodOrder(MethodOrderer.MethodName.class)
-public class ShadowingFunctionTester {
+public class DigitalTwinModelTester {
 
     public final String DIGITAL_TWIN_ID = "dt00001";
 
-    private static final WldtLogger logger = WldtLoggerProvider.getLogger(ShadowingFunctionTester.class);
+    private static final WldtLogger logger = WldtLoggerProvider.getLogger(DigitalTwinModelTester.class);
 
     private static CountDownLatch testCountDownLatch = null;
 
@@ -78,9 +78,9 @@ public class ShadowingFunctionTester {
         });
     }
 
-    private ShadowingFunction getTargetShadowingFunction(){
+    private DigitalTwinModel getTargetShadowingFunction(){
 
-        return new ShadowingFunction("demo-shadowing-model-function") {
+        return new DigitalTwinModel("demo-shadowing-model-function") {
 
             private boolean isShadowed = false;
 
@@ -170,7 +170,7 @@ public class ShadowingFunctionTester {
 
                 try{
 
-                    logger.info("ShadowingFunction Physical Asset Property Event Received: {}", physicalPropertyEventMessage);
+                    logger.info("DigitalTwinModel Physical Asset Property Event Received: {}", physicalPropertyEventMessage);
 
                     if(physicalPropertyEventMessage != null
                             && getPhysicalEventsFilter().contains(physicalPropertyEventMessage.getType())
@@ -221,7 +221,7 @@ public class ShadowingFunctionTester {
             @Override
             protected void onPhysicalAssetEventNotification(PhysicalAssetEventWldtEvent<?> physicalAssetEventWldtEvent) {
 
-                logger.info("ShadowingFunction Physical Asset Event - Event Received: {}", physicalAssetEventWldtEvent);
+                logger.info("DigitalTwinModel Physical Asset Event - Event Received: {}", physicalAssetEventWldtEvent);
 
                 //TODO Handle Event MANAGEMENT ON THE DT
             }
@@ -229,7 +229,7 @@ public class ShadowingFunctionTester {
     }
 
     @Test
-    public void testShadowingFunctionOnPhysicalEvents() throws WldtConfigurationException, EventBusException, ModelException, InterruptedException, WldtRuntimeException, WldtWorkerException, WldtDigitalTwinStateException, WldtEngineException {
+    public void testShadowingFunctionOnPhysicalEvents() throws WldtConfigurationException, EventBusException, KernelException, InterruptedException, WldtRuntimeException, WldtWorkerException, WldtDigitalTwinStateException, WldtEngineException {
 
         DigitalTwinEngine digitalTwinEngine = new DigitalTwinEngine();
 

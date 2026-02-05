@@ -28,8 +28,8 @@ import it.wldt.adapter.physical.PhysicalAssetDescription;
 import it.wldt.core.event.DefaultWldtEventLogger;
 import it.wldt.core.event.EventManager;
 import it.wldt.core.event.WldtEventBus;
+import it.wldt.core.model.DigitalTwinKernel;
 import it.wldt.core.model.DigitalTwinModel;
-import it.wldt.core.model.ShadowingFunction;
 import it.wldt.core.model.ShadowingModelListener;
 import it.wldt.core.state.DigitalTwinState;
 import it.wldt.core.state.DigitalTwinStateManager;
@@ -117,9 +117,9 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
     private DigitalTwinStateManager digitalTwinStateManager = null;
 
     /**
-     * Instance of the Model Engine of the current Digital Twin
+     * Instance of the Model of the current Digital Twin
      */
-    private DigitalTwinModel digitalTwinModel = null;
+    private DigitalTwinKernel digitalTwinKernel = null;
 
     /**
      * List of Life Cycle Listener for the current Digital Twin
@@ -161,7 +161,7 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
     /**
      * Reference to the Shadowing Function used by the Digital Twin and its Model Engine
      */
-    private ShadowingFunction shadowingFunction = null;
+    private DigitalTwinModel digitalTwinModel = null;
 
     /**
      * Id of the target Digital Twin
@@ -183,14 +183,14 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
      *
      * @param digitalTwinId                 The unique identifier for the Digital Twin.
      * @param digitalizedPhysicalAssetsIdList List of IDs for digitalized physical assets.
-     * @param shadowingFunction             The shadowing function for the Digital Twin.
-     * @throws ModelException                If there is an issue with the model.
+     * @param digitalTwinModel             The shadowing function for the Digital Twin.
+     * @throws KernelException                If there is an issue with the model.
      * @throws EventBusException             If there is an issue with the event bus.
      * @throws WldtRuntimeException           If a runtime exception occurs during Digital Twin creation.
      * @throws WldtWorkerException            If there is an issue with the DigitalTwinWorker.
      * @throws WldtDigitalTwinStateException If there is an issue with the state of the Digital Twin.
      */
-    public DigitalTwin(String digitalTwinId, List<String> digitalizedPhysicalAssetsIdList, ShadowingFunction shadowingFunction) throws ModelException, EventBusException, WldtRuntimeException, WldtWorkerException, WldtDigitalTwinStateException {
+    public DigitalTwin(String digitalTwinId, List<String> digitalizedPhysicalAssetsIdList, DigitalTwinModel digitalTwinModel) throws KernelException, EventBusException, WldtRuntimeException, WldtWorkerException, WldtDigitalTwinStateException {
 
         if(digitalTwinId == null)
             throw new WldtRuntimeException("Error ! Digital Twin ID = Null !");
@@ -200,7 +200,7 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
             digitalizedPhysicalAssetsIdList = new ArrayList<>();
             //throw new WldtRuntimeException("Error ! List of Physical Asset Ids = Null or EMPTY!");
 
-        if(shadowingFunction == null)
+        if(digitalTwinModel == null)
             throw new WldtRuntimeException("Error ! Digital Twin Shadowing Function = Null !");
 
         this.digitalTwinId = digitalTwinId;
@@ -211,36 +211,36 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
 
         this.digitalAdapterList = new ArrayList<>();
 
-        init(shadowingFunction);
+        init(digitalTwinModel);
     }
 
     /**
      * Constructor for creating a DigitalTwin instance with an empty list of digitalized physical assets.
      *
      * @param digitalTwinId     The unique identifier for the Digital Twin.
-     * @param shadowingFunction The shadowing function for the Digital Twin.
-     * @throws ModelException                If there is an issue with the model.
+     * @param digitalTwinModel The shadowing function for the Digital Twin.
+     * @throws KernelException                If there is an issue with the model.
      * @throws EventBusException             If there is an issue with the event bus.
      * @throws WldtRuntimeException           If a runtime exception occurs during Digital Twin creation.
      * @throws WldtWorkerException            If there is an issue with the DigitalTwinWorker.
      * @throws WldtDigitalTwinStateException If there is an issue with the state of the Digital Twin.
      */
-    public DigitalTwin(String digitalTwinId, ShadowingFunction shadowingFunction) throws ModelException, EventBusException, WldtRuntimeException, WldtWorkerException, WldtDigitalTwinStateException {
-        this(digitalTwinId, new ArrayList<>(), shadowingFunction);
+    public DigitalTwin(String digitalTwinId, DigitalTwinModel digitalTwinModel) throws KernelException, EventBusException, WldtRuntimeException, WldtWorkerException, WldtDigitalTwinStateException {
+        this(digitalTwinId, new ArrayList<>(), digitalTwinModel);
     }
 
     /**
      * Initializes the Digital Twin with the provided shadowing function.
      *
-     * @param shadowingFunction The shadowing function for the Digital Twin.
-     * @throws ModelException           If there is an issue with the model.
+     * @param digitalTwinModel The shadowing function for the Digital Twin.
+     * @throws KernelException           If there is an issue with the model.
      * @throws WldtRuntimeException      If a runtime exception occurs during Digital Twin initialization.
      * @throws WldtWorkerException       If there is an issue with the DigitalTwinWorker.
      * @throws WldtDigitalTwinStateException If there is an issue with the state of the Digital Twin.
      */
-    private void init(ShadowingFunction shadowingFunction) throws ModelException, WldtRuntimeException, WldtWorkerException, WldtDigitalTwinStateException {
+    private void init(DigitalTwinModel digitalTwinModel) throws KernelException, WldtRuntimeException, WldtWorkerException, WldtDigitalTwinStateException {
 
-        if(shadowingFunction == null)
+        if(digitalTwinModel == null)
             throw new WldtRuntimeException("Error ! Shadowing Function = NULL !");
 
         //Init Life Cycle Listeners & Status Map
@@ -267,18 +267,18 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
         this.physicalAdaptersPhysicalAssetDescriptionMap = new HashMap<>();
 
         //Set ShadowingListener, Init Model Engine & Add to the List of Workers
-        this.shadowingFunction = shadowingFunction;
-        this.shadowingFunction.setShadowingModelListener(this);
+        this.digitalTwinModel = digitalTwinModel;
+        this.digitalTwinModel.setShadowingModelListener(this);
 
         // Initialize the Digital Twin Model with digital twin ID, state manager, shadowing function, and storage manager
-        this.digitalTwinModel = new DigitalTwinModel(this.digitalTwinId,
+        this.digitalTwinKernel = new DigitalTwinKernel(this.digitalTwinId,
                 this.digitalTwinStateManager,
-                this.shadowingFunction,
+                this.digitalTwinModel,
                 this.storageManager,
                 this.resourceManager);
 
         //Save the Model Engine as Digital Twin Life Cycle Listener
-        addLifeCycleListener(this.digitalTwinModel);
+        addLifeCycleListener(this.digitalTwinKernel);
 
         // Execute Storage Manager
         executeStorageManager();
@@ -288,7 +288,7 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
      * Executes the model engine in a dedicated thread.
      */
     private void executeModelEngine(){
-        modelEngineThread = new Thread(this.digitalTwinModel);
+        modelEngineThread = new Thread(this.digitalTwinKernel);
         modelEngineThread.setName(String.format("%s-model-engine", this.getId()));
         modelEngineThread.start();
     }
@@ -724,8 +724,8 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
             //Stop and Notify Model Engine
             this.modelEngineThread.interrupt();
             this.modelEngineThread = null;
-            this.digitalTwinModel.onWorkerStop();
-            removeLifeCycleListener(this.digitalTwinModel);
+            this.digitalTwinKernel.onWorkerStop();
+            removeLifeCycleListener(this.digitalTwinKernel);
 
             //Stop and Notify Physical Adapters
             this.physicalAdapterExecutor.shutdownNow();

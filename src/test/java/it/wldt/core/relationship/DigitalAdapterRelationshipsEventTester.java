@@ -8,7 +8,7 @@ import it.wldt.core.relationship.utils.RelationshipsLifeCycleListener;
 import it.wldt.core.state.DigitalTwinStateRelationshipInstance;
 import it.wldt.exception.*;
 import it.wldt.core.relationship.utils.RelationshipPhysicalAdapter;
-import it.wldt.core.relationship.utils.RelationshipShadowingFunction;
+import it.wldt.core.relationship.utils.RelationshipDigitalTwinModel;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -27,7 +27,7 @@ public class DigitalAdapterRelationshipsEventTester {
 
     public final String DIGITAL_TWIN_ID = "dt00001";
 
-    public DigitalTwin initDT(RelationshipShadowingFunction shadowingFunction, RelationshipDigitalAdapter digitalAdapter, RelationshipPhysicalAdapter physicalAdapter, LifeCycleListener listener) throws ModelException, WldtRuntimeException, EventBusException, WldtConfigurationException, WldtWorkerException, WldtDigitalTwinStateException {
+    public DigitalTwin initDT(RelationshipDigitalTwinModel shadowingFunction, RelationshipDigitalAdapter digitalAdapter, RelationshipPhysicalAdapter physicalAdapter, LifeCycleListener listener) throws KernelException, WldtRuntimeException, EventBusException, WldtConfigurationException, WldtWorkerException, WldtDigitalTwinStateException {
 
         DigitalTwin dt = new DigitalTwin(DIGITAL_TWIN_ID, shadowingFunction);
         dt.addPhysicalAdapter(physicalAdapter);
@@ -39,13 +39,13 @@ public class DigitalAdapterRelationshipsEventTester {
 
     @Order(2)
     @Test
-    public void testDigitalAdapterStateWithRelationshipTest() throws WldtConfigurationException, ModelException, WldtRuntimeException, EventBusException, InterruptedException, WldtWorkerException, WldtDigitalTwinStateException, WldtEngineException {
+    public void testDigitalAdapterStateWithRelationshipTest() throws WldtConfigurationException, KernelException, WldtRuntimeException, EventBusException, InterruptedException, WldtWorkerException, WldtDigitalTwinStateException, WldtEngineException {
 
         DigitalTwinEngine digitalTwinEngine = new DigitalTwinEngine();
 
         CountDownLatch syncLatch = new CountDownLatch(1);
 
-        RelationshipShadowingFunction shadowingFunction = new RelationshipShadowingFunction();
+        RelationshipDigitalTwinModel shadowingFunction = new RelationshipDigitalTwinModel();
         RelationshipPhysicalAdapter physicalAdapter = new RelationshipPhysicalAdapter();
         RelationshipDigitalAdapter digitalAdapter = new RelationshipDigitalAdapter(null);
         RelationshipsLifeCycleListener lifeCycleListener = new RelationshipsLifeCycleListener(syncLatch);
@@ -66,13 +66,13 @@ public class DigitalAdapterRelationshipsEventTester {
 
     @Test
     @Order(1)
-    public void testDigitalAdapterReceiveRelationshipsNotification() throws WldtConfigurationException, ModelException, WldtRuntimeException, EventBusException, InterruptedException, WldtWorkerException, WldtDigitalTwinStateException, WldtEngineException {
+    public void testDigitalAdapterReceiveRelationshipsNotification() throws WldtConfigurationException, KernelException, WldtRuntimeException, EventBusException, InterruptedException, WldtWorkerException, WldtDigitalTwinStateException, WldtEngineException {
 
         DigitalTwinEngine digitalTwinEngine = new DigitalTwinEngine();
 
         CountDownLatch syncLatch = new CountDownLatch(1);
 
-        RelationshipShadowingFunction shadowingFunction = new RelationshipShadowingFunction();
+        RelationshipDigitalTwinModel shadowingFunction = new RelationshipDigitalTwinModel();
 
         CountDownLatch relationshipLatch = new CountDownLatch(1);
 

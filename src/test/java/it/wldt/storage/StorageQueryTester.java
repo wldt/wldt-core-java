@@ -18,7 +18,7 @@ import it.wldt.process.digital.DemoDigitalAdapterConfiguration;
 import it.wldt.process.metrics.SharedTestMetrics;
 import it.wldt.process.physical.DemoPhysicalAdapter;
 import it.wldt.process.physical.DemoPhysicalAdapterConfiguration;
-import it.wldt.process.shadowing.DemoShadowingFunction;
+import it.wldt.process.shadowing.DemoDigitalTwinModel;
 import it.wldt.storage.model.StorageStats;
 import it.wldt.storage.model.digital.DigitalActionRequestRecord;
 import it.wldt.storage.model.lifecycle.LifeCycleVariationRecord;
@@ -57,13 +57,13 @@ public class StorageQueryTester {
     private long startTimeStamp = System.currentTimeMillis();
 
     @BeforeEach
-    public void setUp() throws ModelException, WldtRuntimeException, EventBusException, WldtConfigurationException, WldtWorkerException, WldtDigitalTwinStateException, WldtEngineException, StorageException {
+    public void setUp() throws KernelException, WldtRuntimeException, EventBusException, WldtConfigurationException, WldtWorkerException, WldtDigitalTwinStateException, WldtEngineException, StorageException {
 
         logger.info("Setting up Test Environment ...");
 
         digitalTwinEngine = new DigitalTwinEngine();
 
-        digitalTwin = new DigitalTwin(TEST_DIGITAL_TWIN_ID, new DemoShadowingFunction());
+        digitalTwin = new DigitalTwin(TEST_DIGITAL_TWIN_ID, new DemoDigitalTwinModel());
 
         // Physical Adapter with Configuration with Relationship Enabled
         physicalAdapter = new DemoPhysicalAdapter(
@@ -114,7 +114,7 @@ public class StorageQueryTester {
 
     @Test
     @Order(1)
-    public void testDigitalTwinStateUpdates() throws WldtConfigurationException, EventBusException, ModelException, InterruptedException, WldtRuntimeException, StorageException {
+    public void testDigitalTwinStateUpdates() throws WldtConfigurationException, EventBusException, KernelException, InterruptedException, WldtRuntimeException, StorageException {
 
         //Set EventBus Logger
         WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
@@ -194,7 +194,7 @@ public class StorageQueryTester {
 
     @Test
     @Order(2)
-    public void testQueryExecutorSync() throws WldtConfigurationException, EventBusException, ModelException, InterruptedException, WldtRuntimeException, StorageException {
+    public void testQueryExecutorSync() throws WldtConfigurationException, EventBusException, KernelException, InterruptedException, WldtRuntimeException, StorageException {
 
         //Set EventBus Logger
         WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
@@ -222,7 +222,7 @@ public class StorageQueryTester {
 
     @Test
     @Order(3)
-    public void testQueryExecutorAsync() throws WldtConfigurationException, EventBusException, ModelException, InterruptedException, WldtRuntimeException, StorageException {
+    public void testQueryExecutorAsync() throws WldtConfigurationException, EventBusException, KernelException, InterruptedException, WldtRuntimeException, StorageException {
 
         //Set EventBus Logger
         WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
@@ -258,7 +258,7 @@ public class StorageQueryTester {
 
     @Test
     @Order(4)
-    public void testSyncStateQuery() throws WldtConfigurationException, EventBusException, ModelException, InterruptedException, WldtRuntimeException, StorageException {
+    public void testSyncStateQuery() throws WldtConfigurationException, EventBusException, KernelException, InterruptedException, WldtRuntimeException, StorageException {
 
         //Set EventBus Logger
         WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
@@ -287,7 +287,7 @@ public class StorageQueryTester {
 
     @Test
     @Order(5)
-    public void testSyncStateRangeQueries() throws WldtConfigurationException, EventBusException, ModelException, InterruptedException, WldtRuntimeException, StorageException {
+    public void testSyncStateRangeQueries() throws WldtConfigurationException, EventBusException, KernelException, InterruptedException, WldtRuntimeException, StorageException {
 
         //Set EventBus Logger
         WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
@@ -382,7 +382,7 @@ public class StorageQueryTester {
 
     @Test
     @Order(6)
-    public void testSyncPhysicalPropertyVariationQueries() throws WldtConfigurationException, EventBusException, ModelException, InterruptedException, WldtRuntimeException, StorageException {
+    public void testSyncPhysicalPropertyVariationQueries() throws WldtConfigurationException, EventBusException, KernelException, InterruptedException, WldtRuntimeException, StorageException {
 
         //Set EventBus Logger
         WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
@@ -1177,7 +1177,7 @@ public class StorageQueryTester {
 
     @Test
     @Order(14)
-    public void testDigitalAdapterQueryExecutorSync() throws WldtConfigurationException, EventBusException, ModelException, InterruptedException, WldtRuntimeException, StorageException {
+    public void testDigitalAdapterQueryExecutorSync() throws WldtConfigurationException, EventBusException, KernelException, InterruptedException, WldtRuntimeException, StorageException {
 
         //Set EventBus Logger
         WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
@@ -1278,7 +1278,7 @@ public class StorageQueryTester {
 
     @Test
     @Order(17)
-    public void testSyncStateEventNotificationRangeQueries() throws WldtConfigurationException, EventBusException, ModelException, InterruptedException, WldtRuntimeException, StorageException {
+    public void testSyncStateEventNotificationRangeQueries() throws WldtConfigurationException, EventBusException, KernelException, InterruptedException, WldtRuntimeException, StorageException {
 
         //Set EventBus Logger
         WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());

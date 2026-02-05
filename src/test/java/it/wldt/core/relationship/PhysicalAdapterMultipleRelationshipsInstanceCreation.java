@@ -3,8 +3,8 @@ package it.wldt.core.relationship;
 import it.wldt.core.engine.DigitalTwin;
 import it.wldt.core.engine.DigitalTwinEngine;
 import it.wldt.core.relationship.utils.RelationshipDigitalAdapter;
+import it.wldt.core.relationship.utils.RelationshipDigitalTwinModel;
 import it.wldt.core.relationship.utils.RelationshipPhysicalAdapter;
-import it.wldt.core.relationship.utils.RelationshipShadowingFunction;
 import it.wldt.core.relationship.utils.RelationshipsLifeCycleListener;
 import it.wldt.core.state.DigitalTwinStateRelationship;
 import it.wldt.exception.*;
@@ -30,7 +30,7 @@ public class PhysicalAdapterMultipleRelationshipsInstanceCreation {
     private DigitalTwin dt;
 
     private CountDownLatch syncLatch;
-    private RelationshipShadowingFunction shadowingFunction;
+    private RelationshipDigitalTwinModel shadowingFunction;
 
     private RelationshipPhysicalAdapter physicalAdapter;
 
@@ -40,14 +40,14 @@ public class PhysicalAdapterMultipleRelationshipsInstanceCreation {
     private RelationshipDigitalAdapter digitalAdapter;
 
     @BeforeEach
-    public void setUp() throws WldtConfigurationException, ModelException, WldtRuntimeException, EventBusException, WldtWorkerException, WldtDigitalTwinStateException {
+    public void setUp() throws WldtConfigurationException, KernelException, WldtRuntimeException, EventBusException, WldtWorkerException, WldtDigitalTwinStateException {
 
         System.out.println("Setting up Testing Environment ...");
 
         syncLatch = new CountDownLatch(1);
         relationshipLatch = new CountDownLatch(2);
 
-        shadowingFunction = new RelationshipShadowingFunction();
+        shadowingFunction = new RelationshipDigitalTwinModel();
         shadowingFunction.setRelationshipLatch(relationshipLatch);
 
         physicalAdapter = new RelationshipPhysicalAdapter();

@@ -14,7 +14,7 @@ import it.wldt.core.event.DefaultWldtEventLogger;
 import it.wldt.core.event.WldtEventBus;
 import it.wldt.adapter.physical.event.PhysicalAssetEventWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetPropertyWldtEvent;
-import it.wldt.core.model.ShadowingFunction;
+import it.wldt.core.model.DigitalTwinModel;
 import it.wldt.core.adapter.digital.TestDigitalAdapterConfiguration;
 import it.wldt.core.state.DigitalTwinState;
 import it.wldt.exception.*;
@@ -46,7 +46,7 @@ public class LifeCycleTester {
     private static final String DEMO_MQTT_MESSAGE_TYPE = "mqtt.telemetry";
 
     @Test
-    public void testLifeCycle() throws WldtConfigurationException, EventBusException, ModelException, ModelFunctionException, InterruptedException, WldtRuntimeException, WldtWorkerException, WldtDigitalTwinStateException, WldtEngineException {
+    public void testLifeCycle() throws WldtConfigurationException, EventBusException, KernelException, ModelFunctionException, InterruptedException, WldtRuntimeException, WldtWorkerException, WldtDigitalTwinStateException, WldtEngineException {
 
         DigitalTwinEngine digitalTwinEngine = new DigitalTwinEngine();
 
@@ -61,7 +61,7 @@ public class LifeCycleTester {
         TestPhysicalAdapter testPhysicalAdapter = new TestPhysicalAdapter("dummy-physical-adapter", new TestPhysicalAdapterConfiguration(), true);
 
         //Init the Engine
-        DigitalTwin digitalTwin = new DigitalTwin(DIGITAL_TWIN_ID, new ShadowingFunction("test-shadowing-function") {
+        DigitalTwin digitalTwin = new DigitalTwin(DIGITAL_TWIN_ID, new DigitalTwinModel("test-shadowing-function") {
 
             private boolean isShadowed = false;
 
@@ -156,7 +156,7 @@ public class LifeCycleTester {
 
             @Override
             protected void onPhysicalAssetEventNotification(PhysicalAssetEventWldtEvent<?> physicalAssetEventWldtEvent) {
-                logger.info("ShadowingFunction Physical Asset Event - Event Received: {}", physicalAssetEventWldtEvent);
+                logger.info("DigitalTwinModel Physical Asset Event - Event Received: {}", physicalAssetEventWldtEvent);
             }
 
         });

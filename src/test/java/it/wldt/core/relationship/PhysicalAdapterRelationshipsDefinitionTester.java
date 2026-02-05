@@ -4,8 +4,8 @@ import it.wldt.adapter.physical.PhysicalAssetRelationship;
 import it.wldt.core.engine.DigitalTwin;
 import it.wldt.core.engine.DigitalTwinEngine;
 import it.wldt.core.relationship.utils.RelationshipDigitalAdapter;
+import it.wldt.core.relationship.utils.RelationshipDigitalTwinModel;
 import it.wldt.core.relationship.utils.RelationshipPhysicalAdapter;
-import it.wldt.core.relationship.utils.RelationshipShadowingFunction;
 import it.wldt.core.relationship.utils.RelationshipsLifeCycleListener;
 import it.wldt.exception.*;
 import org.junit.jupiter.api.*;
@@ -32,7 +32,7 @@ public class PhysicalAdapterRelationshipsDefinitionTester {
     private DigitalTwin dt;
 
     private CountDownLatch syncLatch;
-    private RelationshipShadowingFunction shadowingFunction;
+    private RelationshipDigitalTwinModel shadowingFunction;
 
     private RelationshipPhysicalAdapter physicalAdapter;
 
@@ -42,14 +42,14 @@ public class PhysicalAdapterRelationshipsDefinitionTester {
     private RelationshipDigitalAdapter digitalAdapter;
 
     @BeforeEach
-    public void setUp() throws WldtConfigurationException, ModelException, WldtRuntimeException, EventBusException, WldtWorkerException, WldtDigitalTwinStateException {
+    public void setUp() throws WldtConfigurationException, KernelException, WldtRuntimeException, EventBusException, WldtWorkerException, WldtDigitalTwinStateException {
 
         System.out.println("Setting up Testing Environment ...");
 
         syncLatch = new CountDownLatch(1);
         relationshipLatch = new CountDownLatch(2);
 
-        shadowingFunction = new RelationshipShadowingFunction();
+        shadowingFunction = new RelationshipDigitalTwinModel();
         shadowingFunction.setRelationshipLatch(relationshipLatch);
 
         physicalAdapter = new RelationshipPhysicalAdapter();
@@ -79,12 +79,12 @@ public class PhysicalAdapterRelationshipsDefinitionTester {
 
 
     /**The aim of this test is to verify that if a PhysicalAdapter adds one or more PhysicalAssetRelationships to its PhysicalAssetDescription,
-     * the ShadowingFunction is able to create the corresponding DigitalTwinStateRelationships and add them to the DigitalTwinState
+     * the DigitalTwinModel is able to create the corresponding DigitalTwinStateRelationships and add them to the DigitalTwinState
      * */
 
     @Test
     @Order(1)
-    public void physicalAssetDescriptionAndDTStateTest() throws WldtConfigurationException, ModelException, WldtRuntimeException, EventBusException, InterruptedException, WldtEngineException {
+    public void physicalAssetDescriptionAndDTStateTest() throws WldtConfigurationException, KernelException, WldtRuntimeException, EventBusException, InterruptedException, WldtEngineException {
 
         DigitalTwinEngine digitalTwinEngine = new DigitalTwinEngine();
 
