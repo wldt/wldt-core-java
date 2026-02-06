@@ -37,7 +37,6 @@ import it.wldt.storage.StorageManager;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-
 import it.wldt.core.model.annotation.ShadowingFunction;
 import it.wldt.core.model.annotation.ShadowingType;
 
@@ -46,13 +45,33 @@ import it.wldt.core.model.annotation.ShadowingType;
  *          Marco Picone, Ph.D. (picone.m@gmail.com)
  * Date: 01/02/2023
  * Project: White Label Digital Twin Java Framework - (whitelabel-digitaltwin)
- * This class implement the shadowing process (also known as replication of digitalization) responsible to keep the
- * Digital Twin State synchronized with that of the corresponding physical resource
- * according to what is defined by the Model. It handles:
- *  - Physical Asset Description Management
- *  - Digital Twin State Management
- *  - Life Cycle Management
- *  - Incoming and outgoing events of both Physical and Digital Adapters
+ * Core class for Digital Twin modeling, event processing together with lifecycle and behavior management.
+ * <p>
+ * The {@code DigitalTwinModel} serves as the central component in shaping Digital Twin behavior,
+ * managing the Digital Twin's execution, state, and interactions between physical and digital worlds.
+ * It orchestrates the {@link ShadowingFunction} (modeled throudh a combination of dedicated methods)
+ * that defines the DT's behavioral logic while coordinating core components including Physical Adapters,
+ * Digital Adapters, State Management, and Storage.
+ *
+ * <h3>Core Responsibilities</h3>
+ * <ul>
+ *   <li><b>Shadowing Function Orchestration</b>: Manages the shadowing process (replication and
+ *       digitalization) that keeps the Digital Twin State synchronized with the physical asset</li>
+ *   <li><b>Physical Asset Description Management</b>: Coordinates Physical Adapters and their descriptions</li>
+ *   <li><b>Digital Twin State Management</b>: Maintains the canonical state representation</li>
+ *   <li><b>Storage Management</b>: Coordinates persistent storage of Digital Twin state evolution,
+ *       events, and lifecycle data through the Storage Manager</li>
+ *   <li><b>Resource Management</b>: Handles Digital Twin resources, relationships, and their
+ *       lifecycle through the Resource Manager</li>
+ *   <li><b>Event Routing</b>: Routes events between physical and digital sides through the Shadowing Function</li>
+ *   <li><b>Lifecycle Management</b>: Controls initialization, execution, and termination</li>
+ * </ul>
+ *
+ *
+ * @see ShadowingFunction
+ * @see DigitalTwinStateManager
+ * @see StorageManager
+ * @see ResourceManager
  */
 public abstract class DigitalTwinModel implements WldtEventListener {
 
@@ -87,7 +106,7 @@ public abstract class DigitalTwinModel implements WldtEventListener {
 
     /**
      * Default Constructor
-     * @param id Unique Identifier of the Shadowing Model Function
+     * @param id Unique Identifier of the Digital Twin Model
      */
     public DigitalTwinModel(String id){
         this.id = id;
@@ -95,7 +114,7 @@ public abstract class DigitalTwinModel implements WldtEventListener {
     }
 
     /**
-     * Initialize the Shadowing Model Function with the current Digital Twin State Manager
+     * Initialize the Digital Twin Model with the current Digital Twin State Manager
      * @param digitalTwinStateManager DigitalTwinStateManager instance
      */
     protected void init(DigitalTwinStateManager digitalTwinStateManager,
@@ -107,10 +126,10 @@ public abstract class DigitalTwinModel implements WldtEventListener {
     }
 
     /**
-     *
-     * @param physicalAssetProperty
-     * @throws EventBusException
-     * @throws KernelException
+     * Observe a single target Physical Asset Property
+     * @param physicalAssetProperty the target PhysicalAssetProperty to observe
+     * @throws EventBusException If an error occurs during the event subscription
+     * @throws KernelException If the provided list is NULL
      */
     protected void observePhysicalAssetProperty(PhysicalAssetProperty<?> physicalAssetProperty) throws EventBusException, KernelException {
         if(physicalAssetProperty == null)
@@ -416,12 +435,12 @@ public abstract class DigitalTwinModel implements WldtEventListener {
 
     @Override
     public void onEventSubscribed(String eventType) {
-        logger.info("Shadowing Model Function -> Subscribed to: {}", eventType);
+        logger.info("Digital Twin Model -> Subscribed to: {}", eventType);
     }
 
     @Override
     public void onEventUnSubscribed(String eventType) {
-        logger.info("Shadowing Model Function -> Unsubscribed from: {}", eventType);
+        logger.info("Digital Twin Model -> Unsubscribed from: {}", eventType);
     }
 
     @Override

@@ -32,11 +32,11 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 @TestMethodOrder(MethodOrderer.MethodName.class)
-public class DigitalTwinModelTester {
+public class DigitalTwinModelTest {
 
     public final String DIGITAL_TWIN_ID = "dt00001";
 
-    private static final WldtLogger logger = WldtLoggerProvider.getLogger(DigitalTwinModelTester.class);
+    private static final WldtLogger logger = WldtLoggerProvider.getLogger(DigitalTwinModelTest.class);
 
     private static CountDownLatch testCountDownLatch = null;
 
@@ -78,7 +78,7 @@ public class DigitalTwinModelTester {
         });
     }
 
-    private DigitalTwinModel getTargetShadowingFunction(){
+    private DigitalTwinModel getTargetDigitalTwinModel(){
 
         return new DigitalTwinModel("demo-shadowing-model-function") {
 
@@ -250,7 +250,7 @@ public class DigitalTwinModelTester {
         TestDigitalAdapter testDigitalAdapter = new TestDigitalAdapter("dummy-digital-adapter", new TestDigitalAdapterConfiguration());
 
         //Init the Engine
-        DigitalTwin digitalTwin = new DigitalTwin(DIGITAL_TWIN_ID, getTargetShadowingFunction());
+        DigitalTwin digitalTwin = new DigitalTwin(DIGITAL_TWIN_ID, getTargetDigitalTwinModel());
         digitalTwin.addPhysicalAdapter(testPhysicalAdapter);
         digitalTwin.addDigitalAdapter(testDigitalAdapter);
 

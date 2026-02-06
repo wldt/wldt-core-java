@@ -27,19 +27,41 @@ import it.wldt.core.state.DigitalTwinState;
  *          Marco Picone, Ph.D. (picone.m@gmail.com)
  * Date: 01/02/2023
  * Project: White Label Digital Twin Java Framework - (whitelabel-digitaltwin)
+ * Listener interface for observing Digital Twin shadowing process synchronization state changes.
+ * <p>
+ * Notifies observers when the Digital Twin transitions between synchronized and out-of-sync states
+ * during the shadowing process (replication and digitalization). Components can implement this
+ * interface to react to synchronization status changes between the Digital Twin State and the
+ * physical asset.
  *
- * This class implement the shadowing process (also known as replication of digitalization) responsible to keep the
- * Digital Twin State synchronized with that of the corresponding physical resource
- * according to what is defined by the Model. It handles:
- *  - Physical Asset Description Management
- *  - Digital Twin State Management
- *  - Life Cycle Management
- *  - Incoming and outgoing events of both Physical and Digital Adapters
+ * <h3>State Transitions</h3>
+ * <ul>
+ *   <li><b>Synchronized</b>: Digital Twin State accurately reflects the physical asset state.
+ *       All Physical Adapters are bound and actively providing data.</li>
+ *   <li><b>Out-of-Sync</b>: Digital Twin State does not reflect the physical asset state due to
+ *       Physical Adapter disconnection, binding failures, or communication issues.</li>
+ * </ul>
  */
 public interface ShadowingModelListener {
 
+    /**
+     * Invoked when the Digital Twin transitions to synchronized state.
+     * <p>
+     * Called when all Physical Adapters are bound and the Digital Twin State is actively
+     * synchronized with the physical asset.
+     *
+     * @param digitalTwinState the current synchronized Digital Twin State
+     */
     public void onShadowingSync(DigitalTwinState digitalTwinState);
 
+    /**
+     * Invoked when the Digital Twin transitions to out-of-sync state.
+     * <p>
+     * Called when the Digital Twin loses synchronization with its physical asset due to
+     * Physical Adapter issues or communication failures.
+     *
+     * @param digitalTwinState the last known Digital Twin State before synchronization was lost
+     */
     public void onShadowingOutOfSync(DigitalTwinState digitalTwinState);
 
 }
