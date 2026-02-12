@@ -20,6 +20,9 @@
  */
 package it.wldt.adapter.physical;
 
+import it.wldt.log.WldtLogger;
+import it.wldt.log.WldtLoggerProvider;
+
 import java.util.Objects;
 
 /**
@@ -38,6 +41,9 @@ import java.util.Objects;
  */
 public class PhysicalAssetProperty<T> {
 
+    /** Logger */
+    private static final WldtLogger logger = WldtLoggerProvider.getLogger(PhysicalAssetProperty.class);
+
     /**
      * Key uniquely identifying the property in the Digital Twin State
      */
@@ -49,13 +55,16 @@ public class PhysicalAssetProperty<T> {
     private T initialValue;
 
     /**
-     * Type of the Property. By default, it is associated to the type of the Class (e.g., java.lang.String) but it
-     * can be directly changed by the developer to associate it to a specific ontology or data type.
-     * Furthermore, it can be useful if the event management system will be extended to the event-base communication
-     * between DTs over the network. In that case, the field can be used to de-serialize the object and understand
-     * the property type
+     * Type of the Property and can be directly set by the developer to associate it to a specific ontology or data type
+     * within the application domain (e.g., "iot.demo.temperature" or "iot.demo.humidity").
      */
     private String type = null;
+
+    /**
+     * Content-Type of the Property. By default, it is associated to the type of the Class (e.g., java.lang.String) but it
+     * can be directly changed by the developer to associate it to a specific content-type.
+     */
+    private String contentType;
 
     /**
      * Identify if the property is immutable by external modules. If it is immutable the initial exposed value does not
@@ -71,14 +80,73 @@ public class PhysicalAssetProperty<T> {
     private PhysicalAssetProperty() {
     }
 
+
+    /**
+     * Constructor for PhysicalAssetProperty.
+     * The type of the property is set by default to the key, but it can be directly changed by the developer
+     * to associate it to a specific ontology or data type. The association to the key is just a default value to ensure
+     * that the property has a type associated and the key is the only information available to identify the property.
+     * @param key uniquely identifying the property on the Physical Twin.
+     * @param initialValue Initial value of the property from the Physical Twin.
+     */
     public PhysicalAssetProperty(String key, T initialValue) {
         this.key = key;
         this.initialValue = initialValue;
-        this.type = initialValue.getClass().getName();
+        this.type = key;
+        this.contentType = initialValue.getClass().getName();
     }
 
     public PhysicalAssetProperty(String key, T initialValue, boolean immutable, boolean writable) {
         this(key, initialValue);
+        this.immutable = immutable;
+        this.writable = writable;
+    }
+
+    public PhysicalAssetProperty(String key,
+                                 String type,
+                                 String contentType,
+                                 T initialValue) {
+
+        this(key, type, contentType, initialValue, false, true);
+
+    }
+
+    public PhysicalAssetProperty(String key,
+                                 String type,
+                                 T initialValue) {
+
+        this.key = key;
+        this.initialValue = initialValue;
+        this.type = type;
+
+        if(initialValue == null){
+            logger.error("InitialValue is null ! Content is set to null");
+            this.contentType = null;
+        }
+        else
+            this.contentType = initialValue.getClass().getName();
+
+    }
+
+    /**
+     * Constructor for PhysicalAssetProperty with the possibility to set all the field.
+     * @param key uniquely identifying the property on the Physical Twin.
+     * @param type Type of the property associated to a specific ontology or data type.
+     * @param contentType Content-Type of the Property to specify how it is represented.
+     * @param initialValue Initial value of the property.
+     * @param immutable Set if the property is immutable.
+     * @param writable Set if the property can be written
+     */
+    public PhysicalAssetProperty(String key,
+                                 String type,
+                                 String contentType,
+                                 T initialValue,
+                                 boolean immutable,
+                                 boolean writable) {
+        this.key = key;
+        this.initialValue = initialValue;
+        this.type = type;
+        this.contentType = contentType;
         this.immutable = immutable;
         this.writable = writable;
     }
@@ -136,12 +204,22 @@ public class PhysicalAssetProperty<T> {
         return Objects.hash(key, initialValue, immutable, writable);
     }
 
+    public String getContentType() {
+        return contentType;
+    }
+
+    public void setContentType(String contentType) {
+        this.contentType = contentType;
+    }
+
     @Override
     public String toString() {
-        final StringBuilder sb = new StringBuilder("PhysicalAssetProperty{");
+        final StringBuffer sb = new StringBuffer("PhysicalAssetProperty{");
         sb.append("key='").append(key).append('\'');
-        sb.append(", value=").append(initialValue);
-        sb.append(", readable=").append(immutable);
+        sb.append(", initialValue=").append(initialValue);
+        sb.append(", type='").append(type).append('\'');
+        sb.append(", contentType='").append(contentType).append('\'');
+        sb.append(", immutable=").append(immutable);
         sb.append(", writable=").append(writable);
         sb.append('}');
         return sb.toString();
