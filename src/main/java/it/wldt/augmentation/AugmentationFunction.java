@@ -20,39 +20,126 @@
  */
 package it.wldt.augmentation;
 
-/**
- * @author Marco Picone, Ph.D. - picone.m@gmail.com
- */
-public abstract class AugmentationFunction<T> implements Runnable {
+import it.wldt.exception.AugmentationFunctionException;
 
+import java.util.List;
+
+public abstract class AugmentationFunction {
+
+    /**
+     * The unique id of the augmentation function.
+     */
     private String id;
 
-    private AugmentationFunctionListener<T> listener;
+    /**
+     * The name of the augmentation function.
+     */
+    private String name;
 
-    private AugmentationFunction(){
+    /**
+     * The description of the augmentation function.
+     */
+    private String description;
 
-    }
+    /**
+     * The version of the augmentation function.
+     */
+    private String version;
 
-    public AugmentationFunction(String id, AugmentationFunctionListener<T> listener) {
+    /**
+     * The type of the augmentation function.
+     */
+    private AugmentationFunctionType type;
+
+    /**
+     * The context request of the augmentation function.
+     */
+    private AugmentationFunctionContextRequest contextRequest;
+
+    /**
+     * Constructor of the AugmentationFunction class with all the parameters.
+     *
+     * @param id the unique id of the augmentation function
+     * @param name the name of the augmentation function
+     * @param description the description of the augmentation function
+     * @param version the version of the augmentation function
+     * @param type the type of the augmentation function
+     * @param contextRequest the context request of the augmentation function
+     */
+    public AugmentationFunction(String id,
+                                String name,
+                                String description,
+                                String version,
+                                AugmentationFunctionType type,
+                                AugmentationFunctionContextRequest contextRequest) {
         this.id = id;
-        this.listener = listener;
+        this.name = name;
+        this.description = description;
+        this.version = version;
+        this.type = type;
+        this.contextRequest = contextRequest;
     }
 
-    @Override
-    public void run() {
-        try{
-
-            T result = execute();
-            if(this.listener != null)
-                this.listener.onFunctionResult(result);
-
-        }catch (Exception e){
-            if(this.listener != null)
-                this.listener.onFunctionError(e.getLocalizedMessage());
-            //TODO Else + Log
-
-        }
+    /**
+     * Constructor of the AugmentationFunction class with minimum parameters.
+     *
+     * @param id the unique id of the augmentation function
+     * @param name the name of the augmentation function
+     * @param type the type of the augmentation function
+     */
+    public AugmentationFunction(String id,
+                                String name,
+                                AugmentationFunctionType type) {
+        this(id, name, null, null, type, new AugmentationFunctionContextRequest());
     }
 
-    public abstract T execute();
+    protected abstract List<AugmentationFunctionResult<?>> run(AugmentationFunctionContext context) throws AugmentationFunctionException;
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public String getVersion() {
+        return version;
+    }
+
+    public void setVersion(String version) {
+        this.version = version;
+    }
+
+    public AugmentationFunctionType getType() {
+        return type;
+    }
+
+    public void setType(AugmentationFunctionType type) {
+        this.type = type;
+    }
+
+    public AugmentationFunctionContextRequest getContextRequest() {
+        return contextRequest;
+    }
+
+    public void setContextRequest(AugmentationFunctionContextRequest contextRequest) {
+        this.contextRequest = contextRequest;
+    }
 }

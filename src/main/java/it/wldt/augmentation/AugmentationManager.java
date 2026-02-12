@@ -22,7 +22,6 @@ package it.wldt.augmentation;
 
 import it.wldt.adapter.digital.DigitalAdapterLifeCycleListener;
 import it.wldt.adapter.digital.DigitalAdapterListener;
-import it.wldt.adapter.digital.event.DigitalActionWldtEvent;
 import it.wldt.adapter.physical.PhysicalAssetDescription;
 import it.wldt.core.engine.DigitalTwinWorker;
 import it.wldt.core.engine.LifeCycleListener;
@@ -31,6 +30,7 @@ import it.wldt.core.event.WldtEventBus;
 import it.wldt.core.event.WldtEventFilter;
 import it.wldt.core.event.WldtEventListener;
 import it.wldt.core.state.*;
+import it.wldt.exception.AugmentationFunctionException;
 import it.wldt.exception.EventBusException;
 import it.wldt.exception.WldtDigitalTwinStateEventException;
 import it.wldt.exception.WldtRuntimeException;
@@ -42,21 +42,14 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Authors:
- *          Marco Picone, Ph.D. (picone.m@gmail.com)
- *          Marta Spadoni (marta.spadoni2@studio.unibo.it)
- * Date: 05/08/2024
+ * Authors: Marco Picone, Ph.D. (picone.m@gmail.com)
+ * Date: 12/02/2026
  * Project: White Label Digital Twin Java Framework - (whitelabel-digitaltwin)
- * This class represents the Augmentation Function Manager, which is responsible for managing the execution of an
- * Augmentation Function and its lifecycle. The Augmentation Function Manager is responsible for observing
- * the Digital Twin State and its variations and for executing the Augmentation Function logic when the observed variations
- * match the defined execution conditions.
+ * WRITE ..
  */
-public abstract class AugmentationFunctionManager extends DigitalTwinWorker implements WldtEventListener, LifeCycleListener {
+public abstract class AugmentationManager extends DigitalTwinWorker implements WldtEventListener, LifeCycleListener {
 
-    //public static final String DIGITAL_ACTION_EVENT = "da.digital.action.event";
-
-    private static final WldtLogger logger = WldtLoggerProvider.getLogger(AugmentationFunctionManager.class);
+    private static final WldtLogger logger = WldtLoggerProvider.getLogger(AugmentationManager.class);
 
     private String id = null;
 
@@ -74,22 +67,39 @@ public abstract class AugmentationFunctionManager extends DigitalTwinWorker impl
     protected QueryExecutor queryExecutor = null;
 
     /**
-     * Constructor of the AugmentationFunctionManager class.
+     * Constructor of the AugmentationManager class.
      * It is protected to allow the extension of the class and the creation of custom Augmentation Managers.
      */
-    private AugmentationFunctionManager() {
+    private AugmentationManager() {
         super();
     }
 
     /**
-     * Constructor of the AugmentationFunctionManager class with the id of the Manager.
+     * Constructor of the AugmentationManager class with the id of the Manager.
      * Receives the id of the Augmentation Function Manager and set it as the id of the Manager.
      * @param id the id of the Augmentation Manager
      */
-    public AugmentationFunctionManager(String id) {
+    public AugmentationManager(String id) {
         this();
         this.id = id;
     }
+
+    // ========================================
+    // Augmentation Function Management Methods
+    // ========================================
+    // The following abstract methods define the methods for the management, registration and unregistration
+    // of augmentation functions through their Descriptions. The implementation of these methods is left to the
+    // concrete implementation of the Augmentation Function Manager
+
+    abstract protected void registerAugmentationFunction(AugmentationFunction augmentationFunction) throws AugmentationFunctionException;
+
+    abstract protected void unRegisterAugmentationFunction(String augmentationFunctionId) throws AugmentationFunctionException;
+
+    abstract protected void startAugmentationFunction(String augmentationFunctionId) throws AugmentationFunctionException;
+
+    abstract protected void stopAugmentationFunction(String augmentationFunctionId) throws AugmentationFunctionException;
+
+    abstract protected void executeAugmentationFunction(String augmentationFunctionId, AugmentationFunctionContext augmentationFunctionContext) throws AugmentationFunctionException;
 
     /**
      * Enable the observation of all the Digital Twin State and any of its variations in terms of Properties, Actions,
@@ -351,7 +361,7 @@ public abstract class AugmentationFunctionManager extends DigitalTwinWorker impl
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        AugmentationFunctionManager that = (AugmentationFunctionManager) o;
+        AugmentationManager that = (AugmentationManager) o;
         return id.equals(that.id);
     }
 
