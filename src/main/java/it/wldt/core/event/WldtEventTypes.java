@@ -78,4 +78,18 @@ public class WldtEventTypes {
     public static final String STORAGE_QUERY_RESULT_EVENT_TYPE = "dt.storage.query.result";
 
     public static final String ALL_STORAGE_QUERY_RESULT_EVENT_TYPE = String.format("%s.%s", STORAGE_QUERY_RESULT_EVENT_TYPE, MULTI_LEVEL_WILDCARD_VALUE);
+
+    /* Augmentation Function Events */
+    public static final String AUGMENTATION_FUNCTION_START_BASE_TYPE = "dt.augmentation.function.execution.start";
+
+    public static final String AUGMENTATION_FUNCTION_STOP_BASE_TYPE = "dt.augmentation.function.execution.stop";
+
+    public static final String AUGMENTATION_FUNCTION_EXECUTION_BASE_TYPE = "dt.augmentation.function.execution.execute";
+
+    public static final String ALL_AUGMENTATION_FUNCTION_START_EVENT_TYPE = String.format("%s.%s", AUGMENTATION_FUNCTION_START_BASE_TYPE, MULTI_LEVEL_WILDCARD_VALUE);
+
+    public static final String ALL_AUGMENTATION_FUNCTION_STOP_EVENT_TYPE = String.format("%s.%s", AUGMENTATION_FUNCTION_STOP_BASE_TYPE, MULTI_LEVEL_WILDCARD_VALUE);
+
+    public static final String ALL_AUGMENTATION_FUNCTION_EXECUTION_EVENT_TYPE = String.format("%s.%s", AUGMENTATION_FUNCTION_EXECUTION_BASE_TYPE, MULTI_LEVEL_WILDCARD_VALUE);
+
 }

@@ -7,6 +7,8 @@ import java.util.List;
 
 public class RandomNumberAugmentationFunction extends AugmentationFunction{
 
+    public static final String RANDOM_NUMBER_AUGMENTATION_FUNCTION_ID = "random-number-augmentation-function";
+
     /**
      * * Constructor of the AugmentationFunction class with minimum parameters.
      * *
@@ -15,8 +17,13 @@ public class RandomNumberAugmentationFunction extends AugmentationFunction{
      * * @param type the type of the augmentation function
      *
      */
-    public RandomNumberAugmentationFunction(String id, String name, AugmentationFunctionType type) {
-        super(id, name, type);
+    public RandomNumberAugmentationFunction() {
+        super(RANDOM_NUMBER_AUGMENTATION_FUNCTION_ID,
+                "Random Number Augmentation Function",
+                "This augmentation function generates a random number between 0 and 100.",
+                "1.0.0",
+                AugmentationFunctionType.STATELESS,
+                new AugmentationFunctionContextRequest(true, true, null));
     }
 
     /**

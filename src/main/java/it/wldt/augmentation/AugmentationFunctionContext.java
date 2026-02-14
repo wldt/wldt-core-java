@@ -38,6 +38,12 @@ public class AugmentationFunctionContext {
     private QueryResult<?> queryResult;
 
     /**
+     * Default constructor for AugmentationFunctionContext
+     */
+    public AugmentationFunctionContext() {
+    }
+
+    /**
      * Constructor for AugmentationFunctionContext with both Digital Twin State and Query Result.
      * @param digitalTwinState The Digital Twin State at the time of the augmentation function execution.
      * @param queryResult The results of the query on the Digital Twin's storage associated to the {@link QueryRequest}
@@ -71,6 +77,14 @@ public class AugmentationFunctionContext {
      */
     public QueryResult<?> getQueryResult() {
         return queryResult;
+    }
+
+    public void setDigitalTwinState(DigitalTwinState digitalTwinState) {
+        this.digitalTwinState = digitalTwinState;
+    }
+
+    public void setQueryResult(QueryResult<?> queryResult) {
+        this.queryResult = queryResult;
     }
 
     @Override

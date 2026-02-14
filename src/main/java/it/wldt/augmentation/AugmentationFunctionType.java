@@ -31,8 +31,8 @@ package it.wldt.augmentation;
  */
 public enum AugmentationFunctionType {
 
-    STATE_LESS("STATE_LESS"),
-    STATE_FULL("STATE_FULL");
+    STATELESS("STATELESS"),
+    STATEFUL("STATEFUL");
 
     private String value;
 

@@ -1,507 +1,194 @@
-/*
- * Copyright (c) 2025 - Current Year
- * Marco Picone Ph.D
- * Email: picone.m@gmail.com
- * Website: https://www.marcopicone.net/
- * All rights reserved.
- *
- * This program is provided under a Dual Licensing model:
- * 1) GNU General Public License version 3.0 (GPL-3.0) for open-source, academic,
- *    research, non-profit, and other non-commercial use; or
- * 2) Commercial License, for any commercial use, proprietary development, or
- *    closed-source distribution. To obtain a Commercial License, please contact: Marco Picone (picone.m@gmail.com)
- *
- * By using this software, you agree to comply with the terms of the applicable license.
- * This applies to all forms of the software, including source code and compiled/binary forms.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- */
 package it.wldt.augmentation;
 
-import it.wldt.adapter.digital.DigitalAdapterLifeCycleListener;
-import it.wldt.adapter.digital.DigitalAdapterListener;
-import it.wldt.adapter.physical.PhysicalAssetDescription;
-import it.wldt.core.engine.DigitalTwinWorker;
+import it.wldt.adapter.physical.PhysicalAdapter;
+import it.wldt.core.engine.DigitalTwin;
 import it.wldt.core.engine.LifeCycleListener;
-import it.wldt.core.event.WldtEvent;
-import it.wldt.core.event.WldtEventBus;
-import it.wldt.core.event.WldtEventFilter;
-import it.wldt.core.event.WldtEventListener;
-import it.wldt.core.state.*;
 import it.wldt.exception.AugmentationFunctionException;
-import it.wldt.exception.EventBusException;
-import it.wldt.exception.WldtDigitalTwinStateEventException;
 import it.wldt.exception.WldtRuntimeException;
+import it.wldt.exception.WldtWorkerException;
 import it.wldt.log.WldtLogger;
 import it.wldt.log.WldtLoggerProvider;
-import it.wldt.storage.query.QueryExecutor;
 
 import java.util.*;
-import java.util.stream.Collectors;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
-/**
- * Authors: Marco Picone, Ph.D. (picone.m@gmail.com)
- * Date: 12/02/2026
- * Project: White Label Digital Twin Java Framework - (whitelabel-digitaltwin)
- * WRITE ..
- */
-public abstract class AugmentationManager extends DigitalTwinWorker implements WldtEventListener, LifeCycleListener {
+public class AugmentationManager {
 
     private static final WldtLogger logger = WldtLoggerProvider.getLogger(AugmentationManager.class);
 
-    private String id = null;
+    /**
+     * Number of Thread limit for DT Augmentation Managers
+     */
+    private static final int AUGMENTATION_MANAGER_THREAD_POOL_SIZE_LIMIT = 5;
 
-    private WldtEventFilter stateVariationWldtEventFilter = null;
+    private final String digitalTwinId;
 
-    private WldtEventFilter stateTargetEventNotificationWldtEventsFilter = null;
-
-    protected DigitalTwinState digitalTwinState = null;
-
-    private DigitalAdapterListener digitalAdapterListener;
-
-    private DigitalAdapterLifeCycleListener digitalAdapterLifeCycleListener;
-
-    // Query Executor to send query to the storage layer in both synchronous and asynchronous way
-    protected QueryExecutor queryExecutor = null;
+    private Map<String, AugmentationFunctionHandler> augmentationFunctionHandlerMap;
 
     /**
-     * Constructor of the AugmentationManager class.
-     * It is protected to allow the extension of the class and the creation of custom Augmentation Managers.
+     * Data Structure to keep track of the status of Augmentation Managers
      */
-    private AugmentationManager() {
-        super();
+    private Map<String, Boolean> augmentationManagerStatusMap = null;
+
+    /**
+     * List of Life Cycle Listener for the current Digital Twin
+     */
+    private List<LifeCycleListener> lifeCycleListenerList = null;
+
+    /**
+     * Executor Service for Augmentation Function Handlers
+     */
+    private ExecutorService augmentationFunctionHandlerExecutor = null;
+
+    public AugmentationManager(String digitalTwinId) {
+
+        // Set the digital twin id for this augmentation manager
+        this.digitalTwinId = digitalTwinId;
+
+        // Initialize the augmentation function handler map
+        this.augmentationFunctionHandlerMap = new HashMap<>();
+
+        // Initialize the augmentation manager status map
+        this.augmentationManagerStatusMap = new HashMap<>();
+
+        // Initialize the life cycle listener list
+        this.lifeCycleListenerList = new ArrayList<>();
     }
 
     /**
-     * Constructor of the AugmentationManager class with the id of the Manager.
-     * Receives the id of the Augmentation Function Manager and set it as the id of the Manager.
-     * @param id the id of the Augmentation Manager
-     */
-    public AugmentationManager(String id) {
-        this();
-        this.id = id;
-    }
-
-    // ========================================
-    // Augmentation Function Management Methods
-    // ========================================
-    // The following abstract methods define the methods for the management, registration and unregistration
-    // of augmentation functions through their Descriptions. The implementation of these methods is left to the
-    // concrete implementation of the Augmentation Function Manager
-
-    abstract protected void registerAugmentationFunction(AugmentationFunction augmentationFunction) throws AugmentationFunctionException;
-
-    abstract protected void unRegisterAugmentationFunction(String augmentationFunctionId) throws AugmentationFunctionException;
-
-    abstract protected void startAugmentationFunction(String augmentationFunctionId) throws AugmentationFunctionException;
-
-    abstract protected void stopAugmentationFunction(String augmentationFunctionId) throws AugmentationFunctionException;
-
-    abstract protected void executeAugmentationFunction(String augmentationFunctionId, AugmentationFunctionContext augmentationFunctionContext) throws AugmentationFunctionException;
-
-    /**
-     * Enable the observation of all the Digital Twin State and any of its variations in terms of Properties, Actions,
-     * Events and Relationships.
-     * @throws EventBusException Thrown if there is an error in the EventBus subscription
-     */
-    protected void observeDigitalTwinState() throws EventBusException {
-
-        //Define EventFilter and add the target topic
-        WldtEventFilter wldtEventFilter = new WldtEventFilter();
-        wldtEventFilter.add(DigitalTwinStateManager.getStatusUpdatesWldtEventMessageType());
-
-        //Save the adopted EventFilter
-        this.stateVariationWldtEventFilter = wldtEventFilter;
-
-        WldtEventBus.getInstance().subscribe(this.digitalTwinId, this.id, wldtEventFilter, this);
-    }
-
-    /**
-     * Cancel the observation of all the Digital Twin State variations and updates.
-     * @throws EventBusException Thrown if there is an error in the EventBus unsubscription
-     */
-    protected void unObserveDigitalTwinState() throws EventBusException {
-
-        //Define EventFilter and add the target topic
-        WldtEventFilter wldtEventFilter = new WldtEventFilter();
-        wldtEventFilter.add(DigitalTwinStateManager.getStatusUpdatesWldtEventMessageType());
-
-        //Save the adopted EventFilter
-        this.stateVariationWldtEventFilter = wldtEventFilter;
-
-        WldtEventBus.getInstance().unSubscribe(this.digitalTwinId, this.id, wldtEventFilter, this);
-    }
-
-    /**
-     * Enable the observation of available Digital Twin State Events Notifications.
-     * @param digitalTwinState the Digital Twin State to observe
-     * @throws EventBusException Thrown if there is an error in the EventBus subscription
-     */
-    protected void observeAllDigitalTwinEventsNotifications(DigitalTwinState digitalTwinState) throws EventBusException, WldtDigitalTwinStateEventException {
-
-        if(digitalTwinState != null && digitalTwinState.getEventList().isPresent()){
-            this.observeDigitalTwinEventsNotifications(digitalTwinState.getEventList().get().stream().map(DigitalTwinStateEvent::getKey).collect(Collectors.toList()));
-        }
-        else
-            throw new WldtDigitalTwinStateEventException("Error observing All DT Event Notifications ! Provided DT State = null !");
-    }
-
-    /**
-     * Cancel the observation of Digital Twin State Events Notifications
-     * @param digitalTwinState the Digital Twin State to unobserve
-     * @throws EventBusException Thrown if there is an error in the EventBus unsubscription
-     */
-    protected void unObserveAllDigitalTwinEventsNotifications(DigitalTwinState digitalTwinState) throws EventBusException, WldtDigitalTwinStateEventException {
-
-        if(digitalTwinState != null && digitalTwinState.getEventList().isPresent()){
-            this.unObserveDigitalTwinEventsNotifications(digitalTwinState.getEventList().get().stream().map(DigitalTwinStateEvent::getKey).collect(Collectors.toList()));
-        }
-        else
-            throw new WldtDigitalTwinStateEventException("Error observing All DT Event Notifications ! Provided DT State = null !");
-    }
-
-    /**
-     * Enable the observation of the notification associated to a specific list of Digital Twin State events.
-     * With respect to event a notification contains the new associated value
-     * @param eventsList the list of events to observe
-     * @throws EventBusException Thrown if there is an error in the EventBus subscription
-     */
-    protected void observeDigitalTwinEventsNotifications(List<String> eventsList) throws EventBusException {
-
-        //Define EventFilter and add the target topic
-        WldtEventFilter wldtEventFilter = new WldtEventFilter();
-
-        for(String eventKey : eventsList)
-            wldtEventFilter.add(DigitalTwinStateManager.getEventNotificationWldtEventMessageType(eventKey));
-
-        if(this.stateTargetEventNotificationWldtEventsFilter == null)
-            this.stateTargetEventNotificationWldtEventsFilter = new WldtEventFilter();
-
-        this.stateTargetEventNotificationWldtEventsFilter.addAll(wldtEventFilter);
-
-        WldtEventBus.getInstance().subscribe(this.digitalTwinId, this.id, wldtEventFilter, this);
-    }
-
-    /**
-     * Cancel the observation of a target list of properties
-     * @param eventsList the list of events to unobserve
-     * @throws EventBusException Thrown if there is an error in the EventBus unsubscription
-     */
-    protected void unObserveDigitalTwinEventsNotifications(List<String> eventsList) throws EventBusException {
-
-        //Define EventFilter and add the target topic
-        WldtEventFilter wldtEventFilter = new WldtEventFilter();
-
-        for(String eventKey : eventsList)
-            wldtEventFilter.add(DigitalTwinStateManager.getEventNotificationWldtEventMessageType(eventKey));
-
-        if(this.stateTargetEventNotificationWldtEventsFilter == null)
-            this.stateTargetEventNotificationWldtEventsFilter= new WldtEventFilter();
-
-        this.stateTargetEventNotificationWldtEventsFilter.removeAll(wldtEventFilter);
-
-        WldtEventBus.getInstance().unSubscribe(this.digitalTwinId, this.id, wldtEventFilter, this);
-    }
-
-    /**
-     * Enable the observation of the notification associated to a single Digital Twin State event.
-     * With respect to event a notification contains the new associated value
-     * @param eventKey the key of the event to observe
-     * @throws EventBusException Thrown if there is an error in the EventBus subscription
-     */
-    protected void observeDigitalTwinEventNotification(String eventKey) throws EventBusException {
-
-        //Define EventFilter and add the target topic
-        WldtEventFilter wldtEventFilter = new WldtEventFilter();
-
-        wldtEventFilter.add(DigitalTwinStateManager.getEventNotificationWldtEventMessageType(eventKey));
-
-        if(this.stateTargetEventNotificationWldtEventsFilter == null)
-            this.stateTargetEventNotificationWldtEventsFilter= new WldtEventFilter();
-
-        this.stateTargetEventNotificationWldtEventsFilter.addAll(wldtEventFilter);
-
-        WldtEventBus.getInstance().subscribe(this.digitalTwinId, this.id, wldtEventFilter, this);
-    }
-
-    /**
-     * Cancel the observation of a single target event
-     * @param eventKey the key of the event to unobserve
-     * @throws EventBusException Thrown if there is an error in the EventBus unsubscription
-     */
-    protected void unObserveDigitalTwinEventNotification(String eventKey) throws EventBusException {
-
-        //Define EventFilter and add the target topic
-        WldtEventFilter wldtEventFilter = new WldtEventFilter();
-
-        wldtEventFilter.add(DigitalTwinStateManager.getEventNotificationWldtEventMessageType(eventKey));
-
-        if(this.stateTargetEventNotificationWldtEventsFilter == null)
-            this.stateTargetEventNotificationWldtEventsFilter= new WldtEventFilter();
-
-        this.stateTargetEventNotificationWldtEventsFilter.removeAll(wldtEventFilter);
-
-        WldtEventBus.getInstance().unSubscribe(this.digitalTwinId, this.id, wldtEventFilter, this);
-    }
-
-
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    /**
-     * This method allows an implementation of a Digital Adapter to notify active listeners
-     * when there is an issue in the binding with the Digital Asset.
+     * Adds a life cycle listener to the list.
      *
-     * @param errorMessage the error message to be notified to the listeners
+     * @param listener The life cycle listener to be added.
      */
-    protected void notifyDigitalAdapterUnBound(String errorMessage){
-        //Notify Listeners
-        if(getDigitalAdapterListener() != null)
-            getDigitalAdapterListener().onDigitalAdapterUnBound(getId(), errorMessage);
+    public void addLifeCycleListener(LifeCycleListener listener){
+        if(listener != null && this.lifeCycleListenerList != null && !this.lifeCycleListenerList.contains(listener))
+            this.lifeCycleListenerList.add(listener);
     }
 
     /**
-     * This method allows an implementation of a Digital Adapter to notify active listeners when
-     * the adapter is ready to work and correctly bound to the associated external digital services.
+     * Removes a life cycle listener from the list.
      *
+     * @param listener The life cycle listener to be removed.
      */
-    protected void notifyDigitalAdapterBound() {
-        //Notify Listeners
-        if(getDigitalAdapterListener() != null)
-            getDigitalAdapterListener().onDigitalAdapterBound(getId());
+    public void removeLifeCycleListener(LifeCycleListener listener){
+        if(listener != null && this.lifeCycleListenerList != null)
+            this.lifeCycleListenerList.remove(listener);
     }
 
-    //////////////////////// DIGITAL TWIN STATE UPDATE  //////////////////////////////////////////////////////////
-    abstract protected void onStateUpdate(DigitalTwinState newDigitalTwinState,
-                                          DigitalTwinState previousDigitalTwinState,
-                                          ArrayList<DigitalTwinStateChange> digitalTwinStateChangeList);
+    public void addAugmentationFunctionHandler(AugmentationFunctionHandler augmentationFunctionHandler) throws AugmentationFunctionException, WldtWorkerException {
 
+        if(augmentationFunctionHandlerMap.containsKey(augmentationFunctionHandler.getId())){
+            throw new AugmentationFunctionException(String.format("Augmentation Function Handler with id %s is already registered.", augmentationFunctionHandler.getId()));
+        }
 
-    //////////////////////// EVENTS NOTIFICATION CALLBACK /////////////////////////////////////////////////////
-    abstract protected void onEventNotificationReceived(DigitalTwinStateEventNotification<?> digitalTwinStateEventNotification);
+        if(augmentationFunctionHandlerMap.size() >= AUGMENTATION_MANAGER_THREAD_POOL_SIZE_LIMIT){
+            throw new AugmentationFunctionException(String.format("Augmentation Function Handler limit of %d reached. Cannot register more handlers.", AUGMENTATION_MANAGER_THREAD_POOL_SIZE_LIMIT));
+        }
 
+        // Set the Digital Twin ID for the Augmentation Manager
+        augmentationFunctionHandler.setDigitalTwinId(this.digitalTwinId);
 
-    //////////////////////// ADAPTER CALLBACKS /////////////////////////////////////////////////////
-    public abstract void onManagerStart();
+        //Save BoundStatus to False. It will be changed through a call back by the adapter
+        this.augmentationManagerStatusMap.put(augmentationFunctionHandler.getId(), false);
 
-    public abstract void onManagerStop();
+        //Save the Model Engine as Digital Twin Life Cycle Listener
+        addLifeCycleListener(augmentationFunctionHandler);
 
+        // Register the augmentation function handler
+        augmentationFunctionHandlerMap.put(augmentationFunctionHandler.getId(), augmentationFunctionHandler);
 
-    //////////////////////// DT CALLBACKS /////////////////////////////////////////////////////
-    public abstract void onDigitalTwinSync(DigitalTwinState digitalTwinState);
+        logger.debug("New Augmentation Function Handler ({}) Added to the Worker List ! Augmentation Manager - Worker List Size: {}",
+                augmentationFunctionHandler.getClass().getName(),
+                this.augmentationFunctionHandlerMap.size());
+    }
 
-    public abstract void onDigitalTwinUnSync(DigitalTwinState digitalTwinState);
+    public void removeAugmentationFunctionHandler(String augmentationFunctionHandlerId) throws AugmentationFunctionException {
+        if(!augmentationFunctionHandlerMap.containsKey(augmentationFunctionHandlerId)){
+            throw new AugmentationFunctionException(String.format("Augmentation Function Handler with id %s is not registered.", augmentationFunctionHandlerId));
+        }
 
-    public abstract void onDigitalTwinCreate();
+        // Unregister the augmentation function handler
+        augmentationFunctionHandlerMap.remove(augmentationFunctionHandlerId);
+    }
 
-    public abstract void onDigitalTwinStart();
+    public AugmentationFunctionHandler getAugmentationFunctionHandler(String augmentationFunctionHandlerId) throws AugmentationFunctionException {
+        if(!augmentationFunctionHandlerMap.containsKey(augmentationFunctionHandlerId)){
+            throw new AugmentationFunctionException(String.format("Augmentation Function Handler with id %s is not registered.", augmentationFunctionHandlerId));
+        }
 
-    public abstract void onDigitalTwinStop();
+        // Return the augmentation function handler
+        return augmentationFunctionHandlerMap.get(augmentationFunctionHandlerId);
+    }
 
-    public abstract void onDigitalTwinDestroy();
+    public Map<String, AugmentationFunctionHandler> getAugmentationFunctionHandlerMap() {
+        return augmentationFunctionHandlerMap;
+    }
 
-    @Override
-    public void onWorkerStart() throws WldtRuntimeException {
-        try{
+    public List<AugmentationFunctionHandler> getAllAugmentationFunctionHandlers(){
+        return new ArrayList<>(augmentationFunctionHandlerMap.values());
+    }
 
-            // Init the Query Executor
-            if(this.queryExecutor == null)
-                this.queryExecutor = new QueryExecutor(this.digitalTwinId, String.format("query-executor-%s", this.id));
+    /**
+     * This method returns a map of augmentation functions with the specified id from all augmentation function handlers.
+     *
+     * @param augmentationFunctionId The id of the augmentation function to be retrieved.
+     * @return A map of augmentation functions with the specified id from all augmentation function handlers.
+     */
+    public Map<String, AugmentationFunction> getAugmentationFunctionWithId(String augmentationFunctionId) {
 
-            onManagerStart();
-        }catch (Exception e){
-            throw new WldtRuntimeException(e.getLocalizedMessage());
+        Map<String, AugmentationFunction> augmentationFunctionMap = new HashMap<>();
+
+        // Search for the augmentation function with the specified id in all augmentation function handlers
+        for(AugmentationFunctionHandler augmentationFunctionHandler : this.augmentationFunctionHandlerMap.values()){
+
+            // Get the augmentation function with the specified id from the current augmentation function handler
+            Optional<AugmentationFunction> augmentationFunctionOptional = augmentationFunctionHandler.getAugmentationFunction(augmentationFunctionId);
+
+            // If the augmentation function is present, add it to the result map
+            augmentationFunctionOptional.ifPresent(augmentationFunction -> augmentationFunctionMap.put(augmentationFunctionId, augmentationFunction));
+        }
+
+        return augmentationFunctionMap;
+
+    }
+
+    public void startAugmentationManager(){
+
+        logger.info("Starting Augmentation Function Handlers {} for Digital Twin: {}",
+                this.digitalTwinId,
+                this.augmentationFunctionHandlerMap.size());
+
+        //Init PhysicalAdapter Executor
+        augmentationFunctionHandlerExecutor = Executors.newFixedThreadPool(this.augmentationFunctionHandlerMap.size());
+
+        this.augmentationFunctionHandlerMap.values().forEach(augmentationFunctionHandler -> {
+            logger.info("Executing Augmentation Function Handler: {}", augmentationFunctionHandler.getClass());
+            augmentationFunctionHandlerExecutor.execute(augmentationFunctionHandler);
+        });
+    }
+
+    public void stopAugmentationManager() throws WldtRuntimeException {
+
+        logger.info("Stopping Augmentation Function Handlers {} for Digital Twin: {}",
+                this.digitalTwinId,
+                this.augmentationFunctionHandlerMap.size());
+
+        //Stop and Notify Physical Adapters
+        this.augmentationFunctionHandlerExecutor.shutdownNow();
+        this.augmentationFunctionHandlerExecutor = null;
+
+        for(AugmentationFunctionHandler augmentationFunctionHandler : this.augmentationFunctionHandlerMap.values()) {
+            logger.info("Stopping Augmentation Function Handler: {}", augmentationFunctionHandler.getClass());
+            augmentationFunctionHandler.onWorkerStop();
         }
     }
 
     @Override
-    public void onWorkerStop() throws WldtRuntimeException {
-        try{
-            unObserveDigitalTwinState();
-            onManagerStop();
-            if(getDigitalAdapterListener() != null)
-                getDigitalAdapterListener().onDigitalAdapterUnBound(getId(), null);
-        }catch (Exception e){
-            if(getDigitalAdapterListener() != null)
-                getDigitalAdapterListener().onDigitalAdapterUnBound(getId(), e.getLocalizedMessage());
-            throw new WldtRuntimeException(e.getLocalizedMessage());
-        }
-    }
-
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
-    }
-
-
-    public DigitalAdapterListener getDigitalAdapterListener() {
-        return digitalAdapterListener;
-    }
-
-    public void setDigitalAdapterListener(DigitalAdapterListener digitalAdapterListener) {
-        this.digitalAdapterListener = digitalAdapterListener;
-    }
-
-    public DigitalAdapterLifeCycleListener getDigitalAdapterLifeCycleListener() {
-        return digitalAdapterLifeCycleListener;
-    }
-
-    public void setDigitalAdapterLifeCycleListener(DigitalAdapterLifeCycleListener digitalAdapterLifeCycleListener) {
-        this.digitalAdapterLifeCycleListener = digitalAdapterLifeCycleListener;
-    }
-
-    public void removeDigitalAdapterLifeCycleListener(){
-        this.digitalAdapterLifeCycleListener = null;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        AugmentationManager that = (AugmentationManager) o;
-        return id.equals(that.id);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id);
-    }
-
-    @Override
-    public void onEventSubscribed(String eventType) {
-        logger.info("Subscribed to: {}", eventType);
-    }
-
-    @Override
-    public void onEventUnSubscribed(String eventType) {
-        logger.info("UnSubscribed from: {}", eventType);
-    }
-
-    @Override
-    public void onEvent(WldtEvent<?> wldtEvent) {
-
-        logger.debug("{} - Augmentation Manager - Received Event: {}", getId(), wldtEvent);
-
-        //DT State Events Management
-        if(wldtEvent != null
-                && wldtEvent.getType().equals(DigitalTwinStateManager.getStatusUpdatesWldtEventMessageType())
-                && wldtEvent.getBody() != null
-                && (wldtEvent.getBody() instanceof DigitalTwinState)){
-
-            //Retrieve DT's State Update
-            DigitalTwinState newDigitalTwinState = (DigitalTwinState)wldtEvent.getBody();
-            DigitalTwinState previsousDigitalTwinState = null;
-            ArrayList<DigitalTwinStateChange> digitalTwinStateChangeList = null;
-            Optional<?> prevDigitalTwinStateOptional = wldtEvent.getMetadata(DigitalTwinStateManager.DT_STATE_UPDATE_METADATA_PREVIOUS_STATE);
-            Optional<?> digitalTwinStateChangeListOptional = wldtEvent.getMetadata(DigitalTwinStateManager.DT_STATE_UPDATE_METADATA_CHANGE_LIST);
-
-            if(prevDigitalTwinStateOptional.isPresent() && prevDigitalTwinStateOptional.get() instanceof DigitalTwinState)
-                previsousDigitalTwinState = (DigitalTwinState) prevDigitalTwinStateOptional.get();
-
-            if(digitalTwinStateChangeListOptional.isPresent())
-                digitalTwinStateChangeList = (ArrayList<DigitalTwinStateChange>) digitalTwinStateChangeListOptional.get();
-
-            onStateUpdate(newDigitalTwinState, previsousDigitalTwinState, digitalTwinStateChangeList);
-        }
-
-        ///////// DT STATE EVENTS NOTIFICATION MANAGEMENT ///////////
-        if(wldtEvent != null && wldtEvent.getBody() != null && (wldtEvent.getBody() instanceof DigitalTwinStateEventNotification)) {
-            DigitalTwinStateEventNotification<?> digitalTwinStateEventNotification = (DigitalTwinStateEventNotification<?>) wldtEvent.getBody();
-            logger.debug("Received Event Notification: {}", digitalTwinStateEventNotification);
-            onEventNotificationReceived(digitalTwinStateEventNotification);
-        }
-
-    }
-
-    @Override
-    public void onSync(DigitalTwinState digitalTwinState) {
-
-        try{
-
-            logger.info("Augmentation Manager ({}) Received DT onSync callback ! Ready to start ...", this.id);
-
-            this.digitalTwinState = digitalTwinState;
-
-            //Notify about the first available Digital Twin State
-            onDigitalTwinSync(digitalTwinState);
-
-            //By default, the Augmentation Manager observer all the variation on the DT State
-            observeDigitalTwinState();
-
-        }catch (Exception e){
-            logger.error(String.format("Augmentation Manager (%s) -> observe DigitalTwin State: Error: %s", id, e.getLocalizedMessage()));
-        }
-    }
-
-    @Override
-    public void onUnSync(DigitalTwinState digitalTwinState) {
-        logger.debug("Augmentation Manager ({}) Received DT unSync callback ...", this.id);
-        onDigitalTwinUnSync(digitalTwinState);
-        this.digitalTwinState = null;
-    }
-
-    @Override
-    public void onCreate() {
-        onDigitalTwinCreate();
-    }
-
-    @Override
-    public void onStart() {
-        onDigitalTwinStart();
-    }
-
-    @Override
-    public void onPhysicalAdapterBound(String adapterId, PhysicalAssetDescription physicalAssetDescription) {
-        if(getDigitalAdapterLifeCycleListener() != null)
-            getDigitalAdapterLifeCycleListener().onPhysicalAdapterBound(adapterId, physicalAssetDescription);
-    }
-
-    @Override
-    public void onPhysicalAdapterBindingUpdate(String adapterId, PhysicalAssetDescription physicalAssetDescription) {
-        if(getDigitalAdapterLifeCycleListener() != null)
-            getDigitalAdapterLifeCycleListener().onPhysicalAdapterBindingUpdate(adapterId, physicalAssetDescription);
-    }
-
-    @Override
-    public void onPhysicalAdapterUnBound(String adapterId, PhysicalAssetDescription physicalAssetDescription, String errorMessage) {
-        if(getDigitalAdapterLifeCycleListener() != null)
-            getDigitalAdapterLifeCycleListener().onPhysicalAdapterUnBound(adapterId, physicalAssetDescription, errorMessage);
-    }
-
-    @Override
-    public void onDigitalAdapterBound(String adapterId) {
-        if(getDigitalAdapterLifeCycleListener() != null)
-            getDigitalAdapterLifeCycleListener().onDigitalAdapterBound(adapterId);
-    }
-
-    @Override
-    public void onDigitalAdapterUnBound(String adapterId, String errorMessage) {
-        if(getDigitalAdapterLifeCycleListener() != null)
-            getDigitalAdapterLifeCycleListener().onDigitalAdapterUnBound(adapterId, errorMessage);
-    }
-
-    @Override
-    public void onDigitalTwinBound(Map<String, PhysicalAssetDescription> adaptersPhysicalAssetDescriptionMap) {
-        if(getDigitalAdapterLifeCycleListener() != null)
-            getDigitalAdapterLifeCycleListener().onDigitalTwinBound(adaptersPhysicalAssetDescriptionMap);
-    }
-
-    @Override
-    public void onDigitalTwinUnBound(Map<String, PhysicalAssetDescription> adaptersPhysicalAssetDescriptionMap, String errorMessage) {
-        if(getDigitalAdapterLifeCycleListener() != null)
-            getDigitalAdapterLifeCycleListener().onDigitalTwinUnBound(adaptersPhysicalAssetDescriptionMap,errorMessage);
-    }
-
-    @Override
-    public void onStop() {
-        onDigitalTwinStop();
-    }
-
-    @Override
-    public void onDestroy() {
-        onDigitalTwinDestroy();
+    public String toString() {
+        final StringBuffer sb = new StringBuffer("AugmentationManager{");
+        sb.append("augmentationFunctionHandlerMap=").append(augmentationFunctionHandlerMap);
+        sb.append('}');
+        return sb.toString();
     }
 }

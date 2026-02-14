@@ -21,6 +21,8 @@
 package it.wldt.core.model;
 
 import it.wldt.adapter.physical.PhysicalAssetDescription;
+import it.wldt.augmentation.AugmentationFunctionHandler;
+import it.wldt.augmentation.AugmentationManager;
 import it.wldt.core.engine.LifeCycleListener;
 import it.wldt.core.state.DigitalTwinState;
 import it.wldt.core.state.DigitalTwinStateManager;
@@ -63,7 +65,8 @@ public class DigitalTwinKernel extends DigitalTwinWorker implements LifeCycleLis
                              DigitalTwinStateManager digitalTwinStateManager,
                              DigitalTwinModel digitalTwinModel,
                              StorageManager storageManager,
-                             ResourceManager resourceManager) throws KernelException, WldtWorkerException {
+                             ResourceManager resourceManager,
+                             AugmentationManager augmentationManager) throws KernelException, WldtWorkerException {
 
         super();
 
@@ -76,7 +79,12 @@ public class DigitalTwinKernel extends DigitalTwinWorker implements LifeCycleLis
 
             //Init the Shadowing Function with the current Digital Twin State and call the associated onCreate method
             this.digitalTwinModel = digitalTwinModel;
-            this.digitalTwinModel.init(digitalTwinStateManager, storageManager, resourceManager);
+            //this.digitalTwinModel.init(digitalTwinStateManager, storageManager, resourceManager);
+            // Init with the Augmentation Manager of the Digital Twin Engine
+             this.digitalTwinModel.init(digitalTwinStateManager,
+                     storageManager,
+                     resourceManager,
+                     augmentationManager);
             this.digitalTwinModel.onCreate();
         }
         else {

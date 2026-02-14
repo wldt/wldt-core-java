@@ -25,6 +25,7 @@ import it.wldt.adapter.physical.PhysicalAssetDescription;
 import it.wldt.adapter.physical.PhysicalAssetEvent;
 import it.wldt.adapter.physical.PhysicalAssetProperty;
 import it.wldt.adapter.physical.PhysicalAssetRelationship;
+import it.wldt.augmentation.*;
 import it.wldt.core.event.*;
 import it.wldt.core.state.DigitalTwinStateManager;
 import it.wldt.exception.EventBusException;
@@ -39,6 +40,7 @@ import java.util.Map;
 import java.util.Objects;
 import it.wldt.core.model.annotation.ShadowingFunction;
 import it.wldt.core.model.annotation.ShadowingType;
+import it.wldt.storage.query.QueryResult;
 
 /**
  * Authors:
@@ -105,6 +107,12 @@ public abstract class DigitalTwinModel implements WldtEventListener {
     private ShadowingModelListener shadowingModelListener;
 
     /**
+     * Reference to the Augmentation Manager of the Digital Twin Engine,
+     * used to execute Augmentation Functions from the Model
+     */
+    private AugmentationManager augmentationManager;
+
+    /**
      * Default Constructor
      * @param id Unique Identifier of the Digital Twin Model
      */
@@ -124,6 +132,22 @@ public abstract class DigitalTwinModel implements WldtEventListener {
         this.storageManager = storageManager;
         this.resourceManager = resourceManager;
     }
+
+    /**
+     * Initialize the Digital Twin Model with the current Digital Twin State Manager
+     * @param digitalTwinStateManager DigitalTwinStateManager instance
+     */
+    protected void init(DigitalTwinStateManager digitalTwinStateManager,
+                        StorageManager storageManager,
+                        ResourceManager resourceManager,
+                        AugmentationManager augmentationManager){
+        this.digitalTwinStateManager = digitalTwinStateManager;
+        this.storageManager = storageManager;
+        this.resourceManager = resourceManager;
+        this.augmentationManager = augmentationManager;
+    }
+
+
 
     /**
      * Observe a single target Physical Asset Property
@@ -431,6 +455,49 @@ public abstract class DigitalTwinModel implements WldtEventListener {
      */
     protected <T> void publishPhysicalAssetActionWldtEvent(String actionKey, T body) throws EventBusException {
         WldtEventBus.getInstance().publishEvent(this.digitalTwinStateManager.getDigitalTwinId(), this.id, new PhysicalAssetActionWldtEvent<>(actionKey, body));
+    }
+
+    /**
+     * TODO
+     */
+    protected void executeAugmentationFunction(String augmentationFunctionId, AugmentationFunctionContext augmentationFunctionContext) throws EventBusException {
+        // Publish an event to trigger the execution of the Augmentation Function (Stateless) with the provided context
+        WldtEventBus.getInstance().publishEvent(this.digitalTwinStateManager.getDigitalTwinId(), this.id, new WldtEvent<>(augmentationFunctionId, augmentationFunctionContext));
+    }
+
+    /**
+     * TODO In this case the context is automatically retrieved from the registered Augmentation Function and the
+     * execution is triggered without providing an explicit context
+     * (e.g., for stateful augmentation functions that manage their own context internally)
+     */
+    protected void executeAugmentationFunction(String augmentationFunctionId) throws EventBusException {
+
+        // For each retrieved Augmentation Function with the specified id, publish an event to trigger its execution
+        for (AugmentationFunction augmentationFunction : this.augmentationManager.getAugmentationFunctionWithId(augmentationFunctionId).values()) {
+
+            // Retrieve the Context Request for the augmentation function
+            AugmentationFunctionContextRequest contextRequest = augmentationFunction.getContextRequest();
+
+            if(contextRequest == null){
+                logger.warn("Augmentation Function with id {} does not have a Context Request defined ! Nothing to execute ...", augmentationFunctionId);
+                return;
+            }
+
+            // Create an empty Augmentation Context to be then populated according to the Context Request
+            AugmentationFunctionContext augmentationFunctionContext = new AugmentationFunctionContext();
+
+            // If the Context Request requires the Digital Twin State, retrieve it and set it in the context
+            if(contextRequest.isObserveState())
+                augmentationFunctionContext.setDigitalTwinState(this.digitalTwinStateManager.getDigitalTwinState());
+
+            // If the context request has a query request, execute the query on the Digital Twin's storage and set the query result in the context
+            if(contextRequest.getQueryRequest() != null){
+                // TODO ... Fix with Query Management
+            }
+
+            // Publish an event to trigger the execution of the Augmentation Function (Stateless) with the provided context
+            WldtEventBus.getInstance().publishEvent(this.digitalTwinStateManager.getDigitalTwinId(), this.id, new WldtEvent<>(augmentationFunctionId, augmentationFunctionContext));
+        }
     }
 
     @Override
