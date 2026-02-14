@@ -86,10 +86,5 @@ public class WldtEventTypes {
 
     public static final String AUGMENTATION_FUNCTION_EXECUTION_BASE_TYPE = "dt.augmentation.function.execution.execute";
 
-    public static final String ALL_AUGMENTATION_FUNCTION_START_EVENT_TYPE = String.format("%s.%s", AUGMENTATION_FUNCTION_START_BASE_TYPE, MULTI_LEVEL_WILDCARD_VALUE);
-
-    public static final String ALL_AUGMENTATION_FUNCTION_STOP_EVENT_TYPE = String.format("%s.%s", AUGMENTATION_FUNCTION_STOP_BASE_TYPE, MULTI_LEVEL_WILDCARD_VALUE);
-
-    public static final String ALL_AUGMENTATION_FUNCTION_EXECUTION_EVENT_TYPE = String.format("%s.%s", AUGMENTATION_FUNCTION_EXECUTION_BASE_TYPE, MULTI_LEVEL_WILDCARD_VALUE);
 
 }

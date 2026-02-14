@@ -6,7 +6,9 @@ import it.wldt.core.state.DigitalTwinStateEventNotification;
 import it.wldt.exception.AugmentationFunctionException;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public class DefaultAugmentationFunctionHandler extends AugmentationFunctionHandler {
 
@@ -20,6 +22,9 @@ public class DefaultAugmentationFunctionHandler extends AugmentationFunctionHand
      */
     public DefaultAugmentationFunctionHandler(String id) {
         super(id);
+
+        // Initialize the augmentation function map
+        this.augmentationFunctionMap = new java.util.HashMap<>();
     }
 
     @Override
@@ -32,6 +37,17 @@ public class DefaultAugmentationFunctionHandler extends AugmentationFunctionHand
 
         // Register the augmentation function
         augmentationFunctionMap.put(augmentationFunction.getId(), augmentationFunction);
+    }
+
+    @Override
+    public Optional<AugmentationFunction> getAugmentationFunction(String augmentationFunctionId) {
+
+        if (!augmentationFunctionMap.containsKey(augmentationFunctionId)) {
+            return Optional.empty();
+        }
+
+        // Return the augmentation function
+        return Optional.ofNullable(augmentationFunctionMap.get(augmentationFunctionId));
     }
 
     @Override
@@ -58,6 +74,15 @@ public class DefaultAugmentationFunctionHandler extends AugmentationFunctionHand
     @Override
     protected void executeAugmentationFunction(String augmentationFunctionId, AugmentationFunctionContext augmentationFunctionContext) throws AugmentationFunctionException {
 
+        // Check if the augmentation function is registered
+        if (!augmentationFunctionMap.containsKey(augmentationFunctionId)) {
+            throw new AugmentationFunctionException(String.format("Augmentation Function with id %s is not registered.", augmentationFunctionId));
+        }
+
+        // Execute the augmentation function
+        List<AugmentationFunctionResult<?>> functionResult = augmentationFunctionMap.get(augmentationFunctionId).run(augmentationFunctionContext);
+
+        // TODO HANDLE THE RESULT WITH AN EVENT
     }
 
     @Override

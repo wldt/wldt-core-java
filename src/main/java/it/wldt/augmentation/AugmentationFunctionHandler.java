@@ -84,6 +84,24 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
     }
 
     /**
+     * This method allow the registration for the event associated to the target Handler
+     * @param baseType
+     * @return
+     */
+    private String buildWildCardEventType(String baseType){
+        return String.format("%s.%s.%s", baseType, this.id, WldtEventTypes.MULTI_LEVEL_WILDCARD_VALUE);
+    }
+
+    /**
+     * This method allow the registration for the event associated to the target Handler
+     * @param baseType
+     * @return
+     */
+    private String buildEventType(String baseType){
+        return String.format("%s.%s", baseType, this.id);
+    }
+
+    /**
      * Enable the observation of all the Digital Twin State and any of its variations in terms of Properties, Actions,
      * Events and Relationships.
      * @throws EventBusException Thrown if there is an error in the EventBus subscription
@@ -92,9 +110,9 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
 
         //Define EventFilter and add the target topic
         WldtEventFilter wldtEventFilter = new WldtEventFilter();
-        wldtEventFilter.add(WldtEventTypes.ALL_AUGMENTATION_FUNCTION_START_EVENT_TYPE);
-        wldtEventFilter.add(WldtEventTypes.ALL_AUGMENTATION_FUNCTION_STOP_EVENT_TYPE);
-        wldtEventFilter.add(WldtEventTypes.ALL_AUGMENTATION_FUNCTION_EXECUTION_EVENT_TYPE);
+        wldtEventFilter.add(buildWildCardEventType(WldtEventTypes.AUGMENTATION_FUNCTION_START_BASE_TYPE));
+        wldtEventFilter.add(buildWildCardEventType(WldtEventTypes.AUGMENTATION_FUNCTION_STOP_BASE_TYPE));
+        wldtEventFilter.add(buildWildCardEventType(WldtEventTypes.AUGMENTATION_FUNCTION_EXECUTION_BASE_TYPE));
 
         //Save the adopted EventFilter
         this.augmentationFunctionWldtEventFilter = wldtEventFilter;
@@ -110,9 +128,9 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
 
         //Define EventFilter and add the target topic
         WldtEventFilter wldtEventFilter = new WldtEventFilter();
-        wldtEventFilter.add(WldtEventTypes.ALL_AUGMENTATION_FUNCTION_START_EVENT_TYPE);
-        wldtEventFilter.add(WldtEventTypes.ALL_AUGMENTATION_FUNCTION_STOP_EVENT_TYPE);
-        wldtEventFilter.add(WldtEventTypes.ALL_AUGMENTATION_FUNCTION_EXECUTION_EVENT_TYPE);
+        wldtEventFilter.add(buildWildCardEventType(WldtEventTypes.AUGMENTATION_FUNCTION_START_BASE_TYPE));
+        wldtEventFilter.add(buildWildCardEventType(WldtEventTypes.AUGMENTATION_FUNCTION_STOP_BASE_TYPE));
+        wldtEventFilter.add(buildWildCardEventType(WldtEventTypes.AUGMENTATION_FUNCTION_EXECUTION_BASE_TYPE));
 
         //Save the adopted EventFilter
         this.augmentationFunctionWldtEventFilter = wldtEventFilter;
@@ -299,7 +317,7 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
 
     abstract protected void registerAugmentationFunction(AugmentationFunction augmentationFunction) throws AugmentationFunctionException;
 
-    abstract protected Optional<AugmentationFunction> getAugmentationFunction(String augmentationFunctionId);
+    abstract public Optional<AugmentationFunction> getAugmentationFunction(String augmentationFunctionId);
 
     abstract protected void unRegisterAugmentationFunction(String augmentationFunctionId) throws AugmentationFunctionException;
 
@@ -347,6 +365,9 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
             if(this.queryExecutor == null)
                 this.queryExecutor = new QueryExecutor(this.digitalTwinId, String.format("query-executor-%s", this.id));
 
+            // Once started the handler is ready to observe augmentation function events
+            observeAugmentationFunctionEvents();
+
             onManagerStart();
         }catch (Exception e){
             throw new WldtRuntimeException(e.getLocalizedMessage());
@@ -357,6 +378,7 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
     public void onWorkerStop() throws WldtRuntimeException {
         try{
             unObserveDigitalTwinState();
+            unObserveAugmentationFunctionEvents();
             onManagerStop();
             if(getDigitalAdapterListener() != null)
                 getDigitalAdapterListener().onDigitalAdapterUnBound(getId(), null);
@@ -463,8 +485,9 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
             // Retrieve Augmentation Function Execution Context
             AugmentationFunctionContext augmentationFunctionContext = (AugmentationFunctionContext) wldtEvent.getBody();
 
-            // Extract the Augmentation Function Id from the Event Type
-            String augmentationFunctionId = wldtEvent.getType().substring(WldtEventTypes.AUGMENTATION_FUNCTION_EXECUTION_BASE_TYPE.length() + 1);
+            // Extract the Augmentation Function Id from the Event Type after the base type and the handler id
+            // Substring after the base type and the handler id considering the '.' as separator
+            String augmentationFunctionId = wldtEvent.getType().substring(buildEventType(WldtEventTypes.AUGMENTATION_FUNCTION_EXECUTION_BASE_TYPE).length() + 1);
 
             logger.info("Received Augmentation Function Execution Event for function with id {} and context: {}", augmentationFunctionId, augmentationFunctionContext);
 

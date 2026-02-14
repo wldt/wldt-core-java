@@ -112,13 +112,14 @@ public class AugmentationManager {
         augmentationFunctionHandlerMap.remove(augmentationFunctionHandlerId);
     }
 
-    public AugmentationFunctionHandler getAugmentationFunctionHandler(String augmentationFunctionHandlerId) throws AugmentationFunctionException {
+    public Optional<AugmentationFunctionHandler> getAugmentationFunctionHandler(String augmentationFunctionHandlerId) {
+
         if(!augmentationFunctionHandlerMap.containsKey(augmentationFunctionHandlerId)){
-            throw new AugmentationFunctionException(String.format("Augmentation Function Handler with id %s is not registered.", augmentationFunctionHandlerId));
+            return Optional.empty();
         }
 
         // Return the augmentation function handler
-        return augmentationFunctionHandlerMap.get(augmentationFunctionHandlerId);
+        return Optional.ofNullable(augmentationFunctionHandlerMap.get(augmentationFunctionHandlerId));
     }
 
     public Map<String, AugmentationFunctionHandler> getAugmentationFunctionHandlerMap() {
@@ -155,9 +156,9 @@ public class AugmentationManager {
 
     public void startAugmentationManager(){
 
-        logger.info("Starting Augmentation Function Handlers {} for Digital Twin: {}",
-                this.digitalTwinId,
-                this.augmentationFunctionHandlerMap.size());
+        logger.info("Starting {} Augmentation Function Handlers for Digital Twin: {}",
+                this.augmentationFunctionHandlerMap.size(),
+                this.digitalTwinId);
 
         //Init PhysicalAdapter Executor
         augmentationFunctionHandlerExecutor = Executors.newFixedThreadPool(this.augmentationFunctionHandlerMap.size());
@@ -170,9 +171,9 @@ public class AugmentationManager {
 
     public void stopAugmentationManager() throws WldtRuntimeException {
 
-        logger.info("Stopping Augmentation Function Handlers {} for Digital Twin: {}",
-                this.digitalTwinId,
-                this.augmentationFunctionHandlerMap.size());
+        logger.info("Stopping {} Augmentation Function Handlers for Digital Twin: {}",
+                this.augmentationFunctionHandlerMap.size(),
+                this.digitalTwinId);
 
         //Stop and Notify Physical Adapters
         this.augmentationFunctionHandlerExecutor.shutdownNow();

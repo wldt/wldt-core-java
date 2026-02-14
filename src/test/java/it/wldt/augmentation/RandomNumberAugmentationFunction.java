@@ -1,11 +1,15 @@
 package it.wldt.augmentation;
 
 import it.wldt.exception.AugmentationFunctionException;
+import it.wldt.log.WldtLogger;
+import it.wldt.log.WldtLoggerProvider;
 
 import java.util.Collections;
 import java.util.List;
 
 public class RandomNumberAugmentationFunction extends AugmentationFunction{
+
+    private static final WldtLogger logger = WldtLoggerProvider.getLogger(RandomNumberAugmentationFunction.class);
 
     public static final String RANDOM_NUMBER_AUGMENTATION_FUNCTION_ID = "random-number-augmentation-function";
 
@@ -52,6 +56,8 @@ public class RandomNumberAugmentationFunction extends AugmentationFunction{
                 randomNumber,
                 null
         );
+
+        logger.debug("RandomNumberAugmentationFunction -> Generated random number: {}", result);
 
         return Collections.singletonList(result);
     }

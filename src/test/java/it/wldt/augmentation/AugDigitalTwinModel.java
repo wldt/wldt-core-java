@@ -16,13 +16,13 @@ import it.wldt.process.physical.DemoPhysicalAdapter;
 
 import java.util.Map;
 
-public class AugmentationDigitalTwinModel extends DigitalTwinModel {
+public class AugDigitalTwinModel extends DigitalTwinModel {
 
-    private static final WldtLogger logger = WldtLoggerProvider.getLogger(AugmentationDigitalTwinModel.class);
+    private static final WldtLogger logger = WldtLoggerProvider.getLogger(AugDigitalTwinModel.class);
 
     private boolean isShadowed = false;
 
-    public AugmentationDigitalTwinModel() {
+    public AugDigitalTwinModel() {
         super("dummy-shadowing-function");
     }
 
@@ -192,10 +192,7 @@ public class AugmentationDigitalTwinModel extends DigitalTwinModel {
                 logger.error("WRONG Physical Event Message Received ! Received Type: {}", physicalPropertyEventMessage.getType());
 
             // Test the Augmentation Function Execution for each received physical event notification
-            this.executeAugmentationFunction(
-                    RandomNumberAugmentationFunction.RANDOM_NUMBER_AUGMENTATION_FUNCTION_ID,
-                    new AugmentationFunctionContext(this.digitalTwinStateManager.getDigitalTwinState(), null)
-            );
+            this.executeAugmentationFunction(RandomNumberAugmentationFunction.RANDOM_NUMBER_AUGMENTATION_FUNCTION_ID);
 
 
         }catch (Exception e){

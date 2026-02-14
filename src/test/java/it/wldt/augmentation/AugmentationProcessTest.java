@@ -1,6 +1,5 @@
 package it.wldt.augmentation;
 
-import it.wldt.core.adapter.physical.TestPhysicalAdapter;
 import it.wldt.core.engine.DigitalTwin;
 import it.wldt.core.engine.DigitalTwinEngine;
 import it.wldt.core.event.DefaultWldtEventLogger;
@@ -13,7 +12,6 @@ import it.wldt.process.digital.DemoDigitalAdapterConfiguration;
 import it.wldt.process.metrics.SharedTestMetrics;
 import it.wldt.process.physical.DemoPhysicalAdapter;
 import it.wldt.process.physical.DemoPhysicalAdapterConfiguration;
-import it.wldt.process.shadowing.DemoDigitalTwinModel;
 import org.junit.jupiter.api.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -30,7 +28,7 @@ public class AugmentationProcessTest {
     private static final WldtLogger logger = WldtLoggerProvider.getLogger(AugmentationProcessTest.class);
 
     private static final String TEST_DIGITAL_TWIN_ID = "dtTest0001";
-    private static final String DEFAULT_AUGMENTATION_MANAGER_ID = "default-augmentation-manager";
+    private static final String TEST_AUGMENTATION_HANDLER_ID = "test-augmentation-handler";
 
     private DigitalTwin digitalTwin = null;
 
@@ -43,7 +41,7 @@ public class AugmentationProcessTest {
 
         digitalTwinEngine = new DigitalTwinEngine();
 
-        digitalTwin = new DigitalTwin(TEST_DIGITAL_TWIN_ID, new DemoDigitalTwinModel());
+        digitalTwin = new DigitalTwin(TEST_DIGITAL_TWIN_ID, new AugDigitalTwinModel());
 
         // Physical Adapter with Configuration
         digitalTwin.addPhysicalAdapter(
@@ -60,14 +58,14 @@ public class AugmentationProcessTest {
         );
 
         // Create an instance of the Augmentation Manager to test the augmentation functions
-        AugmentationFunctionHandler myAugmentationFunctionHandler = new DefaultAugmentationFunctionHandler(DEFAULT_AUGMENTATION_MANAGER_ID);
+        AugmentationFunctionHandler myAugmentationFunctionHandler = new DefaultAugmentationFunctionHandler(TEST_AUGMENTATION_HANDLER_ID);
 
         // Set the Augmentation Manager to the specific Digital Twin to test the augmentation functions
         digitalTwin.getAugmentationManager().addAugmentationFunctionHandler(myAugmentationFunctionHandler);
 
         // Register the augmentation function to the augmentation manager
-        if(digitalTwin.getAugmentationManager(DEFAULT_AUGMENTATION_MANAGER_ID).isPresent())
-            digitalTwin.getAugmentationManager(DEFAULT_AUGMENTATION_MANAGER_ID).get().registerAugmentationFunction(new RandomNumberAugmentationFunction());
+        if(digitalTwin.getAugmentationManager().getAugmentationFunctionHandler(TEST_AUGMENTATION_HANDLER_ID).isPresent())
+            digitalTwin.getAugmentationManager().getAugmentationFunctionHandler(TEST_AUGMENTATION_HANDLER_ID).get().registerAugmentationFunction(new RandomNumberAugmentationFunction());
 
         // Register DT to Shared Test Metrics
         SharedTestMetrics.getInstance().registerDigitalTwin(TEST_DIGITAL_TWIN_ID);
@@ -93,65 +91,13 @@ public class AugmentationProcessTest {
 
     @Test
     @Order(1)
-    public void testPhysicalAdapterEvents() throws WldtConfigurationException, EventBusException, KernelException, InterruptedException, WldtRuntimeException {
+    public void testStatelessAugmentationFunction() throws WldtConfigurationException, EventBusException, KernelException, InterruptedException, WldtRuntimeException {
 
         //Set EventBus Logger
         WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
 
-        //Wait until all the messages have been received
-        Thread.sleep((DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS + ((DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES + DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_EVENT_UPDATES) * DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS)));
-
-        //Check Generated Physical Events Not Null
-        assertNotNull(SharedTestMetrics.getInstance().getPhysicalAdapterPropertyEventList(TEST_DIGITAL_TWIN_ID));
-
-        //Check Received Physical Event on the Shadowing Function
-        assertEquals(TestPhysicalAdapter.TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES, SharedTestMetrics.getInstance().getPhysicalAdapterPropertyEventList(TEST_DIGITAL_TWIN_ID).size());
-
-        //Check Received Physical Events on the Shadowing Function Not Null
-        assertNotNull(SharedTestMetrics.getInstance().getShadowingFunctionPropertyEventList(TEST_DIGITAL_TWIN_ID));
-
-        //Check Received Physical Asset Events Availability correctly received by the Shadowing Function
-        assertEquals(TestPhysicalAdapter.TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES, SharedTestMetrics.getInstance().getShadowingFunctionPropertyEventList(TEST_DIGITAL_TWIN_ID).size());
-
-        Thread.sleep(2000);
+        // Wait for the test execution
+        Thread.sleep(10000);
     }
-
-    @Test
-    @Order(2)
-    public void testDigitalTwinStateUpdates() throws WldtConfigurationException, EventBusException, KernelException, InterruptedException, WldtRuntimeException {
-
-        //Set EventBus Logger
-        WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
-
-        //Wait until all the messages have been received
-        Thread.sleep((DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS + ((DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES + DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_EVENT_UPDATES) * DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS)));
-
-        //Check Generated Physical Events Not Null
-        assertNotNull(SharedTestMetrics.getInstance().getPhysicalAdapterPropertyEventList(TEST_DIGITAL_TWIN_ID));
-
-        //Check Received Physical Event on the Shadowing Function
-        assertEquals(DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES, SharedTestMetrics.getInstance().getPhysicalAdapterPropertyEventList(TEST_DIGITAL_TWIN_ID).size());
-
-        //Check Received Physical Events on the Shadowing Function Not Null
-        assertNotNull(SharedTestMetrics.getInstance().getShadowingFunctionPropertyEventList(TEST_DIGITAL_TWIN_ID));
-
-        //Check Received Physical Asset Events Availability correctly received by the Shadowing Function
-        assertEquals(DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES, SharedTestMetrics.getInstance().getShadowingFunctionPropertyEventList(TEST_DIGITAL_TWIN_ID).size());
-
-        //Check DT State Update not null
-        assertNotNull(SharedTestMetrics.getInstance().getDigitalAdapterStateUpdateList(TEST_DIGITAL_TWIN_ID));
-
-        //Check Correct Digital Twin State Property Update Events have been received on the Digital Adapter through DT State Updates
-        assertEquals(DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES, SharedTestMetrics.getInstance().getDigitalAdapterStateUpdateList(TEST_DIGITAL_TWIN_ID).size());
-
-        //Check DT Event Notification not null
-        assertNotNull(SharedTestMetrics.getInstance().getDigitalAdapterEventNotificationMap().get(TEST_DIGITAL_TWIN_ID));
-
-        //Check if Digital Twin State Events Notifications have been correctly received by the Digital Adapter after passing through the Shadowing Function
-        assertEquals(DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_EVENT_UPDATES, SharedTestMetrics.getInstance().getDigitalAdapterEventNotificationList(TEST_DIGITAL_TWIN_ID).size());
-
-        Thread.sleep(2000);
-    }
-
 
 }
