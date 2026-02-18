@@ -86,5 +86,6 @@ public class WldtEventTypes {
 
     public static final String AUGMENTATION_FUNCTION_EXECUTION_BASE_TYPE = "dt.augmentation.function.execution.execute";
 
+    public static final String AUGMENTATION_FUNCTION_RESULT_BASE_TYPE = "dt.augmentation.function.result";
 
 }

@@ -1,5 +1,6 @@
 package it.wldt.augmentation;
 
+import it.wldt.core.adapter.physical.TestPhysicalAdapter;
 import it.wldt.core.engine.DigitalTwin;
 import it.wldt.core.engine.DigitalTwinEngine;
 import it.wldt.core.event.DefaultWldtEventLogger;
@@ -13,6 +14,8 @@ import it.wldt.process.metrics.SharedTestMetrics;
 import it.wldt.process.physical.DemoPhysicalAdapter;
 import it.wldt.process.physical.DemoPhysicalAdapterConfiguration;
 import org.junit.jupiter.api.*;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -93,11 +96,46 @@ public class AugmentationProcessTest {
     @Order(1)
     public void testStatelessAugmentationFunction() throws WldtConfigurationException, EventBusException, KernelException, InterruptedException, WldtRuntimeException {
 
+        /*
+        /////////////// TEST CONTEXT ///////////////
+        The test Stateless Augmentation Function is executed every time a new Physical Asset Property Update Event
+        is received by the Digital Twin Model.
+        ///////////////////////////////////////////
+        */
+
         //Set EventBus Logger
         WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
 
-        // Wait for the test execution
-        Thread.sleep(10000);
+        //Wait until all the messages have been received
+        Thread.sleep((DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS + ((DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES + DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_EVENT_UPDATES) * DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS)));
+
+        // Retrieve from the Shared Metrics the received Augmentation Function Result Events
+        List<List<AugmentationFunctionResult<?>>> augmentationFunctionResultList = SharedTestMetrics.getInstance().getAugmentationFunctionResultNotification(
+                TEST_DIGITAL_TWIN_ID,
+                TEST_AUGMENTATION_HANDLER_ID,
+                RandomNumberAugmentationFunction.RANDOM_NUMBER_AUGMENTATION_FUNCTION_ID);
+
+        //Check Received Augmentation Function Result is Not Null
+        assertNotNull(augmentationFunctionResultList);
+
+        //Check the number of received Augmentation Function Result Events is equal to the number of Physical Asset Property Update Events
+        //since the Stateless Augmentation Function is executed every time a new Physical Asset Property Update Event is received by the Digital Twin Model
+        assertEquals(TestPhysicalAdapter.TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES, augmentationFunctionResultList.size());
+
+        // For each received Augmentation Function Result Event
+        for(List<AugmentationFunctionResult<?>> resultList : augmentationFunctionResultList){
+
+            // For each received Augmentation Function Result inside the Augmentation Function Result Event
+            for(AugmentationFunctionResult<?> augmentationFunctionResult : resultList){
+
+                // Check the Augmentation Function Result Type
+                assertEquals(AugmentationFunctionResultType.GENERIC_RESULT, augmentationFunctionResult.getAugmentationFunctionResultType());
+
+                // Check that the Result value is not null
+                assertNotNull(augmentationFunctionResult.getValue());
+            }
+
+        }
     }
 
 }

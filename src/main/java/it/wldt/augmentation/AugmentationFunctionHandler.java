@@ -88,7 +88,7 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
      * @param baseType
      * @return
      */
-    private String buildWildCardEventType(String baseType){
+    private String buildHandlerWildCardEventType(String baseType){
         return String.format("%s.%s.%s", baseType, this.id, WldtEventTypes.MULTI_LEVEL_WILDCARD_VALUE);
     }
 
@@ -97,8 +97,28 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
      * @param baseType
      * @return
      */
-    private String buildEventType(String baseType){
+    private String buildHandlerEventType(String baseType){
         return String.format("%s.%s", baseType, this.id);
+    }
+
+    /**
+     * TODO ...
+     * @param resultList
+     */
+    protected void notifyAugmentationFunctionResult(String augmentationFunctionId, List<AugmentationFunctionResult<?>> resultList) throws EventBusException {
+
+        // Build the Event Type for the Augmentation Function Result associated to the target Handler and the target Augmentation Function Id
+        String eventType = String.format("%s.%s", buildHandlerEventType(WldtEventTypes.AUGMENTATION_FUNCTION_RESULT_BASE_TYPE), augmentationFunctionId);
+
+        // Create the Event associated to the Augmentation Function Result
+        WldtEvent<List<AugmentationFunctionResult<?>>> augmentationFunctionResultEvent = new WldtEvent<>(
+                eventType,
+                resultList
+        );
+
+        // Publish the Event on the EventBus
+        WldtEventBus.getInstance().publishEvent(this.digitalTwinId, this.id, augmentationFunctionResultEvent);
+
     }
 
     /**
@@ -110,9 +130,9 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
 
         //Define EventFilter and add the target topic
         WldtEventFilter wldtEventFilter = new WldtEventFilter();
-        wldtEventFilter.add(buildWildCardEventType(WldtEventTypes.AUGMENTATION_FUNCTION_START_BASE_TYPE));
-        wldtEventFilter.add(buildWildCardEventType(WldtEventTypes.AUGMENTATION_FUNCTION_STOP_BASE_TYPE));
-        wldtEventFilter.add(buildWildCardEventType(WldtEventTypes.AUGMENTATION_FUNCTION_EXECUTION_BASE_TYPE));
+        wldtEventFilter.add(buildHandlerWildCardEventType(WldtEventTypes.AUGMENTATION_FUNCTION_START_BASE_TYPE));
+        wldtEventFilter.add(buildHandlerWildCardEventType(WldtEventTypes.AUGMENTATION_FUNCTION_STOP_BASE_TYPE));
+        wldtEventFilter.add(buildHandlerWildCardEventType(WldtEventTypes.AUGMENTATION_FUNCTION_EXECUTION_BASE_TYPE));
 
         //Save the adopted EventFilter
         this.augmentationFunctionWldtEventFilter = wldtEventFilter;
@@ -128,9 +148,9 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
 
         //Define EventFilter and add the target topic
         WldtEventFilter wldtEventFilter = new WldtEventFilter();
-        wldtEventFilter.add(buildWildCardEventType(WldtEventTypes.AUGMENTATION_FUNCTION_START_BASE_TYPE));
-        wldtEventFilter.add(buildWildCardEventType(WldtEventTypes.AUGMENTATION_FUNCTION_STOP_BASE_TYPE));
-        wldtEventFilter.add(buildWildCardEventType(WldtEventTypes.AUGMENTATION_FUNCTION_EXECUTION_BASE_TYPE));
+        wldtEventFilter.add(buildHandlerWildCardEventType(WldtEventTypes.AUGMENTATION_FUNCTION_START_BASE_TYPE));
+        wldtEventFilter.add(buildHandlerWildCardEventType(WldtEventTypes.AUGMENTATION_FUNCTION_STOP_BASE_TYPE));
+        wldtEventFilter.add(buildHandlerWildCardEventType(WldtEventTypes.AUGMENTATION_FUNCTION_EXECUTION_BASE_TYPE));
 
         //Save the adopted EventFilter
         this.augmentationFunctionWldtEventFilter = wldtEventFilter;
@@ -487,7 +507,7 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
 
             // Extract the Augmentation Function Id from the Event Type after the base type and the handler id
             // Substring after the base type and the handler id considering the '.' as separator
-            String augmentationFunctionId = wldtEvent.getType().substring(buildEventType(WldtEventTypes.AUGMENTATION_FUNCTION_EXECUTION_BASE_TYPE).length() + 1);
+            String augmentationFunctionId = wldtEvent.getType().substring(buildHandlerEventType(WldtEventTypes.AUGMENTATION_FUNCTION_EXECUTION_BASE_TYPE).length() + 1);
 
             logger.info("Received Augmentation Function Execution Event for function with id {} and context: {}", augmentationFunctionId, augmentationFunctionContext);
 

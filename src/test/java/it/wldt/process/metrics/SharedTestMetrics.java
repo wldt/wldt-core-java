@@ -2,6 +2,7 @@ package it.wldt.process.metrics;
 
 import it.wldt.adapter.physical.event.PhysicalAssetEventWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetPropertyWldtEvent;
+import it.wldt.augmentation.AugmentationFunctionResult;
 import it.wldt.core.state.DigitalTwinState;
 import it.wldt.core.state.DigitalTwinStateEventNotification;
 import it.wldt.log.WldtLogger;
@@ -48,6 +49,9 @@ public class SharedTestMetrics {
     // the resourceId and the value is the subResourceId
     private Map<String, Map<String, String>> managedResourceNotificationMap;
 
+    // DT Augmentation Function Result Notification Map
+    private Map<String, Map<String, List<List<AugmentationFunctionResult<?>>>>> augmentationFunctionResultNotificationMap;
+
     private SharedTestMetrics(){
         logger.info("SharedTestMetrics Constructor Called !");
         init();
@@ -71,6 +75,7 @@ public class SharedTestMetrics {
         this.digitalAdapterStateUpdateMap = new HashMap<>();
         this.resourceManagerNotificationMap = new HashMap<>();
         this.managedResourceNotificationMap = new HashMap<>();
+        this.augmentationFunctionResultNotificationMap = new HashMap<>();
     }
 
     public void registerDigitalTwin(String digitalTwinId){
@@ -83,6 +88,7 @@ public class SharedTestMetrics {
         this.digitalAdapterStateUpdateMap.put(digitalTwinId, new ArrayList<>());
         this.resourceManagerNotificationMap.put(digitalTwinId, new ArrayList<>());
         this.managedResourceNotificationMap.put(digitalTwinId, new HashMap<>());
+        this.augmentationFunctionResultNotificationMap.put(digitalTwinId, new HashMap<>());
     }
 
     public void unRegisterDigitalTwin(String digitalTwinId){
@@ -95,6 +101,7 @@ public class SharedTestMetrics {
         this.digitalAdapterStateUpdateMap.remove(digitalTwinId);
         this.resourceManagerNotificationMap.remove(digitalTwinId);
         this.managedResourceNotificationMap.remove(digitalTwinId);
+        this.augmentationFunctionResultNotificationMap.remove(digitalTwinId);
     }
 
     public void resetMetrics(){
@@ -109,6 +116,7 @@ public class SharedTestMetrics {
         this.digitalAdapterStateUpdateMap.clear();
         this.resourceManagerNotificationMap.clear();
         this.managedResourceNotificationMap.clear();
+        this.augmentationFunctionResultNotificationMap.clear();
 
         init();
     }
@@ -143,6 +151,36 @@ public class SharedTestMetrics {
 
     public void addManagedResourceNotification(String digitalTwinId, String resourceId, String subResourceId){
         this.managedResourceNotificationMap.get(digitalTwinId).put(resourceId, subResourceId);
+    }
+
+    public void addAugmentationFunctionResultNotification(String digitalTwinId,
+                                                          String augmentationFunctionHandlerId,
+                                                          String augmentationFunctionId,
+                                                          List<AugmentationFunctionResult<?>> augmentationFunctionResult){
+
+        // Concatenate the augmentation function handler id and the augmentation function id to create a
+        // unique key for the augmentation function result notification map
+        String augmentationInternalId = String.format("%s.%s", augmentationFunctionHandlerId, augmentationFunctionId);
+
+        // If the initial list of augmentation function results for the specific augmentation function is not present, create a new one
+        if(!this.augmentationFunctionResultNotificationMap.get(digitalTwinId).containsKey(augmentationInternalId)){
+            this.augmentationFunctionResultNotificationMap.get(digitalTwinId).put(augmentationInternalId, new ArrayList<>());
+        }
+
+        // Save the augmentation function result in the map
+        this.augmentationFunctionResultNotificationMap.get(digitalTwinId).get(augmentationInternalId).add(augmentationFunctionResult);
+    }
+
+    public List<List<AugmentationFunctionResult<?>>> getAugmentationFunctionResultNotification(String digitalTwinId,
+                                                                                         String augmentationFunctionHandlerId,
+                                                                                         String augmentationFunctionId){
+
+        // Concatenate the augmentation function handler id and the augmentation function id to create a
+        // unique key for the augmentation function result notification map
+        String augmentationInternalId = String.format("%s.%s", augmentationFunctionHandlerId, augmentationFunctionId);
+
+        // Get the augmentation function result from the map
+        return this.augmentationFunctionResultNotificationMap.get(digitalTwinId).get(augmentationInternalId);
     }
 
     public Map<String, List<PhysicalAssetPropertyWldtEvent<?>>> getPhysicalAdapterPropertyEventMap() {

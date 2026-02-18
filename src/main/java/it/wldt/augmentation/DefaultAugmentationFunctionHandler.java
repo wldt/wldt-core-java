@@ -74,15 +74,22 @@ public class DefaultAugmentationFunctionHandler extends AugmentationFunctionHand
     @Override
     protected void executeAugmentationFunction(String augmentationFunctionId, AugmentationFunctionContext augmentationFunctionContext) throws AugmentationFunctionException {
 
-        // Check if the augmentation function is registered
-        if (!augmentationFunctionMap.containsKey(augmentationFunctionId)) {
-            throw new AugmentationFunctionException(String.format("Augmentation Function with id %s is not registered.", augmentationFunctionId));
+        try {
+
+            // Check if the augmentation function is registered
+            if (!augmentationFunctionMap.containsKey(augmentationFunctionId)) {
+                throw new AugmentationFunctionException(String.format("Augmentation Function with id %s is not registered.", augmentationFunctionId));
+            }
+
+            // Execute the augmentation function
+            List<AugmentationFunctionResult<?>> functionResult = augmentationFunctionMap.get(augmentationFunctionId).run(augmentationFunctionContext);
+
+            // Notify through and event the result of the augmentation function execution
+            notifyAugmentationFunctionResult(augmentationFunctionId, functionResult);
+
+        } catch (Exception e) {
+            throw new AugmentationFunctionException(String.format("Error while executing augmentation function with id %s: %s", augmentationFunctionId, e.getMessage()));
         }
-
-        // Execute the augmentation function
-        List<AugmentationFunctionResult<?>> functionResult = augmentationFunctionMap.get(augmentationFunctionId).run(augmentationFunctionContext);
-
-        // TODO HANDLE THE RESULT WITH AN EVENT
     }
 
     @Override

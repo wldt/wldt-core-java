@@ -14,6 +14,7 @@ import it.wldt.log.WldtLoggerProvider;
 import it.wldt.process.metrics.SharedTestMetrics;
 import it.wldt.process.physical.DemoPhysicalAdapter;
 
+import java.util.List;
 import java.util.Map;
 
 public class AugDigitalTwinModel extends DigitalTwinModel {
@@ -295,4 +296,20 @@ public class AugDigitalTwinModel extends DigitalTwinModel {
         }
     }
 
+    @Override
+    protected void onAugmentationFunctionResultEvent(String augmentationFunctionHandlerId,
+                                                     String augmentationFunctionId,
+                                                     List<AugmentationFunctionResult<?>> augmentationFunctionResult) {
+
+        // Save the augmentation function result in the shared test metrics for later verification
+        SharedTestMetrics.getInstance().addAugmentationFunctionResultNotification(this.digitalTwinStateManager.getDigitalTwinId(),
+                augmentationFunctionHandlerId,
+                augmentationFunctionId,
+                augmentationFunctionResult);
+
+        // Iterate over the augmentation function result and log the result
+        for(AugmentationFunctionResult<?> result : augmentationFunctionResult) {
+            logger.info("Augmentation Function Result Received: {}", result);
+        }
+    }
 }

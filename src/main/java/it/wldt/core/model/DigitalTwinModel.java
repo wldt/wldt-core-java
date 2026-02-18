@@ -42,7 +42,6 @@ import java.util.Optional;
 
 import it.wldt.core.model.annotation.ShadowingFunction;
 import it.wldt.core.model.annotation.ShadowingType;
-import it.wldt.storage.query.QueryResult;
 
 /**
  * Authors:
@@ -84,6 +83,11 @@ public abstract class DigitalTwinModel implements WldtEventListener {
     private String id = null;
 
     /**
+     * Event Filter used to manage observer Augmentation Function
+     */
+    private WldtEventFilter augmentationFunctionResultEventsFilter = null;
+
+    /**
      * Event Filter used to manage the subscription to the Physical Events
      */
     private WldtEventFilter physicalEventsFilter = null;
@@ -121,6 +125,7 @@ public abstract class DigitalTwinModel implements WldtEventListener {
     public DigitalTwinModel(String id){
         this.id = id;
         this.physicalEventsFilter = new WldtEventFilter();
+        this.augmentationFunctionResultEventsFilter = new WldtEventFilter();
     }
 
     /**
@@ -143,13 +148,60 @@ public abstract class DigitalTwinModel implements WldtEventListener {
                         StorageManager storageManager,
                         ResourceManager resourceManager,
                         AugmentationManager augmentationManager){
+
         this.digitalTwinStateManager = digitalTwinStateManager;
         this.storageManager = storageManager;
         this.resourceManager = resourceManager;
         this.augmentationManager = augmentationManager;
+
+        try{
+            // In this case since we have the Augmentation Manager -> Observe Aug. Function Results
+            this.observeAugmentationFunctionResults();
+        }catch(Exception e){
+            logger.error("Error Observing Augmentation Function Results ! Error: {}", e.getMessage());
+        }
     }
 
+    /**
+     * TODO ...
+     */
+    private String buildResultWildCardEventType(){
+        return String.format("%s.%s", WldtEventTypes.AUGMENTATION_FUNCTION_RESULT_BASE_TYPE, WldtEventTypes.MULTI_LEVEL_WILDCARD_VALUE);
+    }
 
+    /**
+     * TODO ...
+     */
+    protected void observeAugmentationFunctionResults() throws EventBusException {
+
+        //Define EventFilter and add the target topics
+        WldtEventFilter wldtEventFilter = new WldtEventFilter();
+        wldtEventFilter.add(buildResultWildCardEventType());
+
+        //Save the adopted EventFilter
+        this.augmentationFunctionResultEventsFilter = wldtEventFilter;
+
+        WldtEventBus.getInstance().subscribe(this.digitalTwinStateManager.getDigitalTwinId(), this.id, wldtEventFilter, this);
+
+        logger.info("Observer for Augmentation Function Results Subscribed ! Digital Twin Model ID: {}, Event Filter: {}", this.id, wldtEventFilter);
+    }
+
+    /**
+     * TODO ...
+     */
+    protected void unObserveAugmentationFunctionResults() throws EventBusException, KernelException {
+
+        //Define EventFilter and add the target topics
+        WldtEventFilter wldtEventFilter = new WldtEventFilter();
+        wldtEventFilter.add(buildResultWildCardEventType());
+
+        //Save the adopted EventFilter
+        this.augmentationFunctionResultEventsFilter.removeAll(wldtEventFilter);
+
+        WldtEventBus.getInstance().unSubscribe(this.digitalTwinStateManager.getDigitalTwinId(), this.id, wldtEventFilter, this);
+
+        logger.info("Observer for Augmentation Function Results Un-Subscribed ! Digital Twin Model ID: {}, Event Filter: {}", this.id, wldtEventFilter);
+    }
 
     /**
      * Observe a single target Physical Asset Property
@@ -585,6 +637,24 @@ public abstract class DigitalTwinModel implements WldtEventListener {
         //if(wldtEvent.getType().equals(DigitalAdapter.DIGITAL_ACTION_EVENT))
         //    onDigitalActionEvent((DigitalActionWldtEvent<?>) wldtEvent.getBody());
 
+        // If the event is an Augmentation Function Result Event, then handle it with the correct callback
+        // checks also the body of the event to avoid processing events with the correct topic but
+        // with a wrong body (e.g., not containing an AugmentationFunctionResult)
+        // TODO Move the check about event list size and type inside the if to at least log a warning in case of wrong event body instead of just ignoring the event
+        if(wldtEvent.getType().startsWith(WldtEventTypes.AUGMENTATION_FUNCTION_RESULT_BASE_TYPE)
+                && (wldtEvent.getBody() instanceof List)
+                && !((List<?>) wldtEvent.getBody()).isEmpty()
+                && ((List<?>) wldtEvent.getBody()).get(0) instanceof AugmentationFunctionResult){
+
+            // Extract Augmentation Handler and Augmentation Function id from the event type
+            String[] eventTypeParts = wldtEvent.getType().split("\\.");
+            String augmentationFunctionHandlerId = eventTypeParts[4];
+            String augmentationFunctionId = eventTypeParts[5];
+
+            // Call the callback to handle the Augmentation Function Result Event with the correct body type
+            onAugmentationFunctionResultEvent(augmentationFunctionHandlerId, augmentationFunctionId, (List<AugmentationFunctionResult<?>>) wldtEvent.getBody());
+        }
+
     }
 
     abstract protected void onCreate();
@@ -688,6 +758,31 @@ public abstract class DigitalTwinModel implements WldtEventListener {
             description = "Processes digital action requests and coordinates execution with physical asset"
     )
     abstract protected void onDigitalActionEvent(DigitalActionWldtEvent<?> digitalActionWldtEvent);
+
+    /**
+     * Callback method invoked when results from Augmentation Functions are received.
+     * In this case the default implementation does nothing, but specific Digital Twin Models can override this method
+     * to handle the results of Augmentation Functions executions.
+     * <p>
+     * This method is not abstract because not all Digital Twin Models may need to handle Augmentation Function results,
+     * so it provides a default implementation that can be optionally overridden
+     * by specific Digital Twin Models that need to process Augmentation Function results.
+     * <p>
+     * This is different compared with method associated to the Shadowing Functions since they are
+     * mandatory for all the Digital Twin Models and they define the core behavior of the shadowing process,
+     * so they are defined as abstract methods without default implementation
+     * to force all the Digital Twin Models to provide their own implementation of the shadowing behavior.
+     *
+     * @param augmentationFunctionHandlerId the id of the Augmentation Function Handler that executed the Augmentation Function
+     * @param augmentationFunctionId the id of the executed Augmentation Function
+     * @param augmentationFunctionResult    the list of results from executed Augmentation Functions
+     */
+    protected void onAugmentationFunctionResultEvent(String augmentationFunctionHandlerId, String augmentationFunctionId, List<AugmentationFunctionResult<?>> augmentationFunctionResult){
+        // Default implementation does nothing, can be overridden by specific
+        // Digital Twin Models to handle Augmentation Function results
+
+        logger.info("Default Implementation -> Nothing to do with: Augmentation Function Result Event: {}", augmentationFunctionResult);
+    }
 
     public String getId() {
         return id;
