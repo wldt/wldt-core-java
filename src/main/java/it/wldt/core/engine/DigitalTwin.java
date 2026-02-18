@@ -25,6 +25,7 @@ import it.wldt.adapter.digital.DigitalAdapterListener;
 import it.wldt.adapter.physical.PhysicalAdapter;
 import it.wldt.adapter.physical.PhysicalAdapterListener;
 import it.wldt.adapter.physical.PhysicalAssetDescription;
+import it.wldt.augmentation.AugmentationFunction;
 import it.wldt.augmentation.AugmentationFunctionHandler;
 import it.wldt.augmentation.AugmentationManager;
 import it.wldt.core.event.DefaultWldtEventLogger;

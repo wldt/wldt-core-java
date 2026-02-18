@@ -42,8 +42,10 @@ public class AugmentationProcessTest {
 
         logger.info("Setting up Test Environment ...");
 
+        // Create Digital Twin Engine
         digitalTwinEngine = new DigitalTwinEngine();
 
+        // Create new Digital Twin with a specific Digital Twin Model
         digitalTwin = new DigitalTwin(TEST_DIGITAL_TWIN_ID, new AugDigitalTwinModel());
 
         // Physical Adapter with Configuration

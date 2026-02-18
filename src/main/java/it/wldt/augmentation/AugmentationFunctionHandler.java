@@ -22,9 +22,7 @@ package it.wldt.augmentation;
 
 import it.wldt.adapter.digital.DigitalAdapterLifeCycleListener;
 import it.wldt.adapter.digital.DigitalAdapterListener;
-import it.wldt.adapter.physical.PhysicalAssetDescription;
 import it.wldt.core.engine.DigitalTwinWorker;
-import it.wldt.core.engine.LifeCycleListener;
 import it.wldt.core.event.*;
 import it.wldt.core.state.*;
 import it.wldt.exception.AugmentationFunctionException;
@@ -42,9 +40,9 @@ import java.util.stream.Collectors;
  * Authors: Marco Picone, Ph.D. (picone.m@gmail.com)
  * Date: 12/02/2026
  * Project: White Label Digital Twin Java Framework - (whitelabel-digitaltwin)
- * WRITE ..
+ * TODO WRITE ..
  */
-public abstract class AugmentationFunctionHandler extends DigitalTwinWorker implements WldtEventListener, LifeCycleListener {
+public abstract class AugmentationFunctionHandler extends DigitalTwinWorker implements WldtEventListener, AugmentationLifeCycleListener {
 
     private static final WldtLogger logger = WldtLoggerProvider.getLogger(AugmentationFunctionHandler.class);
 
@@ -347,6 +345,7 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
 
     abstract protected void executeAugmentationFunction(String augmentationFunctionId, AugmentationFunctionContext augmentationFunctionContext) throws AugmentationFunctionException;
 
+    abstract public List<AugmentationFunction> getAllAugmentationFunctions();
 
     //////////////////////// DIGITAL TWIN STATE UPDATE  //////////////////////////////////////////////////////////
     abstract protected void onStateUpdate(DigitalTwinState newDigitalTwinState,
@@ -365,17 +364,21 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
 
 
     //////////////////////// DT CALLBACKS /////////////////////////////////////////////////////
-    public abstract void onDigitalTwinSync(DigitalTwinState digitalTwinState);
+    public abstract void onDigitalTwinLifeCycleSync(DigitalTwinState digitalTwinState);
 
-    public abstract void onDigitalTwinUnSync(DigitalTwinState digitalTwinState);
+    public abstract void onDigitalTwinLifeCycleUnSync(DigitalTwinState digitalTwinState);
 
-    public abstract void onDigitalTwinCreate();
+    public abstract void onDigitalTwinLifeCycleCreate();
 
-    public abstract void onDigitalTwinStart();
+    public abstract void onDigitalTwinLifeCycleStart();
 
-    public abstract void onDigitalTwinStop();
+    public abstract void onDigitalTwinLifeCycleStop();
 
-    public abstract void onDigitalTwinDestroy();
+    public abstract void onDigitalTwinLifeCycleDestroy();
+
+    public abstract void onDigitalTwinLifeCycleBound();
+
+    public abstract void onDigitalTwinLifeCycleUnBound();
 
     @Override
     public void onWorkerStart() throws WldtRuntimeException {
@@ -567,7 +570,7 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
             this.digitalTwinState = digitalTwinState;
 
             //Notify about the first available Digital Twin State
-            onDigitalTwinSync(digitalTwinState);
+            onDigitalTwinLifeCycleSync(digitalTwinState);
 
             //By default, the Augmentation Manager observer all the variation on the DT State
             observeDigitalTwinState();
@@ -580,69 +583,33 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
     @Override
     public void onUnSync(DigitalTwinState digitalTwinState) {
         logger.debug("Augmentation Manager ({}) Received DT unSync callback ...", this.id);
-        onDigitalTwinUnSync(digitalTwinState);
+        onDigitalTwinLifeCycleUnSync(digitalTwinState);
         this.digitalTwinState = null;
     }
 
     @Override
     public void onCreate() {
-        onDigitalTwinCreate();
+        onDigitalTwinLifeCycleCreate();
     }
 
     @Override
     public void onStart() {
-        onDigitalTwinStart();
+        onDigitalTwinLifeCycleStart();
     }
 
     @Override
-    public void onPhysicalAdapterBound(String adapterId, PhysicalAssetDescription physicalAssetDescription) {
-        if(getDigitalAdapterLifeCycleListener() != null)
-            getDigitalAdapterLifeCycleListener().onPhysicalAdapterBound(adapterId, physicalAssetDescription);
-    }
+    public void onDigitalTwinBound() { onDigitalTwinLifeCycleBound(); }
 
     @Override
-    public void onPhysicalAdapterBindingUpdate(String adapterId, PhysicalAssetDescription physicalAssetDescription) {
-        if(getDigitalAdapterLifeCycleListener() != null)
-            getDigitalAdapterLifeCycleListener().onPhysicalAdapterBindingUpdate(adapterId, physicalAssetDescription);
-    }
-
-    @Override
-    public void onPhysicalAdapterUnBound(String adapterId, PhysicalAssetDescription physicalAssetDescription, String errorMessage) {
-        if(getDigitalAdapterLifeCycleListener() != null)
-            getDigitalAdapterLifeCycleListener().onPhysicalAdapterUnBound(adapterId, physicalAssetDescription, errorMessage);
-    }
-
-    @Override
-    public void onDigitalAdapterBound(String adapterId) {
-        if(getDigitalAdapterLifeCycleListener() != null)
-            getDigitalAdapterLifeCycleListener().onDigitalAdapterBound(adapterId);
-    }
-
-    @Override
-    public void onDigitalAdapterUnBound(String adapterId, String errorMessage) {
-        if(getDigitalAdapterLifeCycleListener() != null)
-            getDigitalAdapterLifeCycleListener().onDigitalAdapterUnBound(adapterId, errorMessage);
-    }
-
-    @Override
-    public void onDigitalTwinBound(Map<String, PhysicalAssetDescription> adaptersPhysicalAssetDescriptionMap) {
-        if(getDigitalAdapterLifeCycleListener() != null)
-            getDigitalAdapterLifeCycleListener().onDigitalTwinBound(adaptersPhysicalAssetDescriptionMap);
-    }
-
-    @Override
-    public void onDigitalTwinUnBound(Map<String, PhysicalAssetDescription> adaptersPhysicalAssetDescriptionMap, String errorMessage) {
-        if(getDigitalAdapterLifeCycleListener() != null)
-            getDigitalAdapterLifeCycleListener().onDigitalTwinUnBound(adaptersPhysicalAssetDescriptionMap,errorMessage);
-    }
+    public void onDigitalTwinUnBound() { onDigitalTwinLifeCycleUnBound(); }
 
     @Override
     public void onStop() {
-        onDigitalTwinStop();
+        onDigitalTwinLifeCycleStop();
     }
 
     @Override
     public void onDestroy() {
-        onDigitalTwinDestroy();
+        onDigitalTwinLifeCycleDestroy();
     }
 }

@@ -1,19 +1,18 @@
 package it.wldt.augmentation;
 
-import it.wldt.adapter.physical.PhysicalAdapter;
-import it.wldt.core.engine.DigitalTwin;
+import it.wldt.adapter.physical.PhysicalAssetDescription;
 import it.wldt.core.engine.LifeCycleListener;
+import it.wldt.core.state.DigitalTwinState;
 import it.wldt.exception.AugmentationFunctionException;
 import it.wldt.exception.WldtRuntimeException;
 import it.wldt.exception.WldtWorkerException;
 import it.wldt.log.WldtLogger;
 import it.wldt.log.WldtLoggerProvider;
-
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class AugmentationManager {
+public class AugmentationManager implements LifeCycleListener {
 
     private static final WldtLogger logger = WldtLoggerProvider.getLogger(AugmentationManager.class);
 
@@ -34,7 +33,7 @@ public class AugmentationManager {
     /**
      * List of Life Cycle Listener for the current Digital Twin
      */
-    private List<LifeCycleListener> lifeCycleListenerList = null;
+    private List<AugmentationLifeCycleListener> augmentationFunctionlifeCycleListenerList = null;
 
     /**
      * Executor Service for Augmentation Function Handlers
@@ -53,7 +52,7 @@ public class AugmentationManager {
         this.augmentationManagerStatusMap = new HashMap<>();
 
         // Initialize the life cycle listener list
-        this.lifeCycleListenerList = new ArrayList<>();
+        this.augmentationFunctionlifeCycleListenerList = new ArrayList<>();
     }
 
     /**
@@ -61,9 +60,9 @@ public class AugmentationManager {
      *
      * @param listener The life cycle listener to be added.
      */
-    public void addLifeCycleListener(LifeCycleListener listener){
-        if(listener != null && this.lifeCycleListenerList != null && !this.lifeCycleListenerList.contains(listener))
-            this.lifeCycleListenerList.add(listener);
+    public void addLifeCycleListener(AugmentationLifeCycleListener listener){
+        if(listener != null && this.augmentationFunctionlifeCycleListenerList != null && !this.augmentationFunctionlifeCycleListenerList.contains(listener))
+            this.augmentationFunctionlifeCycleListenerList.add(listener);
     }
 
     /**
@@ -72,8 +71,8 @@ public class AugmentationManager {
      * @param listener The life cycle listener to be removed.
      */
     public void removeLifeCycleListener(LifeCycleListener listener){
-        if(listener != null && this.lifeCycleListenerList != null)
-            this.lifeCycleListenerList.remove(listener);
+        if(listener != null && this.augmentationFunctionlifeCycleListenerList != null)
+            this.augmentationFunctionlifeCycleListenerList.remove(listener);
     }
 
     public void addAugmentationFunctionHandler(AugmentationFunctionHandler augmentationFunctionHandler) throws AugmentationFunctionException, WldtWorkerException {
@@ -191,5 +190,111 @@ public class AugmentationManager {
         sb.append("augmentationFunctionHandlerMap=").append(augmentationFunctionHandlerMap);
         sb.append('}');
         return sb.toString();
+    }
+
+    @Override
+    public void onCreate() {
+        // Forward the notification to the life cycle listeners
+        if(this.augmentationFunctionlifeCycleListenerList != null) {
+            for (AugmentationLifeCycleListener lifeCycleListener : this.augmentationFunctionlifeCycleListenerList) {
+                lifeCycleListener.onCreate();
+            }
+        }
+    }
+
+    @Override
+    public void onStart() {
+        // Forward the notification to the life cycle listeners
+        if(this.augmentationFunctionlifeCycleListenerList != null) {
+            for (AugmentationLifeCycleListener lifeCycleListener : this.augmentationFunctionlifeCycleListenerList) {
+                lifeCycleListener.onStart();
+            }
+        }
+    }
+
+    @Override
+    public void onPhysicalAdapterBound(String adapterId, PhysicalAssetDescription physicalAssetDescription) {
+        // Augmentation Function are not interested in this type of event and its granularity
+    }
+
+    @Override
+    public void onPhysicalAdapterBindingUpdate(String adapterId, PhysicalAssetDescription physicalAssetDescription) {
+        // Augmentation Function are not interested in this type of event and its granularity
+    }
+
+    @Override
+    public void onPhysicalAdapterUnBound(String adapterId, PhysicalAssetDescription physicalAssetDescription, String errorMessage) {
+        // Augmentation Function are not interested in this type of event and its granularity
+    }
+
+    @Override
+    public void onDigitalAdapterBound(String adapterId) {
+        // Augmentation Function are not interested in this type of event and its granularity
+    }
+
+    @Override
+    public void onDigitalAdapterUnBound(String adapterId, String errorMessage) {
+        // Augmentation Function are not interested in this type of event and its granularity
+    }
+
+    @Override
+    public void onDigitalTwinBound(Map<String, PhysicalAssetDescription> adaptersPhysicalAssetDescriptionMap) {
+        // Forward the notification to the life cycle listeners
+        if(this.augmentationFunctionlifeCycleListenerList != null) {
+            for (AugmentationLifeCycleListener lifeCycleListener : this.augmentationFunctionlifeCycleListenerList) {
+                lifeCycleListener.onDigitalTwinBound();
+            }
+        }
+    }
+
+    @Override
+    public void onDigitalTwinUnBound(Map<String, PhysicalAssetDescription> adaptersPhysicalAssetDescriptionMap, String errorMessage) {
+        // Forward the notification to the life cycle listeners
+        if(this.augmentationFunctionlifeCycleListenerList != null) {
+            for (AugmentationLifeCycleListener lifeCycleListener : this.augmentationFunctionlifeCycleListenerList) {
+                lifeCycleListener.onDigitalTwinUnBound();
+            }
+        }
+    }
+
+    @Override
+    public void onSync(DigitalTwinState digitalTwinState) {
+
+        // Forward the notification to the life cycle listeners
+        if(this.augmentationFunctionlifeCycleListenerList != null) {
+            for (AugmentationLifeCycleListener lifeCycleListener : this.augmentationFunctionlifeCycleListenerList) {
+                lifeCycleListener.onSync(digitalTwinState);
+            }
+        }
+    }
+
+    @Override
+    public void onUnSync(DigitalTwinState digitalTwinState) {
+        // Forward the notification to the life cycle listeners
+        if(this.augmentationFunctionlifeCycleListenerList != null) {
+            for (AugmentationLifeCycleListener lifeCycleListener : this.augmentationFunctionlifeCycleListenerList) {
+                lifeCycleListener.onUnSync(digitalTwinState);
+            }
+        }
+    }
+
+    @Override
+    public void onStop() {
+        // Forward the notification to the life cycle listeners
+        if(this.augmentationFunctionlifeCycleListenerList != null) {
+            for (AugmentationLifeCycleListener lifeCycleListener : this.augmentationFunctionlifeCycleListenerList) {
+                lifeCycleListener.onStop();
+            }
+        }
+    }
+
+    @Override
+    public void onDestroy() {
+        // Forward the notification to the life cycle listeners
+        if(this.augmentationFunctionlifeCycleListenerList != null) {
+            for (AugmentationLifeCycleListener lifeCycleListener : this.augmentationFunctionlifeCycleListenerList) {
+                lifeCycleListener.onDestroy();
+            }
+        }
     }
 }

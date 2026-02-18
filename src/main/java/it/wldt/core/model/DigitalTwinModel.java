@@ -26,6 +26,7 @@ import it.wldt.adapter.physical.PhysicalAssetEvent;
 import it.wldt.adapter.physical.PhysicalAssetProperty;
 import it.wldt.adapter.physical.PhysicalAssetRelationship;
 import it.wldt.augmentation.*;
+import it.wldt.augmentation.event.AugmentationFunctionRegistrationWldtEvent;
 import it.wldt.core.event.*;
 import it.wldt.core.state.DigitalTwinStateManager;
 import it.wldt.exception.EventBusException;
@@ -66,6 +67,8 @@ import it.wldt.core.model.annotation.ShadowingType;
  *       events, and lifecycle data through the Storage Manager</li>
  *   <li><b>Resource Management</b>: Handles Digital Twin resources, relationships, and their
  *       lifecycle through the Resource Manager</li>
+ *   <li><b>Augmentation Manager</b>: Handles Digital Twin Augmentation Functions through the evolution of DT life cycle
+ *   and within its behavior.</li>
  *   <li><b>Event Routing</b>: Routes events between physical and digital sides through the Shadowing Function</li>
  *   <li><b>Lifecycle Management</b>: Controls initialization, execution, and termination</li>
  * </ul>
@@ -75,6 +78,7 @@ import it.wldt.core.model.annotation.ShadowingType;
  * @see DigitalTwinStateManager
  * @see StorageManager
  * @see ResourceManager
+ * @see AugmentationManager
  */
 public abstract class DigitalTwinModel implements WldtEventListener {
 
@@ -172,6 +176,38 @@ public abstract class DigitalTwinModel implements WldtEventListener {
     /**
      * TODO ...
      */
+    protected void observeAugmentationFunctionRegistrationEvents() throws EventBusException {
+
+        //Define EventFilter and add the target topics
+        WldtEventFilter wldtEventFilter = new WldtEventFilter();
+        wldtEventFilter.add(WldtEventTypes.AUGMENTATION_FUNCTION_REGISTERED_EVENT_TYPE);
+        wldtEventFilter.add(WldtEventTypes.AUGMENTATION_FUNCTION_UNREGISTERED_EVENT);
+
+        WldtEventBus.getInstance().subscribe(this.digitalTwinStateManager.getDigitalTwinId(), this.id, wldtEventFilter, this);
+
+        logger.info("Observer for Augmentation Function Results Subscribed ! Digital Twin Model ID: {}, Event Filter: {}", this.id, wldtEventFilter);
+
+    }
+
+    /**
+     * TODO ...
+     */
+    protected void unObserveAugmentationFunctionRegistrationEvents() throws EventBusException {
+
+        //Define EventFilter and add the target topics
+        WldtEventFilter wldtEventFilter = new WldtEventFilter();
+        wldtEventFilter.add(WldtEventTypes.AUGMENTATION_FUNCTION_REGISTERED_EVENT_TYPE);
+        wldtEventFilter.add(WldtEventTypes.AUGMENTATION_FUNCTION_UNREGISTERED_EVENT);
+
+        WldtEventBus.getInstance().unSubscribe(this.digitalTwinStateManager.getDigitalTwinId(), this.id, wldtEventFilter, this);
+
+        logger.info("Cancel Observation for Augmentation Function Results Subscribed ! Digital Twin Model ID: {}, Event Filter: {}", this.id, wldtEventFilter);
+
+    }
+
+    /**
+     * TODO ...
+     */
     protected void observeAugmentationFunctionResults() throws EventBusException {
 
         //Define EventFilter and add the target topics
@@ -200,7 +236,7 @@ public abstract class DigitalTwinModel implements WldtEventListener {
 
         WldtEventBus.getInstance().unSubscribe(this.digitalTwinStateManager.getDigitalTwinId(), this.id, wldtEventFilter, this);
 
-        logger.info("Observer for Augmentation Function Results Un-Subscribed ! Digital Twin Model ID: {}, Event Filter: {}", this.id, wldtEventFilter);
+        logger.info("Cancel Observation for Augmentation Function Results Un-Subscribed ! Digital Twin Model ID: {}, Event Filter: {}", this.id, wldtEventFilter);
     }
 
     /**
@@ -655,6 +691,23 @@ public abstract class DigitalTwinModel implements WldtEventListener {
             onAugmentationFunctionResultEvent(augmentationFunctionHandlerId, augmentationFunctionId, (List<AugmentationFunctionResult<?>>) wldtEvent.getBody());
         }
 
+        // TODO Check
+        if(wldtEvent.getType().equals(WldtEventTypes.AUGMENTATION_FUNCTION_REGISTERED_EVENT_TYPE)
+                && wldtEvent.getBody() instanceof AugmentationFunctionRegistrationWldtEvent){
+
+            // Cast the event body to the correct type
+            AugmentationFunctionRegistrationWldtEvent augmentationFunctionRegistrationEvent = (AugmentationFunctionRegistrationWldtEvent) wldtEvent.getBody();
+
+            // Extract the Augmentation Function Handler id from the event body
+            String augmentationFunctionHandlerId = augmentationFunctionRegistrationEvent.getAugmentationHandlerId();
+
+            // Extract the Augmentation Function from the event body
+            AugmentationFunction augmentationFunction = augmentationFunctionRegistrationEvent.getBody();
+
+            // Call the callback to handle the Augmentation Function Registration Event with the correct body type
+            onAugmentationFunctionAvailable(augmentationFunctionHandlerId, augmentationFunction);
+        }
+
     }
 
     abstract protected void onCreate();
@@ -784,6 +837,55 @@ public abstract class DigitalTwinModel implements WldtEventListener {
         logger.info("Default Implementation -> Nothing to do with: Augmentation Function Result Event: {}", augmentationFunctionResult);
     }
 
+    /**
+     * Callback method invoked when an Augmentation Function has been registered, and it is available to be used.
+     * <b>IMPORTANT NOTE 1</b>: Notification of the availability of augmentation functions are possible only if the Digital Twin is
+     * on the Sync state through its lifecycle. If the DT is not sync it means that its state is not consistent and so
+     * the execution of Augmentation function is not feasible. that are registered at the creation of the Digital Twin.
+     * For those Augmentation Functions registered one the Digital Twin is created they will be notified step
+     * by step at the first Synchronization phase of the Digital Twin lifecycle.
+     * On the other hand, if an Augmentation Function is registered after the creation of the Digital Twin, it will be
+     * immediately notified as available only if the Digital Twin is currently in the Sync state,
+     * otherwise it will not be notified until the next Synchronization phase of the Digital Twin lifecycle.
+     * <b>IMPORTANT NOTE 2</b>: Since the evolution of the Digital Twin lifecycle is not predictable, the availability of
+     * Augmentation Functions is not predictable as well, so the Digital Twin Model should be able to handle the
+     * availability of Augmentation Functions at any time during its lifecycle and handle potential duplicated callbacks
+     * and notifications of the availability of the same Augmentation Function multiple times
+     * (e.g., if an Augmentation Function is registered while the Digital Twin is in Sync, then it will be notified as available,
+     * then if the Digital Twin goes out of sync and then back to sync, it will be notified again as available).
+     * This behavior is implemented in this way to ensure that the Digital Twin Model is always aware of the availability of Augmentation Functions and can handle it accordingly,
+     * <b>IMPORTANT NOTE 3</b>: At any time the Digital Twin Model can check the currently available Augmentation Functions
+     * by querying the Augmentation Manager, so it can always be aware of the currently available Augmentation Functions
+     * even if it misses some notifications of their availability of if the developer decides to not handle the in a
+     * different and custom way within the Digital Twin Behavior.
+     * This method is not abstract because not all Digital Twin Models may need to handle the availability of Augmentation Functions,
+     * so it provides a default implementation that can be optionally overridden
+     * by specific Digital Twin Models that need to process Augmentation Function availability.
+     * @param handlerId the id of the Augmentation Function Handler that registered the Augmentation Function
+     * @param augmentationFunction the Augmentation Function that became available
+     */
+    protected void onAugmentationFunctionAvailable(String handlerId, AugmentationFunction augmentationFunction) {
+        // Default implementation does nothing, can be overridden by specific
+        // Digital Twin Models to handle Augmentation Function results
+
+        logger.info("Default Implementation -> Nothing to do with: Augmentation Function Available: {} for Handler", augmentationFunction, handlerId);
+    }
+
+    /**
+     * Callback method invoked when an Augmentation Function has been unregistered, and it is no more available to be used.
+     * This method is not abstract because not all Digital Twin Models may need to handle the unavailability of Augmentation Functions,
+     * so it provides a default implementation that can be optionally overridden
+     * by specific Digital Twin Models that need to process Augmentation Function unavailability.
+     * @param handlerId the id of the Augmentation Function Handler that unregistered the Augmentation Function
+     * @param augmentationFunction the Augmentation Function that became unavailable
+     */
+    protected void onAugmentationFunctionUnAvailable(String handlerId, AugmentationFunction augmentationFunction) {
+        // Default implementation does nothing, can be overridden by specific
+        // Digital Twin Models to handle Augmentation Function results
+
+        logger.info("Default Implementation -> Nothing to do with: Augmentation Function UnAvailable: {} for Handler", augmentationFunction, handlerId);
+    }
+
     public String getId() {
         return id;
     }
@@ -808,16 +910,57 @@ public abstract class DigitalTwinModel implements WldtEventListener {
      * Notify the Shadowing Model Listener that the Shadowing Model is synchronized with the Physical Asset
      */
     protected void notifyShadowingSync(){
+
+        // Notify the Shadowing Model Listener that the Shadowing Model is synchronized with the Physical Asset
         if(getShadowingModelListener() != null)
             getShadowingModelListener().onShadowingSync(digitalTwinStateManager.getDigitalTwinState());
+
+        // Now that the Digital Twin is Synchronized we can notify the Digital Twin Model about the available
+        // and registered Augmentation Function for each Handler in order to allow the Digital Twin Model to execute
+        // them when needed
+        notifyInitialAugmentationFunctionsAvailable();
     }
 
     /**
      * Notify the Shadowing Model Listener that the Shadowing Model is out of sync with the Physical Asset
      */
     protected void notifyShadowingOutOfSync(){
+        // Notify the Shadowing Model Listener that the Shadowing Model is out of sync with the Physical Asset
         if(getShadowingModelListener() != null)
             getShadowingModelListener().onShadowingOutOfSync(digitalTwinStateManager.getDigitalTwinState());
+    }
+
+    /**
+     * Notify the Digital Twin Model implemented by the developer about the available and registered
+     * Augmentation Function for each Handler in order to allow the Digital Twin Model to execute them when needed.
+     * This method is typically called at the first Synchronization phase of the Digital Twin lifecycle to notify
+     * the availability of all the Augmentation Functions that are registered at the creation of the Digital Twin,
+     * and then it can be called every time a new Augmentation Function
+     * is registered while the Digital Twin is in Sync to notify its availability immediately.
+     */
+    private void notifyInitialAugmentationFunctionsAvailable(){
+        try{
+            // Now that the Digital Twin is Synchronized we can notify the Digital Twin Model about the available
+            // and registered Augmentation Function for each Handler in order to allow the Digital Twin Model to execute
+            // them when needed
+            if(this.augmentationManager != null
+                    && this.augmentationManager.getAllAugmentationFunctionHandlers() != null
+                    && !this.augmentationManager.getAllAugmentationFunctionHandlers().isEmpty()) {
+
+                logger.debug("Notifying Digital Twin Model about the available Augmentation Function Handlers for the Digital Twin Model Engine ...");
+
+                // Iterate over all the registered Augmentation Function Handlers and notify the Digital Twin Model
+                // about the available Augmentation Functions for each Handler
+                for(AugmentationFunctionHandler augmentationFunctionHandler : this.augmentationManager.getAllAugmentationFunctionHandlers()) {
+                    for(AugmentationFunction augmentationFunction : augmentationFunctionHandler.getAllAugmentationFunctions()) {
+                        this.onAugmentationFunctionAvailable(augmentationFunctionHandler.getId(), augmentationFunction);
+                    }
+                }
+            }
+        }catch(Exception e){
+            logger.error("Error while notifying the availability of Augmentation Functions to the Digital Twin Model: {}", e.getMessage());
+        }
+
     }
 
     @Override
@@ -841,4 +984,5 @@ public abstract class DigitalTwinModel implements WldtEventListener {
         sb.append('}');
         return sb.toString();
     }
+
 }

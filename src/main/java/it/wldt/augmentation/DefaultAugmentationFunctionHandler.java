@@ -93,6 +93,11 @@ public class DefaultAugmentationFunctionHandler extends AugmentationFunctionHand
     }
 
     @Override
+    public List<AugmentationFunction> getAllAugmentationFunctions() {
+        return new ArrayList<>(augmentationFunctionMap.values());
+    }
+
+    @Override
     protected void onStateUpdate(DigitalTwinState newDigitalTwinState, DigitalTwinState previousDigitalTwinState, ArrayList<DigitalTwinStateChange> digitalTwinStateChangeList) {
 
     }
@@ -113,32 +118,42 @@ public class DefaultAugmentationFunctionHandler extends AugmentationFunctionHand
     }
 
     @Override
-    public void onDigitalTwinSync(DigitalTwinState digitalTwinState) {
+    public void onDigitalTwinLifeCycleSync(DigitalTwinState digitalTwinState) {
 
     }
 
     @Override
-    public void onDigitalTwinUnSync(DigitalTwinState digitalTwinState) {
+    public void onDigitalTwinLifeCycleUnSync(DigitalTwinState digitalTwinState) {
 
     }
 
     @Override
-    public void onDigitalTwinCreate() {
+    public void onDigitalTwinLifeCycleCreate() {
 
     }
 
     @Override
-    public void onDigitalTwinStart() {
+    public void onDigitalTwinLifeCycleStart() {
 
     }
 
     @Override
-    public void onDigitalTwinStop() {
+    public void onDigitalTwinLifeCycleStop() {
 
     }
 
     @Override
-    public void onDigitalTwinDestroy() {
+    public void onDigitalTwinLifeCycleDestroy() {
+
+    }
+
+    @Override
+    public void onDigitalTwinLifeCycleBound() {
+
+    }
+
+    @Override
+    public void onDigitalTwinLifeCycleUnBound() {
 
     }
 }

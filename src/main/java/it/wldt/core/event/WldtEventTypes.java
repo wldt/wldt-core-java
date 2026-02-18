@@ -88,4 +88,8 @@ public class WldtEventTypes {
 
     public static final String AUGMENTATION_FUNCTION_RESULT_BASE_TYPE = "dt.augmentation.function.result";
 
+    public static final String AUGMENTATION_FUNCTION_REGISTERED_EVENT_TYPE = "dt.augmentation.function.registered";
+
+    public static final String AUGMENTATION_FUNCTION_UNREGISTERED_EVENT = "dt.augmentation.function.unregistered";
+
 }
