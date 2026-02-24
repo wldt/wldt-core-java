@@ -32,8 +32,6 @@ public class DigitalTwinStateRelationshipObserverTester {
 
     public DigitalTwinStateManager digitalTwinStateManager = null;
 
-    public DigitalTwinState digitalTwinState = null;
-
     public DigitalTwinStateProperty<String> testProperty1 = null;
 
     private CountDownLatch lock = new CountDownLatch(1);
@@ -63,10 +61,9 @@ public class DigitalTwinStateRelationshipObserverTester {
     private DigitalTwinStateRelationshipInstance<String> testRelationshipInstance1;
 
     private void initTestDtState() throws WldtDigitalTwinStateException {
-        if(digitalTwinStateManager == null && digitalTwinState == null) {
+        if(digitalTwinStateManager == null) {
             //Init DigitaTwin State Manager
             digitalTwinStateManager = new DigitalTwinStateManager(DIGITAL_TWIN_ID);
-            digitalTwinState = digitalTwinStateManager.getDigitalTwinState();
         }
     }
 
@@ -144,7 +141,7 @@ public class DigitalTwinStateRelationshipObserverTester {
     }
 
     @Test
-    public void observeStateChanges() throws WldtDigitalTwinStateException, InterruptedException, WldtDigitalTwinStatePropertyException, WldtDigitalTwinStatePropertyBadRequestException, WldtDigitalTwinStatePropertyConflictException, WldtDigitalTwinStatePropertyNotFoundException, EventBusException, WldtDigitalTwinStateEventException {
+    public void observeStateChanges() throws WldtDigitalTwinStateException, InterruptedException, EventBusException {
 
         //Init DigitaTwin State
         initTestDtState();
@@ -169,7 +166,7 @@ public class DigitalTwinStateRelationshipObserverTester {
         // Check Received Event
         assertNotNull(stateUpdatedReceivedWldtEvent);
         assertEquals(stateUpdatedReceivedWldtEvent.getType(), DigitalTwinStateManager.getStatusUpdatesWldtEventMessageType());
-        assertEquals(stateUpdatedReceivedWldtEvent.getBody(), digitalTwinState);
+        assertEquals(stateUpdatedReceivedWldtEvent.getBody(), digitalTwinStateManager.getDigitalTwinState());
 
         // Check if the event is correctly available in the State
         assertTrue(receivedDigitalTwinStateUpdate.containsRelationship(REL_NAME_1));
@@ -183,9 +180,9 @@ public class DigitalTwinStateRelationshipObserverTester {
         assertEquals(receivedPreviousDigitalTwinState, originalDtState);
 
         // Check State Change List
-        assertEquals(receivedDigitalTwinStateChangeList.size(), 1);
-        assertEquals(receivedDigitalTwinStateChangeList.get(0).getOperation(), DigitalTwinStateChange.Operation.OPERATION_ADD);
-        assertEquals(receivedDigitalTwinStateChangeList.get(0).getResourceType(), DigitalTwinStateChange.ResourceType.RELATIONSHIP);
+        assertEquals(1, receivedDigitalTwinStateChangeList.size());
+        assertEquals(DigitalTwinStateChange.Operation.OPERATION_ADD, receivedDigitalTwinStateChangeList.get(0).getOperation());
+        assertEquals(DigitalTwinStateChange.ResourceType.RELATIONSHIP, receivedDigitalTwinStateChangeList.get(0).getResourceType());
         assertEquals(receivedDigitalTwinStateChangeList.get(0).getResource(), testRelationship1);
 
         //Remove Subscription for target topic
@@ -193,7 +190,7 @@ public class DigitalTwinStateRelationshipObserverTester {
     }
 
     @Test
-    public void observeStateDeletedRelationship() throws WldtDigitalTwinStateException, InterruptedException, WldtDigitalTwinStatePropertyException, WldtDigitalTwinStatePropertyBadRequestException, WldtDigitalTwinStatePropertyConflictException, WldtDigitalTwinStatePropertyNotFoundException, EventBusException, WldtDigitalTwinStateEventException {
+    public void observeStateDeletedRelationship() throws WldtDigitalTwinStateException, InterruptedException, EventBusException {
 
         //Init DigitaTwin State
         initTestDtState();
@@ -222,7 +219,7 @@ public class DigitalTwinStateRelationshipObserverTester {
         // Check Received Event
         assertNotNull(stateUpdatedReceivedWldtEvent);
         assertEquals(stateUpdatedReceivedWldtEvent.getType(), DigitalTwinStateManager.getStatusUpdatesWldtEventMessageType());
-        assertEquals(stateUpdatedReceivedWldtEvent.getBody(), digitalTwinState);
+        assertEquals(stateUpdatedReceivedWldtEvent.getBody(), digitalTwinStateManager.getDigitalTwinState());
 
         // Check if the property has been correctly removed from the State
         assertFalse(receivedDigitalTwinStateUpdate.containsRelationship(REL_NAME_1));
@@ -234,9 +231,9 @@ public class DigitalTwinStateRelationshipObserverTester {
         assertEquals(receivedPreviousDigitalTwinState, originalDtState);
 
         // Check State Change List
-        assertEquals(receivedDigitalTwinStateChangeList.size(), 1);
-        assertEquals(receivedDigitalTwinStateChangeList.get(0).getOperation(), DigitalTwinStateChange.Operation.OPERATION_REMOVE);
-        assertEquals(receivedDigitalTwinStateChangeList.get(0).getResourceType(), DigitalTwinStateChange.ResourceType.RELATIONSHIP);
+        assertEquals(1, receivedDigitalTwinStateChangeList.size());
+        assertEquals(DigitalTwinStateChange.Operation.OPERATION_REMOVE, receivedDigitalTwinStateChangeList.get(0).getOperation());
+        assertEquals(DigitalTwinStateChange.ResourceType.RELATIONSHIP, receivedDigitalTwinStateChangeList.get(0).getResourceType());
         assertEquals(receivedDigitalTwinStateChangeList.get(0).getResource(), testRelationship1);
 
         //Remove Subscription for target topic
@@ -273,7 +270,7 @@ public class DigitalTwinStateRelationshipObserverTester {
         // Check Received Event
         assertNotNull(stateUpdatedReceivedWldtEvent);
         assertEquals(stateUpdatedReceivedWldtEvent.getType(), DigitalTwinStateManager.getStatusUpdatesWldtEventMessageType());
-        assertEquals(stateUpdatedReceivedWldtEvent.getBody(), digitalTwinState);
+        assertEquals(stateUpdatedReceivedWldtEvent.getBody(), digitalTwinStateManager.getDigitalTwinState());
 
         // Check if the event is correctly available in the State
         assertTrue(receivedDigitalTwinStateUpdate.containsRelationship(REL_NAME_1));
@@ -288,9 +285,9 @@ public class DigitalTwinStateRelationshipObserverTester {
         assertEquals(receivedPreviousDigitalTwinState, originalDtState);
 
         // Check State Change List
-        assertEquals(receivedDigitalTwinStateChangeList.size(), 1);
-        assertEquals(receivedDigitalTwinStateChangeList.get(0).getOperation(), DigitalTwinStateChange.Operation.OPERATION_ADD);
-        assertEquals(receivedDigitalTwinStateChangeList.get(0).getResourceType(), DigitalTwinStateChange.ResourceType.RELATIONSHIP_INSTANCE);
+        assertEquals(1, receivedDigitalTwinStateChangeList.size());
+        assertEquals(DigitalTwinStateChange.Operation.OPERATION_ADD, receivedDigitalTwinStateChangeList.get(0).getOperation());
+        assertEquals(DigitalTwinStateChange.ResourceType.RELATIONSHIP_INSTANCE, receivedDigitalTwinStateChangeList.get(0).getResourceType());
         assertEquals(receivedDigitalTwinStateChangeList.get(0).getResource(), testRelationshipInstance1);
 
         //Remove Subscription for target topic
@@ -298,7 +295,7 @@ public class DigitalTwinStateRelationshipObserverTester {
     }
 
     @Test
-    public void observeStateDeletedRelationshipInstance() throws WldtDigitalTwinStateException, InterruptedException, WldtDigitalTwinStatePropertyException, WldtDigitalTwinStatePropertyBadRequestException, WldtDigitalTwinStatePropertyConflictException, WldtDigitalTwinStatePropertyNotFoundException, EventBusException, WldtDigitalTwinStateEventException {
+    public void observeStateDeletedRelationshipInstance() throws WldtDigitalTwinStateException, InterruptedException, EventBusException {
 
         //Init DigitaTwin State
         initTestDtState();
@@ -329,7 +326,7 @@ public class DigitalTwinStateRelationshipObserverTester {
         // Check Received Event
         assertNotNull(stateUpdatedReceivedWldtEvent);
         assertEquals(stateUpdatedReceivedWldtEvent.getType(), DigitalTwinStateManager.getStatusUpdatesWldtEventMessageType());
-        assertEquals(stateUpdatedReceivedWldtEvent.getBody(), digitalTwinState);
+        assertEquals(stateUpdatedReceivedWldtEvent.getBody(), digitalTwinStateManager.getDigitalTwinState());
 
         // Check if the property has been correctly removed from the State
         assertTrue(receivedDigitalTwinStateUpdate.containsRelationship(REL_NAME_1));
@@ -343,9 +340,9 @@ public class DigitalTwinStateRelationshipObserverTester {
         assertEquals(receivedPreviousDigitalTwinState, originalDtState);
 
         // Check State Change List
-        assertEquals(receivedDigitalTwinStateChangeList.size(), 1);
-        assertEquals(receivedDigitalTwinStateChangeList.get(0).getOperation(), DigitalTwinStateChange.Operation.OPERATION_REMOVE);
-        assertEquals(receivedDigitalTwinStateChangeList.get(0).getResourceType(), DigitalTwinStateChange.ResourceType.RELATIONSHIP_INSTANCE);
+        assertEquals(1, receivedDigitalTwinStateChangeList.size());
+        assertEquals(DigitalTwinStateChange.Operation.OPERATION_REMOVE, receivedDigitalTwinStateChangeList.get(0).getOperation());
+        assertEquals(DigitalTwinStateChange.ResourceType.RELATIONSHIP_INSTANCE, receivedDigitalTwinStateChangeList.get(0).getResourceType());
         assertEquals(receivedDigitalTwinStateChangeList.get(0).getResource(), testRelationshipInstance1);
 
         //Remove Subscription for target topic

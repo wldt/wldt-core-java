@@ -26,19 +26,16 @@ public class DigitalTwinStateRelationshipCRUDTester {
 
     private DigitalTwinStateManager digitalTwinStateManager;
 
-    private DigitalTwinState digitalTwinState;
-
     private void createDigitalTwinStateManager() throws WldtDigitalTwinStateException {
-        if(digitalTwinStateManager == null && digitalTwinState == null) {
+        if(digitalTwinStateManager == null) {
             //Init DigitaTwin State Manager
             digitalTwinStateManager = new DigitalTwinStateManager(DIGITAL_TWIN_ID);
-            digitalTwinState = digitalTwinStateManager.getDigitalTwinState();
         }
     }
 
 
     @Test
-    public void createRelationship() throws WldtDigitalTwinStateException, WldtDigitalTwinStateActionException, WldtDigitalTwinStateEventException {
+    public void createRelationship() throws WldtDigitalTwinStateException {
 
         createDigitalTwinStateManager();
 
@@ -48,32 +45,32 @@ public class DigitalTwinStateRelationshipCRUDTester {
         digitalTwinStateManager.createRelationship(digitalTwinStateRelationship);
         digitalTwinStateManager.commitStateTransaction();
 
-        assertTrue(digitalTwinState.containsRelationship(REL_NAME_1));
-        assertTrue(digitalTwinState.getRelationship(REL_NAME_1).isPresent());
-        assertEquals(REL_TYPE_1, digitalTwinState.getRelationship(REL_NAME_1).get().getType());
-        assertTrue(digitalTwinState.getRelationshipList().isPresent());
-        assertEquals(1, digitalTwinState.getRelationshipList().get().size());
+        assertTrue(digitalTwinStateManager.getDigitalTwinState().containsRelationship(REL_NAME_1));
+        assertTrue(digitalTwinStateManager.getDigitalTwinState().getRelationship(REL_NAME_1).isPresent());
+        assertEquals(REL_TYPE_1, digitalTwinStateManager.getDigitalTwinState().getRelationship(REL_NAME_1).get().getType());
+        assertTrue(digitalTwinStateManager.getDigitalTwinState().getRelationshipList().isPresent());
+        assertEquals(1, digitalTwinStateManager.getDigitalTwinState().getRelationshipList().get().size());
     }
 
     @Test
-    public void deleteRelationship() throws WldtDigitalTwinStateException, WldtDigitalTwinStateActionException, WldtDigitalTwinStateEventException {
+    public void deleteRelationship() throws WldtDigitalTwinStateException {
 
         createRelationship();
 
-        assertTrue(digitalTwinState.getRelationshipList().isPresent());
-        assertEquals(1, digitalTwinState.getRelationshipList().get().size());
+        assertTrue(digitalTwinStateManager.getDigitalTwinState().getRelationshipList().isPresent());
+        assertEquals(1, digitalTwinStateManager.getDigitalTwinState().getRelationshipList().get().size());
 
         digitalTwinStateManager.startStateTransaction();
         digitalTwinStateManager.deleteRelationship(REL_NAME_1);
         digitalTwinStateManager.commitStateTransaction();
 
-        assertFalse(digitalTwinState.containsRelationship(REL_NAME_1));
-        assertFalse(digitalTwinState.getRelationship(REL_NAME_1).isPresent());
-        assertFalse(digitalTwinState.getRelationshipList().isPresent());
+        assertFalse(digitalTwinStateManager.getDigitalTwinState().containsRelationship(REL_NAME_1));
+        assertFalse(digitalTwinStateManager.getDigitalTwinState().getRelationship(REL_NAME_1).isPresent());
+        assertFalse(digitalTwinStateManager.getDigitalTwinState().getRelationshipList().isPresent());
     }
 
     @Test
-    public void createRelationshipInstance() throws WldtDigitalTwinStateException, WldtDigitalTwinStateActionException, WldtDigitalTwinStateEventException {
+    public void createRelationshipInstance() throws WldtDigitalTwinStateException {
 
         createRelationship();
 
@@ -83,17 +80,17 @@ public class DigitalTwinStateRelationshipCRUDTester {
         digitalTwinStateManager.addRelationshipInstance(digitalTwinStateRelationshipInstance);
         digitalTwinStateManager.commitStateTransaction();
 
-        assertTrue(digitalTwinState.containsRelationship(REL_NAME_1));
-        assertTrue(digitalTwinState.getRelationship(REL_NAME_1).isPresent());
-        assertTrue(digitalTwinState.containsRelationshipInstance(REL_NAME_1, REL_INSTANCE_KEY_1));
-        assertNotNull(digitalTwinState.getRelationship(REL_NAME_1).get().getInstance(REL_INSTANCE_KEY_1));
-        assertEquals(REL_INSTANCE_TARGET_ID_1, digitalTwinState.getRelationship(REL_NAME_1).get().getInstance(REL_INSTANCE_KEY_1).getTargetId());
-        assertEquals(1, digitalTwinState.getRelationship(REL_NAME_1).get().getInstances().size());
+        assertTrue(digitalTwinStateManager.getDigitalTwinState().containsRelationship(REL_NAME_1));
+        assertTrue(digitalTwinStateManager.getDigitalTwinState().getRelationship(REL_NAME_1).isPresent());
+        assertTrue(digitalTwinStateManager.getDigitalTwinState().containsRelationshipInstance(REL_NAME_1, REL_INSTANCE_KEY_1));
+        assertNotNull(digitalTwinStateManager.getDigitalTwinState().getRelationship(REL_NAME_1).get().getInstance(REL_INSTANCE_KEY_1));
+        assertEquals(REL_INSTANCE_TARGET_ID_1, digitalTwinStateManager.getDigitalTwinState().getRelationship(REL_NAME_1).get().getInstance(REL_INSTANCE_KEY_1).getTargetId());
+        assertEquals(1, digitalTwinStateManager.getDigitalTwinState().getRelationship(REL_NAME_1).get().getInstances().size());
 
     }
 
     @Test
-    public void deleteRelationshipInstance() throws WldtDigitalTwinStateException, WldtDigitalTwinStateActionException, WldtDigitalTwinStateEventException {
+    public void deleteRelationshipInstance() throws WldtDigitalTwinStateException {
 
         createRelationshipInstance();
 
@@ -101,11 +98,11 @@ public class DigitalTwinStateRelationshipCRUDTester {
         digitalTwinStateManager.deleteRelationshipInstance(REL_NAME_1, REL_INSTANCE_KEY_1);
         digitalTwinStateManager.commitStateTransaction();
 
-        assertTrue(digitalTwinState.containsRelationship(REL_NAME_1));
-        assertTrue(digitalTwinState.getRelationship(REL_NAME_1).isPresent());
-        assertFalse(digitalTwinState.containsRelationshipInstance(REL_NAME_1, REL_INSTANCE_TARGET_ID_1));
-        assertNull(digitalTwinState.getRelationship(REL_NAME_1).get().getInstance(REL_INSTANCE_KEY_1));
-        assertEquals(0, digitalTwinState.getRelationship(REL_NAME_1).get().getInstances().size());
+        assertTrue(digitalTwinStateManager.getDigitalTwinState().containsRelationship(REL_NAME_1));
+        assertTrue(digitalTwinStateManager.getDigitalTwinState().getRelationship(REL_NAME_1).isPresent());
+        assertFalse(digitalTwinStateManager.getDigitalTwinState().containsRelationshipInstance(REL_NAME_1, REL_INSTANCE_TARGET_ID_1));
+        assertNull(digitalTwinStateManager.getDigitalTwinState().getRelationship(REL_NAME_1).get().getInstance(REL_INSTANCE_KEY_1));
+        assertEquals(0, digitalTwinStateManager.getDigitalTwinState().getRelationship(REL_NAME_1).get().getInstances().size());
 
     }
 

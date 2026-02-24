@@ -44,20 +44,41 @@ public class PhysicalAssetEvent {
     private String key;
 
     /**
-     * Type of the Event. By default, it is associated to the type of the Class T (e.g., java.lang.String) but it
-     * can be directly changed by the developer to associate it to a specific ontology or data type.
-     * Furthermore, it can be useful if the event management system will be extended to the event-base communication
-     * between DTs over the network. In that case, the field can be used to de-serialize the object and understand
-     * the property type
+     * Type of the Event. It can be directly assigned by the developer to associate it to a specific ontology or data type.
      */
     private String type = null;
+
+    /**
+     * Content type of the Event. It can be directly assigned by the developer to associate it to a specific content type (e.g., application/json)
+     */
+    private String contentType = null;
 
     public PhysicalAssetEvent() {
     }
 
+    /**
+     * Constructor for creating a PhysicalAssetEvent with a key and type.
+     *
+     * @param key The key uniquely identifying the Physical Event on the Physical Twin
+     * @param type The type of the Event, which can be directly assigned by the developer to associate it to a specific ontology or data type.
+     */
     public PhysicalAssetEvent(String key, String type) {
         this.key = key;
         this.type = type;
+        this.contentType = null;
+    }
+
+    /**
+     * Constructor for creating a PhysicalAssetEvent with a key, type, and content type.
+     *
+     * @param key The key uniquely identifying the Physical Event on the Physical Twin
+     * @param type The type of the Event, which can be directly assigned by the developer to associate it to a specific ontology or data type.
+     * @param contentType The content type of the Event, which can be directly assigned by the developer to associate it to a specific content type (e.g., application/json)
+     */
+    public PhysicalAssetEvent(String key, String type, String contentType) {
+        this.key = key;
+        this.type = type;
+        this.contentType = contentType;
     }
 
     public String getKey() {
@@ -76,17 +97,25 @@ public class PhysicalAssetEvent {
         this.type = type;
     }
 
+    public String getContentType() {
+        return contentType;
+    }
+
+    public void setContentType(String contentType) {
+        this.contentType = contentType;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         PhysicalAssetEvent that = (PhysicalAssetEvent) o;
-        return key.equals(that.key) && type.equals(that.type);
+        return key.equals(that.key) && type.equals(that.type) && contentType.equals(that.contentType);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(key, type);
+        return Objects.hash(key, type, contentType);
     }
 
     @Override
@@ -94,6 +123,7 @@ public class PhysicalAssetEvent {
         final StringBuilder sb = new StringBuilder("PhysicalAssetEvent{");
         sb.append("key='").append(key).append('\'');
         sb.append(", type='").append(type).append('\'');
+        sb.append(", contentType='").append(contentType).append('\'');
         sb.append('}');
         return sb.toString();
     }

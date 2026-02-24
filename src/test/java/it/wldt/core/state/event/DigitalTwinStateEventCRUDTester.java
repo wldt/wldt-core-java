@@ -1,6 +1,5 @@
 package it.wldt.core.state.event;
 
-import it.wldt.core.state.DigitalTwinState;
 import it.wldt.core.state.DigitalTwinStateEvent;
 import it.wldt.core.state.DigitalTwinStateManager;
 import it.wldt.exception.*;
@@ -21,19 +20,16 @@ public class DigitalTwinStateEventCRUDTester {
 
     private DigitalTwinStateManager digitalTwinStateManager;
 
-    private DigitalTwinState digitalTwinState;
-
     private void createDigitalTwinStateManager() throws WldtDigitalTwinStateException {
-        if(digitalTwinStateManager == null && digitalTwinState == null) {
+        if(digitalTwinStateManager == null) {
             //Init DigitaTwin State Manager
             digitalTwinStateManager = new DigitalTwinStateManager(DIGITAL_TWIN_ID);
-            digitalTwinState = digitalTwinStateManager.getDigitalTwinState();
         }
     }
 
 
     @Test
-    public void registerEvent() throws WldtDigitalTwinStateException, WldtDigitalTwinStateActionException, WldtDigitalTwinStateEventException {
+    public void registerEvent() throws WldtDigitalTwinStateException, WldtDigitalTwinStateEventException {
 
         createDigitalTwinStateManager();
 
@@ -43,30 +39,30 @@ public class DigitalTwinStateEventCRUDTester {
         digitalTwinStateManager.registerEvent(newEvent);
         digitalTwinStateManager.commitStateTransaction();
 
-        assertTrue(digitalTwinState.containsEvent(EVENT_KEY_1));
-        assertTrue(digitalTwinState.getEvent(EVENT_KEY_1).isPresent());
-        assertEquals(EVENT_TYPE, digitalTwinState.getEvent(EVENT_KEY_1).get().getType());
-        assertTrue(digitalTwinState.getEventList().isPresent());
-        assertEquals(1, digitalTwinState.getEventList().get().size());
+        assertTrue(digitalTwinStateManager.getDigitalTwinState().containsEvent(EVENT_KEY_1));
+        assertTrue(digitalTwinStateManager.getDigitalTwinState().getEvent(EVENT_KEY_1).isPresent());
+        assertEquals(EVENT_TYPE, digitalTwinStateManager.getDigitalTwinState().getEvent(EVENT_KEY_1).get().getType());
+        assertTrue(digitalTwinStateManager.getDigitalTwinState().getEventList().isPresent());
+        assertEquals(1, digitalTwinStateManager.getDigitalTwinState().getEventList().get().size());
     }
 
     @Test
-    public void updateRegisteredEvent() throws WldtDigitalTwinStateException, WldtDigitalTwinStateActionException, WldtDigitalTwinStateEventException {
+    public void updateRegisteredEvent() throws WldtDigitalTwinStateException, WldtDigitalTwinStateEventException {
 
         registerEvent();
 
-        assertTrue(digitalTwinState.getEvent(EVENT_KEY_1).isPresent());
-        assertEquals(EVENT_TYPE, digitalTwinState.getEvent(EVENT_KEY_1).get().getType());
+        assertTrue(digitalTwinStateManager.getDigitalTwinState().getEvent(EVENT_KEY_1).isPresent());
+        assertEquals(EVENT_TYPE, digitalTwinStateManager.getDigitalTwinState().getEvent(EVENT_KEY_1).get().getType());
 
         digitalTwinStateManager.startStateTransaction();
         digitalTwinStateManager.updateRegisteredEvent(new DigitalTwinStateEvent(EVENT_KEY_1, EVENT_TYPE_2));
         digitalTwinStateManager.commitStateTransaction();
 
-        assertEquals(EVENT_TYPE_2, digitalTwinState.getEvent(EVENT_KEY_1).get().getType());
+        assertEquals(EVENT_TYPE_2, digitalTwinStateManager.getDigitalTwinState().getEvent(EVENT_KEY_1).get().getType());
     }
 
     @Test
-    public void unregisterEvent() throws WldtDigitalTwinStateException, WldtDigitalTwinStateActionException, WldtDigitalTwinStateEventException {
+    public void unregisterEvent() throws WldtDigitalTwinStateException, WldtDigitalTwinStateEventException {
 
         registerEvent();
 
@@ -74,9 +70,9 @@ public class DigitalTwinStateEventCRUDTester {
         digitalTwinStateManager.unRegisterEvent(EVENT_KEY_1);
         digitalTwinStateManager.commitStateTransaction();
 
-        assertFalse(digitalTwinState.containsEvent(EVENT_KEY_1));
-        assertFalse(digitalTwinState.getEvent(EVENT_KEY_1).isPresent());
-        assertFalse(digitalTwinState.getEventList().isPresent());
+        assertFalse(digitalTwinStateManager.getDigitalTwinState().containsEvent(EVENT_KEY_1));
+        assertFalse(digitalTwinStateManager.getDigitalTwinState().getEvent(EVENT_KEY_1).isPresent());
+        assertFalse(digitalTwinStateManager.getDigitalTwinState().getEventList().isPresent());
     }
 
 }

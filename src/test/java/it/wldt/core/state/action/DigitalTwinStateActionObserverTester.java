@@ -28,9 +28,7 @@ public class DigitalTwinStateActionObserverTester {
 
     public DigitalTwinStateManager digitalTwinStateManager = null;
 
-    public DigitalTwinState digitalTwinState = null;
-
-    private CountDownLatch lock = new CountDownLatch(1);
+    private final CountDownLatch lock = new CountDownLatch(1);
 
     private WldtEvent<?> stateUpdatedReceivedWldtEvent;
     private DigitalTwinState receivedDigitalTwinStateUpdate;
@@ -44,14 +42,13 @@ public class DigitalTwinStateActionObserverTester {
     private DigitalTwinStateAction targetAction1;
 
     private void initTestDtState() throws WldtDigitalTwinStateException {
-        if(digitalTwinStateManager == null && digitalTwinState == null) {
+        if(digitalTwinStateManager == null) {
             //Init DigitaTwin State Manager
             digitalTwinStateManager = new DigitalTwinStateManager(DIGITAL_TWIN_ID);
-            digitalTwinState = digitalTwinStateManager.getDigitalTwinState();
         }
     }
 
-    private void enableAction() throws WldtDigitalTwinStatePropertyException, WldtDigitalTwinStatePropertyBadRequestException, WldtDigitalTwinStatePropertyConflictException, WldtDigitalTwinStateException {
+    private void enableAction() throws WldtDigitalTwinStateException {
 
         initTestDtState();
 
@@ -118,7 +115,7 @@ public class DigitalTwinStateActionObserverTester {
     }
 
     @Test
-    public void observeStateChanges() throws WldtDigitalTwinStateException, InterruptedException, WldtDigitalTwinStatePropertyException, WldtDigitalTwinStatePropertyBadRequestException, WldtDigitalTwinStatePropertyConflictException, WldtDigitalTwinStatePropertyNotFoundException, EventBusException, WldtDigitalTwinStateActionException {
+    public void observeStateChanges() throws WldtDigitalTwinStateException, InterruptedException, EventBusException, WldtDigitalTwinStateActionException {
 
         //Init DigitaTwin State
         initTestDtState();
@@ -143,23 +140,23 @@ public class DigitalTwinStateActionObserverTester {
         // Check Received Event
         assertNotNull(stateUpdatedReceivedWldtEvent);
         assertEquals(stateUpdatedReceivedWldtEvent.getType(), DigitalTwinStateManager.getStatusUpdatesWldtEventMessageType());
-        assertEquals(stateUpdatedReceivedWldtEvent.getBody(), digitalTwinState);
+        assertEquals(stateUpdatedReceivedWldtEvent.getBody(), digitalTwinStateManager.getDigitalTwinState());
 
         // Check if the action is correctly available in the State
-        assertTrue(digitalTwinState.containsAction(ACTION_KEY_1));
-        assertTrue(digitalTwinState.getAction(ACTION_KEY_1).isPresent());
-        assertEquals(ACTION_TYPE, digitalTwinState.getAction(ACTION_KEY_1).get().getType());
-        assertTrue(digitalTwinState.getActionList().isPresent());
-        assertEquals(1, digitalTwinState.getActionList().get().size());
+        assertTrue(digitalTwinStateManager.getDigitalTwinState().containsAction(ACTION_KEY_1));
+        assertTrue(digitalTwinStateManager.getDigitalTwinState().getAction(ACTION_KEY_1).isPresent());
+        assertEquals(ACTION_TYPE, digitalTwinStateManager.getDigitalTwinState().getAction(ACTION_KEY_1).get().getType());
+        assertTrue(digitalTwinStateManager.getDigitalTwinState().getActionList().isPresent());
+        assertEquals(1, digitalTwinStateManager.getDigitalTwinState().getActionList().get().size());
 
         // Check Received Previous DT State
         assertNotNull(receivedPreviousDigitalTwinState);
         assertEquals(receivedPreviousDigitalTwinState, originalDtState);
 
         // Check State Change List
-        assertEquals(receivedDigitalTwinStateChangeList.size(), 1);
-        assertEquals(receivedDigitalTwinStateChangeList.get(0).getOperation(), DigitalTwinStateChange.Operation.OPERATION_ADD);
-        assertEquals(receivedDigitalTwinStateChangeList.get(0).getResourceType(), DigitalTwinStateChange.ResourceType.ACTION);
+        assertEquals(1, receivedDigitalTwinStateChangeList.size());
+        assertEquals(DigitalTwinStateChange.Operation.OPERATION_ADD, receivedDigitalTwinStateChangeList.get(0).getOperation());
+        assertEquals(DigitalTwinStateChange.ResourceType.ACTION, receivedDigitalTwinStateChangeList.get(0).getResourceType());
         assertEquals(receivedDigitalTwinStateChangeList.get(0).getResource(), targetAction1);
 
         //Remove Subscription for target topic
@@ -167,7 +164,7 @@ public class DigitalTwinStateActionObserverTester {
     }
 
     @Test
-    public void observeStateUpdatedAction() throws WldtDigitalTwinStateException, InterruptedException, WldtDigitalTwinStatePropertyException, WldtDigitalTwinStatePropertyBadRequestException, WldtDigitalTwinStatePropertyConflictException, WldtDigitalTwinStatePropertyNotFoundException, EventBusException, WldtDigitalTwinStateActionException {
+    public void observeStateUpdatedAction() throws WldtDigitalTwinStateException, InterruptedException, EventBusException, WldtDigitalTwinStateActionException {
 
         //Init DigitaTwin State
         initTestDtState();
@@ -199,24 +196,24 @@ public class DigitalTwinStateActionObserverTester {
         // Check Received Event
         assertNotNull(stateUpdatedReceivedWldtEvent);
         assertEquals(stateUpdatedReceivedWldtEvent.getType(), DigitalTwinStateManager.getStatusUpdatesWldtEventMessageType());
-        assertEquals(stateUpdatedReceivedWldtEvent.getBody(), digitalTwinState);
+        assertEquals(stateUpdatedReceivedWldtEvent.getBody(), digitalTwinStateManager.getDigitalTwinState());
 
         // Check if the action is correctly available in the State
-        assertTrue(digitalTwinState.containsAction(ACTION_KEY_1));
-        assertTrue(digitalTwinState.getAction(ACTION_KEY_1).isPresent());
-        assertEquals(ACTION_TYPE, digitalTwinState.getAction(ACTION_KEY_1).get().getType());
-        assertEquals(ACTION_CONTENT_TYPE_UPDATED, digitalTwinState.getAction(ACTION_KEY_1).get().getContentType());
-        assertTrue(digitalTwinState.getActionList().isPresent());
-        assertEquals(1, digitalTwinState.getActionList().get().size());
+        assertTrue(digitalTwinStateManager.getDigitalTwinState().containsAction(ACTION_KEY_1));
+        assertTrue(digitalTwinStateManager.getDigitalTwinState().getAction(ACTION_KEY_1).isPresent());
+        assertEquals(ACTION_TYPE, digitalTwinStateManager.getDigitalTwinState().getAction(ACTION_KEY_1).get().getType());
+        assertEquals(ACTION_CONTENT_TYPE_UPDATED, digitalTwinStateManager.getDigitalTwinState().getAction(ACTION_KEY_1).get().getContentType());
+        assertTrue(digitalTwinStateManager.getDigitalTwinState().getActionList().isPresent());
+        assertEquals(1, digitalTwinStateManager.getDigitalTwinState().getActionList().get().size());
 
         // Check Received Previous DT State
         assertNotNull(receivedPreviousDigitalTwinState);
         assertEquals(receivedPreviousDigitalTwinState, originalDtState);
 
         // Check State Change List
-        assertEquals(receivedDigitalTwinStateChangeList.size(), 1);
-        assertEquals(receivedDigitalTwinStateChangeList.get(0).getOperation(), DigitalTwinStateChange.Operation.OPERATION_UPDATE);
-        assertEquals(receivedDigitalTwinStateChangeList.get(0).getResourceType(), DigitalTwinStateChange.ResourceType.ACTION);
+        assertEquals(1, receivedDigitalTwinStateChangeList.size());
+        assertEquals(DigitalTwinStateChange.Operation.OPERATION_UPDATE, receivedDigitalTwinStateChangeList.get(0).getOperation());
+        assertEquals(DigitalTwinStateChange.ResourceType.ACTION, receivedDigitalTwinStateChangeList.get(0).getResourceType());
         assertEquals(updatedAction, receivedDigitalTwinStateChangeList.get(0).getResource());
 
         //Remove Subscription for target topic
@@ -224,7 +221,7 @@ public class DigitalTwinStateActionObserverTester {
     }
 
     @Test
-    public void observeStateDeletedAction() throws WldtDigitalTwinStateException, InterruptedException, WldtDigitalTwinStatePropertyException, WldtDigitalTwinStatePropertyBadRequestException, WldtDigitalTwinStatePropertyConflictException, WldtDigitalTwinStatePropertyNotFoundException, EventBusException, WldtDigitalTwinStateActionException {
+    public void observeStateDeletedAction() throws WldtDigitalTwinStateException, InterruptedException, EventBusException, WldtDigitalTwinStateActionException {
 
         //Init DigitaTwin State
         initTestDtState();
@@ -254,7 +251,7 @@ public class DigitalTwinStateActionObserverTester {
         // Check Received Event
         assertNotNull(stateUpdatedReceivedWldtEvent);
         assertEquals(stateUpdatedReceivedWldtEvent.getType(), DigitalTwinStateManager.getStatusUpdatesWldtEventMessageType());
-        assertEquals(stateUpdatedReceivedWldtEvent.getBody(), digitalTwinState);
+        assertEquals(stateUpdatedReceivedWldtEvent.getBody(), digitalTwinStateManager.getDigitalTwinState());
 
         // Check if the property has been correctly removed from the State
         assertFalse(receivedDigitalTwinStateUpdate.getAction(ACTION_KEY_1).isPresent());
@@ -264,9 +261,9 @@ public class DigitalTwinStateActionObserverTester {
         assertEquals(receivedPreviousDigitalTwinState, originalDtState);
 
         // Check State Change List
-        assertEquals(receivedDigitalTwinStateChangeList.size(), 1);
-        assertEquals(receivedDigitalTwinStateChangeList.get(0).getOperation(), DigitalTwinStateChange.Operation.OPERATION_REMOVE);
-        assertEquals(receivedDigitalTwinStateChangeList.get(0).getResourceType(), DigitalTwinStateChange.ResourceType.ACTION);
+        assertEquals(1, receivedDigitalTwinStateChangeList.size());
+        assertEquals(DigitalTwinStateChange.Operation.OPERATION_REMOVE, receivedDigitalTwinStateChangeList.get(0).getOperation());
+        assertEquals(DigitalTwinStateChange.ResourceType.ACTION, receivedDigitalTwinStateChangeList.get(0).getResourceType());
         assertEquals(receivedDigitalTwinStateChangeList.get(0).getResource(), targetAction1);
 
         //Remove Subscription for target topic

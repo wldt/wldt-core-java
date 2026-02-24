@@ -1,6 +1,5 @@
 package it.wldt.core.state.property;
 
-import it.wldt.core.state.DigitalTwinState;
 import it.wldt.core.state.DigitalTwinStateManager;
 import it.wldt.core.state.DigitalTwinStateProperty;
 
@@ -26,23 +25,20 @@ public class DigitalTwinStatePropertyCRUDTester {
 
     public DigitalTwinStateManager digitalTwinStateManager = null;
 
-    public DigitalTwinState digitalTwinState = null;
-
     public static DigitalTwinStateProperty<String> testProperty1 = null;
 
     public static DigitalTwinStateProperty<String> testProperty2 = null;
 
-    private void initTestDtState() throws WldtDigitalTwinStatePropertyException, WldtDigitalTwinStatePropertyBadRequestException, WldtDigitalTwinStatePropertyConflictException, WldtDigitalTwinStateException {
+    private void initTestDtState() throws WldtDigitalTwinStateException {
 
-        if(digitalTwinStateManager == null && digitalTwinState == null) {
+        if(digitalTwinStateManager == null) {
             //Init DigitaTwin State Manager
             digitalTwinStateManager = new DigitalTwinStateManager(DIGITAL_TWIN_ID);
-            digitalTwinState = digitalTwinStateManager.getDigitalTwinState();
         }
     }
 
     @Test
-    public void createProperty() throws WldtDigitalTwinStatePropertyException, WldtDigitalTwinStatePropertyBadRequestException, WldtDigitalTwinStatePropertyConflictException, WldtDigitalTwinStatePropertyNotFoundException, WldtDigitalTwinStateException {
+    public void createProperty() throws WldtDigitalTwinStatePropertyException, WldtDigitalTwinStatePropertyBadRequestException, WldtDigitalTwinStatePropertyNotFoundException, WldtDigitalTwinStateException {
 
         //Init DigitaTwin State
         initTestDtState();
@@ -56,15 +52,15 @@ public class DigitalTwinStatePropertyCRUDTester {
         digitalTwinStateManager.createProperty(testProperty1);
         digitalTwinStateManager.commitStateTransaction();
 
-        assertTrue(digitalTwinState.getPropertyList().isPresent());
-        assertEquals(1, digitalTwinState.getPropertyList().get().size());
-        assertTrue(digitalTwinState.readProperty(TEST_KEY_0001).isPresent());
-        assertEquals(testProperty1, digitalTwinState.readProperty(TEST_KEY_0001).get());
-        assertEquals(TEST_VALUE_0001, digitalTwinState.readProperty(TEST_KEY_0001).get().getValue());
+        assertTrue(digitalTwinStateManager.getDigitalTwinState().getPropertyList().isPresent());
+        assertEquals(1, digitalTwinStateManager.getDigitalTwinState().getPropertyList().get().size());
+        assertTrue(digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).isPresent());
+        assertEquals(testProperty1, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).get());
+        assertEquals(TEST_VALUE_0001, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).get().getValue());
     }
 
     @Test
-    public void createMultiplePropertiesSingleTransaction() throws WldtDigitalTwinStatePropertyException, WldtDigitalTwinStatePropertyBadRequestException, WldtDigitalTwinStatePropertyConflictException, WldtDigitalTwinStatePropertyNotFoundException, WldtDigitalTwinStateException {
+    public void createMultiplePropertiesSingleTransaction() throws WldtDigitalTwinStatePropertyException, WldtDigitalTwinStatePropertyBadRequestException, WldtDigitalTwinStatePropertyNotFoundException, WldtDigitalTwinStateException {
 
         //Init DigitaTwin State
         initTestDtState();
@@ -84,18 +80,18 @@ public class DigitalTwinStatePropertyCRUDTester {
         digitalTwinStateManager.createProperty(testProperty2);
         digitalTwinStateManager.commitStateTransaction();
 
-        assertTrue(digitalTwinState.getPropertyList().isPresent());
-        assertEquals(2, digitalTwinState.getPropertyList().get().size());
-        assertTrue(digitalTwinState.readProperty(TEST_KEY_0001).isPresent());
-        assertTrue(digitalTwinState.readProperty(TEST_KEY_0002).isPresent());
-        assertEquals(testProperty1, digitalTwinState.readProperty(TEST_KEY_0001).get());
-        assertEquals(TEST_VALUE_0001, digitalTwinState.readProperty(TEST_KEY_0001).get().getValue());
-        assertEquals(testProperty2, digitalTwinState.readProperty(TEST_KEY_0002).get());
-        assertEquals(TEST_VALUE_0002, digitalTwinState.readProperty(TEST_KEY_0002).get().getValue());
+        assertTrue(digitalTwinStateManager.getDigitalTwinState().getPropertyList().isPresent());
+        assertEquals(2, digitalTwinStateManager.getDigitalTwinState().getPropertyList().get().size());
+        assertTrue(digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).isPresent());
+        assertTrue(digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0002).isPresent());
+        assertEquals(testProperty1, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).get());
+        assertEquals(TEST_VALUE_0001, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).get().getValue());
+        assertEquals(testProperty2, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0002).get());
+        assertEquals(TEST_VALUE_0002, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0002).get().getValue());
     }
 
     @Test
-    public void createMultiplePropertiesMultipleTransaction() throws WldtDigitalTwinStatePropertyException, WldtDigitalTwinStatePropertyBadRequestException, WldtDigitalTwinStatePropertyConflictException, WldtDigitalTwinStatePropertyNotFoundException, WldtDigitalTwinStateException {
+    public void createMultiplePropertiesMultipleTransaction() throws WldtDigitalTwinStatePropertyException, WldtDigitalTwinStatePropertyBadRequestException, WldtDigitalTwinStatePropertyNotFoundException, WldtDigitalTwinStateException {
 
         //Init DigitaTwin State
         initTestDtState();
@@ -118,31 +114,31 @@ public class DigitalTwinStatePropertyCRUDTester {
         digitalTwinStateManager.createProperty(testProperty2);
         digitalTwinStateManager.commitStateTransaction();
 
-        assertTrue(digitalTwinState.getPropertyList().isPresent());
-        assertEquals(2, digitalTwinState.getPropertyList().get().size());
-        assertTrue(digitalTwinState.readProperty(TEST_KEY_0001).isPresent());
-        assertTrue(digitalTwinState.readProperty(TEST_KEY_0002).isPresent());
-        assertEquals(testProperty1, digitalTwinState.readProperty(TEST_KEY_0001).get());
-        assertEquals(TEST_VALUE_0001, digitalTwinState.readProperty(TEST_KEY_0001).get().getValue());
-        assertEquals(testProperty2, digitalTwinState.readProperty(TEST_KEY_0002).get());
-        assertEquals(TEST_VALUE_0002, digitalTwinState.readProperty(TEST_KEY_0002).get().getValue());
+        assertTrue(digitalTwinStateManager.getDigitalTwinState().getPropertyList().isPresent());
+        assertEquals(2, digitalTwinStateManager.getDigitalTwinState().getPropertyList().get().size());
+        assertTrue(digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).isPresent());
+        assertTrue(digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0002).isPresent());
+        assertEquals(testProperty1, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).get());
+        assertEquals(TEST_VALUE_0001, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).get().getValue());
+        assertEquals(testProperty2, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0002).get());
+        assertEquals(TEST_VALUE_0002, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0002).get().getValue());
     }
 
     @Test
-    public void readProperty() throws WldtDigitalTwinStatePropertyException, WldtDigitalTwinStatePropertyBadRequestException, WldtDigitalTwinStatePropertyConflictException, WldtDigitalTwinStatePropertyNotFoundException, WldtDigitalTwinStateException {
+    public void readProperty() throws WldtDigitalTwinStatePropertyException, WldtDigitalTwinStatePropertyBadRequestException, WldtDigitalTwinStatePropertyNotFoundException, WldtDigitalTwinStateException {
 
         //Init DigitaTwin State
         initTestDtState();
 
         createProperty();
 
-        assertTrue(digitalTwinState.readProperty(TEST_KEY_0001).isPresent());
-        assertEquals(testProperty1, digitalTwinState.readProperty(TEST_KEY_0001).get());
-        assertEquals(TEST_VALUE_0001, digitalTwinState.readProperty(TEST_KEY_0001).get().getValue());
+        assertTrue(digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).isPresent());
+        assertEquals(testProperty1, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).get());
+        assertEquals(TEST_VALUE_0001, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).get().getValue());
     }
 
     @Test
-    public void updateProperty() throws WldtDigitalTwinStateException, WldtDigitalTwinStatePropertyException, WldtDigitalTwinStatePropertyBadRequestException, WldtDigitalTwinStatePropertyConflictException, WldtDigitalTwinStatePropertyNotFoundException {
+    public void updateProperty() throws WldtDigitalTwinStateException, WldtDigitalTwinStatePropertyException, WldtDigitalTwinStatePropertyBadRequestException, WldtDigitalTwinStatePropertyNotFoundException {
 
         //Init DigitaTwin State
         initTestDtState();
@@ -155,15 +151,15 @@ public class DigitalTwinStatePropertyCRUDTester {
         digitalTwinStateManager.updateProperty(updatedProperty);
         digitalTwinStateManager.commitStateTransaction();
 
-        assertTrue(digitalTwinState.getPropertyList().isPresent());
-        assertEquals(1, digitalTwinState.getPropertyList().get().size());
-        assertTrue(digitalTwinState.readProperty(TEST_KEY_0001).isPresent());
-        assertEquals(updatedProperty, digitalTwinState.readProperty(TEST_KEY_0001).get());
-        assertEquals(TEST_VALUE_0001_UPDATED, digitalTwinState.readProperty(TEST_KEY_0001).get().getValue());
+        assertTrue(digitalTwinStateManager.getDigitalTwinState().getPropertyList().isPresent());
+        assertEquals(1, digitalTwinStateManager.getDigitalTwinState().getPropertyList().get().size());
+        assertTrue(digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).isPresent());
+        assertEquals(updatedProperty, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).get());
+        assertEquals(TEST_VALUE_0001_UPDATED, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).get().getValue());
     }
 
     @Test
-    public void updatePropertyValue() throws WldtDigitalTwinStateException, WldtDigitalTwinStatePropertyException, WldtDigitalTwinStatePropertyBadRequestException, WldtDigitalTwinStatePropertyConflictException, WldtDigitalTwinStatePropertyNotFoundException {
+    public void updatePropertyValue() throws WldtDigitalTwinStateException, WldtDigitalTwinStatePropertyException, WldtDigitalTwinStatePropertyBadRequestException, WldtDigitalTwinStatePropertyNotFoundException {
 
         //Init DigitaTwin State
         initTestDtState();
@@ -176,15 +172,15 @@ public class DigitalTwinStatePropertyCRUDTester {
         digitalTwinStateManager.updatePropertyValue(updatedProperty);
         digitalTwinStateManager.commitStateTransaction();
 
-        assertTrue(digitalTwinState.getPropertyList().isPresent());
-        assertEquals(1, digitalTwinState.getPropertyList().get().size());
-        assertTrue(digitalTwinState.readProperty(TEST_KEY_0001).isPresent());
-        assertEquals(updatedProperty, digitalTwinState.readProperty(TEST_KEY_0001).get());
-        assertEquals(TEST_VALUE_0001_UPDATED, digitalTwinState.readProperty(TEST_KEY_0001).get().getValue());
+        assertTrue(digitalTwinStateManager.getDigitalTwinState().getPropertyList().isPresent());
+        assertEquals(1, digitalTwinStateManager.getDigitalTwinState().getPropertyList().get().size());
+        assertTrue(digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).isPresent());
+        assertEquals(updatedProperty, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).get());
+        assertEquals(TEST_VALUE_0001_UPDATED, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).get().getValue());
     }
 
     @Test
-    public void deleteProperty() throws WldtDigitalTwinStatePropertyException, WldtDigitalTwinStatePropertyBadRequestException, WldtDigitalTwinStatePropertyConflictException, WldtDigitalTwinStatePropertyNotFoundException, WldtDigitalTwinStateException {
+    public void deleteProperty() throws WldtDigitalTwinStatePropertyException, WldtDigitalTwinStatePropertyBadRequestException, WldtDigitalTwinStatePropertyNotFoundException, WldtDigitalTwinStateException {
 
         //Init DigitalTwin State
         initTestDtState();
@@ -196,11 +192,11 @@ public class DigitalTwinStatePropertyCRUDTester {
         digitalTwinStateManager.deleteProperty(TEST_KEY_0001);
         digitalTwinStateManager.commitStateTransaction();
 
-        assertFalse(digitalTwinState.getPropertyList().isPresent());
+        assertFalse(digitalTwinStateManager.getDigitalTwinState().getPropertyList().isPresent());
     }
 
     @Test
-    public void propertyTypeValidationWithMethod() throws WldtDigitalTwinStatePropertyException, WldtDigitalTwinStatePropertyBadRequestException, WldtDigitalTwinStatePropertyConflictException, WldtDigitalTwinStateException, WldtDigitalTwinStatePropertyNotFoundException {
+    public void propertyTypeValidationWithMethod() throws WldtDigitalTwinStatePropertyException, WldtDigitalTwinStatePropertyBadRequestException, WldtDigitalTwinStateException, WldtDigitalTwinStatePropertyNotFoundException {
 
         String TEST_PROPERTY_TYPE = "test_type";
 
@@ -217,15 +213,15 @@ public class DigitalTwinStatePropertyCRUDTester {
         digitalTwinStateManager.createProperty(testProperty1);
         digitalTwinStateManager.commitStateTransaction();
 
-        assertTrue(digitalTwinState.readProperty(TEST_KEY_0001).isPresent());
-        assertEquals(testProperty1, digitalTwinState.readProperty(TEST_KEY_0001).get());
-        assertEquals(TEST_VALUE_0001, digitalTwinState.readProperty(TEST_KEY_0001).get().getValue());
-        assertEquals(TEST_PROPERTY_TYPE, digitalTwinState.readProperty(TEST_KEY_0001).get().getType());
+        assertTrue(digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).isPresent());
+        assertEquals(testProperty1, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).get());
+        assertEquals(TEST_VALUE_0001, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).get().getValue());
+        assertEquals(TEST_PROPERTY_TYPE, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).get().getType());
 
     }
 
     @Test
-    public void propertyTypeValidationWithConstructor() throws WldtDigitalTwinStatePropertyException, WldtDigitalTwinStatePropertyBadRequestException, WldtDigitalTwinStatePropertyConflictException, WldtDigitalTwinStateException, WldtDigitalTwinStatePropertyNotFoundException {
+    public void propertyTypeValidationWithConstructor() throws WldtDigitalTwinStatePropertyException, WldtDigitalTwinStatePropertyBadRequestException, WldtDigitalTwinStateException, WldtDigitalTwinStatePropertyNotFoundException {
 
         //Init DigitaTwin State
         initTestDtState();
@@ -239,10 +235,10 @@ public class DigitalTwinStatePropertyCRUDTester {
         digitalTwinStateManager.createProperty(testProperty1);
         digitalTwinStateManager.commitStateTransaction();
 
-        assertTrue(digitalTwinState.readProperty(TEST_KEY_0001).isPresent());
-        assertEquals(testProperty1, digitalTwinState.readProperty(TEST_KEY_0001).get());
-        assertEquals(TEST_VALUE_0001, digitalTwinState.readProperty(TEST_KEY_0001).get().getValue());
-        assertEquals(TEST_PROPERTY_TYPE, digitalTwinState.readProperty(TEST_KEY_0001).get().getType());
+        assertTrue(digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).isPresent());
+        assertEquals(testProperty1, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).get());
+        assertEquals(TEST_VALUE_0001, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).get().getValue());
+        assertEquals(TEST_PROPERTY_TYPE, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).get().getType());
 
     }
 
