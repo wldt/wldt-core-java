@@ -18,7 +18,7 @@ import java.lang.annotation.*;
  *   <li>Metrics and observability instrumentation</li>
  * </ul>
  * 
- * <h3>Example Usage</h3>
+ * Example Usage
  * <pre>{@code
  * @ShadowingFunction(
  *     value = ShadowingType.PHYSICAL_PROPERTY_VARIATION,

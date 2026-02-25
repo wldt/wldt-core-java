@@ -34,7 +34,7 @@ import it.wldt.core.state.DigitalTwinState;
  * interface to react to synchronization status changes between the Digital Twin State and the
  * physical asset.
  *
- * <h3>State Transitions</h3>
+ * State Transitions
  * <ul>
  *   <li><b>Synchronized</b>: Digital Twin State accurately reflects the physical asset state.
  *       All Physical Adapters are bound and actively providing data.</li>

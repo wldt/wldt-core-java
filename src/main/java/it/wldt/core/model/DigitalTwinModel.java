@@ -46,27 +46,19 @@ import it.wldt.core.model.annotation.ShadowingType;
  * Date: 01/02/2023
  * Project: White Label Digital Twin Java Framework - (whitelabel-digitaltwin)
  * Core class for Digital Twin modeling, event processing together with lifecycle and behavior management.
- * <p>
  * The {@code DigitalTwinModel} serves as the central component in shaping Digital Twin behavior,
  * managing the Digital Twin's execution, state, and interactions between physical and digital worlds.
  * It orchestrates the {@link ShadowingFunction} (modeled throudh a combination of dedicated methods)
  * that defines the DT's behavioral logic while coordinating core components including Physical Adapters,
  * Digital Adapters, State Management, and Storage.
- *
- * <h3>Core Responsibilities</h3>
- * <ul>
- *   <li><b>Shadowing Function Orchestration</b>: Manages the shadowing process (replication and
- *       digitalization) that keeps the Digital Twin State synchronized with the physical asset</li>
- *   <li><b>Physical Asset Description Management</b>: Coordinates Physical Adapters and their descriptions</li>
- *   <li><b>Digital Twin State Management</b>: Maintains the canonical state representation</li>
- *   <li><b>Storage Management</b>: Coordinates persistent storage of Digital Twin state evolution,
- *       events, and lifecycle data through the Storage Manager</li>
- *   <li><b>Resource Management</b>: Handles Digital Twin resources, relationships, and their
- *       lifecycle through the Resource Manager</li>
- *   <li><b>Event Routing</b>: Routes events between physical and digital sides through the Shadowing Function</li>
- *   <li><b>Lifecycle Management</b>: Controls initialization, execution, and termination</li>
- * </ul>
- *
+ * Core Responsibilities:
+ * - Shadowing Function Orchestration: Manages the shadowing process (replication and digitalization) that keeps the Digital Twin State synchronized with the physical asset
+ * - Physical Asset Description Management: Coordinates Physical Adapters and their descriptions
+ * - Digital Twin State Management: Maintains the canonical state representation
+ * - Storage Management: Coordinates persistent storage of Digital Twin state evolution, events, and lifecycle data through the Storage Manager
+ * - Resource Management: Handles Digital Twin resources, relationships, and their lifecycle through the Resource Manager
+ * - Event Routing: Routes events between physical and digital sides through the Shadowing Function
+ * - Lifecycle Management: Controls initialization, execution, and termination
  *
  * @see ShadowingFunction
  * @see DigitalTwinStateManager

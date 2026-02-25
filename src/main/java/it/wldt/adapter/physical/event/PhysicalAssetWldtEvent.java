@@ -44,7 +44,7 @@ public abstract class PhysicalAssetWldtEvent<T> extends WldtEvent<T> {
     private String physicalAdapterId;
 
     /**
-     * Constructor of the PhysicalAssetWldtEvent<T> containing only the type of the event
+     * Constructor of the PhysicalAssetWldtEvent containing only the type of the event
      * and calling the super constructor of WldtEvent.
      * @param type
      * @throws EventBusException
@@ -55,7 +55,7 @@ public abstract class PhysicalAssetWldtEvent<T> extends WldtEvent<T> {
     }
 
     /**
-     * Constructor of the PhysicalAssetWldtEvent<T> containing the type of the event and the body of the event
+     * Constructor of the PhysicalAssetWldtEvent containing the type of the event and the body of the event
      * and calling the super constructor of WldtEvent.
      * @param type Type of the event
      * @param body Body of the event
@@ -67,7 +67,7 @@ public abstract class PhysicalAssetWldtEvent<T> extends WldtEvent<T> {
     }
 
     /**
-     * Constructor of the PhysicalAssetWldtEvent<T> containing the type of the event,
+     * Constructor of the PhysicalAssetWldtEvent containing the type of the event,
      * the body of the event and the metadata of the event
      * and calling the super constructor of WldtEvent.
      * @param type Type of the event
