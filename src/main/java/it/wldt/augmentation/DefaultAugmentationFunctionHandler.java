@@ -28,7 +28,7 @@ public class DefaultAugmentationFunctionHandler extends AugmentationFunctionHand
     }
 
     @Override
-    protected void registerAugmentationFunction(AugmentationFunction augmentationFunction) throws AugmentationFunctionException {
+    protected void handleAugmentationFunctionRegistration(AugmentationFunction augmentationFunction) throws AugmentationFunctionException {
 
         // Check if the augmentation function is already registered
         if (augmentationFunctionMap.containsKey(augmentationFunction.getId())) {
@@ -51,7 +51,7 @@ public class DefaultAugmentationFunctionHandler extends AugmentationFunctionHand
     }
 
     @Override
-    protected void unRegisterAugmentationFunction(String augmentationFunctionId) throws AugmentationFunctionException {
+    protected void handleAugmentationFunctionUnRegistration(String augmentationFunctionId) throws AugmentationFunctionException {
         // Check if the augmentation function is registered
         if (!augmentationFunctionMap.containsKey(augmentationFunctionId)) {
             throw new AugmentationFunctionException(String.format("Augmentation Function with id %s is not registered.", augmentationFunctionId));

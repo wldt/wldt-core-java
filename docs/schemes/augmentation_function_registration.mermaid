@@ -21,17 +21,15 @@ sequenceDiagram
 
     %% Phase 2: Developer starts the Digital Twin
     Dev->>DT: start()
-    DT->>DTM: init()
+    DT->>DTM: start()
     DTM->>EB: subscribe(RegistrationEvent, UnregistrationEvent)
-    DTM->>DTM: DT Lifecycle Evolution
-    DTM-->>DT: state = Synchronized
 
     DTM->>AM: getAugmentationFunctionHandlers()
     AM-->>DTM: [AugmentationFunctionHandler]
 
     DTM->>AFH: getRegisteredAugmentationFunctions()
     AFH-->>DTM: [AugmentationFunction1]
-    DTM->>DTM: Internal notification new AF registered
+    DTM->>DTM: Internal notification new AF List registered for an Handler
 
     %% Phase 3: Developer registers a second Augmentation Function
     Note over Dev, EAF: Some time passes...
@@ -54,4 +52,3 @@ sequenceDiagram
     AFH->>EB: publish(UnRegistrationEvent 2)
     EB-->>DTM: notify(UnRegistrationEvent 2)
     Note over DTM: AF 2 Unregistered Notified
-

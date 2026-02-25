@@ -312,4 +312,29 @@ public class AugDigitalTwinModel extends DigitalTwinModel {
             logger.info("Augmentation Function Result Received: {}", result);
         }
     }
+
+    @Override
+    protected void onAugmentationNewFunctionAvailable(String handlerId, AugmentationFunction augmentationFunction) {
+        logger.info("Augmentation Function Available - HandlerId: {} AugmentationFunction: {}", handlerId, augmentationFunction);
+
+        // Register the received callback on the Shared Test Metrics for later verification
+        SharedTestMetrics.getInstance().addAugmentationFunctionRegistrationCallback(this.digitalTwinStateManager.getDigitalTwinId(), handlerId, augmentationFunction);
+    }
+
+    @Override
+    protected void onAugmentationFunctionUnAvailable(String handlerId, AugmentationFunction augmentationFunction) {
+        logger.info("Augmentation Function UnAvailable - HandlerId: {} AugmentationFunction: {}", handlerId, augmentationFunction);
+
+        // Register the received callback on the Shared Test Metrics for later verification
+        SharedTestMetrics.getInstance().addAugmentationFunctionUnRegistrationCallback(this.digitalTwinStateManager.getDigitalTwinId(), handlerId, augmentationFunction);
+    }
+
+    @Override
+    protected void onAugmentationFunctionListRegistered(String handlerId, List<AugmentationFunction> augmentationFunctionList) {
+        logger.info("Augmentation Function List Registered - HandlerId: {} AugmentationFunctionList: {}", handlerId, augmentationFunctionList);
+
+        // Register the received callback on the Shared Test Metrics for later verification
+        for(AugmentationFunction augmentationFunction : augmentationFunctionList)
+            SharedTestMetrics.getInstance().addAugmentationFunctionRegistrationCallback(this.digitalTwinStateManager.getDigitalTwinId(), handlerId, augmentationFunction);
+    }
 }

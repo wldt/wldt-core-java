@@ -1,8 +1,22 @@
 # Augmentation Function
 
+...
+
+![aug_function_arch.png](../images/aug_function_arch.png)
+
+....
+
+## Augmentation Function Types
+
+....
+
+![aug_function_types.png](../images/aug_function_types.png)
+
 ....
 
 ## Registering and Unregistering Augmentation Functions
+
+![aug_function_registration.png](../images/aug_function_registration.png)
 
 This section describes the interaction procedure between a Digital Twin and its Augmentation Functions, covering registration,
 lifecycle synchronization, and dynamic updates with augmentation functions registered and unregistered at runtime as

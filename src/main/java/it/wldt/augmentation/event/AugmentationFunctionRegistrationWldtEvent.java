@@ -12,6 +12,7 @@ public class AugmentationFunctionRegistrationWldtEvent extends WldtEvent<Augment
 
     public AugmentationFunctionRegistrationWldtEvent(String augmentationHandlerId, AugmentationFunction augmentationFunction) throws EventBusException {
         super(WldtEventTypes.AUGMENTATION_FUNCTION_REGISTERED_EVENT_TYPE, augmentationFunction, null);
+        this.augmentationHandlerId = augmentationHandlerId;
     }
 
     public String getAugmentationHandlerId() {

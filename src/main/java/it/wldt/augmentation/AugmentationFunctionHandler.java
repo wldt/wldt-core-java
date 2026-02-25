@@ -22,6 +22,8 @@ package it.wldt.augmentation;
 
 import it.wldt.adapter.digital.DigitalAdapterLifeCycleListener;
 import it.wldt.adapter.digital.DigitalAdapterListener;
+import it.wldt.augmentation.event.AugmentationFunctionRegistrationWldtEvent;
+import it.wldt.augmentation.event.AugmentationFunctionUnRegistrationWldtEvent;
 import it.wldt.core.engine.DigitalTwinWorker;
 import it.wldt.core.event.*;
 import it.wldt.core.state.*;
@@ -333,11 +335,93 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
     // of augmentation functions through their Descriptions. The implementation of these methods is left to the
     // concrete implementation of the Augmentation Function Manager
 
-    abstract protected void registerAugmentationFunction(AugmentationFunction augmentationFunction) throws AugmentationFunctionException;
+    /**
+     * TODO ...
+     * @param augmentationFunction
+     * @throws EventBusException
+     */
+    private void notifyAugmentationFunctionRegistered(AugmentationFunction augmentationFunction) throws EventBusException {
+        // Create the Event associated to the registration of the Augmentation Function
+        AugmentationFunctionRegistrationWldtEvent event = new AugmentationFunctionRegistrationWldtEvent(this.id, augmentationFunction);
+
+        // Notify the registration of the Augmentation Function publishing the associated event on the EventBus
+        WldtEventBus.getInstance().publishEvent(this.digitalTwinId, this.id, event);
+    }
+
+    /**
+     * TODO ...
+     * @param augmentationFunction
+     * @throws EventBusException
+     */
+    private void notifyAugmentationFunctionUnRegistered(AugmentationFunction augmentationFunction) throws EventBusException {
+
+        // Create the Event associated to the unregistration of the Augmentation Function
+        AugmentationFunctionUnRegistrationWldtEvent event = new AugmentationFunctionUnRegistrationWldtEvent(this.id, augmentationFunction);
+
+        // Notify the unregistration of the Augmentation Function publishing the associated event on the EventBus
+        WldtEventBus.getInstance().publishEvent(this.digitalTwinId, this.id, event);
+    }
+
+    /**
+     * TODO ...
+     * @param augmentationFunction
+     * @throws AugmentationFunctionException
+     */
+    public void registerAugmentationFunction(AugmentationFunction augmentationFunction) throws AugmentationFunctionException {
+        // This method is public and not abstract since it can contain common logic for the registration of the
+        // Augmentation Function, while the handler is protected and abstract since it contains the specific logic
+        // for the registration of the Augmentation Function that can be different for each
+
+        try{
+            // Call the handler for the registration of the Augmentation Function
+            handleAugmentationFunctionRegistration(augmentationFunction);
+
+            // Notify the registration of the Augmentation Function publishing the associated event on the EventBus
+            notifyAugmentationFunctionRegistered(augmentationFunction);
+
+        } catch (Exception e){
+            e.printStackTrace();
+            throw new AugmentationFunctionException(String.format("Error registering Augmentation Function with id %s: %s", augmentationFunction.getId(), e.getLocalizedMessage()));
+        }
+    }
+
+    /**
+     * TODO ...
+     * @param augmentationFunctionId
+     * @throws AugmentationFunctionException
+     */
+    public void unRegisterAugmentationFunction(String augmentationFunctionId) throws AugmentationFunctionException {
+        // This method is public and not abstract since it can contain common logic for the unregistration of the
+        // Augmentation Function, while the handler is protected and abstract since it contains the specific logic
+        // for the unregistration of the Augmentation Function that can be different for each
+
+        // Retrieve the Augmentation Function associated to the received id to be able to publish it in the unregistration event, if not present create a new one with only the id
+        Optional<AugmentationFunction> augmentationFunctionOptional = this.getAugmentationFunction(augmentationFunctionId);
+
+        // If the Augmentation Function is not registered throw an exception since it cannot be unregistered
+        if(!augmentationFunctionOptional.isPresent())
+            throw new AugmentationFunctionException(String.format("Error unregistering Augmentation Function with id %s: Augmentation Function not found !", augmentationFunctionId));
+
+        // Get the Augmentation Function to be unregistered
+        AugmentationFunction augmentationFunction = augmentationFunctionOptional.get();
+
+        try{
+            // Call the handler for the unregistration of the Augmentation Function
+            handleAugmentationFunctionUnRegistration(augmentationFunctionId);
+
+            // Notify the unregistration of the Augmentation Function publishing the associated event on the EventBus
+            notifyAugmentationFunctionUnRegistered(augmentationFunction);
+
+        } catch (Exception e){
+            throw new AugmentationFunctionException(String.format("Error unregistering Augmentation Function with id %s: %s", augmentationFunctionId, e.getLocalizedMessage()));
+        }
+    }
 
     abstract public Optional<AugmentationFunction> getAugmentationFunction(String augmentationFunctionId);
 
-    abstract protected void unRegisterAugmentationFunction(String augmentationFunctionId) throws AugmentationFunctionException;
+    abstract protected void handleAugmentationFunctionRegistration(AugmentationFunction augmentationFunction) throws AugmentationFunctionException;
+
+    abstract protected void handleAugmentationFunctionUnRegistration(String augmentationFunctionId) throws AugmentationFunctionException;
 
     abstract protected void startAugmentationFunction(String augmentationFunctionId) throws AugmentationFunctionException;
 
@@ -391,7 +475,10 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
             // Once started the handler is ready to observe augmentation function events
             observeAugmentationFunctionEvents();
 
+            // Notify the handler implementation about the start of the Manager to allow it to execute
+            // custom logics at the start of the Manager
             onManagerStart();
+
         }catch (Exception e){
             throw new WldtRuntimeException(e.getLocalizedMessage());
         }

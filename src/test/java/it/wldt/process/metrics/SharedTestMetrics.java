@@ -2,6 +2,7 @@ package it.wldt.process.metrics;
 
 import it.wldt.adapter.physical.event.PhysicalAssetEventWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetPropertyWldtEvent;
+import it.wldt.augmentation.AugmentationFunction;
 import it.wldt.augmentation.AugmentationFunctionResult;
 import it.wldt.core.state.DigitalTwinState;
 import it.wldt.core.state.DigitalTwinStateEventNotification;
@@ -52,6 +53,12 @@ public class SharedTestMetrics {
     // DT Augmentation Function Result Notification Map
     private Map<String, Map<String, List<List<AugmentationFunctionResult<?>>>>> augmentationFunctionResultNotificationMap;
 
+    // Registration Augmentation Function Callbacks for each Handler
+    private Map<String, Map<String, List<AugmentationFunction>>> augmentationFunctionRegistrationCallbackMap;
+
+    // Registration Augmentation Function Callbacks for each Handler
+    private Map<String, Map<String, List<AugmentationFunction>>> augmentationFunctionUnRegistrationCallbackMap;
+
     private SharedTestMetrics(){
         logger.info("SharedTestMetrics Constructor Called !");
         init();
@@ -76,6 +83,8 @@ public class SharedTestMetrics {
         this.resourceManagerNotificationMap = new HashMap<>();
         this.managedResourceNotificationMap = new HashMap<>();
         this.augmentationFunctionResultNotificationMap = new HashMap<>();
+        this.augmentationFunctionRegistrationCallbackMap = new HashMap<>();
+        this.augmentationFunctionUnRegistrationCallbackMap = new HashMap<>();
     }
 
     public void registerDigitalTwin(String digitalTwinId){
@@ -89,6 +98,8 @@ public class SharedTestMetrics {
         this.resourceManagerNotificationMap.put(digitalTwinId, new ArrayList<>());
         this.managedResourceNotificationMap.put(digitalTwinId, new HashMap<>());
         this.augmentationFunctionResultNotificationMap.put(digitalTwinId, new HashMap<>());
+        this.augmentationFunctionRegistrationCallbackMap.put(digitalTwinId, new HashMap<>());
+        this.augmentationFunctionUnRegistrationCallbackMap.put(digitalTwinId, new HashMap<>());
     }
 
     public void unRegisterDigitalTwin(String digitalTwinId){
@@ -102,6 +113,8 @@ public class SharedTestMetrics {
         this.resourceManagerNotificationMap.remove(digitalTwinId);
         this.managedResourceNotificationMap.remove(digitalTwinId);
         this.augmentationFunctionResultNotificationMap.remove(digitalTwinId);
+        this.augmentationFunctionRegistrationCallbackMap.remove(digitalTwinId);
+        this.augmentationFunctionUnRegistrationCallbackMap.remove(digitalTwinId);
     }
 
     public void resetMetrics(){
@@ -117,6 +130,8 @@ public class SharedTestMetrics {
         this.resourceManagerNotificationMap.clear();
         this.managedResourceNotificationMap.clear();
         this.augmentationFunctionResultNotificationMap.clear();
+        this.augmentationFunctionRegistrationCallbackMap.clear();
+        this.augmentationFunctionUnRegistrationCallbackMap.clear();
 
         init();
     }
@@ -151,6 +166,30 @@ public class SharedTestMetrics {
 
     public void addManagedResourceNotification(String digitalTwinId, String resourceId, String subResourceId){
         this.managedResourceNotificationMap.get(digitalTwinId).put(resourceId, subResourceId);
+    }
+
+    public void addAugmentationFunctionRegistrationCallback(String digitalTwinId,
+                                                            String augmentationFunctionHandlerId,
+                                                            AugmentationFunction augmentationFunction){
+        // If the initial list of augmentation function registration callbacks for the specific augmentation function handler is not present, create a new one
+        if(!this.augmentationFunctionRegistrationCallbackMap.get(digitalTwinId).containsKey(augmentationFunctionHandlerId)){
+            this.augmentationFunctionRegistrationCallbackMap.get(digitalTwinId).put(augmentationFunctionHandlerId, new ArrayList<>());
+        }
+
+        // Save the augmentation function registration callback in the map
+        this.augmentationFunctionRegistrationCallbackMap.get(digitalTwinId).get(augmentationFunctionHandlerId).add(augmentationFunction);
+    }
+
+    public void addAugmentationFunctionUnRegistrationCallback(String digitalTwinId,
+                                                            String augmentationFunctionHandlerId,
+                                                            AugmentationFunction augmentationFunction){
+        // If the initial list of augmentation function unregistration callbacks for the specific augmentation function handler is not present, create a new one
+        if(!this.augmentationFunctionUnRegistrationCallbackMap.get(digitalTwinId).containsKey(augmentationFunctionHandlerId)){
+            this.augmentationFunctionUnRegistrationCallbackMap.get(digitalTwinId).put(augmentationFunctionHandlerId, new ArrayList<>());
+        }
+
+        // Save the augmentation function unregistration callback in the map
+        this.augmentationFunctionUnRegistrationCallbackMap.get(digitalTwinId).get(augmentationFunctionHandlerId).add(augmentationFunction);
     }
 
     public void addAugmentationFunctionResultNotification(String digitalTwinId,
@@ -239,6 +278,18 @@ public class SharedTestMetrics {
 
     public List<DigitalTwinState> getDigitalAdapterStateUpdateList(String digitalTwinId) {
         return digitalAdapterStateUpdateMap.get(digitalTwinId);
+    }
+
+    public Map<String, Map<String, List<List<AugmentationFunctionResult<?>>>>> getAugmentationFunctionResultNotificationMap() {
+        return augmentationFunctionResultNotificationMap;
+    }
+
+    public Map<String, Map<String, List<AugmentationFunction>>> getAugmentationFunctionRegistrationCallbackMap() {
+        return augmentationFunctionRegistrationCallbackMap;
+    }
+
+    public Map<String, Map<String, List<AugmentationFunction>>> getAugmentationFunctionUnRegistrationCallbackMap() {
+        return augmentationFunctionUnRegistrationCallbackMap;
     }
 
     @Override

@@ -16,6 +16,7 @@ import it.wldt.process.physical.DemoPhysicalAdapterConfiguration;
 import org.junit.jupiter.api.*;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -41,6 +42,9 @@ public class AugmentationProcessTest {
     public void setUp() throws KernelException, WldtRuntimeException, EventBusException, WldtConfigurationException, WldtWorkerException, WldtDigitalTwinStateException, WldtEngineException, AugmentationFunctionException {
 
         logger.info("Setting up Test Environment ...");
+
+        // Register DT to Shared Test Metrics
+        SharedTestMetrics.getInstance().registerDigitalTwin(TEST_DIGITAL_TWIN_ID);
 
         // Create Digital Twin Engine
         digitalTwinEngine = new DigitalTwinEngine();
@@ -70,10 +74,9 @@ public class AugmentationProcessTest {
 
         // Register the augmentation function to the augmentation manager
         if(digitalTwin.getAugmentationManager().getAugmentationFunctionHandler(TEST_AUGMENTATION_HANDLER_ID).isPresent())
-            digitalTwin.getAugmentationManager().getAugmentationFunctionHandler(TEST_AUGMENTATION_HANDLER_ID).get().registerAugmentationFunction(new RandomNumberAugmentationFunction());
-
-        // Register DT to Shared Test Metrics
-        SharedTestMetrics.getInstance().registerDigitalTwin(TEST_DIGITAL_TWIN_ID);
+            digitalTwin.getAugmentationManager().getAugmentationFunctionHandler(TEST_AUGMENTATION_HANDLER_ID)
+                    .get()
+                    .registerAugmentationFunction(new RandomNumberAugmentationFunction());
 
         // Add the Twin to the Engine
         digitalTwinEngine.addDigitalTwin(digitalTwin);
@@ -138,6 +141,159 @@ public class AugmentationProcessTest {
             }
 
         }
+    }
+
+    @Test
+    @Order(2)
+    public void testAugmentationFunctionInitialRegistration() throws WldtConfigurationException, EventBusException, KernelException, InterruptedException, WldtRuntimeException {
+
+        //Set EventBus Logger
+        WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
+
+        //Wait until all the messages have been received
+        Thread.sleep((DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS + ((DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES + DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_EVENT_UPDATES) * DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS)));
+
+        // Retrieve from the Shared Metrics the received Augmentation Function Registration Events
+        Map<String, List<AugmentationFunction>> augFuntionRegistrationMap = SharedTestMetrics.getInstance().
+                getAugmentationFunctionRegistrationCallbackMap().
+                get(TEST_DIGITAL_TWIN_ID);
+
+        //Check Received Augmentation Function Result is Not Null
+        assertNotNull(augFuntionRegistrationMap);
+
+        // Check that the Map contains the expected Augmentation Handler ID
+        assert(augFuntionRegistrationMap.containsKey(TEST_AUGMENTATION_HANDLER_ID));
+
+        // Check that 1 Augmentation Function Registration Event has been received for the expected Augmentation Handler ID
+        assertEquals(1, augFuntionRegistrationMap.get(TEST_AUGMENTATION_HANDLER_ID).size());
+
+        // Check that the type of the registered Augmentation Function is correct
+        assertEquals(RandomNumberAugmentationFunction.class, augFuntionRegistrationMap.get(TEST_AUGMENTATION_HANDLER_ID).get(0).getClass());
+    }
+
+    @Test
+    @Order(2)
+    public void testDynamicAugmentationFunctionRegistration() throws WldtConfigurationException, EventBusException, KernelException, InterruptedException, WldtRuntimeException, AugmentationFunctionException {
+
+        //Set EventBus Logger
+        WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
+
+        //Wait until all the messages have been received
+        Thread.sleep((DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS + ((DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES + DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_EVENT_UPDATES) * DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS)));
+
+        // Retrieve from the Shared Metrics the received Augmentation Function Registration Events
+        Map<String, List<AugmentationFunction>> augFuntionRegistrationMap = SharedTestMetrics.getInstance().
+                getAugmentationFunctionRegistrationCallbackMap().
+                get(TEST_DIGITAL_TWIN_ID);
+
+        //Check Received Augmentation Function Result is Not Null
+        assertNotNull(augFuntionRegistrationMap);
+
+        // Check that the Map contains the expected Augmentation Handler ID
+        assert(augFuntionRegistrationMap.containsKey(TEST_AUGMENTATION_HANDLER_ID));
+
+        // Check that 1 Augmentation Function Registration Event has been received for the expected Augmentation Handler ID
+        assertEquals(1, augFuntionRegistrationMap.get(TEST_AUGMENTATION_HANDLER_ID).size());
+
+        // Check that the type of the registered Augmentation Function is correct
+        assertEquals(RandomNumberAugmentationFunction.class, augFuntionRegistrationMap.get(TEST_AUGMENTATION_HANDLER_ID).get(0).getClass());
+
+        // Add a new Augmentation Function to the Augmentation Manager of the Digital Twin
+        if(digitalTwin.getAugmentationManager().getAugmentationFunctionHandler(TEST_AUGMENTATION_HANDLER_ID).isPresent())
+            digitalTwin.getAugmentationManager().getAugmentationFunctionHandler(TEST_AUGMENTATION_HANDLER_ID)
+                    .get()
+                    .registerAugmentationFunction(new RandomStringAugmentationFunction());
+
+        // Wait until the Augmentation Function Registration Event is received
+        Thread.sleep(5000);
+
+        // Update the Shared Metrics with the received Augmentation Function Registration Events
+        augFuntionRegistrationMap = SharedTestMetrics.getInstance().
+                getAugmentationFunctionRegistrationCallbackMap().
+                get(TEST_DIGITAL_TWIN_ID);
+
+        //Check Received Augmentation Function Result is Not Null
+        assertNotNull(augFuntionRegistrationMap);
+
+        // Check that 2 Augmentation Function Registration Events have been received for the expected Augmentation Handler ID
+        assertEquals(2, augFuntionRegistrationMap.get(TEST_AUGMENTATION_HANDLER_ID).size());
+
+        // Check that the type of the registered Augmentation Function is correct
+        assertEquals(RandomStringAugmentationFunction.class, augFuntionRegistrationMap.get(TEST_AUGMENTATION_HANDLER_ID).get(1).getClass());
+    }
+
+    @Test
+    @Order(3)
+    public void testDynamicAugmentationFunctionUnRegistration() throws WldtConfigurationException, EventBusException, KernelException, InterruptedException, WldtRuntimeException, AugmentationFunctionException {
+
+        //Set EventBus Logger
+        WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
+
+        //Wait until all the messages have been received
+        Thread.sleep((DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS + ((DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES + DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_EVENT_UPDATES) * DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS)));
+
+        // Retrieve from the Shared Metrics the received Augmentation Function Registration Events
+        Map<String, List<AugmentationFunction>> augFuntionRegistrationMap = SharedTestMetrics.getInstance().
+                getAugmentationFunctionRegistrationCallbackMap().
+                get(TEST_DIGITAL_TWIN_ID);
+
+        //Check Received Augmentation Function Result is Not Null
+        assertNotNull(augFuntionRegistrationMap);
+
+        // Check that the Map contains the expected Augmentation Handler ID
+        assert(augFuntionRegistrationMap.containsKey(TEST_AUGMENTATION_HANDLER_ID));
+
+        // Check that 1 Augmentation Function Registration Event has been received for the expected Augmentation Handler ID
+        assertEquals(1, augFuntionRegistrationMap.get(TEST_AUGMENTATION_HANDLER_ID).size());
+
+        // Check that the type of the registered Augmentation Function is correct
+        assertEquals(RandomNumberAugmentationFunction.class, augFuntionRegistrationMap.get(TEST_AUGMENTATION_HANDLER_ID).get(0).getClass());
+
+        // Add a new Augmentation Function to the Augmentation Manager of the Digital Twin
+        if(digitalTwin.getAugmentationManager().getAugmentationFunctionHandler(TEST_AUGMENTATION_HANDLER_ID).isPresent())
+            digitalTwin.getAugmentationManager().getAugmentationFunctionHandler(TEST_AUGMENTATION_HANDLER_ID)
+                    .get()
+                    .registerAugmentationFunction(new RandomStringAugmentationFunction());
+
+        // Wait until the Augmentation Function Registration Event is received
+        Thread.sleep(5000);
+
+        // Update the Shared Metrics with the received Augmentation Function Registration Events
+        augFuntionRegistrationMap = SharedTestMetrics.getInstance().
+                getAugmentationFunctionRegistrationCallbackMap().
+                get(TEST_DIGITAL_TWIN_ID);
+
+        //Check Received Augmentation Function Result is Not Null
+        assertNotNull(augFuntionRegistrationMap);
+
+        // Check that 2 Augmentation Function Registration Events have been received for the expected Augmentation Handler ID
+        assertEquals(2, augFuntionRegistrationMap.get(TEST_AUGMENTATION_HANDLER_ID).size());
+
+        // Check that the type of the registered Augmentation Function is correct
+        assertEquals(RandomStringAugmentationFunction.class, augFuntionRegistrationMap.get(TEST_AUGMENTATION_HANDLER_ID).get(1).getClass());
+
+        // Remove the first registered Augmentation Function from the Augmentation Manager of the Digital Twin
+        if(digitalTwin.getAugmentationManager().getAugmentationFunctionHandler(TEST_AUGMENTATION_HANDLER_ID).isPresent())
+            digitalTwin.getAugmentationManager().getAugmentationFunctionHandler(TEST_AUGMENTATION_HANDLER_ID)
+                    .get()
+                    .unRegisterAugmentationFunction(RandomNumberAugmentationFunction.RANDOM_NUMBER_AUGMENTATION_FUNCTION_ID);
+
+        // Wait until the Augmentation Function UnRegistration Event is received
+        Thread.sleep(5000);
+
+        // Retrieve the list of received Augmentation Function UnRegistration Events from the Shared Metrics
+        Map<String, List<AugmentationFunction>> augFuntionUnRegistrationMap = SharedTestMetrics.getInstance().
+                getAugmentationFunctionUnRegistrationCallbackMap().
+                get(TEST_DIGITAL_TWIN_ID);
+
+        //Check Received Augmentation Function Result is Not Null
+        assertNotNull(augFuntionUnRegistrationMap);
+
+        // Check that only 1 Augmentation Function Registration Event is present for the expected Augmentation Handler ID
+        assertEquals(1, augFuntionUnRegistrationMap.get(TEST_AUGMENTATION_HANDLER_ID).size());
+
+        // Check that the type of the registered Augmentation Function is correct
+        assertEquals(RandomNumberAugmentationFunction.class, augFuntionUnRegistrationMap.get(TEST_AUGMENTATION_HANDLER_ID).get(0).getClass());
     }
 
 }
