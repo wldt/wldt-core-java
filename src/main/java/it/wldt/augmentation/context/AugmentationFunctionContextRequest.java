@@ -18,7 +18,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
-package it.wldt.augmentation;
+package it.wldt.augmentation.context;
 
 import it.wldt.storage.query.QueryRequest;
 

@@ -1,6 +1,9 @@
 package it.wldt.augmentation;
 
 import it.wldt.adapter.physical.PhysicalAssetDescription;
+import it.wldt.augmentation.function.AugmentationFunction;
+import it.wldt.augmentation.handler.AugmentationFunctionHandler;
+import it.wldt.augmentation.listener.AugmentationLifeCycleListener;
 import it.wldt.core.engine.LifeCycleListener;
 import it.wldt.core.state.DigitalTwinState;
 import it.wldt.exception.AugmentationFunctionException;

@@ -18,15 +18,33 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
-package it.wldt.augmentation;
+package it.wldt.augmentation.function;
 
 /**
- * @author Marco Picone, Ph.D. - picone.m@gmail.com
+ * Authors:
+ *          Marco Picone, Ph.D. (picone.m@gmail.com)
+ * Date: 12/02/2026
+ * This Enum define the type of augmentation function associate in particular to the type execution
+ * working in Stateless or Stateful mode. In Stateless mode the augmentation function is executed one shot,
+ * while in Stateful mode the augmentation function is executed in a loop until the end of the execution
+ * or once it is explicitly stopped.
  */
-public interface AugmentationFunctionListener<T> {
+public enum AugmentationFunctionType {
 
-    public void onFunctionResult(T result);
+    STATELESS("STATELESS"),
+    STATEFUL("STATEFUL");
 
-    public void onFunctionError(String errorMessage);
+    private String value;
 
+    private AugmentationFunctionType(String value) {
+        this.value = value;
+    }
+
+    public String getValue() {
+        return value;
+    }
+
+    public void setValue(String value) {
+        this.value = value;
+    }
 }

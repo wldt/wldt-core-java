@@ -2,8 +2,8 @@ package it.wldt.process.metrics;
 
 import it.wldt.adapter.physical.event.PhysicalAssetEventWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetPropertyWldtEvent;
-import it.wldt.augmentation.AugmentationFunction;
-import it.wldt.augmentation.AugmentationFunctionResult;
+import it.wldt.augmentation.function.AugmentationFunction;
+import it.wldt.augmentation.result.AugmentationFunctionResult;
 import it.wldt.core.state.DigitalTwinState;
 import it.wldt.core.state.DigitalTwinStateEventNotification;
 import it.wldt.log.WldtLogger;

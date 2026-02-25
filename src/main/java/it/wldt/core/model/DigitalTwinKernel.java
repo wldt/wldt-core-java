@@ -21,7 +21,6 @@
 package it.wldt.core.model;
 
 import it.wldt.adapter.physical.PhysicalAssetDescription;
-import it.wldt.augmentation.AugmentationFunctionHandler;
 import it.wldt.augmentation.AugmentationManager;
 import it.wldt.core.engine.LifeCycleListener;
 import it.wldt.core.state.DigitalTwinState;

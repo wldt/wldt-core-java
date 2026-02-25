@@ -18,7 +18,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
-package it.wldt.augmentation;
+package it.wldt.augmentation.listener;
 
 import it.wldt.core.engine.LifeCycleListener;
 import it.wldt.core.state.DigitalTwinState;

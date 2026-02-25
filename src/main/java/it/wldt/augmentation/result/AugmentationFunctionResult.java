@@ -1,4 +1,4 @@
-package it.wldt.augmentation;
+package it.wldt.augmentation.result;
 
 import java.util.Map;
 

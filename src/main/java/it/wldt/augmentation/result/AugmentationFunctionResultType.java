@@ -18,7 +18,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
-package it.wldt.augmentation;
+package it.wldt.augmentation.result;
 
 /**
  * Authors:
@@ -29,14 +29,17 @@ package it.wldt.augmentation;
  * while in Stateful mode the augmentation function is executed in a loop until the end of the execution
  * or once it is explicitly stopped.
  */
-public enum AugmentationFunctionType {
+public enum AugmentationFunctionResultType {
 
-    STATELESS("STATELESS"),
-    STATEFUL("STATEFUL");
+    PROPERTY_RESULT("PROPERTY_RESULT"),
+    RELATIONSHIP_RESULT("RELATIONSHIP_RESULT"),
+    RELATIONSHIP_INSTANCE_RESULT("RELATIONSHIP_INSTANCE_RESULT"),
+    EVENT_RESULT("EVENT_RESULT"),
+    GENERIC_RESULT("GENERIC_RESULT");
 
     private String value;
 
-    private AugmentationFunctionType(String value) {
+    private AugmentationFunctionResultType(String value) {
         this.value = value;
     }
 

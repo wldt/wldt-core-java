@@ -1,9 +1,9 @@
 package it.wldt.augmentation.state;
 
-import it.wldt.augmentation.AugmentationFunctionHandler;
-import it.wldt.augmentation.AugmentationFunctionResult;
-import it.wldt.augmentation.AugmentationFunctionResultType;
-import it.wldt.augmentation.DefaultAugmentationFunctionHandler;
+import it.wldt.augmentation.handler.AugmentationFunctionHandler;
+import it.wldt.augmentation.result.AugmentationFunctionResult;
+import it.wldt.augmentation.result.AugmentationFunctionResultType;
+import it.wldt.augmentation.handler.DefaultAugmentationFunctionHandler;
 import it.wldt.augmentation.function.RandomStateResultAugmentationFunction;
 import it.wldt.core.adapter.physical.TestPhysicalAdapter;
 import it.wldt.core.engine.DigitalTwin;

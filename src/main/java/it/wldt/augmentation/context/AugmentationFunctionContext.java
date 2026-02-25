@@ -18,8 +18,9 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
-package it.wldt.augmentation;
+package it.wldt.augmentation.context;
 
+import it.wldt.augmentation.function.AugmentationFunction;
 import it.wldt.core.state.DigitalTwinState;
 import it.wldt.storage.query.QueryRequest;
 import it.wldt.storage.query.QueryResult;

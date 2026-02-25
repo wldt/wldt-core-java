@@ -1,6 +1,8 @@
 package it.wldt.augmentation.function;
 
-import it.wldt.augmentation.*;
+import it.wldt.augmentation.context.AugmentationFunctionContext;
+import it.wldt.augmentation.result.AugmentationFunctionResult;
+import it.wldt.augmentation.result.AugmentationFunctionResultType;
 import it.wldt.exception.AugmentationFunctionException;
 import it.wldt.log.WldtLogger;
 import it.wldt.log.WldtLoggerProvider;
@@ -8,7 +10,7 @@ import it.wldt.log.WldtLoggerProvider;
 import java.util.ArrayList;
 import java.util.List;
 
-public class RandomStateResultAugmentationFunction extends AugmentationFunction {
+public class RandomStateResultAugmentationFunction extends StatelessAugmentationFunction {
 
     private static final WldtLogger logger = WldtLoggerProvider.getLogger(RandomStateResultAugmentationFunction.class);
 
@@ -28,23 +30,7 @@ public class RandomStateResultAugmentationFunction extends AugmentationFunction 
         super(FUNCTION_ID,
                 "Randome State Result Augmentation Function",
                 "This augmentation function generates a group of State variables with random values, including a random string property, a random number event, a random string relationship, and a random string relationship instance.",
-                "1.0.0",
-                AugmentationFunctionType.STATELESS,
-                new AugmentationFunctionContextRequest(true, true, null));
-    }
-
-    /**
-     * Constructor of the AugmentationFunction class with all the parameters.
-     *
-     * @param id the unique id of the augmentation function
-     * @param name the name of the augmentation function
-     * @param description the description of the augmentation function
-     * @param version the version of the augmentation function
-     * @param type the type of the augmentation function
-     * @param contextRequest the context request of the augmentation function
-     */
-    public RandomStateResultAugmentationFunction(String id, String name, String description, String version, AugmentationFunctionType type, AugmentationFunctionContextRequest contextRequest) {
-        super(id, name, description, version, type, contextRequest);
+                "1.0.0");
     }
 
     private static String generateRandomString(int length) {
@@ -62,7 +48,7 @@ public class RandomStateResultAugmentationFunction extends AugmentationFunction 
     }
 
     @Override
-    protected List<AugmentationFunctionResult<?>> run(AugmentationFunctionContext context) throws AugmentationFunctionException {
+    public List<AugmentationFunctionResult<?>> run(AugmentationFunctionContext context) throws AugmentationFunctionException {
 
         // Empty List for Augmentation Function Result
         List<AugmentationFunctionResult<?>> results = new ArrayList<>();

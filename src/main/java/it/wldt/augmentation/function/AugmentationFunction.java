@@ -18,11 +18,9 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
-package it.wldt.augmentation;
+package it.wldt.augmentation.function;
 
-import it.wldt.exception.AugmentationFunctionException;
-
-import java.util.List;
+import it.wldt.augmentation.context.AugmentationFunctionContextRequest;
 
 public abstract class AugmentationFunction {
 
@@ -93,8 +91,6 @@ public abstract class AugmentationFunction {
         this(id, name, null, null, type, new AugmentationFunctionContextRequest());
     }
 
-    protected abstract List<AugmentationFunctionResult<?>> run(AugmentationFunctionContext context) throws AugmentationFunctionException;
-
     public String getId() {
         return id;
     }
@@ -141,5 +137,18 @@ public abstract class AugmentationFunction {
 
     public void setContextRequest(AugmentationFunctionContextRequest contextRequest) {
         this.contextRequest = contextRequest;
+    }
+
+    @Override
+    public String toString() {
+        final StringBuffer sb = new StringBuffer("AugmentationFunction{");
+        sb.append("id='").append(id).append('\'');
+        sb.append(", name='").append(name).append('\'');
+        sb.append(", description='").append(description).append('\'');
+        sb.append(", version='").append(version).append('\'');
+        sb.append(", type=").append(type);
+        sb.append(", contextRequest=").append(contextRequest);
+        sb.append('}');
+        return sb.toString();
     }
 }

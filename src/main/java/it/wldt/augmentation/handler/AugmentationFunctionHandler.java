@@ -18,12 +18,19 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
-package it.wldt.augmentation;
+package it.wldt.augmentation.handler;
 
 import it.wldt.adapter.digital.DigitalAdapterLifeCycleListener;
 import it.wldt.adapter.digital.DigitalAdapterListener;
 import it.wldt.augmentation.event.AugmentationFunctionRegistrationWldtEvent;
 import it.wldt.augmentation.event.AugmentationFunctionUnRegistrationWldtEvent;
+import it.wldt.augmentation.function.AugmentationFunction;
+import it.wldt.augmentation.context.AugmentationFunctionContext;
+import it.wldt.augmentation.function.AugmentationFunctionType;
+import it.wldt.augmentation.function.StatefulAugmentationFunction;
+import it.wldt.augmentation.listener.AugmentationLifeCycleListener;
+import it.wldt.augmentation.listener.StatefulAugmentationResultListener;
+import it.wldt.augmentation.result.AugmentationFunctionResult;
 import it.wldt.core.engine.DigitalTwinWorker;
 import it.wldt.core.event.*;
 import it.wldt.core.state.*;
@@ -44,7 +51,7 @@ import java.util.stream.Collectors;
  * Project: White Label Digital Twin Java Framework - (whitelabel-digitaltwin)
  * TODO WRITE ..
  */
-public abstract class AugmentationFunctionHandler extends DigitalTwinWorker implements WldtEventListener, AugmentationLifeCycleListener {
+public abstract class AugmentationFunctionHandler extends DigitalTwinWorker implements StatefulAugmentationResultListener, WldtEventListener, AugmentationLifeCycleListener {
 
     private static final WldtLogger logger = WldtLoggerProvider.getLogger(AugmentationFunctionHandler.class);
 
@@ -105,7 +112,7 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
      * TODO ...
      * @param resultList
      */
-    protected void notifyAugmentationFunctionResult(String augmentationFunctionId, List<AugmentationFunctionResult<?>> resultList) throws EventBusException {
+    private void notifyAugmentationFunctionResult(String augmentationFunctionId, List<AugmentationFunctionResult<?>> resultList) throws EventBusException {
 
         // Build the Event Type for the Augmentation Function Result associated to the target Handler and the target Augmentation Function Id
         String eventType = String.format("%s.%s", buildHandlerEventType(WldtEventTypes.AUGMENTATION_FUNCTION_RESULT_BASE_TYPE), augmentationFunctionId);
@@ -373,6 +380,12 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
         // for the registration of the Augmentation Function that can be different for each
 
         try{
+
+            // If the Augmentation Function is Stateful, set the listener for the result of the Augmentation Function to
+            // the current Handler to allow the notification of the result of the function execution
+            if(augmentationFunction.getType().equals(AugmentationFunctionType.STATEFUL) && augmentationFunction instanceof StatefulAugmentationFunction)
+                ((StatefulAugmentationFunction) augmentationFunction).setResultListener(this);
+
             // Call the handler for the registration of the Augmentation Function
             handleAugmentationFunctionRegistration(augmentationFunction);
 
@@ -417,18 +430,103 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
         }
     }
 
+    /**
+     * TODO ...
+     * @param augmentationFunctionId
+     * @throws AugmentationFunctionException
+     */
     abstract public Optional<AugmentationFunction> getAugmentationFunction(String augmentationFunctionId);
 
+    /**
+     * TODO ...
+     * @param augmentationFunction
+     * @throws AugmentationFunctionException
+     */
     abstract protected void handleAugmentationFunctionRegistration(AugmentationFunction augmentationFunction) throws AugmentationFunctionException;
 
+    /**
+     * TODO ...
+     * @param augmentationFunctionId
+     * @throws AugmentationFunctionException
+     */
     abstract protected void handleAugmentationFunctionUnRegistration(String augmentationFunctionId) throws AugmentationFunctionException;
 
-    abstract protected void startAugmentationFunction(String augmentationFunctionId) throws AugmentationFunctionException;
+    /**
+     * TODO ...
+     * @param augmentationFunctionId
+     * @param augmentationFunctionContext
+     * @throws AugmentationFunctionException
+     */
+    public void startAugmentationFunction(String augmentationFunctionId, AugmentationFunctionContext augmentationFunctionContext) throws AugmentationFunctionException {
+        try{
+            // Call the handler for the start of the Augmentation Function
+            handleAugmentationFunctionStart(augmentationFunctionId, augmentationFunctionContext);
+        } catch (Exception e){
+            throw new AugmentationFunctionException(String.format("Error starting Augmentation Function with id %s: %s", augmentationFunctionId, e.getLocalizedMessage()));
+        }
+    }
 
-    abstract protected void stopAugmentationFunction(String augmentationFunctionId) throws AugmentationFunctionException;
+    /**
+     * TODO ...
+     * @param augmentationFunctionId
+     * @param augmentationFunctionContext
+     * @throws AugmentationFunctionException
+     */
+    abstract protected void handleAugmentationFunctionStart(String augmentationFunctionId, AugmentationFunctionContext augmentationFunctionContext) throws AugmentationFunctionException;
 
-    abstract protected void executeAugmentationFunction(String augmentationFunctionId, AugmentationFunctionContext augmentationFunctionContext) throws AugmentationFunctionException;
+    /**
+     * TODO ...
+     * @param augmentationFunctionId
+     * @throws AugmentationFunctionException
+     */
+    public void stopAugmentationFunction(String augmentationFunctionId) throws AugmentationFunctionException {
+        try{
+            // Call the handler for the stop of the Augmentation Function
+            handleAugmentationFunctionStop(augmentationFunctionId);
+        } catch (Exception e){
+            throw new AugmentationFunctionException(String.format("Error stopping Augmentation Function with id %s: %s", augmentationFunctionId, e.getLocalizedMessage()));
+        }
+    }
 
+
+    /**
+     * TODO ...
+     * @param augmentationFunctionId
+     * @throws AugmentationFunctionException
+     */
+    abstract protected void handleAugmentationFunctionStop(String augmentationFunctionId) throws AugmentationFunctionException;
+
+    /**
+     * TODO ...
+     * @param augmentationFunctionId
+     * @param augmentationFunctionContext
+     * @throws AugmentationFunctionException
+     */
+    public void executeAugmentationFunction(String augmentationFunctionId, AugmentationFunctionContext augmentationFunctionContext) throws AugmentationFunctionException {
+        try{
+            // Call the handler for the execution of the Augmentation Function
+            List<AugmentationFunctionResult<?>> resultList = handleAugmentationFunctionExecution(augmentationFunctionId, augmentationFunctionContext);
+
+            // Notify through and event the result of the augmentation function execution
+            notifyAugmentationFunctionResult(augmentationFunctionId, resultList);
+
+        } catch (Exception e){
+            throw new AugmentationFunctionException(String.format("Error executing Augmentation Function with id %s: %s", augmentationFunctionId, e.getLocalizedMessage()));
+        }
+    }
+
+    /**
+     * TODO ...
+     * @param augmentationFunctionId
+     * @param augmentationFunctionContext
+     * @throws AugmentationFunctionException
+     */
+    abstract protected List<AugmentationFunctionResult<?>> handleAugmentationFunctionExecution(String augmentationFunctionId, AugmentationFunctionContext augmentationFunctionContext) throws AugmentationFunctionException;
+
+    /**
+     * TODO ...
+     * @return
+     */
     abstract public List<AugmentationFunction> getAllAugmentationFunctions();
 
     //////////////////////// DIGITAL TWIN STATE UPDATE  //////////////////////////////////////////////////////////
@@ -645,6 +743,24 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
 
         // The request is valid
         return true;
+    }
+
+    /**
+     * TODO ...
+     * @param augmentationFunctionId
+     * @param resultList
+     */
+    @Override
+    public void onStatefulAugmentationFunctionResult(String augmentationFunctionId, List<AugmentationFunctionResult<?>> resultList) {
+        try{
+            logger.info("Received result for Stateful Augmentation Function with id {}: {}", augmentationFunctionId, resultList);
+
+            // Notify the result of the execution of the Stateful Augmentation Function through an event on the EventBus
+            notifyAugmentationFunctionResult(augmentationFunctionId, resultList);
+
+        } catch (Exception e){
+            logger.error(String.format("Error while notifying result for Stateful Augmentation Function with id %s: %s", augmentationFunctionId, e.getLocalizedMessage()));
+        }
     }
 
     @Override

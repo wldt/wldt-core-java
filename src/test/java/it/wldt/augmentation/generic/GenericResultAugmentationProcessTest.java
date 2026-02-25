@@ -1,8 +1,12 @@
 package it.wldt.augmentation.generic;
 
-import it.wldt.augmentation.*;
+import it.wldt.augmentation.function.AugmentationFunction;
 import it.wldt.augmentation.function.RandomNumberAugmentationFunction;
 import it.wldt.augmentation.function.RandomStringAugmentationFunction;
+import it.wldt.augmentation.handler.AugmentationFunctionHandler;
+import it.wldt.augmentation.handler.DefaultAugmentationFunctionHandler;
+import it.wldt.augmentation.result.AugmentationFunctionResult;
+import it.wldt.augmentation.result.AugmentationFunctionResultType;
 import it.wldt.core.adapter.physical.TestPhysicalAdapter;
 import it.wldt.core.engine.DigitalTwin;
 import it.wldt.core.engine.DigitalTwinEngine;
