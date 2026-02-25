@@ -146,5 +146,6 @@ Additional information is available on the [WLDT GitHub Page](https://wldt.githu
 This project is made possible thanks to the contributions of the following people:
 
 - **Marco Picone** – University of Modena & Reggio Emilia, Italy – Founder, Author & Main Contributor
+- **Riccardo Morandi** – University of Modena & Reggio Emilia, Italy – Key Contributor
 - **Samuele Burattini** – University of Bologna, Italy – Key Contributor
 - **Marta Spadoni** – University of Bologna, Italy – Master Thesis 2022 – Additional Contributor

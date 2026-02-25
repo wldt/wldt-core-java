@@ -86,6 +86,11 @@ mavenPublishing {
                 name.set("Samuele Burattini")
                 url.set("https://github.com/samubura")
             }
+            developer {
+                id.set("RiccardoMorandi")
+                name.set("Riccardo Morandi")
+                url.set("https://github.com/RiccardoMorandi")
+            }
         }
         scm {
             url.set("https://github.com/wldt/wldt-core-java")
