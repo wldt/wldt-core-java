@@ -1,4 +1,4 @@
-package it.wldt.augmentation;
+package it.wldt.augmentation.generic;
 
 import it.wldt.adapter.digital.event.DigitalActionWldtEvent;
 import it.wldt.adapter.physical.*;
@@ -6,6 +6,9 @@ import it.wldt.adapter.physical.event.PhysicalAssetEventWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetPropertyWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetRelationshipInstanceCreatedWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetRelationshipInstanceDeletedWldtEvent;
+import it.wldt.augmentation.AugmentationFunction;
+import it.wldt.augmentation.AugmentationFunctionResult;
+import it.wldt.augmentation.function.RandomNumberAugmentationFunction;
 import it.wldt.core.model.DigitalTwinModel;
 import it.wldt.core.state.*;
 import it.wldt.exception.EventBusException;
@@ -17,13 +20,13 @@ import it.wldt.process.physical.DemoPhysicalAdapter;
 import java.util.List;
 import java.util.Map;
 
-public class AugDigitalTwinModel extends DigitalTwinModel {
+public class GenericResultAugmentationDigitalTwinModel extends DigitalTwinModel {
 
-    private static final WldtLogger logger = WldtLoggerProvider.getLogger(AugDigitalTwinModel.class);
+    private static final WldtLogger logger = WldtLoggerProvider.getLogger(GenericResultAugmentationDigitalTwinModel.class);
 
     private boolean isShadowed = false;
 
-    public AugDigitalTwinModel() {
+    public GenericResultAugmentationDigitalTwinModel() {
         super("dummy-shadowing-function");
     }
 
@@ -193,7 +196,7 @@ public class AugDigitalTwinModel extends DigitalTwinModel {
                 logger.error("WRONG Physical Event Message Received ! Received Type: {}", physicalPropertyEventMessage.getType());
 
             // Test the Augmentation Function Execution for each received physical event notification
-            this.executeAugmentationFunction(RandomNumberAugmentationFunction.RANDOM_NUMBER_AUGMENTATION_FUNCTION_ID);
+            this.executeAugmentationFunction(RandomNumberAugmentationFunction.FUNCTION_ID);
 
 
         }catch (Exception e){

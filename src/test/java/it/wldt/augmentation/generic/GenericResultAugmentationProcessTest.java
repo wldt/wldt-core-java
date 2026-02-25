@@ -1,5 +1,8 @@
-package it.wldt.augmentation;
+package it.wldt.augmentation.generic;
 
+import it.wldt.augmentation.*;
+import it.wldt.augmentation.function.RandomNumberAugmentationFunction;
+import it.wldt.augmentation.function.RandomStringAugmentationFunction;
 import it.wldt.core.adapter.physical.TestPhysicalAdapter;
 import it.wldt.core.engine.DigitalTwin;
 import it.wldt.core.engine.DigitalTwinEngine;
@@ -27,9 +30,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
  * @created 28/12/2023 - 15:10
  */
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class AugmentationProcessTest {
+public class GenericResultAugmentationProcessTest {
 
-    private static final WldtLogger logger = WldtLoggerProvider.getLogger(AugmentationProcessTest.class);
+    private static final WldtLogger logger = WldtLoggerProvider.getLogger(GenericResultAugmentationProcessTest.class);
 
     private static final String TEST_DIGITAL_TWIN_ID = "dtTest0001";
     private static final String TEST_AUGMENTATION_HANDLER_ID = "test-augmentation-handler";
@@ -50,7 +53,7 @@ public class AugmentationProcessTest {
         digitalTwinEngine = new DigitalTwinEngine();
 
         // Create new Digital Twin with a specific Digital Twin Model
-        digitalTwin = new DigitalTwin(TEST_DIGITAL_TWIN_ID, new AugDigitalTwinModel());
+        digitalTwin = new DigitalTwin(TEST_DIGITAL_TWIN_ID, new GenericResultAugmentationDigitalTwinModel());
 
         // Physical Adapter with Configuration
         digitalTwin.addPhysicalAdapter(
@@ -118,7 +121,7 @@ public class AugmentationProcessTest {
         List<List<AugmentationFunctionResult<?>>> augmentationFunctionResultList = SharedTestMetrics.getInstance().getAugmentationFunctionResultNotification(
                 TEST_DIGITAL_TWIN_ID,
                 TEST_AUGMENTATION_HANDLER_ID,
-                RandomNumberAugmentationFunction.RANDOM_NUMBER_AUGMENTATION_FUNCTION_ID);
+                RandomNumberAugmentationFunction.FUNCTION_ID);
 
         //Check Received Augmentation Function Result is Not Null
         assertNotNull(augmentationFunctionResultList);
@@ -134,7 +137,7 @@ public class AugmentationProcessTest {
             for(AugmentationFunctionResult<?> augmentationFunctionResult : resultList){
 
                 // Check the Augmentation Function Result Type
-                assertEquals(AugmentationFunctionResultType.GENERIC_RESULT, augmentationFunctionResult.getAugmentationFunctionResultType());
+                Assertions.assertEquals(AugmentationFunctionResultType.GENERIC_RESULT, augmentationFunctionResult.getType());
 
                 // Check that the Result value is not null
                 assertNotNull(augmentationFunctionResult.getValue());
@@ -276,7 +279,7 @@ public class AugmentationProcessTest {
         if(digitalTwin.getAugmentationManager().getAugmentationFunctionHandler(TEST_AUGMENTATION_HANDLER_ID).isPresent())
             digitalTwin.getAugmentationManager().getAugmentationFunctionHandler(TEST_AUGMENTATION_HANDLER_ID)
                     .get()
-                    .unRegisterAugmentationFunction(RandomNumberAugmentationFunction.RANDOM_NUMBER_AUGMENTATION_FUNCTION_ID);
+                    .unRegisterAugmentationFunction(RandomNumberAugmentationFunction.FUNCTION_ID);
 
         // Wait until the Augmentation Function UnRegistration Event is received
         Thread.sleep(5000);

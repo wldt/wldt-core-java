@@ -66,3 +66,13 @@ the handler publishes a `RegistrationEvent` on the Event Bus, and the DTM is not
 Augmentation Functions can also be removed at runtime. When the Developer unregisters a function, 
 the handler publishes an `UnregistrationEvent` on the Event Bus. The DTM receives the notification and 
 updates its internal state, ensuring it no longer references the removed function.
+
+## Augmentation Function Invocation
+
+....
+
+## Augmentation Function Results
+
+....
+
+## Augmentation Function Implementation

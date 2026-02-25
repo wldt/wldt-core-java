@@ -4,7 +4,7 @@ import java.util.Map;
 
 public class AugmentationFunctionResult<T> {
 
-    private AugmentationFunctionResultType augmentationFunctionResultType;
+    private AugmentationFunctionResultType type;
 
     private String key;
 
@@ -12,22 +12,22 @@ public class AugmentationFunctionResult<T> {
 
     private Map<String, Object> metadata;
 
-    public AugmentationFunctionResult(AugmentationFunctionResultType augmentationFunctionResultType,
+    public AugmentationFunctionResult(AugmentationFunctionResultType type,
                                       String key,
                                       T value,
                                       Map<String, Object> metadata) {
-        this.augmentationFunctionResultType = augmentationFunctionResultType;
+        this.type = type;
         this.key = key;
         this.value = value;
         this.metadata = metadata;
     }
 
-    public AugmentationFunctionResultType getAugmentationFunctionResultType() {
-        return augmentationFunctionResultType;
+    public AugmentationFunctionResultType getType() {
+        return type;
     }
 
-    public void setAugmentationFunctionResultType(AugmentationFunctionResultType augmentationFunctionResultType) {
-        this.augmentationFunctionResultType = augmentationFunctionResultType;
+    public void setType(AugmentationFunctionResultType type) {
+        this.type = type;
     }
 
     public String getKey() {
@@ -57,7 +57,7 @@ public class AugmentationFunctionResult<T> {
     @Override
     public String toString() {
         final StringBuffer sb = new StringBuffer("AugmentationFunctionResult{");
-        sb.append("augmentationFunctionResultType=").append(augmentationFunctionResultType);
+        sb.append("augmentationFunctionResultType=").append(type);
         sb.append(", key='").append(key).append('\'');
         sb.append(", value=").append(value);
         sb.append(", metadata=").append(metadata);

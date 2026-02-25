@@ -86,7 +86,7 @@ public class WldtEventBus {
      * @param wldtEvent the event to publish
      * @throws EventBusException in case of error contains the exception with the error message
      */
-    public void publishEvent(String digitalTwinId, String publisherId, WldtEvent<?> wldtEvent) throws EventBusException {
+    public synchronized void publishEvent(String digitalTwinId, String publisherId, WldtEvent<?> wldtEvent) throws EventBusException {
 
         if(this.subscriberMap == null)
             throw new EventBusException("EventBus-publishEvent() -> Error: SubscriberMap = NULL !");
@@ -180,7 +180,7 @@ public class WldtEventBus {
      * @param wldtEventListener the event listener
      * @throws EventBusException in case of error contains the exception with the error message
      */
-    public void subscribe(String digitalTwinId, String subscriberId, WldtEventFilter wldtEventFilter, WldtEventListener wldtEventListener) throws EventBusException{
+    public synchronized void subscribe(String digitalTwinId, String subscriberId, WldtEventFilter wldtEventFilter, WldtEventListener wldtEventListener) throws EventBusException{
 
         if(this.subscriberMap == null)
             throw new EventBusException("EventBus-subscribe() -> Error: SubscriberMap = NULL !");
@@ -224,7 +224,7 @@ public class WldtEventBus {
      * @param wldtEventListener the event listener
      * @throws EventBusException in case of error contains the exception with the error message
      */
-    public void unSubscribe(String digitalTwinId, String subscriberId, WldtEventFilter wldtEventFilter, WldtEventListener wldtEventListener) throws EventBusException{
+    public synchronized void unSubscribe(String digitalTwinId, String subscriberId, WldtEventFilter wldtEventFilter, WldtEventListener wldtEventListener) throws EventBusException{
 
         if(this.subscriberMap == null)
             throw new EventBusException("EventBus-unSubscribe() -> Error: SubscriberMap = NULL !");

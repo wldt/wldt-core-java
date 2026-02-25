@@ -1,5 +1,6 @@
-package it.wldt.augmentation;
+package it.wldt.augmentation.function;
 
+import it.wldt.augmentation.*;
 import it.wldt.exception.AugmentationFunctionException;
 import it.wldt.log.WldtLogger;
 import it.wldt.log.WldtLoggerProvider;
@@ -7,11 +8,11 @@ import it.wldt.log.WldtLoggerProvider;
 import java.util.Collections;
 import java.util.List;
 
-public class RandomStringAugmentationFunction extends AugmentationFunction{
+public class RandomStringAugmentationFunction extends AugmentationFunction {
 
     private static final WldtLogger logger = WldtLoggerProvider.getLogger(RandomStringAugmentationFunction.class);
 
-    public static final String RANDOM_NUMBER_AUGMENTATION_FUNCTION_ID = "random-string-augmentation-function";
+    public static final String FUNCTION_ID = "random-string-augmentation-function";
 
     public static final int RANDOM_STRING_LENGTH = 10;
 
@@ -24,9 +25,9 @@ public class RandomStringAugmentationFunction extends AugmentationFunction{
      *
      */
     public RandomStringAugmentationFunction() {
-        super(RANDOM_NUMBER_AUGMENTATION_FUNCTION_ID,
-                "Random Number Augmentation Function",
-                "This augmentation function generates a random number between 0 and 100.",
+        super(FUNCTION_ID,
+                "Random String Augmentation Function",
+                "This augmentation function generates a random String of target length.",
                 "1.0.0",
                 AugmentationFunctionType.STATELESS,
                 new AugmentationFunctionContextRequest(true, true, null));
