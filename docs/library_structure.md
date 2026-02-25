@@ -56,20 +56,20 @@ Each of this core components has the following main characteristics:
 - **Digital Twin**: Models a modular DT structure built through the combination of core functionalities together with physical
   and digital adapter capabilities. This Layer includes the `Digital Twin State`  responsible to structure the state of the DT by defining the list of properties, events, and actions.
   The different instances included in the lists can correspond directly to elements of the physical asset
-  or can derive from their combination, in any case, it is the `Shadowing Function (SF)` that defines
+  or can derive from their combination, in any case, it is the `Digital Twin Model` and its management of the **Shadowing Process** that defines
   the mapping, following the model defined by the designer.
   This component also exposes a set of methods to allow SF manipulation.
   Every time the Digital Twin State is modified, the latter generates the corresponding DT's event to notify all the components
   about the variation.
-- **Shadowing Function**: It is the library component responsible for defining the behavior of
+- **Digital Twin Model**: It is the library component responsible for defining the behavior of
   the Digital Twin by interacting with the Digital Twin State.
   Specifically, it implements the shadowing process that allows keeping the
   DT synchronized with its physical entity.
   This component is based on a specific implementation of a WLDT Worker called Model Engine,
   in order to be executed by the WLDT Engine.
-  The Shadowing Model Function is the fundamental component that must be extended by the DT designer
+  The Digital Twin Model is the fundamental component that must be extended by the DT designer
   to concretize its model.
-  The shadowing function observes the life cycle of the Digital Twin to be notified of the different state changes.
+  The model observes the life cycle of the Digital Twin to be notified of the different state changes.
   For example, it is informed when the DT enters the Bound state, i.e. when its Physical Adapters
   have completed the binding procedure with the physical asset. This component also allows the designer
   to define the behavior of the DT in case a property is modified, an event is triggered, or an action is invoked.
@@ -82,14 +82,14 @@ Each of this core components has the following main characteristics:
   that the physical asset exposes through the specific protocol.
   The DT transitions from the Unbound to the Bound state when all its Physical Adapters
   have produced their respective PADs.
-  The Shadowing Function, following the DT model,
+  The Digital Twin Model
   selects the components of the various PADs that it is interested in managing.
 - **Digital Adapter**: It provides the set of callbacks that each specific implementation can use
   to be notified of changes in the DT state.
   Symmetrically to what happens with Physical Adapters, a Digital Twin can define
   multiple Digital Adapters to expose its state and functionality through different protocols.
 
-Therefore, to create a Digital Twin using WLDT, it is necessary to define and instantiate a DT with its Shadowing Function and
+Therefore, to create a Digital Twin using WLDT, it is necessary to define and instantiate a DT with its Digital Twin Model and
 at least one Physical Adapter and one Digital Adapter, in order to enable connection with the physical
 entity and allow the DT to be used by external applications. Once the 3 components are defined,
 it is possible to instantiate the WLDT Engine and, subsequently, start the lifecycle of the DT.
