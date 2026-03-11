@@ -1,4 +1,4 @@
-package it.wldt.augmentation.generic;
+package it.wldt.augmentation.stateless.generic;
 
 import it.wldt.adapter.digital.event.DigitalActionWldtEvent;
 import it.wldt.adapter.physical.*;
@@ -8,7 +8,7 @@ import it.wldt.adapter.physical.event.PhysicalAssetRelationshipInstanceCreatedWl
 import it.wldt.adapter.physical.event.PhysicalAssetRelationshipInstanceDeletedWldtEvent;
 import it.wldt.augmentation.function.AugmentationFunction;
 import it.wldt.augmentation.result.AugmentationFunctionResult;
-import it.wldt.augmentation.function.RandomNumberAugmentationFunction;
+import it.wldt.augmentation.stateless.function.RandomNumberAugmentationFunction;
 import it.wldt.core.model.DigitalTwinModel;
 import it.wldt.core.state.*;
 import it.wldt.exception.EventBusException;
@@ -333,7 +333,7 @@ public class GenericResultAugmentationDigitalTwinModel extends DigitalTwinModel 
     }
 
     @Override
-    protected void onAugmentationFunctionListRegistered(String handlerId, List<AugmentationFunction> augmentationFunctionList) {
+    protected void onAugmentationFunctionListAvailable(String handlerId, List<AugmentationFunction> augmentationFunctionList) {
         logger.info("Augmentation Function List Registered - HandlerId: {} AugmentationFunctionList: {}", handlerId, augmentationFunctionList);
 
         // Register the received callback on the Shared Test Metrics for later verification

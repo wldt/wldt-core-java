@@ -683,7 +683,7 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
             onEventNotificationReceived(digitalTwinStateEventNotification);
         }
 
-        ////////// AUGMENTATION FUNCTION EXECUTION EVENTS MANAGEMENT ///////////
+        ////////// STATELESS AUGMENTATION FUNCTION EXECUTION EVENTS MANAGEMENT ///////////
         if(wldtEvent != null
                 && wldtEvent.getType() != null
                 && (wldtEvent.getType().startsWith(WldtEventTypes.AUGMENTATION_FUNCTION_EXECUTION_BASE_TYPE))
@@ -721,6 +721,45 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
                 }
             }
         }
+
+        ////////// STATEFUL AUGMENTATION FUNCTION START EVENTS MANAGEMENT ///////////
+        if(wldtEvent != null
+                && wldtEvent.getType() != null
+                && (wldtEvent.getType().startsWith(WldtEventTypes.AUGMENTATION_FUNCTION_START_BASE_TYPE))
+                && wldtEvent.getBody() != null
+                && (wldtEvent.getBody() instanceof AugmentationFunctionContext)){
+
+            // Retrieve Augmentation Function Execution Context
+            AugmentationFunctionContext augmentationFunctionContext = (AugmentationFunctionContext) wldtEvent.getBody();
+
+            // Extract the Augmentation Function Id from the Event Type after the base type and the handler id
+            // Substring after the base type and the handler id considering the '.' as separator
+            String augmentationFunctionId = wldtEvent.getType().substring(buildHandlerEventType(WldtEventTypes.AUGMENTATION_FUNCTION_START_BASE_TYPE).length() + 1);
+
+            logger.info("Received Augmentation Function Start Event for function with id {} and context: {}", augmentationFunctionId, augmentationFunctionContext);
+
+            // Retrieve the Augmentation Function associated to the received id
+            Optional<AugmentationFunction> augmentationFunctionOptional = this.getAugmentationFunction(augmentationFunctionId);
+
+            // If the Augmentation Function is not present log the error and skip the execution
+            if(!augmentationFunctionOptional.isPresent()){
+                logger.warn(String.format("Error starting Augmentation Function with id %s: Augmentation Function not found !", augmentationFunctionId));
+            }
+            else {
+                try {
+
+                    // Check if the Augmentation Function is Stateless since it is an execution request, if not log the error and skip the execution
+                    if(!isAugmentationFunctionStartRequestValid(augmentationFunctionOptional.get(), augmentationFunctionContext)){
+                        logger.warn(String.format("Error starting Augmentation Function with id %s is not valid !", augmentationFunctionId));
+                    } else{
+                        logger.info("Executing Augmentation Function with id {} ...", augmentationFunctionId);
+                        startAugmentationFunction(augmentationFunctionId, augmentationFunctionContext);
+                    }
+                } catch (AugmentationFunctionException e) {
+                    logger.error(String.format("Error executing Augmentation Function with id %s: %s", augmentationFunctionId, e.getLocalizedMessage()));
+                }
+            }
+        }
     }
 
     /**
@@ -738,6 +777,28 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
         // Validate that the Augmentation Function is Stateless since it is an execution request
         if(!augmentationFunction.getType().equals(AugmentationFunctionType.STATELESS)){
             logger.error(String.format("Invalid Augmentation Function Request for function with id %s: Augmentation Function is not Stateless, execution request is not allowed !", augmentationFunction.getId()));
+            return false;
+        }
+
+        // The request is valid
+        return true;
+    }
+
+    /**
+     * TODO
+     */
+    private boolean isAugmentationFunctionStartRequestValid(AugmentationFunction augmentationFunction,
+                                                                AugmentationFunctionContext augmentationFunctionContext) {
+
+        // Validate that the Augmentation Function and the Context are not null
+        if(augmentationFunction == null || augmentationFunctionContext == null) {
+            logger.error("Invalid Augmentation Function Request ! Augmentation Function and Context cannot be null !");
+            return false;
+        }
+
+        // Validate that the Augmentation Function is Stateless since it is an execution request
+        if(!augmentationFunction.getType().equals(AugmentationFunctionType.STATEFUL)){
+            logger.error(String.format("Invalid Augmentation Function Request for function with id %s: Augmentation Function is not Stateful, start request is not allowed !", augmentationFunction.getId()));
             return false;
         }
 

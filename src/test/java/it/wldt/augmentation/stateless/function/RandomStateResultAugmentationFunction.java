@@ -1,6 +1,7 @@
-package it.wldt.augmentation.function;
+package it.wldt.augmentation.stateless.function;
 
 import it.wldt.augmentation.context.AugmentationFunctionContext;
+import it.wldt.augmentation.function.StatelessAugmentationFunction;
 import it.wldt.augmentation.result.AugmentationFunctionResult;
 import it.wldt.augmentation.result.AugmentationFunctionResultType;
 import it.wldt.exception.AugmentationFunctionException;

@@ -686,6 +686,11 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
      */
     protected void startLifeCycle() throws WldtConfigurationException {
 
+        // Start the Augmentation Function Manager
+        // This component should be ready before the Model since it can be used immediately by the Model Engine
+        // to execute Augmentation Functions
+        this.augmentationManager.startAugmentationManager();
+
         // Start Executing as first component the Model Engine
         executeModelEngine();
 
@@ -715,9 +720,6 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
             logger.info("Executing DigitalAdapter: {}", digitalAdapter.getClass());
             digitalAdapterExecutor.execute(digitalAdapter);
         });
-
-        // Start the Augmentation Function Handlers
-        this.augmentationManager.startAugmentationManager();
 
         //When all Physical and Digital Adapters have been started the DT moves to the Start State
         notifyLifeCycleOnStart();

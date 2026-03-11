@@ -1,8 +1,8 @@
-package it.wldt.augmentation.generic;
+package it.wldt.augmentation.stateless.generic;
 
 import it.wldt.augmentation.function.AugmentationFunction;
-import it.wldt.augmentation.function.RandomNumberAugmentationFunction;
-import it.wldt.augmentation.function.RandomStringAugmentationFunction;
+import it.wldt.augmentation.stateless.function.RandomNumberAugmentationFunction;
+import it.wldt.augmentation.stateless.function.RandomStringAugmentationFunction;
 import it.wldt.augmentation.handler.AugmentationFunctionHandler;
 import it.wldt.augmentation.handler.DefaultAugmentationFunctionHandler;
 import it.wldt.augmentation.result.AugmentationFunctionResult;

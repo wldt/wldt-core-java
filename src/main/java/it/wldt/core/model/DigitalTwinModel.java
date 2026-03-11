@@ -31,10 +31,12 @@ import it.wldt.augmentation.event.AugmentationFunctionUnRegistrationWldtEvent;
 import it.wldt.augmentation.function.AugmentationFunction;
 import it.wldt.augmentation.context.AugmentationFunctionContext;
 import it.wldt.augmentation.context.AugmentationFunctionContextRequest;
+import it.wldt.augmentation.function.AugmentationFunctionType;
 import it.wldt.augmentation.handler.AugmentationFunctionHandler;
 import it.wldt.augmentation.result.AugmentationFunctionResult;
 import it.wldt.core.event.*;
 import it.wldt.core.state.DigitalTwinStateManager;
+import it.wldt.exception.AugmentationFunctionException;
 import it.wldt.exception.EventBusException;
 import it.wldt.exception.KernelException;
 import it.wldt.adapter.physical.event.*;
@@ -170,7 +172,7 @@ public abstract class DigitalTwinModel implements WldtEventListener {
         // Notify the Model about already registered Augmentation Functions to let it execute
         // custom logic (e.g., execute specific Augmentation Functions, etc.)
         for(AugmentationFunctionHandler augmentationFunctionHandler : this.augmentationManager.getAllAugmentationFunctionHandlers())
-            this.onAugmentationFunctionListRegistered(augmentationFunctionHandler.getId(), augmentationFunctionHandler.getAllAugmentationFunctions());
+            this.onAugmentationFunctionListAvailable(augmentationFunctionHandler.getId(), augmentationFunctionHandler.getAllAugmentationFunctions());
     }
 
     /**
@@ -632,9 +634,9 @@ public abstract class DigitalTwinModel implements WldtEventListener {
     /**
      * TODO In this case the context is automatically retrieved from the registered Augmentation Function and the
      * execution is triggered without providing an explicit context
-     * (e.g., for stateful augmentation functions that manage their own context internally)
+     * This method is used for stateless augmentation function
      */
-    protected void executeAugmentationFunction(String augmentationFunctionId) throws EventBusException {
+    protected void executeAugmentationFunction(String augmentationFunctionId) throws EventBusException, AugmentationFunctionException {
 
         logger.info("DigitalTwinModel -> Executing Augmentation Function with id {} ...", augmentationFunctionId);
 
@@ -652,9 +654,29 @@ public abstract class DigitalTwinModel implements WldtEventListener {
     /**
      * TODO In this case the context is automatically retrieved from the registered Augmentation Function and the
      * execution is triggered without providing an explicit context
-     * (e.g., for stateful augmentation functions that manage their own context internally)
+     * This method is used for statefull augmentation function
      */
-    protected void executeAugmentationFunction(String augmentationFunctionHandlerId, String augmentationFunctionId) throws EventBusException {
+    protected void startAugmentationFunction(String augmentationFunctionId) throws EventBusException, AugmentationFunctionException {
+
+        logger.info("DigitalTwinModel -> Executing Augmentation Function with id {} ...", augmentationFunctionId);
+
+        // Iterate over all the registered Augmentation Function Handlers Map to find the Augmentation Function with the specified id
+        for(AugmentationFunctionHandler augmentationFunctionHandler : this.augmentationManager.getAllAugmentationFunctionHandlers()){
+            // Check if the current Augmentation Function Handler has the Augmentation Function with the specified id, if yes execute it
+            if(augmentationFunctionHandler.getAugmentationFunction(augmentationFunctionId).isPresent()){
+                logger.info("Executing Augmentation Function with id {} from Augmentation Function Handler with id {} ...", augmentationFunctionId, augmentationFunctionHandler.getId());
+                startAugmentationFunction(augmentationFunctionHandler.getId(), augmentationFunctionId);
+                return;
+            }
+        }
+    }
+
+    /**
+     * TODO In this case the context is automatically retrieved from the registered Augmentation Function and the
+     * execution is triggered without providing an explicit context.
+     * This method is used for stateless augmentation function
+     */
+    protected void executeAugmentationFunction(String augmentationFunctionHandlerId, String augmentationFunctionId) throws EventBusException, AugmentationFunctionException {
 
         // Retrieve the Augmentation Function Handler with the specified id from the Augmentation Manager
         Optional<AugmentationFunctionHandler> augmentationFunctionHandlerOptional = this.augmentationManager.getAugmentationFunctionHandler(augmentationFunctionHandlerId);
@@ -684,6 +706,10 @@ public abstract class DigitalTwinModel implements WldtEventListener {
         // If the Augmentation Function is present, retrieve it
         AugmentationFunction augmentationFunction = augmentationFunctionOptional.get();
 
+        // Check the type of the augmentation function
+        if(augmentationFunction.getType() != AugmentationFunctionType.STATELESS)
+            throw new AugmentationFunctionException(String.format("Error ! Invalid Augmentation Function Type provided for execution ! Expected: %s, Provided: %s", AugmentationFunctionType.STATELESS, augmentationFunction.getType()));
+
         // Retrieve the Context Request for the augmentation function
         AugmentationFunctionContextRequest contextRequest = augmentationFunction.getContextRequest();
 
@@ -708,6 +734,73 @@ public abstract class DigitalTwinModel implements WldtEventListener {
         String eventType = String.format("%s.%s.%s", WldtEventTypes.AUGMENTATION_FUNCTION_EXECUTION_BASE_TYPE, augmentationFunctionHandlerId, augmentationFunctionId);
 
         // Publish an event to trigger the execution of the Augmentation Function (Stateless) with the provided context
+        WldtEventBus.getInstance().publishEvent(this.digitalTwinStateManager.getDigitalTwinId(), this.id, new WldtEvent<>(eventType, augmentationFunctionContext));
+
+    }
+
+    /**
+     * TODO In this case the context is automatically retrieved from the registered Augmentation Function and the
+     * execution is triggered without providing an explicit context
+     * (e.g., for stateful augmentation functions that manage their own context internally)
+     */
+    protected void startAugmentationFunction(String augmentationFunctionHandlerId, String augmentationFunctionId) throws EventBusException, AugmentationFunctionException {
+
+        // Retrieve the Augmentation Function Handler with the specified id from the Augmentation Manager
+        Optional<AugmentationFunctionHandler> augmentationFunctionHandlerOptional = this.augmentationManager.getAugmentationFunctionHandler(augmentationFunctionHandlerId);
+
+        // Check if the Augmentation Function Handler is present, if not log a warning and return
+        if(!augmentationFunctionHandlerOptional.isPresent()){
+            logger.warn("Augmentation Function Handler with id {} is not registered in the Augmentation Manager of the Digital Twin Engine ! Cannot execute the Augmentation Function with id {} ...", augmentationFunctionHandlerId, augmentationFunctionId);
+            return;
+        }
+
+        // If the Augmentation Function Handler is present, retrieve it
+        AugmentationFunctionHandler augmentationFunctionHandler = augmentationFunctionHandlerOptional.get();
+
+        // Check if the Augmentation Function Handler has the Augmentation Function with the specified id, if not log a warning and return
+        if(!augmentationFunctionHandler.getAugmentationFunction(augmentationFunctionId).isPresent())
+            logger.warn("Augmentation Function with id {} is not registered in the Augmentation Function Handler with id {} ! Cannot execute the Augmentation Function ...", augmentationFunctionId, augmentationFunctionHandlerId);
+
+        // Retrieve the Augmentation Function with the specified id from the Augmentation Function Handler
+        Optional<AugmentationFunction> augmentationFunctionOptional = augmentationFunctionHandler.getAugmentationFunction(augmentationFunctionId);
+
+        // Check if the Augmentation Function is present, if not log a warning and return
+        if(!augmentationFunctionOptional.isPresent()) {
+            logger.warn("Augmentation Function with id {} is not registered in the Augmentation Function Handler with id {} ! Cannot execute the Augmentation Function ...", augmentationFunctionId, augmentationFunctionHandlerId);
+            return;
+        }
+
+        // If the Augmentation Function is present, retrieve it
+        AugmentationFunction augmentationFunction = augmentationFunctionOptional.get();
+
+        // Check the type of the augmentation function
+        if(augmentationFunction.getType() != AugmentationFunctionType.STATEFUL)
+            throw new AugmentationFunctionException(String.format("Error ! Invalid Augmentation Function Type provided for execution ! Expected: %s, Provided: %s", AugmentationFunctionType.STATEFUL, augmentationFunction.getType()));
+
+        // Retrieve the Context Request for the augmentation function
+        AugmentationFunctionContextRequest contextRequest = augmentationFunction.getContextRequest();
+
+        if(contextRequest == null){
+            logger.warn("Augmentation Function with id {} does not have a Context Request defined ! Nothing to execute ...", augmentationFunctionId);
+            return;
+        }
+
+        // Create an empty Augmentation Context to be then populated according to the Context Request
+        AugmentationFunctionContext augmentationFunctionContext = new AugmentationFunctionContext();
+
+        // If the Context Request requires the Digital Twin State, retrieve it and set it in the context
+        if(contextRequest.isObserveState())
+            augmentationFunctionContext.setDigitalTwinState(this.digitalTwinStateManager.getDigitalTwinState());
+
+        // If the context request has a query request, execute the query on the Digital Twin's storage and set the query result in the context
+        if(contextRequest.getQueryRequest() != null){
+            // TODO ... Fix with Query Management
+        }
+
+        // Create the correct Event Type to trigger the execution of the Augmentation Function
+        String eventType = String.format("%s.%s.%s", WldtEventTypes.AUGMENTATION_FUNCTION_START_BASE_TYPE, augmentationFunctionHandlerId, augmentationFunctionId);
+
+        // Publish an event to trigger the start of the Augmentation Function (Stateful) with the provided context
         WldtEventBus.getInstance().publishEvent(this.digitalTwinStateManager.getDigitalTwinId(), this.id, new WldtEvent<>(eventType, augmentationFunctionContext));
 
     }
@@ -987,7 +1080,7 @@ public abstract class DigitalTwinModel implements WldtEventListener {
      * @param handlerId
      * @param augmentationFunctionList
      */
-    protected void onAugmentationFunctionListRegistered(String handlerId, List<AugmentationFunction> augmentationFunctionList) {
+    protected void onAugmentationFunctionListAvailable(String handlerId, List<AugmentationFunction> augmentationFunctionList) {
         // Default implementation does nothing, can be overridden by specific
         // Digital Twin Models to handle Augmentation Function results
 
