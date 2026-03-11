@@ -234,6 +234,10 @@ Augmentation Functions can also be removed at runtime. When the Developer unregi
 the handler publishes an `UnregistrationEvent` on the Event Bus. The DTM receives the notification and
 updates its internal state, ensuring it no longer references the removed function.
 
+## Augmentation Function Registration API
+
+TODO ...
+
 ## Augmentation Function Context & Context Request
 
 The Augmentation Function framework provides two key classes for managing 
@@ -572,8 +576,7 @@ Triggers the execution of a **stateless** augmentation function by its identifie
 ### Start Augmentation Function (Stateful)
 
 ```java
-protected void startAugmentationFunction(String augmentationFunctionHandlerId, 
-                                        String augmentationFunctionId) 
+protected void startAugmentationFunction(String augmentationFunctionId) 
     throws EventBusException, AugmentationFunctionException
 ```
 
@@ -584,8 +587,7 @@ Initiates a **stateful** augmentation function, starting its internal loop and e
 ### Stop Augmentation Function (Stateful)
 
 ```java
-protected void stopAugmentationFunction(String augmentationFunctionHandlerId, 
-                                       String augmentationFunctionId) 
+protected void stopAugmentationFunction(String augmentationFunctionId) 
     throws EventBusException, AugmentationFunctionException
 ```
 
@@ -913,7 +915,9 @@ AugmentationFunctionResult<Map<String, Object>> result = new AugmentationFunctio
 
 ## Augmentation Function Implementation
 
-WLDT provides two abstract base classes for implementing augmentation functions: `StatelessAugmentationFunction` and `StatefulAugmentationFunction`. Both classes define the structure and lifecycle methods that developers must implement to create custom augmentation capabilities.
+WLDT provides two abstract base classes for implementing augmentation functions: `StatelessAugmentationFunction` 
+and `StatefulAugmentationFunction`. Both classes define the structure and lifecycle methods that developers 
+must implement to create custom augmentation capabilities.
 
 ---
 
