@@ -280,8 +280,6 @@ This method is called once per Handler with its associated list of registered fu
 
 ---
 
-### Important Considerations
-
 #### Synchronization State Dependency
 
 Augmentation Function availability notifications are only possible 
@@ -294,7 +292,8 @@ its state is inconsistent, making augmentation function execution unfeasible.
 
 #### Duplicate Notifications
 
-The Digital Twin Model should handle potential **duplicate callbacks** for the same Augmentation Function. Since the DT lifecycle evolution is unpredictable, a function may be notified as available multiple times.
+The Digital Twin Model should handle potential **duplicate callbacks** for the same Augmentation Function. 
+Since the DT lifecycle evolution is unpredictable, a function may be notified as available multiple times.
 
 **Example scenario**:
 1. Augmentation Function registered while DT is in Sync → notified as available
@@ -302,17 +301,13 @@ The Digital Twin Model should handle potential **duplicate callbacks** for the s
 
 This ensures the Model is always aware of available functions and can handle them accordingly.
 
-#### Querying Available Functions
-
-At any time, the Digital Twin Model can **query the Augmentation Manager** to 
-retrieve the currently available Augmentation Functions, independently of callback notifications.
-This provides flexibility in handling function discovery programmatically.
-
 ---
 
-### Default Implementation
+### Override Augmentation Function Discovery Methods
 
-All discovery callbacks provide **default implementations** that log the event but perform no action. These methods are **not abstract**, allowing Digital Twin Models to optionally override them based on specific requirements.
+All discovery callbacks provide **default implementations** that log the event but perform no action. 
+These methods are **not abstract**, allowing Digital Twin Models 
+to optionally override them based on specific requirements.
 
 **Example override**:
 
@@ -337,13 +332,6 @@ protected void onAugmentationNewFunctionAvailable(String handlerId,
 ```
 
 ---
-
-### Best Practices
-
-- **Handle duplicates gracefully**: Implement idempotent logic in discovery callbacks to manage repeated notifications
-- **Check DT state**: Verify the Digital Twin synchronization state before executing augmentation functions discovered via callbacks
-- **Query when needed**: Use direct queries to the Augmentation Manager for deterministic function availability checks
-- **Optional override**: Only implement discovery callbacks if your Digital Twin Model needs to react to function availability changes
 
 ## Augmentation Function Invocation
 
@@ -433,6 +421,725 @@ protected void onDigitalTwinBound(Map<String, PhysicalAssetDescription> adapters
 
 ## Augmentation Function Results
 
-....
+Augmentation Functions produce results encapsulated in the `AugmentationFunctionResult<T>` class, 
+which provides a flexible and type-safe way to return computed outputs to the Digital Twin Model.
+
+The `AugmentationFunctionResult<T>` is a generic container that structures the 
+output of augmentation function executions.
+
+### Structure
+
+```java
+public class AugmentationFunctionResult<T> {
+    private AugmentationFunctionResultType type;
+    private String key;
+    private T value;
+    private Map<String, Object> metadata;
+}
+```
+
+### Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `type` | `AugmentationFunctionResultType` | Categorizes the result type (PROPERTY_RESULT, EVENT_RESULT, RELATIONSHIP_RESULT, RELATIONSHIP_INSTANCE_RESULT, GENERIC_RESULT) |
+| `key` | `String` | Identifier for the result (e.g., property name, event key, relationship name) |
+| `value` | `T` | The actual computed value, generic type allows flexibility |
+| `metadata` | `Map<String, Object>` | Optional metadata providing additional context (e.g., confidence score, timestamp, source) |
+
+---
+
+### AugmentationFunctionResultType Enum
+
+The result type enum defines the categories of outputs that augmentation functions can produce:
+
+```java
+public enum AugmentationFunctionResultType {
+    PROPERTY_RESULT,
+    EVENT_RESULT,
+    RELATIONSHIP_RESULT,
+    RELATIONSHIP_INSTANCE_RESULT,
+    GENERIC_RESULT
+}
+```
+
+#### Result Type Descriptions
+
+| Type | Description | Digital Twin Component | Example Use Case |
+|------|-------------|------------------------|------------------|
+| **PROPERTY_RESULT** | Suggests new or updated property values | DT State Properties | Predicted temperature, calculated efficiency, derived metrics |
+| **EVENT_RESULT** | Suggests event notifications or registrations | DT State Events | Anomaly detected, threshold exceeded, pattern recognized |
+| **RELATIONSHIP_RESULT** | Suggests new relationship type declarations | DT State Relationships | New relationship type discovered between DT types |
+| **RELATIONSHIP_INSTANCE_RESULT** | Suggests concrete relationship instances | DT State Relationship Instances | Specific connection discovered to another DT instance |
+| **GENERIC_RESULT** | Unstructured or custom results | Model-defined handling | Analysis data, recommendations, metrics, custom insights |
+
+---
+
+### Constructor
+
+```java
+public AugmentationFunctionResult(AugmentationFunctionResultType type,
+                                  String key,
+                                  T value,
+                                  Map<String, Object> metadata)
+```
+
+Creates a new augmentation function result with all required and optional fields.
+
+---
+
+### Result Production in Augmentation Functions
+
+Augmentation functions can produce **multiple results** in a single execution, returned as a `List<AugmentationFunctionResult<?>>`. This allows a function to suggest multiple property updates, events, or relationships simultaneously.
+
+#### Example: Multi-Result
+
+```java
+  List<AugmentationFunctionResult<?>> results = new ArrayList<>();
+  
+  // Result 1: Predicted failure probability as property
+  results.add(new AugmentationFunctionResult<>(
+      AugmentationFunctionResultType.PROPERTY_RESULT,
+      "predicted_failure_probability",
+      0.78,
+      Map.of("confidence", 0.92, "horizon_hours", 48)
+  ));
+  
+  // Result 2: Maintenance recommendation as event
+  results.add(new AugmentationFunctionResult<>(
+      AugmentationFunctionResultType.EVENT_RESULT,
+      "maintenance_required",
+      Map.of("urgency", "HIGH", "estimated_hours", 48),
+      Map.of("timestamp", System.currentTimeMillis())
+  ));
+  
+  // Result 3: Generic analytics
+  results.add(new AugmentationFunctionResult<>(
+      AugmentationFunctionResultType.GENERIC_RESULT,
+      "degradation_analysis",
+      Map.of("trend", "increasing", "rate", 0.05),
+      Map.of("samples_analyzed", 1000)
+  ));
+```
+
+---
+
+### Processing Results in Digital Twin Model
+
+The Digital Twin Model receives augmentation function 
+results through the `onAugmentationFunctionResultEvent` callback method, 
+which provides a **list of results** from a single function (both for `Stateful` and `Stateless`).
+
+### Callback Method Signature
+
+```java
+protected void onAugmentationFunctionResultEvent(String augmentationFunctionHandlerId,
+                                                 String augmentationFunctionId,
+                                                 List<AugmentationFunctionResult<?>> augmentationFunctionResult)
+```
+
+**Parameters**:
+- `augmentationFunctionHandlerId`: The ID of the handler managing the function
+- `augmentationFunctionId`: The ID of the function that produced the results
+- `augmentationFunctionResult`: List of results produced by the function execution
+
+---
+
+### Basic Implementation Example
+
+```java
+@Override
+protected void onAugmentationFunctionResultEvent(String augmentationFunctionHandlerId,
+                                                 String augmentationFunctionId,
+                                                 List<AugmentationFunctionResult<?>> augmentationFunctionResult) {
+    
+    logger.info("Received {} results from function: {} (handler: {})",
+                augmentationFunctionResult.size(),
+                augmentationFunctionId,
+                augmentationFunctionHandlerId);
+    
+    // Iterate over the augmentation function results
+    for(AugmentationFunctionResult<?> result : augmentationFunctionResult) {
+        logger.info("Processing result: {}", result);
+        
+        // Process based on result type
+        switch (result.getType()) {
+            case PROPERTY_RESULT:
+                handlePropertyResult(result);
+                break;
+            case EVENT_RESULT:
+                handleEventResult(result);
+                break;
+            case RELATIONSHIP_RESULT:
+                handleRelationshipResult(result);
+                break;
+            case RELATIONSHIP_INSTANCE_RESULT:
+                handleRelationshipInstanceResult(result);
+                break;
+            case GENERIC_RESULT:
+                handleGenericResult(result);
+                break;
+        }
+    }
+}
+```
+
+### Example 1: PROPERTY_RESULT (Predicted Value)
+
+```java
+AugmentationFunctionResult<Double> result = new AugmentationFunctionResult<>(
+    AugmentationFunctionResultType.PROPERTY_RESULT,
+    "predicted_temperature",
+    85.5,
+    Map.of(
+        "confidence", 0.92,
+        "horizon_minutes", 10,
+        "timestamp", System.currentTimeMillis()
+    )
+);
+```
+
+---
+
+### Example 2: EVENT_RESULT (Anomaly Detection)
+
+```java
+AugmentationFunctionResult<Map<String, Object>> result = new AugmentationFunctionResult<>(
+    AugmentationFunctionResultType.EVENT_RESULT,
+    "temperature_anomaly_detected",
+    Map.of(
+        "anomaly", true,
+        "severity", "HIGH",
+        "temperature", 95.0,
+        "threshold", 50.0
+    ),
+    Map.of(
+        "detector_version", "1.2.3",
+        "detection_time", System.currentTimeMillis()
+    )
+);
+```
+
+---
+
+### Example 3: RELATIONSHIP_RESULT (New Relationship Type)
+
+```java
+AugmentationFunctionResult<Map<String, Object>> result = new AugmentationFunctionResult<>(
+    AugmentationFunctionResultType.RELATIONSHIP_RESULT,
+    "energySuppliedBy",
+    Map.of(
+        "description", "Indicates energy supply relationship",
+        "bidirectional", false
+    ),
+    Map.of(
+        "discovered_at", System.currentTimeMillis(),
+        "discovery_method", "network_topology_analysis"
+    )
+);
+```
+
+---
+
+### Example 4: RELATIONSHIP_INSTANCE_RESULT (Concrete Connection)
+
+```java
+AugmentationFunctionResult<String> result = new AugmentationFunctionResult<>(
+    AugmentationFunctionResultType.RELATIONSHIP_INSTANCE_RESULT,
+    "connectedTo",
+    "machine-002-dt-id",
+    Map.of(
+        "discovered_at", System.currentTimeMillis(),
+        "confidence", 0.95,
+        "connection_type", "physical"
+    )
+);
+```
+
+---
+
+### Example 5: GENERIC_RESULT (Custom Analytics)
+
+```java
+AugmentationFunctionResult<Map<String, Object>> result = new AugmentationFunctionResult<>(
+    AugmentationFunctionResultType.GENERIC_RESULT,
+    "performance_analysis",
+    Map.of(
+        "efficiency", 0.78,
+        "uptime_percentage", 99.2,
+        "energy_consumption_kwh", 150.5,
+        "recommendation", "Schedule maintenance within 48 hours"
+    ),
+    Map.of(
+        "analysis_period_hours", 24,
+        "samples_analyzed", 1440
+    )
+);
+```
+
+---
+
+### Key Features
+
+- **Multi-Result Support**: Functions can return multiple results in a single execution via `List<AugmentationFunctionResult<?>>`
+- **Type Safety**: Generic `<T>` allows strongly-typed values while maintaining flexibility
+- **Categorization**: Five distinct result types enable structured processing based on DT component
+- **Batch Processing**: The callback provides all results at once, enabling efficient batch operations (e.g., single state transaction)
+- **Extensibility**: `metadata` map allows arbitrary additional context without schema changes
+- **Traceability**: Results include handler and function IDs, plus optional metadata for full provenance
+- **Model Autonomy**: The Digital Twin Model retains full control over whether and how to apply results
+
+---
 
 ## Augmentation Function Implementation
+
+## Augmentation Function Implementation
+
+WLDT provides two abstract base classes for implementing augmentation functions: `StatelessAugmentationFunction` and `StatefulAugmentationFunction`. Both classes define the structure and lifecycle methods that developers must implement to create custom augmentation capabilities.
+
+---
+
+### Stateless Augmentation Function
+
+The `StatelessAugmentationFunction` class is designed for functions that perform independent computations without maintaining state between executions.
+
+#### Base Class Structure
+
+```java
+public abstract class StatelessAugmentationFunction extends AugmentationFunction {
+    
+    protected StatelessAugmentationFunction(String id, 
+                                           String name, 
+                                           String description, 
+                                           String version) {
+        super(id, name, description, version);
+    }
+    
+    /**
+     * Main execution method that must be implemented by concrete functions.
+     * Called each time the function is invoked.
+     * 
+     * @param context The augmentation function context containing DT state and metadata
+     * @return List of augmentation function results
+     * @throws AugmentationFunctionException if execution fails
+     */
+    public abstract List<AugmentationFunctionResult<?>> run(AugmentationFunctionContext context) 
+        throws AugmentationFunctionException;
+}
+```
+
+#### Key Characteristics
+
+- **Single Method**: Only `run()` needs to be implemented
+- **No Lifecycle**: No `start()` or `stop()` methods required
+- **Context Provided**: Receives `AugmentationFunctionContext` with current DT state on each invocation
+- **Immediate Results**: Returns results synchronously via `List<AugmentationFunctionResult<?>>`
+
+---
+
+### Stateful Augmentation Function
+
+The `StatefulAugmentationFunction` class is designed for functions that maintain internal state, run continuously, and can react to DT state changes or events.
+
+#### Base Class Structure
+
+```java
+public abstract class StatefulAugmentationFunction extends AugmentationFunction {
+    
+    protected StatefulAugmentationFunction(String id, 
+                                          String name, 
+                                          String description, 
+                                          String version) {
+        super(id, name, description, version);
+    }
+    
+    /**
+     * Called when the function is started. Initialize internal state and resources here.
+     * 
+     * @param context The initial augmentation function context
+     * @throws AugmentationFunctionException if initialization fails
+     */
+    public abstract void start(AugmentationFunctionContext context) 
+        throws AugmentationFunctionException;
+    
+    /**
+     * Called when the function is stopped. Clean up resources here.
+     * 
+     * @param context The final augmentation function context
+     * @throws AugmentationFunctionException if cleanup fails
+     */
+    public abstract void stop(AugmentationFunctionContext context) 
+        throws AugmentationFunctionException;
+    
+    /**
+     * Called automatically when the Digital Twin state is updated.
+     * 
+     * @param digitalTwinState The new Digital Twin state
+     * @throws AugmentationFunctionException if processing fails
+     */
+    public abstract void onStateUpdate(DigitalTwinState digitalTwinState) 
+        throws AugmentationFunctionException;
+    
+    /**
+     * Called automatically when a Digital Twin event is notified.
+     * 
+     * @param digitalTwinStateEventNotification The event notification
+     * @throws AugmentationFunctionException if processing fails
+     */
+    public abstract void onEventNotificationReceived(DigitalTwinStateEventNotification<?> digitalTwinStateEventNotification) 
+        throws AugmentationFunctionException;
+    
+    /**
+     * Notify results asynchronously to the Augmentation Manager.
+     * Call this method whenever the function produces results.
+     * 
+     * @param results List of augmentation function results to publish
+     */
+    protected void notifyResult(List<AugmentationFunctionResult<?>> results);
+}
+```
+
+#### Key Characteristics
+
+- **Lifecycle Management**: Implements `start()` and `stop()` for initialization and cleanup
+- **Push Notifications**: Receives automatic callbacks via `onStateUpdate()` and `onEventNotificationReceived()`
+- **Asynchronous Results**: Produces results via `notifyResult()` at any time, not necessarily synchronized with notifications
+- **Internal State**: Can maintain history, timers, or any internal data structures
+
+---
+
+### Implementation Examples
+
+#### Example 1: Simple Stateless Function (Random Number Generator)
+
+A basic stateless function that generates a random number on each invocation:
+
+```java
+public class RandomNumberAugmentationFunction extends StatelessAugmentationFunction {
+
+    public static final String FUNCTION_ID = "random-number-augmentation-function";
+
+    public RandomNumberAugmentationFunction() {
+        super(FUNCTION_ID,
+                "Random Number Augmentation Function",
+                "This augmentation function generates a random number between 0 and 100.",
+                "1.0.0");
+    }
+
+    @Override
+    public List<AugmentationFunctionResult<?>> run(AugmentationFunctionContext context) 
+            throws AugmentationFunctionException {
+        
+        // Generate a random number between 0 and 1
+        double randomNumber = Math.random();
+
+        // Create a generic result with the random number
+        AugmentationFunctionResult<Double> result = new AugmentationFunctionResult<>(
+                AugmentationFunctionResultType.GENERIC_RESULT,
+                "randomNumber",
+                randomNumber,
+                null
+        );
+
+        return Collections.singletonList(result);
+    }
+}
+```
+
+**Use Case**: Generate random data for testing or simulation purposes on-demand.
+
+---
+
+#### Example 2: Multi-Result Stateless Function (State Component Generator)
+
+A stateless function that produces multiple results of different types in a single execution:
+
+```java
+public class RandomStateResultAugmentationFunction extends StatelessAugmentationFunction {
+
+    public static final String FUNCTION_ID = "random-state-result-function";
+    public static final int RANDOM_STRING_LENGTH = 10;
+
+    public RandomStateResultAugmentationFunction() {
+        super(FUNCTION_ID,
+                "Random State Result Augmentation Function",
+                "Generates multiple state components with random values",
+                "1.0.0");
+    }
+
+    @Override
+    public List<AugmentationFunctionResult<?>> run(AugmentationFunctionContext context) 
+            throws AugmentationFunctionException {
+
+        List<AugmentationFunctionResult<?>> results = new ArrayList<>();
+
+        // Property Result: Random string property
+        results.add(new AugmentationFunctionResult<>(
+                AugmentationFunctionResultType.PROPERTY_RESULT,
+                "randomStringProperty",
+                generateRandomString(RANDOM_STRING_LENGTH),
+                null
+        ));
+
+        // Event Result: Random number event
+        results.add(new AugmentationFunctionResult<>(
+                AugmentationFunctionResultType.EVENT_RESULT,
+                "randomNumberEvent",
+                Math.random(),
+                null
+        ));
+
+        // Relationship Result: New relationship type
+        results.add(new AugmentationFunctionResult<>(
+                AugmentationFunctionResultType.RELATIONSHIP_RESULT,
+                "randomStringRelationship",
+                generateRandomString(RANDOM_STRING_LENGTH),
+                null
+        ));
+
+        // Relationship Instance Result: Concrete relationship
+        results.add(new AugmentationFunctionResult<>(
+                AugmentationFunctionResultType.RELATIONSHIP_INSTANCE_RESULT,
+                "randomStringRelationshipInstance",
+                generateRandomString(RANDOM_STRING_LENGTH),
+                null
+        ));
+
+        return results;
+    }
+
+    private static String generateRandomString(int length) {
+        String characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        StringBuilder randomString = new StringBuilder();
+        for (int i = 0; i < length; i++) {
+            int index = (int) (Math.random() * characters.length());
+            randomString.append(characters.charAt(index));
+        }
+        return randomString.toString();
+    }
+}
+```
+
+**Use Case**: Demonstrate how a single augmentation function can suggest multiple changes across different DT state components simultaneously.
+
+---
+
+#### Example 3: Periodic Stateful Function (Timer-Based)
+
+A stateful function that generates results periodically using an internal timer (polling mode):
+
+```java
+public class StatefulPeriodicRandomNumberAugmentationFunction extends StatefulAugmentationFunction {
+
+    private static final long AUGMENTATION_FUNCTION_TIME_MS = 1000;
+    public static final String FUNCTION_ID = "periodic-random-number-augmentation-function";
+    
+    private Timer timer;
+    private TimerTask timerTask;
+
+    public StatefulPeriodicRandomNumberAugmentationFunction() {
+        super(FUNCTION_ID,
+                "Periodic Random Number Augmentation Function",
+                "Generates random numbers periodically",
+                "1.0.0");
+    }
+
+    @Override
+    public void start(AugmentationFunctionContext context) throws AugmentationFunctionException {
+        try {
+            logger.info("Starting periodic function with period {} ms", AUGMENTATION_FUNCTION_TIME_MS);
+            createTimerTask(0, AUGMENTATION_FUNCTION_TIME_MS);
+        } catch (Exception e) {
+            throw new AugmentationFunctionException("Error starting function: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public void stop(AugmentationFunctionContext context) throws AugmentationFunctionException {
+        try {
+            logger.info("Stopping periodic function");
+            stopTimerTask();
+        } catch (Exception e) {
+            throw new AugmentationFunctionException("Error stopping function: " + e.getMessage());
+        }
+    }
+
+    private void createTimerTask(long initialDelayMs, long periodMs) {
+        stopTimerTask(); // Ensure no existing timer
+        
+        this.timerTask = new TimerTask() {
+            @Override
+            public void run() {
+                // Generate random number
+                double randomNumber = Math.random();
+                
+                AugmentationFunctionResult<Double> result = new AugmentationFunctionResult<>(
+                        AugmentationFunctionResultType.GENERIC_RESULT,
+                        "randomNumber",
+                        randomNumber,
+                        null
+                );
+                
+                // Notify result asynchronously
+                notifyResult(Collections.singletonList(result));
+            }
+        };
+
+        this.timer = new Timer(true);
+        this.timer.scheduleAtFixedRate(this.timerTask, initialDelayMs, periodMs);
+    }
+
+    private void stopTimerTask() {
+        if (this.timerTask != null) {
+            this.timerTask.cancel();
+            this.timerTask = null;
+        }
+        if (this.timer != null) {
+            this.timer.cancel();
+            this.timer.purge();
+            this.timer = null;
+        }
+    }
+
+    @Override
+    public void onStateUpdate(DigitalTwinState digitalTwinState) {
+        logger.debug("Received state update: {}", digitalTwinState);
+        // No action needed - timer handles result generation
+    }
+
+    @Override
+    public void onEventNotificationReceived(DigitalTwinStateEventNotification<?> notification) {
+        logger.debug("Received event notification: {}", notification);
+        // No action needed - timer handles result generation
+    }
+}
+```
+
+**Use Case**: Continuous monitoring or periodic forecasting where results are generated at fixed intervals regardless of DT state changes.
+
+---
+
+#### Example 4: State-Driven Stateful Function (Push Mode with History)
+
+A stateful function that reacts to state changes and maintains internal history for computing aggregated results:
+
+```java
+public class StatefulStateDrivenRandomNumberAugmentationFunction extends StatefulAugmentationFunction {
+
+    public static final String FUNCTION_ID = "state-driven-random-number-augmentation-function";
+    
+    private List<AugmentationFunctionResult<?>> lastResultList;
+
+    public StatefulStateDrivenRandomNumberAugmentationFunction() {
+        super(FUNCTION_ID,
+                "State-Driven Random Number Augmentation Function",
+                "Generates random numbers on state changes and computes running average",
+                "1.0.0");
+        
+        this.lastResultList = new ArrayList<>();
+    }
+
+    @Override
+    public void start(AugmentationFunctionContext context) throws AugmentationFunctionException {
+        try {
+            logger.info("Starting state-driven augmentation function");
+            // Initialize internal state if needed
+        } catch (Exception e) {
+            throw new AugmentationFunctionException("Error starting function: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public void stop(AugmentationFunctionContext context) throws AugmentationFunctionException {
+        try {
+            logger.info("Stopping state-driven augmentation function");
+            // Cleanup resources
+        } catch (Exception e) {
+            throw new AugmentationFunctionException("Error stopping function: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public void onStateUpdate(DigitalTwinState digitalTwinState) throws AugmentationFunctionException {
+        try {
+            logger.debug("Received state update: {}", digitalTwinState);
+
+            // Generate new random number in response to state change
+            double randomNumber = Math.random();
+            AugmentationFunctionResult<Double> result = new AugmentationFunctionResult<>(
+                    AugmentationFunctionResultType.GENERIC_RESULT,
+                    "randomNumber",
+                    randomNumber,
+                    null
+            );
+
+            // Add to internal history (stateful behavior)
+            this.lastResultList.add(result);
+
+            // Compute average from history
+            double averageRandomNumber = this.lastResultList.stream()
+                    .filter(r -> r.getType() == AugmentationFunctionResultType.GENERIC_RESULT)
+                    .mapToDouble(r -> (Double) r.getValue())
+                    .average()
+                    .orElse(0.0);
+
+            // Create aggregated result
+            AugmentationFunctionResult<Double> averageResult = new AugmentationFunctionResult<>(
+                    AugmentationFunctionResultType.GENERIC_RESULT,
+                    "averageRandomNumber",
+                    averageRandomNumber,
+                    null
+            );
+
+            // Notify both results asynchronously
+            this.notifyResult(Arrays.asList(result, averageResult));
+
+        } catch (Exception e) {
+            throw new AugmentationFunctionException("Error processing state update: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public void onEventNotificationReceived(DigitalTwinStateEventNotification<?> notification) {
+        logger.debug("Received event notification: {}", notification);
+        // Could react to specific events if needed
+    }
+}
+```
+
+**Use Case**: Real-time analytics that compute running statistics (averages, trends) based on each state update, demonstrating both state-driven execution and internal state management.
+
+---
+
+### Key Implementation Patterns
+
+#### Stateless Pattern
+1. **Constructor**: Initialize function metadata (id, name, description, version)
+2. **run()**: Implement computation logic and return results immediately
+3. **No State**: Avoid instance variables that persist across invocations
+
+#### Stateful Polling Pattern
+1. **Constructor**: Initialize function metadata
+2. **start()**: Initialize internal state and start timer/thread
+3. **stop()**: Cancel timers and cleanup resources
+4. **Timer/Thread**: Generate results periodically using `notifyResult()`
+5. **Callbacks**: Optionally react to state/event notifications if needed
+
+#### Stateful Push Pattern
+1. **Constructor**: Initialize function metadata and internal state structures
+2. **start()**: Initialize any resources needed
+3. **stop()**: Cleanup resources
+4. **onStateUpdate()**: React to state changes, compute results, call `notifyResult()`
+5. **onEventNotificationReceived()**: React to events if relevant
+
+---
+
+### Best Practices
+
+- **Constructor**: Always call `super()` with complete metadata (id, name, description, version)
+- **Error Handling**: Wrap logic in try-catch and throw `AugmentationFunctionException` with descriptive messages
+- **Logging**: Use WLDT logger for debugging and operational visibility
+- **Resource Cleanup**: Always clean up timers, threads, and connections in `stop()`
+- **Asynchronous Results**: In stateful functions, results can be produced at any time via `notifyResult()`
+- **Result Lists**: Always return or notify a `List<AugmentationFunctionResult<?>>`, even for single results
+- **Metadata**: Include meaningful metadata in results (timestamps, confidence scores, etc.)
