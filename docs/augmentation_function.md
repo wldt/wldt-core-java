@@ -234,6 +234,217 @@ Augmentation Functions can also be removed at runtime. When the Developer unregi
 the handler publishes an `UnregistrationEvent` on the Event Bus. The DTM receives the notification and
 updates its internal state, ensuring it no longer references the removed function.
 
+## Augmentation Function Context & Context Request
+
+The Augmentation Function framework provides two key classes for managing 
+the data and configuration that augmentation functions need during execution: 
+`AugmentationFunctionContext` and `AugmentationFunctionContextRequest`.
+
+---
+
+### AugmentationFunctionContext
+
+The `AugmentationFunctionContext` encapsulates the runtime data 
+provided to an augmentation function during execution. 
+It contains the current Digital Twin state and optional query results from the DT storage.
+
+#### Structure
+
+```java
+public class AugmentationFunctionContext {
+    private DigitalTwinState digitalTwinState;
+    private QueryResult<?> queryResult;
+}
+```
+
+#### Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `digitalTwinState` | `DigitalTwinState` | The current Digital Twin State at the time of execution |
+| `queryResult` | `QueryResult<?>` | Results from storage queries defined in the `AugmentationFunctionContextRequest` (optional) |
+
+#### Constructors
+
+```java
+// Default constructor
+public AugmentationFunctionContext()
+
+// Constructor with state only
+public AugmentationFunctionContext(DigitalTwinState digitalTwinState)
+
+// Constructor with state and query results
+public AugmentationFunctionContext(DigitalTwinState digitalTwinState, QueryResult<?> queryResult)
+```
+
+#### Usage in Functions
+
+The context is provided to augmentation functions automatically:
+
+- **Stateless Functions**: Received as a parameter in the `run()` method
+- **Stateful Functions**: Received during `start()` initialization and can be requested for updates during execution
+
+---
+
+### AugmentationFunctionContextRequest
+
+The `AugmentationFunctionContextRequest` defines what data and notifications an 
+augmentation function wants to receive during its lifecycle. 
+It acts as a configuration that the Augmentation Manager and the associated Handler use 
+to prepare the appropriate context.
+
+#### Structure
+
+```java
+public class AugmentationFunctionContextRequest {
+    private boolean observeState;
+    private boolean observeEventNotifications;
+    private List<String> propertyNameFilter;
+    private List<String> eventNameFilter;
+    private List<String> relationshipNameFilter;
+    private QueryRequest queryRequest;
+}
+```
+
+#### Fields
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `observeState` | `boolean` | `true` | Whether the function wants to observe DT state changes |
+| `observeEventNotifications` | `boolean` | `true` | Whether the function wants to observe DT event notifications |
+| `propertyNameFilter` | `List<String>` | `null` | Filter for specific property names (null = observe all) |
+| `eventNameFilter` | `List<String>` | `null` | Filter for specific event names (null = observe all) |
+| `relationshipNameFilter` | `List<String>` | `null` | Filter for specific relationship names (null = observe all) |
+| `queryRequest` | `QueryRequest` | `null` | Query to execute on DT storage for historical data |
+
+**Note**: Property, event, and relationship filters are not yet implemented but reserved for future use.
+
+#### Constructors
+
+```java
+// Default constructor: observes state and events, no query
+public AugmentationFunctionContextRequest()
+
+// Constructor with query only
+public AugmentationFunctionContextRequest(QueryRequest queryRequest)
+
+// Constructor with observation flags and query
+public AugmentationFunctionContextRequest(boolean observeState,
+                                         boolean observeEventNotifications,
+                                         QueryRequest queryRequest)
+```
+
+---
+
+### Context Lifecycle: Stateless vs Stateful
+
+The behavior of context and context request differs significantly between 
+stateless and stateful augmentation functions.
+
+#### Stateless Functions: Single-Use Context
+
+For **stateless functions**, the context and context request are used **only once per execution**:
+
+1. **Context Request Definition**: The function defines its context requirements (typically in the descriptor or during registration)
+2. **Execution Invocation**: When `executeAugmentationFunction()` is called from the Digital Twin Model
+3. **Context Preparation**: The Augmentation Manager builds the context based on the request (current state + optional query results)
+4. **Single Execution**: The `run()` method receives the context, executes, and returns results
+5. **Context Disposal**: The context is discarded after execution completes
+
+**Example**:
+
+```java
+public class StatelessPredictionFunction extends StatelessAugmentationFunction {
+    
+    @Override
+    public List<AugmentationFunctionResult<?>> run(AugmentationFunctionContext context) {
+        // Context used once per execution
+        DigitalTwinState currentState = context.getDigitalTwinState();
+        QueryResult<?> history = context.getQueryResult();
+        
+        // Perform prediction using current state and history
+        // Return results
+    }
+}
+```
+
+Each time the function is executed, a **fresh context** is prepared with the latest state and query results.
+
+---
+
+#### Stateful Functions: Initial Context + Update Requests
+
+For **stateful functions**, the context lifecycle is more complex:
+
+1. **Context Request Definition**: The function defines its initial context requirements
+2. **Start Invocation**: When `startAugmentationFunction()` is called
+3. **Initial Context**: The `start()` method receives an initial context built from the context request
+4. **Runtime Updates**: The function automatically receives `onStateUpdate()` and `onEventNotificationReceived()` callbacks with fresh state/events
+5. **Context Update Request**: The function can explicitly request context updates when needed
+6. **Stop**: The `stop()` method may receive a final context
+
+**Example: Push Mode (Automatic Updates)**
+
+```java
+public class StatefulAnomalyDetector extends StatefulAugmentationFunction {
+    
+    private List<Double> temperatureHistory = new ArrayList<>();
+    
+    @Override
+    public void start(AugmentationFunctionContext initialContext) {
+        // Receive initial context at startup
+        DigitalTwinState initialState = initialContext.getDigitalTwinState();
+        
+        // Initialize with current temperature
+        initialState.getProperty("temperature")
+            .ifPresent(p -> temperatureHistory.add((Double) p.getValue()));
+        
+        logger.info("Started with initial temperature: {}", temperatureHistory.get(0));
+    }
+    
+    @Override
+    public void onStateUpdate(DigitalTwinState newState) {
+        // Automatically receive state updates (no explicit context request needed)
+        newState.getProperty("temperature")
+            .ifPresent(p -> {
+                double temp = (Double) p.getValue();
+                temperatureHistory.add(temp);
+                
+                // Detect anomaly
+                if (isAnomaly(temp)) {
+                    notifyResult(createAnomalyResult(temp));
+                }
+            });
+    }
+    
+    @Override
+    public void stop(AugmentationFunctionContext finalContext) {
+        logger.info("Stopped after processing {} temperature readings", 
+                    temperatureHistory.size());
+    }
+}
+```
+
+**Example: Polling Mode (Explicit Context Requests)**
+
+TODO ...
+
+---
+
+### Key Differences: Stateless vs Stateful Context Usage
+
+| Aspect | Stateless Functions | Stateful Functions |
+|--------|-------------------|-------------------|
+| **Context Frequency** | Once per `execute()` call | Initial context + runtime updates |
+| **Context Source** | Built fresh each execution | Initial + push notifications or polling requests |
+| **Context Request** | Defines single execution needs | Defines initial setup + observation preferences |
+| **State Observation** | Not applicable (no lifecycle) | Via `onStateUpdate()` if `observeState = true` |
+| **Event Observation** | Not applicable (no lifecycle) | Via `onEventNotificationReceived()` if `observeEventNotifications = true` |
+| **Context Updates** | Not possible (stateless) | Automatic (push) or explicit (polling) |
+| **Query Execution** | Once per execution | Initial + can be refreshed on request |
+
+---
+
 ## Augmentation Function Discovery
 
 The `DigitalTwinModel` provides callback methods to discover and track 
