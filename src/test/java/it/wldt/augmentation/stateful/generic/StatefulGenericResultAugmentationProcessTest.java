@@ -3,6 +3,7 @@ package it.wldt.augmentation.stateful.generic;
 import it.wldt.augmentation.handler.AugmentationFunctionHandler;
 import it.wldt.augmentation.handler.DefaultAugmentationFunctionHandler;
 import it.wldt.augmentation.stateful.function.StatefulPeriodicRandomNumberAugmentationFunction;
+import it.wldt.augmentation.stateful.function.StatefulStateDrivenRandomNumberAugmentationFunction;
 import it.wldt.core.engine.DigitalTwin;
 import it.wldt.core.engine.DigitalTwinEngine;
 import it.wldt.core.event.DefaultWldtEventLogger;
@@ -72,10 +73,18 @@ public class StatefulGenericResultAugmentationProcessTest {
         digitalTwin.getAugmentationManager().addAugmentationFunctionHandler(myAugmentationFunctionHandler);
 
         // Register the augmentation function to the augmentation manager
-        if(digitalTwin.getAugmentationManager().getAugmentationFunctionHandler(TEST_AUGMENTATION_HANDLER_ID).isPresent())
+        if(digitalTwin.getAugmentationManager().getAugmentationFunctionHandler(TEST_AUGMENTATION_HANDLER_ID).isPresent()) {
+
+            // Register Stateful Periodic Augmentation Function
+//            digitalTwin.getAugmentationManager().getAugmentationFunctionHandler(TEST_AUGMENTATION_HANDLER_ID)
+//                    .get()
+//                    .registerAugmentationFunction(new StatefulPeriodicRandomNumberAugmentationFunction());
+
+            // Register Stateful State Driven Augmentation Function that reacts to new Digital Twin State Variations
             digitalTwin.getAugmentationManager().getAugmentationFunctionHandler(TEST_AUGMENTATION_HANDLER_ID)
                     .get()
-                    .registerAugmentationFunction(new StatefulPeriodicRandomNumberAugmentationFunction());
+                    .registerAugmentationFunction(new StatefulStateDrivenRandomNumberAugmentationFunction());
+        }
 
         // Add the Twin to the Engine
         digitalTwinEngine.addDigitalTwin(digitalTwin);

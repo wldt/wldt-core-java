@@ -29,7 +29,7 @@ import it.wldt.augmentation.context.AugmentationFunctionContext;
 import it.wldt.augmentation.function.AugmentationFunctionType;
 import it.wldt.augmentation.function.StatefulAugmentationFunction;
 import it.wldt.augmentation.listener.AugmentationLifeCycleListener;
-import it.wldt.augmentation.listener.StatefulAugmentationResultListener;
+import it.wldt.augmentation.listener.StatefulAugmentationListener;
 import it.wldt.augmentation.result.AugmentationFunctionResult;
 import it.wldt.core.engine.DigitalTwinWorker;
 import it.wldt.core.event.*;
@@ -51,7 +51,7 @@ import java.util.stream.Collectors;
  * Project: White Label Digital Twin Java Framework - (whitelabel-digitaltwin)
  * TODO WRITE ..
  */
-public abstract class AugmentationFunctionHandler extends DigitalTwinWorker implements StatefulAugmentationResultListener, WldtEventListener, AugmentationLifeCycleListener {
+public abstract class AugmentationFunctionHandler extends DigitalTwinWorker implements StatefulAugmentationListener, WldtEventListener, AugmentationLifeCycleListener {
 
     private static final WldtLogger logger = WldtLoggerProvider.getLogger(AugmentationFunctionHandler.class);
 
@@ -199,11 +199,45 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
     }
 
     /**
+     * TODO ...
+     * @throws EventBusException
+     */
+    protected void observerAllDigitalTwinEventsNotification() throws EventBusException {
+
+        //Define EventFilter and add the target topic
+        WldtEventFilter wldtEventFilter = new WldtEventFilter();
+        wldtEventFilter.add(buildHandlerWildCardEventType(WldtEventTypes.ALL_DT_STATE_EVENT_NOTIFICATION_EVENT_TYPE));
+
+        //Save the adopted EventFilter
+        this.augmentationFunctionWldtEventFilter = wldtEventFilter;
+
+        WldtEventBus.getInstance().subscribe(this.digitalTwinId, this.id, wldtEventFilter, this);
+
+    }
+
+    /**
+     * TODO ...
+     * @throws EventBusException
+     */
+    protected void unObserverAllDigitalTwinEventsNotification() throws EventBusException {
+
+        //Define EventFilter and add the target topic
+        WldtEventFilter wldtEventFilter = new WldtEventFilter();
+        wldtEventFilter.add(buildHandlerWildCardEventType(WldtEventTypes.ALL_DT_STATE_EVENT_NOTIFICATION_EVENT_TYPE));
+
+        //Save the adopted EventFilter
+        this.augmentationFunctionWldtEventFilter = wldtEventFilter;
+
+        WldtEventBus.getInstance().unSubscribe(this.digitalTwinId, this.id, wldtEventFilter, this);
+
+    }
+
+    /**
      * Enable the observation of available Digital Twin State Events Notifications.
      * @param digitalTwinState the Digital Twin State to observe
      * @throws EventBusException Thrown if there is an error in the EventBus subscription
      */
-    protected void observeAllDigitalTwinEventsNotifications(DigitalTwinState digitalTwinState) throws EventBusException, WldtDigitalTwinStateEventException {
+    protected void observeDigitalTwinEventsNotifications(DigitalTwinState digitalTwinState) throws EventBusException, WldtDigitalTwinStateEventException {
 
         if(digitalTwinState != null && digitalTwinState.getEventList().isPresent()){
             this.observeDigitalTwinEventsNotifications(digitalTwinState.getEventList().get().stream().map(DigitalTwinStateEvent::getKey).collect(Collectors.toList()));
@@ -217,7 +251,7 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
      * @param digitalTwinState the Digital Twin State to unobserve
      * @throws EventBusException Thrown if there is an error in the EventBus unsubscription
      */
-    protected void unObserveAllDigitalTwinEventsNotifications(DigitalTwinState digitalTwinState) throws EventBusException, WldtDigitalTwinStateEventException {
+    protected void unObserveDigitalTwinEventsNotifications(DigitalTwinState digitalTwinState) throws EventBusException, WldtDigitalTwinStateEventException {
 
         if(digitalTwinState != null && digitalTwinState.getEventList().isPresent()){
             this.unObserveDigitalTwinEventsNotifications(digitalTwinState.getEventList().get().stream().map(DigitalTwinStateEvent::getKey).collect(Collectors.toList()));
@@ -529,13 +563,21 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
      */
     abstract public List<AugmentationFunction> getAllAugmentationFunctions();
 
-    //////////////////////// DIGITAL TWIN STATE UPDATE  //////////////////////////////////////////////////////////
+    /**
+     * TODO ...
+     * @param newDigitalTwinState
+     * @param previousDigitalTwinState
+     * @param digitalTwinStateChangeList
+     */
     abstract protected void onStateUpdate(DigitalTwinState newDigitalTwinState,
                                           DigitalTwinState previousDigitalTwinState,
                                           ArrayList<DigitalTwinStateChange> digitalTwinStateChangeList);
 
 
-    //////////////////////// EVENTS NOTIFICATION CALLBACK /////////////////////////////////////////////////////
+    /**
+     * TODO ...
+     * @param digitalTwinStateEventNotification
+     */
     abstract protected void onEventNotificationReceived(DigitalTwinStateEventNotification<?> digitalTwinStateEventNotification);
 
 
@@ -748,7 +790,7 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
             else {
                 try {
 
-                    // Check if the Augmentation Function is Stateless since it is an execution request, if not log the error and skip the execution
+                    // Check if the Augmentation Function is Stateful since it is an execution request, if not log the error and skip the execution
                     if(!isAugmentationFunctionStartRequestValid(augmentationFunctionOptional.get(), augmentationFunctionContext)){
                         logger.warn(String.format("Error starting Augmentation Function with id %s is not valid !", augmentationFunctionId));
                     } else{
@@ -838,6 +880,9 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
 
             //By default, the Augmentation Manager observer all the variation on the DT State
             observeDigitalTwinState();
+
+            // By default, observer all the State Event Notifications
+            observerAllDigitalTwinEventsNotification();
 
         }catch (Exception e){
             logger.error(String.format("Augmentation Manager (%s) -> observe DigitalTwin State: Error: %s", id, e.getLocalizedMessage()));

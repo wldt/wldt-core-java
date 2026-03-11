@@ -7,6 +7,8 @@ import it.wldt.core.state.DigitalTwinState;
 import it.wldt.core.state.DigitalTwinStateChange;
 import it.wldt.core.state.DigitalTwinStateEventNotification;
 import it.wldt.exception.AugmentationFunctionException;
+import it.wldt.log.WldtLogger;
+import it.wldt.log.WldtLoggerProvider;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,6 +16,8 @@ import java.util.Map;
 import java.util.Optional;
 
 public class DefaultAugmentationFunctionHandler extends AugmentationFunctionHandler {
+
+    private static final WldtLogger logger = WldtLoggerProvider.getLogger(AugmentationFunctionHandler.class);
 
     private Map<String, AugmentationFunction> augmentationFunctionMap;
 
@@ -169,11 +173,36 @@ public class DefaultAugmentationFunctionHandler extends AugmentationFunctionHand
     @Override
     protected void onStateUpdate(DigitalTwinState newDigitalTwinState, DigitalTwinState previousDigitalTwinState, ArrayList<DigitalTwinStateChange> digitalTwinStateChangeList) {
 
+        // The handler should notify active Stateful Augmentation Function about the state update,
+        // so that they can update their internal state and generate new results if needed
+        for(AugmentationFunction augmentationFunction : augmentationFunctionMap.values()) {
+            if (augmentationFunction.getType() == AugmentationFunctionType.STATEFUL && augmentationFunction instanceof StatefulAugmentationFunction) {
+                StatefulAugmentationFunction statefulAugmentationFunction = (StatefulAugmentationFunction) augmentationFunction;
+                try {
+                    statefulAugmentationFunction.onStateUpdate(newDigitalTwinState);
+                } catch (AugmentationFunctionException e) {
+                    // Log the error and continue with the next augmentation function
+                   logger.error(String.format("Error while notifying state update to augmentation function with id %s: %s", statefulAugmentationFunction.getId(), e.getMessage()));
+                }
+            }
+        }
     }
 
     @Override
     protected void onEventNotificationReceived(DigitalTwinStateEventNotification<?> digitalTwinStateEventNotification) {
-
+        // The handler should notify active Stateful Augmentation Function about the State Event Notification update,
+        // so that they can update their internal state and generate new results if needed
+        for(AugmentationFunction augmentationFunction : augmentationFunctionMap.values()) {
+            if (augmentationFunction.getType() == AugmentationFunctionType.STATEFUL && augmentationFunction instanceof StatefulAugmentationFunction) {
+                StatefulAugmentationFunction statefulAugmentationFunction = (StatefulAugmentationFunction) augmentationFunction;
+                try {
+                    statefulAugmentationFunction.onEventNotificationReceived(digitalTwinStateEventNotification);
+                } catch (AugmentationFunctionException e) {
+                    // Log the error and continue with the next augmentation function
+                    logger.error(String.format("Error while notifying event notification to augmentation function with id %s: %s", statefulAugmentationFunction.getId(), e.getMessage()));
+                }
+            }
+        }
     }
 
     @Override

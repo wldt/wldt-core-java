@@ -22,7 +22,7 @@ package it.wldt.augmentation.function;
 
 import it.wldt.augmentation.context.AugmentationFunctionContext;
 import it.wldt.augmentation.context.AugmentationFunctionContextRequest;
-import it.wldt.augmentation.listener.StatefulAugmentationResultListener;
+import it.wldt.augmentation.listener.StatefulAugmentationListener;
 import it.wldt.augmentation.result.AugmentationFunctionResult;
 import it.wldt.core.state.DigitalTwinState;
 import it.wldt.core.state.DigitalTwinStateEventNotification;
@@ -36,7 +36,7 @@ public abstract class StatefulAugmentationFunction extends AugmentationFunction{
 
     private static final WldtLogger logger = WldtLoggerProvider.getLogger(StatefulAugmentationFunction.class);
 
-    private StatefulAugmentationResultListener resultListener;
+    private StatefulAugmentationListener resultListener;
 
     /**
      * Constructor of the AugmentationFunction class with all the parameters.
@@ -79,20 +79,18 @@ public abstract class StatefulAugmentationFunction extends AugmentationFunction{
      * Specific implementation of the function should handle the logic of the start of the function
      * and return true if the function is started successfully, false otherwise.
      * @param context the context of the augmentation function, containing all the necessary information to start the function
-     * @return true if the function is started successfully, false otherwise
      * @throws AugmentationFunctionException if any error occurs during the start of the function
      */
-    public abstract boolean start(AugmentationFunctionContext context) throws AugmentationFunctionException;
+    public abstract void start(AugmentationFunctionContext context) throws AugmentationFunctionException;
 
     /**
      * Method to trigger the stop of the Stateful Augmentation Function.
      * Specific implementation of the function should handle the logic of the stop of the function
      * and return true if the function is stopped successfully, false otherwise.
      * @param context the context of the augmentation function, containing all the necessary information to stop the function
-     * @return true if the function is stopped successfully, false otherwise
      * @throws AugmentationFunctionException if any error occurs during the stop of the function
      */
-    public abstract boolean stop(AugmentationFunctionContext context) throws AugmentationFunctionException;
+    public abstract void stop(AugmentationFunctionContext context) throws AugmentationFunctionException;
 
     /**
      * Method to notify the running Stateful Augmentation Function of a new state update of the digital twin.
@@ -108,11 +106,11 @@ public abstract class StatefulAugmentationFunction extends AugmentationFunction{
      */
     public abstract void onEventNotificationReceived(DigitalTwinStateEventNotification<?> digitalTwinStateEventNotification) throws AugmentationFunctionException;
 
-    public StatefulAugmentationResultListener getResultListener() {
+    public StatefulAugmentationListener getResultListener() {
         return resultListener;
     }
 
-    public void setResultListener(StatefulAugmentationResultListener resultListener) {
+    public void setResultListener(StatefulAugmentationListener resultListener) {
         this.resultListener = resultListener;
     }
 

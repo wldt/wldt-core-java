@@ -267,6 +267,9 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
         // Initialize the Augmentation Manager of the current Digital Twin instance
         this.augmentationManager = new AugmentationManager(this.digitalTwinId);
 
+        // Add the Augmentation Manager as a LifeCycle Listener
+        addLifeCycleListener(this.augmentationManager);
+
         //Init DT Initial Life Cycle Phase
         this.currentLifeCycleState = LifeCycleState.NONE;
 
@@ -776,6 +779,9 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
 
             // Stop the Augmentation Function Handlers
             this.augmentationManager.stopAugmentationManager();
+
+            // Remove Augmentation Manager as a LifeCycle Listener
+            removeLifeCycleListener(this.augmentationManager);
 
         } catch (Exception e){
             logger.error("ERROR Stopping DT LifeCycle ! Error: {}", e.getLocalizedMessage());

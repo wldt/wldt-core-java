@@ -4,7 +4,7 @@ import it.wldt.augmentation.result.AugmentationFunctionResult;
 
 import java.util.List;
 
-public interface StatefulAugmentationResultListener {
+public interface StatefulAugmentationListener {
 
     public void onStatefulAugmentationFunctionResult(String augmentationFunctionId, List<AugmentationFunctionResult<?>> resultList);
 
