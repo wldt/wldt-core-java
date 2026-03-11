@@ -702,8 +702,6 @@ AugmentationFunctionResult<Map<String, Object>> result = new AugmentationFunctio
 
 ## Augmentation Function Implementation
 
-## Augmentation Function Implementation
-
 WLDT provides two abstract base classes for implementing augmentation functions: `StatelessAugmentationFunction` and `StatefulAugmentationFunction`. Both classes define the structure and lifecycle methods that developers must implement to create custom augmentation capabilities.
 
 ---
@@ -1116,7 +1114,8 @@ public class StatefulStateDrivenRandomNumberAugmentationFunction extends Statefu
 }
 ```
 
-**Use Case**: Real-time analytics that compute running statistics (averages, trends) based on each state update, demonstrating both state-driven execution and internal state management.
+**Use Case**: Real-time analytics that compute running statistics (averages, trends) 
+based on each state update, demonstrating both state-driven execution and internal state management.
 
 ---
 
@@ -1140,15 +1139,3 @@ public class StatefulStateDrivenRandomNumberAugmentationFunction extends Statefu
 3. **stop()**: Cleanup resources
 4. **onStateUpdate()**: React to state changes, compute results, call `notifyResult()`
 5. **onEventNotificationReceived()**: React to events if relevant
-
----
-
-### Best Practices
-
-- **Constructor**: Always call `super()` with complete metadata (id, name, description, version)
-- **Error Handling**: Wrap logic in try-catch and throw `AugmentationFunctionException` with descriptive messages
-- **Logging**: Use WLDT logger for debugging and operational visibility
-- **Resource Cleanup**: Always clean up timers, threads, and connections in `stop()`
-- **Asynchronous Results**: In stateful functions, results can be produced at any time via `notifyResult()`
-- **Result Lists**: Always return or notify a `List<AugmentationFunctionResult<?>>`, even for single results
-- **Metadata**: Include meaningful metadata in results (timestamps, confidence scores, etc.)
