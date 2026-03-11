@@ -1,7 +1,5 @@
 # Augmentation Function
 
-# Augmentation Function
-
 In this page, we provide a comprehensive overview of the Augmentation Function framework in WLDT, covering its
 architecture, implementation, and operational aspects.
 
