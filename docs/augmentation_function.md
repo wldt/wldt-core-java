@@ -1,25 +1,36 @@
 # Augmentation Function
 
-In this page, we provide a comprehensive overview of the Augmentation Function framework in WLDT, covering its 
+# Augmentation Function
+
+In this page, we provide a comprehensive overview of the Augmentation Function framework in WLDT, covering its
 architecture, implementation, and operational aspects.
 
-The documentation explores the hierarchical structure of the augmentation system, detailing how the Digital Twin Kernel, 
-Augmentation Manager, Function Handlers, and individual Augmentation Functions interact to extend Digital Twin 
-capabilities beyond basic shadowing functions. We examine the two main categories of 
-Augmentation Functions—**Stateless** and **Stateful**—explaining their characteristics, 
-lifecycle management, state handling, and typical use cases. 
+The documentation explores the hierarchical structure of the augmentation system, detailing how the Digital Twin Kernel,
+Augmentation Manager, Function Handlers, and individual Augmentation Functions interact to extend Digital Twin
+capabilities beyond basic shadowing functions. We examine the two main categories of
+Augmentation Functions—**Stateless** and **Stateful**—explaining their characteristics,
+lifecycle management, state handling, and typical use cases.
 
-The invocation mechanisms are covered in detail, including direct execution for stateless 
-functions and continuous operation modes (push and polling) for stateful functions, showing how 
-the Digital Twin Model triggers function execution through the Augmentation Manager. We describe 
-how augmentation results are structured using Augmentation Result 
-and how the Digital Twin Model processes these results. 
+The invocation mechanisms are covered in detail, including direct execution for stateless
+functions and continuous operation modes (push and polling) for stateful functions, showing how
+the Digital Twin Model triggers function execution through the Augmentation Manager. We describe
+how augmentation results are structured using Augmentation Result
+and how the Digital Twin Model processes these results.
 
-Practical guidance is provided for implementing custom Augmentation Functions, including the base abstract class 
-structure, context handling, result production, and lifecycle callbacks. 
-Finally, we cover the technical details of implementing Augmentation Function Handlers, 
-which manage execution, lifecycle, and result publication, including handler registration, 
+Practical guidance is provided for implementing custom Augmentation Functions, including the base abstract class
+structure, context handling, result production, and lifecycle callbacks.
+Finally, we cover the technical details of implementing Augmentation Function Handlers,
+which manage execution, lifecycle, and result publication, including handler registration,
 context provisioning, and coordination with the Augmentation Manager.
+
+The documentation is structured in the following subsections:
+
+- [Architecture & Components](#augmentation-function---architecture--components): Overview of the hierarchical augmentation architecture, including DT Kernel, Augmentation Manager, Function Handlers, and data flow patterns
+- [Function Types](#augmentation-function-types): Detailed comparison of Stateless and Stateful augmentation functions, their characteristics, execution models, and use cases
+- [Registration & Discovery](#registering-and-unregistering-augmentation-functions): Process for registering functions, lifecycle synchronization, dynamic updates, and discovery callbacks available in the Digital Twin Model
+- [Function Invocation](#augmentation-function-invocation): Methods for executing stateless functions and starting/stopping stateful functions from the Digital Twin Model
+- [Result Structure](#augmentation-function-results): Format and types of augmentation function results, including property, event, relationship, and generic result categories
+- [Implementation Guide](#augmentation-function-implementation): Practical examples and patterns for implementing both stateless and stateful augmentation functions with code samples
 
 ## Augmentation Function - Architecture & Components
 
