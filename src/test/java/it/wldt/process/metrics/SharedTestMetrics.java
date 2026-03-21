@@ -2,6 +2,7 @@ package it.wldt.process.metrics;
 
 import it.wldt.adapter.physical.event.PhysicalAssetEventWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetPropertyWldtEvent;
+import it.wldt.augmentation.error.AugmentationFunctionError;
 import it.wldt.augmentation.function.AugmentationFunction;
 import it.wldt.augmentation.result.AugmentationFunctionResult;
 import it.wldt.core.state.DigitalTwinState;
@@ -59,6 +60,8 @@ public class SharedTestMetrics {
     // Registration Augmentation Function Callbacks for each Handler
     private Map<String, Map<String, List<AugmentationFunction>>> augmentationFunctionUnRegistrationCallbackMap;
 
+    private Map<String, Map<String, List<AugmentationFunctionError>>> augmentationFunctionErrorNotificationMap;
+
     private SharedTestMetrics(){
         logger.info("SharedTestMetrics Constructor Called !");
         init();
@@ -85,6 +88,7 @@ public class SharedTestMetrics {
         this.augmentationFunctionResultNotificationMap = new HashMap<>();
         this.augmentationFunctionRegistrationCallbackMap = new HashMap<>();
         this.augmentationFunctionUnRegistrationCallbackMap = new HashMap<>();
+        this.augmentationFunctionErrorNotificationMap = new HashMap<>();
     }
 
     public void registerDigitalTwin(String digitalTwinId){
@@ -100,6 +104,7 @@ public class SharedTestMetrics {
         this.augmentationFunctionResultNotificationMap.put(digitalTwinId, new HashMap<>());
         this.augmentationFunctionRegistrationCallbackMap.put(digitalTwinId, new HashMap<>());
         this.augmentationFunctionUnRegistrationCallbackMap.put(digitalTwinId, new HashMap<>());
+        this.augmentationFunctionErrorNotificationMap.put(digitalTwinId, new HashMap<>());
     }
 
     public void unRegisterDigitalTwin(String digitalTwinId){
@@ -115,6 +120,7 @@ public class SharedTestMetrics {
         this.augmentationFunctionResultNotificationMap.remove(digitalTwinId);
         this.augmentationFunctionRegistrationCallbackMap.remove(digitalTwinId);
         this.augmentationFunctionUnRegistrationCallbackMap.remove(digitalTwinId);
+        this.augmentationFunctionErrorNotificationMap.remove(digitalTwinId);
     }
 
     public void resetMetrics(){
@@ -132,6 +138,7 @@ public class SharedTestMetrics {
         this.augmentationFunctionResultNotificationMap.clear();
         this.augmentationFunctionRegistrationCallbackMap.clear();
         this.augmentationFunctionUnRegistrationCallbackMap.clear();
+        this.augmentationFunctionErrorNotificationMap.clear();
 
         init();
     }
@@ -208,6 +215,24 @@ public class SharedTestMetrics {
 
         // Save the augmentation function result in the map
         this.augmentationFunctionResultNotificationMap.get(digitalTwinId).get(augmentationInternalId).add(augmentationFunctionResult);
+    }
+
+    public void addAugmentationFunctionErrorNotification(String digitalTwinId,
+                                                          String augmentationFunctionHandlerId,
+                                                          String augmentationFunctionId,
+                                                          AugmentationFunctionError augmentationFunctionError){
+
+        // Concatenate the augmentation function handler id and the augmentation function id to create a
+        // unique key for the augmentation function error notification map
+        String augmentationInternalId = String.format("%s.%s", augmentationFunctionHandlerId, augmentationFunctionId);
+
+        // If the initial list of augmentation function errors for the specific augmentation function is not present, create a new one
+        if(!this.augmentationFunctionErrorNotificationMap.get(digitalTwinId).containsKey(augmentationInternalId)){
+            this.augmentationFunctionErrorNotificationMap.get(digitalTwinId).put(augmentationInternalId, new ArrayList<>());
+        }
+
+        // Save the augmentation function error in the map
+        this.augmentationFunctionErrorNotificationMap.get(digitalTwinId).get(augmentationInternalId).add(augmentationFunctionError);
     }
 
     public List<List<AugmentationFunctionResult<?>>> getAugmentationFunctionResultNotification(String digitalTwinId,
@@ -292,18 +317,25 @@ public class SharedTestMetrics {
         return augmentationFunctionUnRegistrationCallbackMap;
     }
 
+    public Map<String, Map<String, List<AugmentationFunctionError>>> getAugmentationFunctionErrorNotificationMap() {
+        return augmentationFunctionErrorNotificationMap;
+    }
+
     @Override
     public String toString() {
-        final StringBuffer sb = new StringBuffer("SharedTestMetrics{");
-        sb.append("physicalAdapterPropertyEventMap=").append(physicalAdapterPropertyEventMap);
-        sb.append(", physicalAdapterEventNotificationMap=").append(physicalAdapterEventNotificationMap);
-        sb.append(", shadowingFunctionPropertyEventMap=").append(shadowingFunctionPropertyEventMap);
-        sb.append(", shadowingFunctionEventNotificationMap=").append(shadowingFunctionEventNotificationMap);
-        sb.append(", digitalAdapterEventNotificationMap=").append(digitalAdapterEventNotificationMap);
-        sb.append(", digitalAdapterStateUpdateMap=").append(digitalAdapterStateUpdateMap);
-        sb.append(", resourceManagerNotificationMap=").append(resourceManagerNotificationMap);
-        sb.append(", managedResourceNotificationMap=").append(managedResourceNotificationMap);
-        sb.append('}');
-        return sb.toString();
+        return "SharedTestMetrics{" +
+                "physicalAdapterPropertyEventMap=" + physicalAdapterPropertyEventMap +
+                ", physicalAdapterEventNotificationMap=" + physicalAdapterEventNotificationMap +
+                ", shadowingFunctionPropertyEventMap=" + shadowingFunctionPropertyEventMap +
+                ", shadowingFunctionEventNotificationMap=" + shadowingFunctionEventNotificationMap +
+                ", digitalAdapterEventNotificationMap=" + digitalAdapterEventNotificationMap +
+                ", digitalAdapterStateUpdateMap=" + digitalAdapterStateUpdateMap +
+                ", resourceManagerNotificationMap=" + resourceManagerNotificationMap +
+                ", managedResourceNotificationMap=" + managedResourceNotificationMap +
+                ", augmentationFunctionResultNotificationMap=" + augmentationFunctionResultNotificationMap +
+                ", augmentationFunctionRegistrationCallbackMap=" + augmentationFunctionRegistrationCallbackMap +
+                ", augmentationFunctionUnRegistrationCallbackMap=" + augmentationFunctionUnRegistrationCallbackMap +
+                ", augmentationFunctionErrorNotificationMap=" + augmentationFunctionErrorNotificationMap +
+                '}';
     }
 }

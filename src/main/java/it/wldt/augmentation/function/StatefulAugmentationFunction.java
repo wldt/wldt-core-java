@@ -20,23 +20,29 @@
  */
 package it.wldt.augmentation.function;
 
-import it.wldt.augmentation.context.AugmentationFunctionContext;
 import it.wldt.augmentation.context.AugmentationFunctionContextRequest;
+import it.wldt.augmentation.error.AugmentationFunctionError;
 import it.wldt.augmentation.listener.StatefulAugmentationListener;
+import it.wldt.augmentation.request.AugmentationFunctionRequest;
 import it.wldt.augmentation.result.AugmentationFunctionResult;
 import it.wldt.core.state.DigitalTwinState;
 import it.wldt.core.state.DigitalTwinStateEventNotification;
 import it.wldt.exception.AugmentationFunctionException;
 import it.wldt.log.WldtLogger;
 import it.wldt.log.WldtLoggerProvider;
+import it.wldt.storage.query.QueryRequest;
+import it.wldt.storage.query.QueryResult;
 
 import java.util.List;
+import java.util.UUID;
 
 public abstract class StatefulAugmentationFunction extends AugmentationFunction{
 
     private static final WldtLogger logger = WldtLoggerProvider.getLogger(StatefulAugmentationFunction.class);
 
-    private StatefulAugmentationListener resultListener;
+    private StatefulAugmentationListener statefulAugmentationListener;
+
+    private AugmentationFunctionRequest request;
 
     /**
      * Constructor of the AugmentationFunction class with all the parameters.
@@ -74,23 +80,33 @@ public abstract class StatefulAugmentationFunction extends AugmentationFunction{
                 new AugmentationFunctionContextRequest());
     }
 
+    public void handleStart(AugmentationFunctionRequest augmentationFunctionRequest) throws AugmentationFunctionException {
+        this.request = augmentationFunctionRequest;
+        this.start(augmentationFunctionRequest);
+    }
+
+    public void handleStop(AugmentationFunctionRequest augmentationFunctionRequest) throws AugmentationFunctionException {
+        this.request = augmentationFunctionRequest;
+        this.stop(augmentationFunctionRequest);
+    }
+
     /**
      * Method to trigger the start of the Stateful Augmentation Function.
      * Specific implementation of the function should handle the logic of the start of the function
      * and return true if the function is started successfully, false otherwise.
-     * @param context the context of the augmentation function, containing all the necessary information to start the function
+     * @param request the request of the augmentation function, containing all the necessary information to start the function, including context
      * @throws AugmentationFunctionException if any error occurs during the start of the function
      */
-    public abstract void start(AugmentationFunctionContext context) throws AugmentationFunctionException;
+    protected abstract void start(AugmentationFunctionRequest request) throws AugmentationFunctionException;
 
     /**
      * Method to trigger the stop of the Stateful Augmentation Function.
      * Specific implementation of the function should handle the logic of the stop of the function
      * and return true if the function is stopped successfully, false otherwise.
-     * @param context the context of the augmentation function, containing all the necessary information to stop the function
+     * @param request the request of the augmentation function, containing all the necessary information to stop the function, including context
      * @throws AugmentationFunctionException if any error occurs during the stop of the function
      */
-    public abstract void stop(AugmentationFunctionContext context) throws AugmentationFunctionException;
+    protected abstract void stop(AugmentationFunctionRequest request) throws AugmentationFunctionException;
 
     /**
      * Method to notify the running Stateful Augmentation Function of a new state update of the digital twin.
@@ -100,18 +116,34 @@ public abstract class StatefulAugmentationFunction extends AugmentationFunction{
     public abstract void onStateUpdate(DigitalTwinState digitalTwinState) throws AugmentationFunctionException;
 
     /**
+     * TODO
+     * @param queryRequest
+     * @param queryResult
+     * @throws AugmentationFunctionException
+     */
+    public abstract void onQueryResultRefresh(QueryRequest queryRequest, QueryResult<?> queryResult) throws AugmentationFunctionException;
+
+    /**
      * Method to notify the running Stateful Augmentation Function of a new event notification of the digital twin.
      * @param digitalTwinStateEventNotification the new event notification of the digital twin to notify to the function
      * @throws AugmentationFunctionException if any error occurs during the notification of the event notification to the function
      */
     public abstract void onEventNotificationReceived(DigitalTwinStateEventNotification<?> digitalTwinStateEventNotification) throws AugmentationFunctionException;
 
-    public StatefulAugmentationListener getResultListener() {
-        return resultListener;
+    /**
+     * TODO: ...
+     * @return
+     */
+    public StatefulAugmentationListener getStatefulAugmentationListener() {
+        return statefulAugmentationListener;
     }
 
-    public void setResultListener(StatefulAugmentationListener resultListener) {
-        this.resultListener = resultListener;
+    /**
+     * TODO: ...
+     * @param statefulAugmentationListener
+     */
+    public void setStatefulAugmentationListener(StatefulAugmentationListener statefulAugmentationListener) {
+        this.statefulAugmentationListener = statefulAugmentationListener;
     }
 
     /**
@@ -119,17 +151,52 @@ public abstract class StatefulAugmentationFunction extends AugmentationFunction{
      * @param resultList
      */
     protected void notifyResult(List<AugmentationFunctionResult<?>> resultList) {
-        if (resultListener != null && resultList != null) {
-            resultListener.onStatefulAugmentationFunctionResult(this.getId(), resultList);
+        if (statefulAugmentationListener != null && resultList != null) {
+            for(AugmentationFunctionResult<?> result : resultList) {
+                result.setRequest(this.request);
+            }
+            statefulAugmentationListener.onStatefulAugmentationFunctionResult(this.getId(), resultList);
         }
         else
             logger.error("Cannot notify result of the Stateful Augmentation Function with id {}: result listener or result list is null.", this.getId());
     }
 
+    /**
+     * TODO
+     * @param augmentationFunctionError
+     */
+    protected void notifyError(AugmentationFunctionError augmentationFunctionError) {
+        if (statefulAugmentationListener != null) {
+            augmentationFunctionError.setAugmentationFunctionRequestId(this.request != null ? this.request.getRequestId() : null);
+            statefulAugmentationListener.onStatefulAugmentationFunctionError(this.getId(), augmentationFunctionError);
+        }
+        else
+            logger.error("Cannot notify error of the Stateful Augmentation Function with id {}: result listener is null.", this.getId());
+    }
+
+    protected void refreshQueryResult() {
+        if(super.getContextRequest().getQueryRequest() != null) {
+            super.getContextRequest().getQueryRequest().setRequestTimestampMs(System.currentTimeMillis());
+            super.getContextRequest().getQueryRequest().setRequestId(UUID.randomUUID().toString());
+            refreshQueryResult(super.getContextRequest().getQueryRequest());
+        }
+        else
+            logger.warn("Cannot refresh query result of the Stateful Augmentation Function with id {}: query request is null in the context request.", this.getId());
+    }
+
+    protected void refreshQueryResult(QueryRequest queryRequest) {
+        super.getContextRequest().setQueryRequest(queryRequest);
+        if(statefulAugmentationListener != null) {
+            statefulAugmentationListener.onStatefulAugmentationFunctionQueryResultRefresh(this.getId(), queryRequest);
+        }
+        else
+            logger.error("Cannot refresh query result of the Stateful Augmentation Function with id {}: result listener is null.", this.getId());
+    }
+
     @Override
     public String toString() {
         final StringBuffer sb = new StringBuffer("StatefulAugmentationFunction{");
-        sb.append("resultListener=").append(resultListener);
+        sb.append("resultListener=").append(statefulAugmentationListener);
         sb.append('}');
         return sb.toString();
     }

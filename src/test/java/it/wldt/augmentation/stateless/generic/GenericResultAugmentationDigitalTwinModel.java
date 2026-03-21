@@ -6,6 +6,7 @@ import it.wldt.adapter.physical.event.PhysicalAssetEventWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetPropertyWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetRelationshipInstanceCreatedWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetRelationshipInstanceDeletedWldtEvent;
+import it.wldt.augmentation.error.AugmentationFunctionError;
 import it.wldt.augmentation.function.AugmentationFunction;
 import it.wldt.augmentation.result.AugmentationFunctionResult;
 import it.wldt.augmentation.stateless.function.RandomNumberAugmentationFunction;
@@ -107,7 +108,7 @@ public class GenericResultAugmentationDigitalTwinModel extends DigitalTwinModel 
                 logger.info("DigitalTwinModel - Adapter ({}) Physical Asset Description: {}", adapterId, physicalAssetDescription);
 
                 try{
-                    if(physicalAssetDescription != null && physicalAssetDescription.getProperties() != null && physicalAssetDescription.getProperties().size() > 0){
+                    if(physicalAssetDescription != null && physicalAssetDescription.getProperties() != null && !physicalAssetDescription.getProperties().isEmpty()){
                         logger.info("DigitalTwinModel - Observing Physical Asset Properties: {}", physicalAssetDescription.getProperties());
                         this.observePhysicalAssetProperties(physicalAssetDescription.getProperties());
                     }
@@ -127,7 +128,7 @@ public class GenericResultAugmentationDigitalTwinModel extends DigitalTwinModel 
                 logger.info("DigitalTwinModel - Adapter ({}) Physical Asset Description: {}", adapterId, physicalAssetDescription);
 
                 try{
-                    if(physicalAssetDescription != null && physicalAssetDescription.getEvents() != null && physicalAssetDescription.getEvents().size() > 0){
+                    if(physicalAssetDescription != null && physicalAssetDescription.getEvents() != null && !physicalAssetDescription.getEvents().isEmpty()){
                         logger.info("DigitalTwinModel - Observing Physical Asset Events: {}", physicalAssetDescription.getEvents());
                         this.observePhysicalAssetEvents(physicalAssetDescription.getEvents());
                     }
@@ -339,5 +340,13 @@ public class GenericResultAugmentationDigitalTwinModel extends DigitalTwinModel 
         // Register the received callback on the Shared Test Metrics for later verification
         for(AugmentationFunction augmentationFunction : augmentationFunctionList)
             SharedTestMetrics.getInstance().addAugmentationFunctionRegistrationCallback(this.digitalTwinStateManager.getDigitalTwinId(), handlerId, augmentationFunction);
+    }
+
+    @Override
+    protected void onAugmentationFunctionError(String handlerId, String functionId, AugmentationFunctionError augmentationFunctionError) {
+        logger.info("Augmentation Function Error - HandlerId: {} FunctionId: {} Error: {}", handlerId, functionId, augmentationFunctionError);
+
+        // Register the received callback on the Shared Test Metrics for later verification
+        SharedTestMetrics.getInstance().addAugmentationFunctionErrorNotification(this.digitalTwinStateManager.getDigitalTwinId(), handlerId, functionId, augmentationFunctionError);
     }
 }

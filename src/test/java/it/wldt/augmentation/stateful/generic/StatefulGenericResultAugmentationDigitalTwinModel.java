@@ -6,6 +6,7 @@ import it.wldt.adapter.physical.event.PhysicalAssetEventWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetPropertyWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetRelationshipInstanceCreatedWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetRelationshipInstanceDeletedWldtEvent;
+import it.wldt.augmentation.error.AugmentationFunctionError;
 import it.wldt.augmentation.function.AugmentationFunction;
 import it.wldt.augmentation.result.AugmentationFunctionResult;
 import it.wldt.augmentation.stateful.function.StatefulPeriodicRandomNumberAugmentationFunction;
@@ -347,5 +348,13 @@ public class StatefulGenericResultAugmentationDigitalTwinModel extends DigitalTw
         }catch (Exception e){
             e.printStackTrace();
         }
+    }
+
+    @Override
+    protected void onAugmentationFunctionError(String handlerId, String functionId, AugmentationFunctionError augmentationFunctionError) {
+        logger.error("Augmentation Function Error - HandlerId: {} AugmentationFunctionError: {}", handlerId, augmentationFunctionError);
+
+        // Register the received callback on the Shared Test Metrics for later verification
+        SharedTestMetrics.getInstance().addAugmentationFunctionErrorNotification(this.digitalTwinStateManager.getDigitalTwinId(), handlerId, functionId, augmentationFunctionError);
     }
 }

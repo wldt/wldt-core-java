@@ -1,14 +1,19 @@
 package it.wldt.augmentation.stateful.function;
 
-import it.wldt.augmentation.context.AugmentationFunctionContext;
+import it.wldt.augmentation.error.AugmentationFunctionError;
 import it.wldt.augmentation.function.StatefulAugmentationFunction;
+import it.wldt.augmentation.request.AugmentationFunctionRequest;
 import it.wldt.augmentation.result.AugmentationFunctionResult;
+import it.wldt.augmentation.result.AugmentationFunctionResultMetrics;
 import it.wldt.augmentation.result.AugmentationFunctionResultType;
 import it.wldt.core.state.DigitalTwinState;
 import it.wldt.core.state.DigitalTwinStateEventNotification;
 import it.wldt.exception.AugmentationFunctionException;
 import it.wldt.log.WldtLogger;
 import it.wldt.log.WldtLoggerProvider;
+import it.wldt.storage.query.QueryRequest;
+import it.wldt.storage.query.QueryResult;
+
 import java.util.Collections;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -42,16 +47,25 @@ public class StatefulPeriodicRandomNumberAugmentationFunction extends StatefulAu
                 "1.0.0");
     }
 
-    private AugmentationFunctionResult<Double> generateNewAugmentationFunctionResult(){
+    private AugmentationFunctionResult<Double> generateNewAugmentationFunctionResult() throws AugmentationFunctionException {
 
+        Long startTimestamp = System.currentTimeMillis();
         // Generate a random number
         double randomNumber = Math.random();
+
+        Long endTimestamp = System.currentTimeMillis();
+
+        AugmentationFunctionResultMetrics augmentationFunctionResultMetrics = new AugmentationFunctionResultMetrics(
+                startTimestamp,
+                endTimestamp
+        );
 
         // Create an AugmentationFunctionResult with the random number
         AugmentationFunctionResult<Double> result = new AugmentationFunctionResult<>(
                 AugmentationFunctionResultType.GENERIC_RESULT,
                 "randomNumber",
                 randomNumber,
+                augmentationFunctionResultMetrics,
                 null
         );
 
@@ -78,8 +92,13 @@ public class StatefulPeriodicRandomNumberAugmentationFunction extends StatefulAu
         this.timerTask = new TimerTask() {
             @Override
             public void run() {
-                AugmentationFunctionResult<Double> result = generateNewAugmentationFunctionResult();
-                notifyResult(Collections.singletonList(result));
+                try {
+                    AugmentationFunctionResult<Double> result = generateNewAugmentationFunctionResult();
+                    notifyResult(Collections.singletonList(result));
+                } catch (AugmentationFunctionException e) {
+                    logger.error("Error generating new augmentation function result: {}", e.getMessage());
+                }
+
             }
         };
 
@@ -104,8 +123,7 @@ public class StatefulPeriodicRandomNumberAugmentationFunction extends StatefulAu
     }
 
     @Override
-    public void start(AugmentationFunctionContext context) throws AugmentationFunctionException {
-
+    public void start(AugmentationFunctionRequest request) throws AugmentationFunctionException {
         try{
             // Get the period in milliseconds from the context parameters, default to 1000msif not present
             logger.info("Starting the StatefulPeriodicRandomNumberAugmentationFunction with period {} ms", AUGMENTATION_FUNCTION_TIME_MS);
@@ -117,7 +135,7 @@ public class StatefulPeriodicRandomNumberAugmentationFunction extends StatefulAu
     }
 
     @Override
-    public void stop(AugmentationFunctionContext context) throws AugmentationFunctionException {
+    public void stop(AugmentationFunctionRequest request) throws AugmentationFunctionException {
         try{
             logger.info("Stopping the StatefulPeriodicRandomNumberAugmentationFunction");
             stopTimerTask();
@@ -130,6 +148,11 @@ public class StatefulPeriodicRandomNumberAugmentationFunction extends StatefulAu
     @Override
     public void onStateUpdate(DigitalTwinState digitalTwinState) throws AugmentationFunctionException {
         logger.debug("Received state update: {}", digitalTwinState);
+    }
+
+    @Override
+    public void onQueryResultRefresh(QueryRequest queryRequest, QueryResult<?> queryResult) throws AugmentationFunctionException {
+        logger.debug("Received query result refresh: queryRequest={}, queryResult={}", queryRequest, queryResult);
     }
 
     @Override

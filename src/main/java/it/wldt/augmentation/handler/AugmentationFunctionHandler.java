@@ -22,14 +22,19 @@ package it.wldt.augmentation.handler;
 
 import it.wldt.adapter.digital.DigitalAdapterLifeCycleListener;
 import it.wldt.adapter.digital.DigitalAdapterListener;
+import it.wldt.augmentation.error.AugmentationFunctionError;
+import it.wldt.augmentation.event.AugmentationFunctionErrorWldtEvent;
 import it.wldt.augmentation.event.AugmentationFunctionRegistrationWldtEvent;
 import it.wldt.augmentation.event.AugmentationFunctionUnRegistrationWldtEvent;
 import it.wldt.augmentation.function.AugmentationFunction;
 import it.wldt.augmentation.context.AugmentationFunctionContext;
 import it.wldt.augmentation.function.AugmentationFunctionType;
 import it.wldt.augmentation.function.StatefulAugmentationFunction;
+import it.wldt.augmentation.function.StatelessAugmentationFunction;
 import it.wldt.augmentation.listener.AugmentationLifeCycleListener;
 import it.wldt.augmentation.listener.StatefulAugmentationListener;
+import it.wldt.augmentation.listener.StatelessAugmentationListener;
+import it.wldt.augmentation.request.AugmentationFunctionRequest;
 import it.wldt.augmentation.result.AugmentationFunctionResult;
 import it.wldt.core.engine.DigitalTwinWorker;
 import it.wldt.core.event.*;
@@ -41,6 +46,8 @@ import it.wldt.exception.WldtRuntimeException;
 import it.wldt.log.WldtLogger;
 import it.wldt.log.WldtLoggerProvider;
 import it.wldt.storage.query.QueryExecutor;
+import it.wldt.storage.query.QueryRequest;
+import it.wldt.storage.query.QueryResult;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -51,7 +58,7 @@ import java.util.stream.Collectors;
  * Project: White Label Digital Twin Java Framework - (whitelabel-digitaltwin)
  * TODO WRITE ..
  */
-public abstract class AugmentationFunctionHandler extends DigitalTwinWorker implements StatefulAugmentationListener, WldtEventListener, AugmentationLifeCycleListener {
+public abstract class AugmentationFunctionHandler extends DigitalTwinWorker implements StatelessAugmentationListener, StatefulAugmentationListener, WldtEventListener, AugmentationLifeCycleListener {
 
     private static final WldtLogger logger = WldtLoggerProvider.getLogger(AugmentationFunctionHandler.class);
 
@@ -69,6 +76,8 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
 
     private DigitalAdapterLifeCycleListener digitalAdapterLifeCycleListener;
 
+    public HashMap<String, AugmentationFunction> augmentationFunctionHashMap;
+
     // Query Executor to send query to the storage layer in both synchronous and asynchronous way
     protected QueryExecutor queryExecutor = null;
 
@@ -78,6 +87,8 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
      */
     private AugmentationFunctionHandler() {
         super();
+
+        this.augmentationFunctionHashMap = new HashMap<>();
     }
 
     /**
@@ -404,6 +415,20 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
     }
 
     /**
+     * TODO
+     * @param augmentationFunctionError
+     * @throws EventBusException
+     */
+    private void notifyAugmentationFunctionError(String augmentationFunctionId, AugmentationFunctionError augmentationFunctionError) throws EventBusException {
+
+        // Create the Event associated to the error of the Augmentation Function
+        AugmentationFunctionErrorWldtEvent event = new AugmentationFunctionErrorWldtEvent(this.id, augmentationFunctionId, augmentationFunctionError);
+
+        // Notify the error of the Augmentation Function publishing the associated event on the EventBus
+        WldtEventBus.getInstance().publishEvent(this.digitalTwinId, this.id, event);
+    }
+
+    /**
      * TODO ...
      * @param augmentationFunction
      * @throws AugmentationFunctionException
@@ -418,7 +443,12 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
             // If the Augmentation Function is Stateful, set the listener for the result of the Augmentation Function to
             // the current Handler to allow the notification of the result of the function execution
             if(augmentationFunction.getType().equals(AugmentationFunctionType.STATEFUL) && augmentationFunction instanceof StatefulAugmentationFunction)
-                ((StatefulAugmentationFunction) augmentationFunction).setResultListener(this);
+                ((StatefulAugmentationFunction) augmentationFunction).setStatefulAugmentationListener(this);
+
+            if(this.augmentationFunctionHashMap.containsKey(augmentationFunction.getId()))
+                throw new AugmentationFunctionException(String.format("Error registering Augmentation Function with id %s: Augmentation Function with the same id already registered !", augmentationFunction.getId()));
+            // Add the Augmentation Function to the list of the managed Augmentation Functions by the Handler
+            this.augmentationFunctionHashMap.put(augmentationFunction.getId(), augmentationFunction);
 
             // Call the handler for the registration of the Augmentation Function
             handleAugmentationFunctionRegistration(augmentationFunction);
@@ -452,6 +482,9 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
         // Get the Augmentation Function to be unregistered
         AugmentationFunction augmentationFunction = augmentationFunctionOptional.get();
 
+        // Remove the Augmentation Function from the list of the managed Augmentation Functions by the Handler
+        this.augmentationFunctionHashMap.remove(augmentationFunctionId);
+
         try{
             // Call the handler for the unregistration of the Augmentation Function
             handleAugmentationFunctionUnRegistration(augmentationFunctionId);
@@ -465,11 +498,27 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
     }
 
     /**
-     * TODO ...
+     * TODO
      * @param augmentationFunctionId
-     * @throws AugmentationFunctionException
+     * @return
      */
-    abstract public Optional<AugmentationFunction> getAugmentationFunction(String augmentationFunctionId);
+    public Optional<AugmentationFunction> getAugmentationFunction(String augmentationFunctionId) {
+
+        if (!augmentationFunctionHashMap.containsKey(augmentationFunctionId)) {
+            return Optional.empty();
+        }
+
+        // Return the augmentation function
+        return Optional.ofNullable(augmentationFunctionHashMap.get(augmentationFunctionId));
+    }
+
+    /**
+     * TODO
+     * @return
+     */
+    public List<AugmentationFunction> getAllAugmentationFunctions() {
+        return new ArrayList<>(augmentationFunctionHashMap.values());
+    }
 
     /**
      * TODO ...
@@ -488,13 +537,26 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
     /**
      * TODO ...
      * @param augmentationFunctionId
-     * @param augmentationFunctionContext
+     * @param augmentationFunctionRequest
      * @throws AugmentationFunctionException
      */
-    public void startAugmentationFunction(String augmentationFunctionId, AugmentationFunctionContext augmentationFunctionContext) throws AugmentationFunctionException {
+    public void startAugmentationFunction(String augmentationFunctionId, AugmentationFunctionRequest augmentationFunctionRequest) throws AugmentationFunctionException {
         try{
+            // Check if the augmentation function is registered
+            if (!augmentationFunctionHashMap.containsKey(augmentationFunctionId)) {
+                throw new AugmentationFunctionException(String.format("Augmentation Function with id %s is not registered.", augmentationFunctionId));
+            }
+
+            // Check if the Augmentation Function is of the correct type for the execution and the instance of StatefulAugmentationFunction
+            if (augmentationFunctionHashMap.get(augmentationFunctionId).getType() != AugmentationFunctionType.STATEFUL || !(augmentationFunctionHashMap.get(augmentationFunctionId) instanceof StatefulAugmentationFunction)) {
+                throw new AugmentationFunctionException(String.format("Augmentation Function with id %s is not a Stateful Augmentation Function and cannot be executed with this method.", augmentationFunctionId));
+            }
+
+            // Cast the augmentation function to StatefulAugmentationFunction
+            StatefulAugmentationFunction statefulAugmentationFunction = (StatefulAugmentationFunction) augmentationFunctionHashMap.get(augmentationFunctionId);
+
             // Call the handler for the start of the Augmentation Function
-            handleAugmentationFunctionStart(augmentationFunctionId, augmentationFunctionContext);
+            handleAugmentationFunctionStart(statefulAugmentationFunction, augmentationFunctionRequest);
         } catch (Exception e){
             throw new AugmentationFunctionException(String.format("Error starting Augmentation Function with id %s: %s", augmentationFunctionId, e.getLocalizedMessage()));
         }
@@ -502,21 +564,35 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
 
     /**
      * TODO ...
-     * @param augmentationFunctionId
-     * @param augmentationFunctionContext
+     * @param statefulAugmentationFunction
+     * @param augmentationFunctionRequest
      * @throws AugmentationFunctionException
      */
-    abstract protected void handleAugmentationFunctionStart(String augmentationFunctionId, AugmentationFunctionContext augmentationFunctionContext) throws AugmentationFunctionException;
+    abstract protected void handleAugmentationFunctionStart(StatefulAugmentationFunction statefulAugmentationFunction, AugmentationFunctionRequest augmentationFunctionRequest) throws AugmentationFunctionException;
 
     /**
      * TODO ...
      * @param augmentationFunctionId
      * @throws AugmentationFunctionException
      */
-    public void stopAugmentationFunction(String augmentationFunctionId) throws AugmentationFunctionException {
+    public void stopAugmentationFunction(String augmentationFunctionId, AugmentationFunctionRequest augmentationFunctionRequest) throws AugmentationFunctionException {
         try{
+
+            // Check if the augmentation function is registered
+            if (!augmentationFunctionHashMap.containsKey(augmentationFunctionId)) {
+                throw new AugmentationFunctionException(String.format("Augmentation Function with id %s is not registered.", augmentationFunctionId));
+            }
+
+            // Check if the Augmentation Function is of the correct type for the execution and the instance of StatefulAugmentationFunction
+            if (augmentationFunctionHashMap.get(augmentationFunctionId).getType() != AugmentationFunctionType.STATEFUL || !(augmentationFunctionHashMap.get(augmentationFunctionId) instanceof StatefulAugmentationFunction)) {
+                throw new AugmentationFunctionException(String.format("Augmentation Function with id %s is not a Stateful Augmentation Function and cannot be executed with this method.", augmentationFunctionId));
+            }
+
+            // Cast the augmentation function to StatefulAugmentationFunction
+            StatefulAugmentationFunction statefulAugmentationFunction = (StatefulAugmentationFunction) augmentationFunctionHashMap.get(augmentationFunctionId);
+
             // Call the handler for the stop of the Augmentation Function
-            handleAugmentationFunctionStop(augmentationFunctionId);
+            handleAugmentationFunctionStop(statefulAugmentationFunction, augmentationFunctionRequest);
         } catch (Exception e){
             throw new AugmentationFunctionException(String.format("Error stopping Augmentation Function with id %s: %s", augmentationFunctionId, e.getLocalizedMessage()));
         }
@@ -525,21 +601,35 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
 
     /**
      * TODO ...
-     * @param augmentationFunctionId
+     * @param statefulAugmentationFunction
      * @throws AugmentationFunctionException
      */
-    abstract protected void handleAugmentationFunctionStop(String augmentationFunctionId) throws AugmentationFunctionException;
+    abstract protected void handleAugmentationFunctionStop(StatefulAugmentationFunction statefulAugmentationFunction, AugmentationFunctionRequest request) throws AugmentationFunctionException;
 
     /**
      * TODO ...
      * @param augmentationFunctionId
-     * @param augmentationFunctionContext
+     * @param augmentationFunctionRequest
      * @throws AugmentationFunctionException
      */
-    public void executeAugmentationFunction(String augmentationFunctionId, AugmentationFunctionContext augmentationFunctionContext) throws AugmentationFunctionException {
+    public void executeAugmentationFunction(String augmentationFunctionId, AugmentationFunctionRequest augmentationFunctionRequest) throws AugmentationFunctionException {
         try{
+
+            // Check if the augmentation function is registered
+            if (!augmentationFunctionHashMap.containsKey(augmentationFunctionId)) {
+                throw new AugmentationFunctionException(String.format("Augmentation Function with id %s is not registered.", augmentationFunctionId));
+            }
+
+            // Check if the Augmentation Function is of the correct type for the execution and the instance of StatelessAugmentationFunction
+            if (augmentationFunctionHashMap.get(augmentationFunctionId).getType() != AugmentationFunctionType.STATELESS || !(augmentationFunctionHashMap.get(augmentationFunctionId) instanceof StatelessAugmentationFunction)) {
+                throw new AugmentationFunctionException(String.format("Augmentation Function with id %s is not a Stateless Augmentation Function and cannot be executed with this method.", augmentationFunctionId));
+            }
+
+            // Cast the augmentation function to StatelessAugmentationFunction
+            StatelessAugmentationFunction statelessAugmentationFunction = (StatelessAugmentationFunction) augmentationFunctionHashMap.get(augmentationFunctionId);
+
             // Call the handler for the execution of the Augmentation Function
-            List<AugmentationFunctionResult<?>> resultList = handleAugmentationFunctionExecution(augmentationFunctionId, augmentationFunctionContext);
+            List<AugmentationFunctionResult<?>> resultList = handleAugmentationFunctionExecution(statelessAugmentationFunction, augmentationFunctionRequest);
 
             // Notify through and event the result of the augmentation function execution
             notifyAugmentationFunctionResult(augmentationFunctionId, resultList);
@@ -551,34 +641,57 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
 
     /**
      * TODO ...
-     * @param augmentationFunctionId
-     * @param augmentationFunctionContext
+     * @param statelessAugmentationFunction
+     * @param augmentationFunctionRequest
      * @throws AugmentationFunctionException
      */
-    abstract protected List<AugmentationFunctionResult<?>> handleAugmentationFunctionExecution(String augmentationFunctionId, AugmentationFunctionContext augmentationFunctionContext) throws AugmentationFunctionException;
+    abstract protected List<AugmentationFunctionResult<?>> handleAugmentationFunctionExecution(StatelessAugmentationFunction statelessAugmentationFunction, AugmentationFunctionRequest augmentationFunctionRequest) throws AugmentationFunctionException;
 
     /**
-     * TODO ...
-     * @return
+     * TODO
+     * @param augmentationFunctionId
+     * @param queryResult
      */
-    abstract public List<AugmentationFunction> getAllAugmentationFunctions();
+    public void executeAugmentationFunctionQueryResultRefresh(String augmentationFunctionId, QueryRequest queryRequest, QueryResult<?> queryResult) {
+        try {
+            StatefulAugmentationFunction statefulAugmentationFunction = null;
+            if (augmentationFunctionHashMap.containsKey(augmentationFunctionId) && augmentationFunctionHashMap.get(augmentationFunctionId).getType() == AugmentationFunctionType.STATEFUL && augmentationFunctionHashMap.get(augmentationFunctionId) instanceof StatefulAugmentationFunction) {
+                statefulAugmentationFunction = (StatefulAugmentationFunction) augmentationFunctionHashMap.get(augmentationFunctionId);
+            } else {
+                logger.error(String.format("Augmentation Function with id %s is not registered or not a Stateful Augmentation Function.", augmentationFunctionId));
+                return;
+            }
+
+            handleAugmentationFunctionQueryResultRefresh(statefulAugmentationFunction, queryRequest, queryResult);
+        } catch (AugmentationFunctionException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     /**
-     * TODO ...
+     * TODO
+     * @param statefulAugmentationFunction
+     * @param queryResult
+     * @throws AugmentationFunctionException
+     */
+    abstract protected void handleAugmentationFunctionQueryResultRefresh(StatefulAugmentationFunction statefulAugmentationFunction, QueryRequest queryRequest, QueryResult<?> queryResult) throws AugmentationFunctionException;
+
+    /**
+     * TODO
+     * @param statefulAugmentationFunctions
      * @param newDigitalTwinState
      * @param previousDigitalTwinState
      * @param digitalTwinStateChangeList
      */
-    abstract protected void onStateUpdate(DigitalTwinState newDigitalTwinState,
-                                          DigitalTwinState previousDigitalTwinState,
-                                          ArrayList<DigitalTwinStateChange> digitalTwinStateChangeList);
+    abstract protected void onStateUpdate(ArrayList<StatefulAugmentationFunction> statefulAugmentationFunctions, DigitalTwinState newDigitalTwinState, DigitalTwinState previousDigitalTwinState, ArrayList<DigitalTwinStateChange> digitalTwinStateChangeList);
 
 
     /**
-     * TODO ...
+     * TODO
+     * @param statefulAugmentationFunctions
      * @param digitalTwinStateEventNotification
      */
-    abstract protected void onEventNotificationReceived(DigitalTwinStateEventNotification<?> digitalTwinStateEventNotification);
+    abstract protected void onEventNotificationReceived(ArrayList<StatefulAugmentationFunction> statefulAugmentationFunctions, DigitalTwinStateEventNotification<?> digitalTwinStateEventNotification);
 
 
     //////////////////////// ADAPTER CALLBACKS /////////////////////////////////////////////////////
@@ -696,7 +809,7 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
 
         logger.debug("{} - Augmentation Manager - Received Event: {}", getId(), wldtEvent);
 
-        //DT State Events Management
+        ///////// NEW DT STATE UPDATE MANAGEMENT ///////////
         if(wldtEvent != null
                 && wldtEvent.getType().equals(DigitalTwinStateManager.getStatusUpdatesWldtEventMessageType())
                 && wldtEvent.getBody() != null
@@ -715,14 +828,23 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
             if(digitalTwinStateChangeListOptional.isPresent())
                 digitalTwinStateChangeList = (ArrayList<DigitalTwinStateChange>) digitalTwinStateChangeListOptional.get();
 
-            onStateUpdate(newDigitalTwinState, previsousDigitalTwinState, digitalTwinStateChangeList);
+            ArrayList<StatefulAugmentationFunction> statefulAugmentationFunctions = this.augmentationFunctionHashMap.values().stream().filter(augmentationFunction -> augmentationFunction.getType() == AugmentationFunctionType.STATEFUL && augmentationFunction instanceof StatefulAugmentationFunction)
+                    .map(augmentationFunction -> (StatefulAugmentationFunction) augmentationFunction)
+                    .collect(Collectors.toCollection(ArrayList::new));
+
+            onStateUpdate(statefulAugmentationFunctions, newDigitalTwinState, previsousDigitalTwinState, digitalTwinStateChangeList);
         }
 
         ///////// DT STATE EVENTS NOTIFICATION MANAGEMENT ///////////
         if(wldtEvent != null && wldtEvent.getBody() != null && (wldtEvent.getBody() instanceof DigitalTwinStateEventNotification)) {
             DigitalTwinStateEventNotification<?> digitalTwinStateEventNotification = (DigitalTwinStateEventNotification<?>) wldtEvent.getBody();
             logger.debug("Received Event Notification: {}", digitalTwinStateEventNotification);
-            onEventNotificationReceived(digitalTwinStateEventNotification);
+
+            ArrayList<StatefulAugmentationFunction> statefulAugmentationFunctions = this.augmentationFunctionHashMap.values().stream().filter(augmentationFunction -> augmentationFunction.getType() == AugmentationFunctionType.STATEFUL && augmentationFunction instanceof StatefulAugmentationFunction)
+                    .map(augmentationFunction -> (StatefulAugmentationFunction) augmentationFunction)
+                    .collect(Collectors.toCollection(ArrayList::new));
+
+            onEventNotificationReceived(statefulAugmentationFunctions, digitalTwinStateEventNotification);
         }
 
         ////////// STATELESS AUGMENTATION FUNCTION EXECUTION EVENTS MANAGEMENT ///////////
@@ -730,16 +852,30 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
                 && wldtEvent.getType() != null
                 && (wldtEvent.getType().startsWith(WldtEventTypes.AUGMENTATION_FUNCTION_EXECUTION_BASE_TYPE))
                 && wldtEvent.getBody() != null
-                && (wldtEvent.getBody() instanceof AugmentationFunctionContext)){
+                && (wldtEvent.getBody() instanceof AugmentationFunctionRequest)){
 
-            // Retrieve Augmentation Function Execution Context
-            AugmentationFunctionContext augmentationFunctionContext = (AugmentationFunctionContext) wldtEvent.getBody();
+            // Retrieve Augmentation Function Execution Request
+            AugmentationFunctionRequest augmentationFunctionRequest = (AugmentationFunctionRequest) wldtEvent.getBody();
 
             // Extract the Augmentation Function Id from the Event Type after the base type and the handler id
             // Substring after the base type and the handler id considering the '.' as separator
             String augmentationFunctionId = wldtEvent.getType().substring(buildHandlerEventType(WldtEventTypes.AUGMENTATION_FUNCTION_EXECUTION_BASE_TYPE).length() + 1);
 
-            logger.info("Received Augmentation Function Execution Event for function with id {} and context: {}", augmentationFunctionId, augmentationFunctionContext);
+            logger.info("Received Augmentation Function Execution Event for function with id {} and request: {}", augmentationFunctionId, augmentationFunctionRequest);
+
+            if(augmentationFunctionHashMap.containsKey(augmentationFunctionId) && augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest() != null &&
+            augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQueryRequest() != null) {
+                try {
+                    augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQueryRequest().setRequestTimestampMs(System.currentTimeMillis());
+                    augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQueryRequest().setRequestId(UUID.randomUUID().toString());
+                    QueryResult<?> queryResult = this.queryExecutor.syncQueryExecute(augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQueryRequest());
+                    augmentationFunctionRequest.getContext().setQueryResult(queryResult);
+                } catch (Exception e) {
+                    logger.error("Error executing query for Augmentation Function with id {}: {}", augmentationFunctionId, e.getLocalizedMessage());
+                }
+            } else {
+                logger.warn(String.format("Error executing query for Augmentation Function with id %s: Augmentation Function not found or Query Request not available in the context !", augmentationFunctionId));
+            }
 
             // Retrieve the Augmentation Function associated to the received id
             Optional<AugmentationFunction> augmentationFunctionOptional = this.getAugmentationFunction(augmentationFunctionId);
@@ -752,11 +888,11 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
                 try {
 
                     // Check if the Augmentation Function is Stateless since it is an execution request, if not log the error and skip the execution
-                    if(!isAugmentationFunctionExecutionRequestValid(augmentationFunctionOptional.get(), augmentationFunctionContext)){
+                    if(!isAugmentationFunctionExecutionRequestValid(augmentationFunctionOptional.get(), augmentationFunctionRequest)){
                         logger.warn(String.format("Error executing Augmentation Function with id %s is not valid !", augmentationFunctionId));
                     } else{
                         logger.info("Executing Augmentation Function with id {} ...", augmentationFunctionId);
-                        executeAugmentationFunction(augmentationFunctionId, augmentationFunctionContext);
+                        executeAugmentationFunction(augmentationFunctionId, augmentationFunctionRequest);
                     }
                 } catch (AugmentationFunctionException e) {
                     logger.error(String.format("Error executing Augmentation Function with id %s: %s", augmentationFunctionId, e.getLocalizedMessage()));
@@ -769,16 +905,32 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
                 && wldtEvent.getType() != null
                 && (wldtEvent.getType().startsWith(WldtEventTypes.AUGMENTATION_FUNCTION_START_BASE_TYPE))
                 && wldtEvent.getBody() != null
-                && (wldtEvent.getBody() instanceof AugmentationFunctionContext)){
+                && (wldtEvent.getBody() instanceof AugmentationFunctionRequest)){
 
             // Retrieve Augmentation Function Execution Context
-            AugmentationFunctionContext augmentationFunctionContext = (AugmentationFunctionContext) wldtEvent.getBody();
+            AugmentationFunctionRequest augmentationFunctionRequest = (AugmentationFunctionRequest) wldtEvent.getBody();
 
             // Extract the Augmentation Function Id from the Event Type after the base type and the handler id
             // Substring after the base type and the handler id considering the '.' as separator
             String augmentationFunctionId = wldtEvent.getType().substring(buildHandlerEventType(WldtEventTypes.AUGMENTATION_FUNCTION_START_BASE_TYPE).length() + 1);
 
-            logger.info("Received Augmentation Function Start Event for function with id {} and context: {}", augmentationFunctionId, augmentationFunctionContext);
+            logger.info("Received Augmentation Function Execution Event for function with id {} and request: {}", augmentationFunctionId, augmentationFunctionRequest);
+
+            if(augmentationFunctionHashMap.containsKey(augmentationFunctionId) && augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest() != null &&
+                    augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQueryRequest() != null) {
+                try {
+                    augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQueryRequest().setRequestTimestampMs(System.currentTimeMillis());
+                    augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQueryRequest().setRequestId(UUID.randomUUID().toString());
+                    QueryResult<?> queryResult = this.queryExecutor.syncQueryExecute(augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQueryRequest());
+                    augmentationFunctionRequest.getContext().setQueryResult(queryResult);
+                } catch (Exception e) {
+                    logger.error("Error executing query for Augmentation Function with id {}: {}", augmentationFunctionId, e.getLocalizedMessage());
+                }
+            } else {
+                logger.warn(String.format("Error executing query for Augmentation Function with id %s: Augmentation Function not found or Query Request not available in the context !", augmentationFunctionId));
+            }
+
+            logger.info("Received Augmentation Function Start Event for function with id {} and context: {}", augmentationFunctionId, augmentationFunctionRequest);
 
             // Retrieve the Augmentation Function associated to the received id
             Optional<AugmentationFunction> augmentationFunctionOptional = this.getAugmentationFunction(augmentationFunctionId);
@@ -791,15 +943,116 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
                 try {
 
                     // Check if the Augmentation Function is Stateful since it is an execution request, if not log the error and skip the execution
-                    if(!isAugmentationFunctionStartRequestValid(augmentationFunctionOptional.get(), augmentationFunctionContext)){
+                    if(!isAugmentationFunctionStartRequestValid(augmentationFunctionOptional.get(), augmentationFunctionRequest)){
                         logger.warn(String.format("Error starting Augmentation Function with id %s is not valid !", augmentationFunctionId));
                     } else{
                         logger.info("Executing Augmentation Function with id {} ...", augmentationFunctionId);
-                        startAugmentationFunction(augmentationFunctionId, augmentationFunctionContext);
+                        startAugmentationFunction(augmentationFunctionId, augmentationFunctionRequest);
                     }
                 } catch (AugmentationFunctionException e) {
                     logger.error(String.format("Error executing Augmentation Function with id %s: %s", augmentationFunctionId, e.getLocalizedMessage()));
                 }
+            }
+        }
+
+        ////////// STATEFUL AUGMENTATION FUNCTION STOP EVENTS MANAGEMENT ///////////
+        if(wldtEvent != null
+                && wldtEvent.getType() != null
+                && (wldtEvent.getType().startsWith(WldtEventTypes.AUGMENTATION_FUNCTION_STOP_BASE_TYPE))
+                && wldtEvent.getBody() != null
+                && (wldtEvent.getBody() instanceof AugmentationFunctionRequest)){
+
+            // Retrieve Augmentation Function Execution Context
+            AugmentationFunctionRequest augmentationFunctionRequest = (AugmentationFunctionRequest) wldtEvent.getBody();
+
+            // Extract the Augmentation Function Id from the Event Type after the base type and the handler id
+            // Substring after the base type and the handler id considering the '.' as separator
+            String augmentationFunctionId = wldtEvent.getType().substring(buildHandlerEventType(WldtEventTypes.AUGMENTATION_FUNCTION_STOP_BASE_TYPE).length() + 1);
+
+            logger.info("Received Augmentation Function Stop Event for function with id {} and request: {}", augmentationFunctionId, augmentationFunctionRequest);
+
+            if(augmentationFunctionHashMap.containsKey(augmentationFunctionId) && augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest() != null &&
+                    augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQueryRequest() != null) {
+                try {
+                    augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQueryRequest().setRequestTimestampMs(System.currentTimeMillis());
+                    augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQueryRequest().setRequestId(UUID.randomUUID().toString());
+                    QueryResult<?> queryResult = this.queryExecutor.syncQueryExecute(augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQueryRequest());
+                    augmentationFunctionRequest.getContext().setQueryResult(queryResult);
+                } catch (Exception e) {
+                    logger.error("Error executing query for Augmentation Function with id {}: {}", augmentationFunctionId, e.getLocalizedMessage());
+                }
+            } else {
+                logger.warn(String.format("Error executing query for Augmentation Function with id %s: Augmentation Function not found or Query Request not available in the context !", augmentationFunctionId));
+            }
+
+            logger.info("Received Augmentation Function Stop Event for function with id {} and context: {}", augmentationFunctionId, augmentationFunctionRequest);
+
+            // Retrieve the Augmentation Function associated to the received id
+            Optional<AugmentationFunction> augmentationFunctionOptional = this.getAugmentationFunction(augmentationFunctionId);
+
+            // If the Augmentation Function is not present log the error and skip the execution
+            if(!augmentationFunctionOptional.isPresent()){
+                logger.warn(String.format("Error stopping Augmentation Function with id %s: Augmentation Function not found !", augmentationFunctionId));
+            }
+            else {
+                try {
+
+                    // Check if the Augmentation Function is Stateful since it is an execution request, if not log the error and skip the execution
+                    if(!isAugmentationFunctionStartRequestValid(augmentationFunctionOptional.get(), augmentationFunctionRequest)){
+                        logger.warn(String.format("Error stopping Augmentation Function with id %s is not valid !", augmentationFunctionId));
+                    } else{
+                        logger.info("Stopping Augmentation Function with id {} ...", augmentationFunctionId);
+                        stopAugmentationFunction(augmentationFunctionId, augmentationFunctionRequest);
+                    }
+                } catch (AugmentationFunctionException e) {
+                    logger.error(String.format("Error stopping Augmentation Function with id %s: %s", augmentationFunctionId, e.getLocalizedMessage()));
+                }
+            }
+        }
+
+        ////////// STATEFUL AUGMENTATION FUNCTION QUERY EXECUTION EVENTS MANAGEMENT ///////////
+        if(wldtEvent != null
+                && wldtEvent.getType() != null
+                && (wldtEvent.getType().startsWith(WldtEventTypes.AUGMENTATION_FUNCTION_QUERY_EXECUTION_BASE_TYPE))
+                && wldtEvent.getBody() != null
+                && wldtEvent.getBody() == null) {
+
+
+            // Extract the Augmentation Function Id from the Event Type after the base type and the handler id
+            // Substring after the base type and the handler id considering the '.' as separator
+            String augmentationFunctionId = wldtEvent.getType().substring(buildHandlerEventType(WldtEventTypes.AUGMENTATION_FUNCTION_QUERY_EXECUTION_BASE_TYPE).length() + 1);
+
+            logger.info("Received Augmentation Function Execution of Query Request Event for function with id {}", augmentationFunctionId);
+
+            QueryResult<?> queryResult = null;
+            QueryRequest queryRequest = null;
+
+            if(augmentationFunctionHashMap.containsKey(augmentationFunctionId) && augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest() != null &&
+                    augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQueryRequest() != null) {
+                try {
+                    queryRequest = augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQueryRequest();
+                    queryRequest.setRequestTimestampMs(System.currentTimeMillis());
+                    queryRequest.setRequestId(UUID.randomUUID().toString());
+                    queryResult = this.queryExecutor.syncQueryExecute(queryRequest);
+                } catch (Exception e) {
+                    logger.error("Error executing query for Augmentation Function with id {}: {}", augmentationFunctionId, e.getLocalizedMessage());
+                }
+            } else {
+                logger.warn(String.format("Error executing query for Augmentation Function with id %s: Augmentation Function not found or Query Request not available in the context !", augmentationFunctionId));
+            }
+
+            logger.info("Received Augmentation Function Execution of Query Request Event for function with id {} and query result: {}", augmentationFunctionId, queryResult);
+
+            // Retrieve the Augmentation Function associated to the received id
+            Optional<AugmentationFunction> augmentationFunctionOptional = this.getAugmentationFunction(augmentationFunctionId);
+
+            // If the Augmentation Function is not present log the error and skip the execution
+            if(!augmentationFunctionOptional.isPresent()){
+                logger.warn(String.format("Error executing Query Request on Augmentation Function with id %s: Augmentation Function not found !", augmentationFunctionId));
+            }
+            else {
+                logger.info("Executing Query Result Update on Augmentation Function with id {} ...", augmentationFunctionId);
+                executeAugmentationFunctionQueryResultRefresh(augmentationFunctionId, queryRequest, queryResult);
             }
         }
     }
@@ -808,10 +1061,10 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
      * TODO
      */
     private boolean isAugmentationFunctionExecutionRequestValid(AugmentationFunction augmentationFunction,
-                                                                 AugmentationFunctionContext augmentationFunctionContext) {
+                                                                 AugmentationFunctionRequest augmentationFunctionRequest) {
 
         // Validate that the Augmentation Function and the Context are not null
-        if(augmentationFunction == null || augmentationFunctionContext == null) {
+        if(augmentationFunction == null || augmentationFunctionRequest == null || augmentationFunctionRequest.getContext() == null) {
             logger.error("Invalid Augmentation Function Request ! Augmentation Function and Context cannot be null !");
             return false;
         }
@@ -830,10 +1083,10 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
      * TODO
      */
     private boolean isAugmentationFunctionStartRequestValid(AugmentationFunction augmentationFunction,
-                                                                AugmentationFunctionContext augmentationFunctionContext) {
+                                                                AugmentationFunctionRequest augmentationFunctionRequest) {
 
         // Validate that the Augmentation Function and the Context are not null
-        if(augmentationFunction == null || augmentationFunctionContext == null) {
+        if(augmentationFunction == null || augmentationFunctionRequest == null || augmentationFunctionRequest.getContext() == null) {
             logger.error("Invalid Augmentation Function Request ! Augmentation Function and Context cannot be null !");
             return false;
         }
@@ -846,6 +1099,20 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
 
         // The request is valid
         return true;
+    }
+
+    @Override
+    public void onStatelessAugmentationFunctionError(String augmentationFunctionId, AugmentationFunctionError augmentationFunctionError) {
+        try {
+            // Log the error
+            logger.error(String.format("Error in Stateless Augmentation Function with id %s: %s", augmentationFunctionId, augmentationFunctionError.getMessage()));
+
+            augmentationFunctionError.setAugmentationFunctionHandlerId(this.id);
+
+            notifyAugmentationFunctionError(augmentationFunctionId, augmentationFunctionError);
+        } catch (Exception e) {
+            logger.error(String.format("Error while handling error notification for Stateless Augmentation Function with id %s: %s", augmentationFunctionId, e.getLocalizedMessage()));
+        }
     }
 
     /**
@@ -863,6 +1130,47 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
 
         } catch (Exception e){
             logger.error(String.format("Error while notifying result for Stateful Augmentation Function with id %s: %s", augmentationFunctionId, e.getLocalizedMessage()));
+        }
+    }
+
+    /**
+     * TODO
+     * @param augmentationFunctionId
+     * @param augmentationFunctionError
+     */
+    @Override
+    public void onStatefulAugmentationFunctionError(String augmentationFunctionId, AugmentationFunctionError augmentationFunctionError) {
+        try {
+            // Log the error
+            logger.error(String.format("Error in Stateful Augmentation Function with id %s: %s", augmentationFunctionId, augmentationFunctionError.getMessage()));
+
+            augmentationFunctionError.setAugmentationFunctionHandlerId(this.id);
+
+            notifyAugmentationFunctionError(augmentationFunctionId, augmentationFunctionError);
+        } catch (Exception e) {
+            logger.error(String.format("Error while handling error notification for Stateful Augmentation Function with id %s: %s", augmentationFunctionId, e.getLocalizedMessage()));
+        }
+    }
+
+    @Override
+    public void onStatefulAugmentationFunctionQueryResultRefresh(String augmentationFunctionId, QueryRequest queryRequest) {
+        try{
+            logger.info("Received query result refresh request for Stateful Augmentation Function with id {} and query request: {}", augmentationFunctionId, queryRequest);
+
+            if(augmentationFunctionHashMap.containsKey(augmentationFunctionId) && augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest() != null &&
+                    augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQueryRequest() != null) {
+                try {
+                    QueryResult<?> queryResult = this.queryExecutor.syncQueryExecute(queryRequest);
+                    executeAugmentationFunctionQueryResultRefresh(augmentationFunctionId, queryRequest, queryResult);
+                } catch (Exception e) {
+                    logger.error("Error executing query for Augmentation Function with id {}: {}", augmentationFunctionId, e.getLocalizedMessage());
+                }
+            }
+             else {
+                logger.warn(String.format("Error refreshing query result of Stateful Augmentation Function with id %s: Augmentation Function not found or Query Request not available in the context !", augmentationFunctionId));
+            }
+        } catch (Exception e){
+            logger.error(String.format("Error while notifying query result refresh for Stateful Augmentation Function with id %s: %s", augmentationFunctionId, e.getLocalizedMessage()));
         }
     }
 

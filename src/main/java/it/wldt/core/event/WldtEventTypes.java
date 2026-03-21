@@ -86,10 +86,14 @@ public class WldtEventTypes {
 
     public static final String AUGMENTATION_FUNCTION_EXECUTION_BASE_TYPE = "dt.augmentation.function.execution.execute";
 
+    public static final String AUGMENTATION_FUNCTION_QUERY_EXECUTION_BASE_TYPE = "dt.augmentation.function.execution.update";
+
     public static final String AUGMENTATION_FUNCTION_RESULT_BASE_TYPE = "dt.augmentation.function.result";
 
     public static final String AUGMENTATION_FUNCTION_REGISTERED_EVENT_TYPE = "dt.augmentation.function.registered";
 
     public static final String AUGMENTATION_FUNCTION_UNREGISTERED_EVENT_TYPE = "dt.augmentation.function.unregistered";
+
+    public static final String AUGMENTATION_FUNCTION_ERROR_EVENT_TYPE = "dt.augmentation.function.error";
 
 }

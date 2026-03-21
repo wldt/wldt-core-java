@@ -1,10 +1,14 @@
 package it.wldt.augmentation.result;
 
+import it.wldt.augmentation.request.AugmentationFunctionRequest;
+
 import java.util.Map;
 
 public class AugmentationFunctionResult<T> {
 
     private AugmentationFunctionResultType type;
+
+    private AugmentationFunctionResultMetrics augmentationFunctionResultMetrics;
 
     private String key;
 
@@ -12,14 +16,21 @@ public class AugmentationFunctionResult<T> {
 
     private Map<String, Object> metadata;
 
+    private AugmentationFunctionRequest request;
+
+    private final Long timestamp;
+
     public AugmentationFunctionResult(AugmentationFunctionResultType type,
                                       String key,
                                       T value,
+                                      AugmentationFunctionResultMetrics augmentationFunctionResultMetrics,
                                       Map<String, Object> metadata) {
         this.type = type;
         this.key = key;
         this.value = value;
         this.metadata = metadata;
+        this.augmentationFunctionResultMetrics = augmentationFunctionResultMetrics;
+        this.timestamp = System.currentTimeMillis();
     }
 
     public AugmentationFunctionResultType getType() {
@@ -54,14 +65,36 @@ public class AugmentationFunctionResult<T> {
         this.metadata = metadata;
     }
 
+    public AugmentationFunctionRequest getRequest() {
+        return request;
+    }
+
+    public void setRequest(AugmentationFunctionRequest request) {
+        this.request = request;
+    }
+
+    public AugmentationFunctionResultMetrics getAugmentationFunctionResultMetrics() {
+        return augmentationFunctionResultMetrics;
+    }
+
+    public void setAugmentationFunctionResultMetrics(AugmentationFunctionResultMetrics augmentationFunctionResultMetrics) {
+        this.augmentationFunctionResultMetrics = augmentationFunctionResultMetrics;
+    }
+
+    public Long getTimestamp() {
+        return timestamp;
+    }
+
     @Override
     public String toString() {
-        final StringBuffer sb = new StringBuffer("AugmentationFunctionResult{");
-        sb.append("augmentationFunctionResultType=").append(type);
-        sb.append(", key='").append(key).append('\'');
-        sb.append(", value=").append(value);
-        sb.append(", metadata=").append(metadata);
-        sb.append('}');
-        return sb.toString();
+        return "AugmentationFunctionResult{" +
+                "type=" + type +
+                ", augmentationFunctionResultMetrics=" + augmentationFunctionResultMetrics +
+                ", key='" + key + '\'' +
+                ", value=" + value +
+                ", metadata=" + metadata +
+                ", request=" + request +
+                ", timestamp=" + timestamp +
+                '}';
     }
 }

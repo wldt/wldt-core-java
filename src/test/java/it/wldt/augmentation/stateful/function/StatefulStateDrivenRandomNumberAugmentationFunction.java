@@ -2,13 +2,17 @@ package it.wldt.augmentation.stateful.function;
 
 import it.wldt.augmentation.context.AugmentationFunctionContext;
 import it.wldt.augmentation.function.StatefulAugmentationFunction;
+import it.wldt.augmentation.request.AugmentationFunctionRequest;
 import it.wldt.augmentation.result.AugmentationFunctionResult;
+import it.wldt.augmentation.result.AugmentationFunctionResultMetrics;
 import it.wldt.augmentation.result.AugmentationFunctionResultType;
 import it.wldt.core.state.DigitalTwinState;
 import it.wldt.core.state.DigitalTwinStateEventNotification;
 import it.wldt.exception.AugmentationFunctionException;
 import it.wldt.log.WldtLogger;
 import it.wldt.log.WldtLoggerProvider;
+import it.wldt.storage.query.QueryRequest;
+import it.wldt.storage.query.QueryResult;
 
 import java.util.*;
 
@@ -38,16 +42,23 @@ public class StatefulStateDrivenRandomNumberAugmentationFunction extends Statefu
         this.lastResultList = new ArrayList<>();
     }
 
-    private AugmentationFunctionResult<Double> generateNewAugmentationFunctionResult(){
+    private AugmentationFunctionResult<Double> generateNewAugmentationFunctionResult() throws AugmentationFunctionException {
+
+        Long startTimestamp = System.currentTimeMillis();
 
         // Generate a random number
         double randomNumber = Math.random();
+
+        Long endTimestamp = System.currentTimeMillis();
+
+        AugmentationFunctionResultMetrics augmentationFunctionResultMetrics = new AugmentationFunctionResultMetrics(startTimestamp, endTimestamp);
 
         // Create an AugmentationFunctionResult with the random number
         AugmentationFunctionResult<Double> result = new AugmentationFunctionResult<>(
                 AugmentationFunctionResultType.GENERIC_RESULT,
                 "randomNumber",
                 randomNumber,
+                augmentationFunctionResultMetrics,
                 null
         );
 
@@ -57,8 +68,7 @@ public class StatefulStateDrivenRandomNumberAugmentationFunction extends Statefu
     }
 
     @Override
-    public void start(AugmentationFunctionContext context) throws AugmentationFunctionException {
-
+    public void start(AugmentationFunctionRequest request) throws AugmentationFunctionException {
         try{
             // Get the period in milliseconds from the context parameters, default to 1000msif not present
             logger.info("Starting the StatefulPeriodicRandomNumberAugmentationFunction ...");
@@ -70,7 +80,7 @@ public class StatefulStateDrivenRandomNumberAugmentationFunction extends Statefu
     }
 
     @Override
-    public void stop(AugmentationFunctionContext context) throws AugmentationFunctionException {
+    public void stop(AugmentationFunctionRequest request) throws AugmentationFunctionException {
         try{
             logger.info("Stopping the StatefulPeriodicRandomNumberAugmentationFunction");
         } catch (Exception e) {
@@ -85,8 +95,12 @@ public class StatefulStateDrivenRandomNumberAugmentationFunction extends Statefu
 
             logger.debug("Received state update: {}", digitalTwinState);
 
+            Long startTimestamp = System.currentTimeMillis();
             // React to the new State generating a new random number
             AugmentationFunctionResult<Double> result = generateNewAugmentationFunctionResult();
+            Long endTimestamp = System.currentTimeMillis();
+
+            AugmentationFunctionResultMetrics augmentationFunctionResultMetrics = new AugmentationFunctionResultMetrics(startTimestamp, endTimestamp);
 
             // Add the new value to the list of results
             this.lastResultList.add(result);
@@ -103,6 +117,7 @@ public class StatefulStateDrivenRandomNumberAugmentationFunction extends Statefu
                     AugmentationFunctionResultType.GENERIC_RESULT,
                     "averageRandomNumber",
                     averageRandomNumber,
+                    augmentationFunctionResultMetrics,
                     null
             );
 
@@ -113,6 +128,11 @@ public class StatefulStateDrivenRandomNumberAugmentationFunction extends Statefu
         catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    @Override
+    public void onQueryResultRefresh(QueryRequest queryRequest, QueryResult<?> queryResult) throws AugmentationFunctionException {
+        logger.debug("Received query result refresh: queryRequest={}, queryResult={}", queryRequest, queryResult);
     }
 
     @Override

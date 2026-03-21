@@ -2,7 +2,9 @@ package it.wldt.augmentation.stateless.function;
 
 import it.wldt.augmentation.context.AugmentationFunctionContext;
 import it.wldt.augmentation.function.StatelessAugmentationFunction;
+import it.wldt.augmentation.request.AugmentationFunctionRequest;
 import it.wldt.augmentation.result.AugmentationFunctionResult;
+import it.wldt.augmentation.result.AugmentationFunctionResultMetrics;
 import it.wldt.augmentation.result.AugmentationFunctionResultType;
 import it.wldt.exception.AugmentationFunctionException;
 import it.wldt.log.WldtLogger;
@@ -33,15 +35,24 @@ public class RandomNumberAugmentationFunction extends StatelessAugmentationFunct
     }
 
     @Override
-    public List<AugmentationFunctionResult<?>> run(AugmentationFunctionContext context) throws AugmentationFunctionException {
+    public List<AugmentationFunctionResult<?>> run(AugmentationFunctionRequest request) throws AugmentationFunctionException {
+
+        Long startTimestamp = System.currentTimeMillis();
         // Generate a random number between 0 and 1
         double randomNumber = Math.random();
+
+        Long endTimestamp = System.currentTimeMillis();
+        AugmentationFunctionResultMetrics augmentationFunctionResultMetrics = new AugmentationFunctionResultMetrics(
+                startTimestamp,
+                endTimestamp
+        );
 
         // Create an AugmentationFunctionResult with the random number
         AugmentationFunctionResult<Double> result = new AugmentationFunctionResult<>(
                 AugmentationFunctionResultType.GENERIC_RESULT,
                 "randomNumber",
                 randomNumber,
+                augmentationFunctionResultMetrics,
                 null
         );
 

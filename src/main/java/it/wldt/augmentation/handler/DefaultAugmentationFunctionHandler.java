@@ -1,14 +1,19 @@
 package it.wldt.augmentation.handler;
 
 import it.wldt.augmentation.context.AugmentationFunctionContext;
+import it.wldt.augmentation.error.AugmentationFunctionError;
 import it.wldt.augmentation.function.*;
+import it.wldt.augmentation.request.AugmentationFunctionRequest;
 import it.wldt.augmentation.result.AugmentationFunctionResult;
+import it.wldt.augmentation.result.AugmentationFunctionResultType;
 import it.wldt.core.state.DigitalTwinState;
 import it.wldt.core.state.DigitalTwinStateChange;
 import it.wldt.core.state.DigitalTwinStateEventNotification;
 import it.wldt.exception.AugmentationFunctionException;
 import it.wldt.log.WldtLogger;
 import it.wldt.log.WldtLoggerProvider;
+import it.wldt.storage.query.QueryRequest;
+import it.wldt.storage.query.QueryResult;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,8 +24,6 @@ public class DefaultAugmentationFunctionHandler extends AugmentationFunctionHand
 
     private static final WldtLogger logger = WldtLoggerProvider.getLogger(AugmentationFunctionHandler.class);
 
-    private Map<String, AugmentationFunction> augmentationFunctionMap;
-
     /**
      * Constructor of the AugmentationFunctionHandler class with the id of the Manager.
      * Receives the id of the Augmentation Function Manager and set it as the id of the Manager.
@@ -29,178 +32,103 @@ public class DefaultAugmentationFunctionHandler extends AugmentationFunctionHand
      */
     public DefaultAugmentationFunctionHandler(String id) {
         super(id);
-
-        // Initialize the augmentation function map
-        this.augmentationFunctionMap = new java.util.HashMap<>();
     }
 
     @Override
-    protected void handleAugmentationFunctionRegistration(AugmentationFunction augmentationFunction) throws AugmentationFunctionException {
-
-        // Check if the augmentation function is already registered
-        if (augmentationFunctionMap.containsKey(augmentationFunction.getId())) {
-            throw new AugmentationFunctionException(String.format("Augmentation Function with id %s is already registered.", augmentationFunction.getId()));
-        }
-
-        // Register the augmentation function
-        augmentationFunctionMap.put(augmentationFunction.getId(), augmentationFunction);
+    protected void handleAugmentationFunctionRegistration(AugmentationFunction augmentationFunction) {
+        logger.debug("Registering augmentation function with id {} and name {}", augmentationFunction.getId(), augmentationFunction.getName());
     }
 
     @Override
-    public Optional<AugmentationFunction> getAugmentationFunction(String augmentationFunctionId) {
-
-        if (!augmentationFunctionMap.containsKey(augmentationFunctionId)) {
-            return Optional.empty();
-        }
-
-        // Return the augmentation function
-        return Optional.ofNullable(augmentationFunctionMap.get(augmentationFunctionId));
-    }
-
-    @Override
-    protected void handleAugmentationFunctionUnRegistration(String augmentationFunctionId) throws AugmentationFunctionException {
-        // Check if the augmentation function is registered
-        if (!augmentationFunctionMap.containsKey(augmentationFunctionId)) {
-            throw new AugmentationFunctionException(String.format("Augmentation Function with id %s is not registered.", augmentationFunctionId));
-        }
-
-        // Unregister the augmentation function
-        augmentationFunctionMap.remove(augmentationFunctionId);
+    protected void handleAugmentationFunctionUnRegistration(String augmentationFunctionId) {
+        logger.debug("Unregistering augmentation function with id {}", augmentationFunctionId);
     }
 
     /**
      * TODO ...
-     * @param augmentationFunctionId
+     * @param statefulAugmentationFunction
      * @throws AugmentationFunctionException
      */
     @Override
-    protected void handleAugmentationFunctionStart(String augmentationFunctionId, AugmentationFunctionContext augmentationFunctionContext) throws AugmentationFunctionException {
-
+    protected void handleAugmentationFunctionStart(StatefulAugmentationFunction statefulAugmentationFunction, AugmentationFunctionRequest augmentationFunctionRequest) throws AugmentationFunctionException {
         try{
-
-            // Check if the augmentation function is registered
-            if (!augmentationFunctionMap.containsKey(augmentationFunctionId)) {
-                throw new AugmentationFunctionException(String.format("Augmentation Function with id %s is not registered.", augmentationFunctionId));
-            }
-
-            // Check if the Augmentation Function is of the correct type for the execution and the instance of StatefulAugmentationFunction
-            if (augmentationFunctionMap.get(augmentationFunctionId).getType() != AugmentationFunctionType.STATEFUL || !(augmentationFunctionMap.get(augmentationFunctionId) instanceof StatefulAugmentationFunction)) {
-                throw new AugmentationFunctionException(String.format("Augmentation Function with id %s is not a Stateful Augmentation Function and cannot be executed with this method.", augmentationFunctionId));
-            }
-
-            // Cast the augmentation function to StatefulAugmentationFunction
-            StatefulAugmentationFunction statefulAugmentationFunction = (StatefulAugmentationFunction) augmentationFunctionMap.get(augmentationFunctionId);
-
             // Start the augmentation function
-            statefulAugmentationFunction.start(augmentationFunctionContext);
+            statefulAugmentationFunction.handleStart(augmentationFunctionRequest);
 
         }catch (Exception e) {
-            throw new AugmentationFunctionException(String.format("Error while starting augmentation function with id %s: %s", augmentationFunctionId, e.getMessage()));
+            throw new AugmentationFunctionException(String.format("Error while starting augmentation function with id %s: %s", statefulAugmentationFunction.getId(), e.getMessage()));
         }
 
     }
 
     /**
      * TODO ...
-     * @param augmentationFunctionId
+     * @param statefulAugmentationFunction
      * @throws AugmentationFunctionException
      */
     @Override
-    protected void handleAugmentationFunctionStop(String augmentationFunctionId) throws AugmentationFunctionException {
-
+    protected void handleAugmentationFunctionStop(StatefulAugmentationFunction statefulAugmentationFunction, AugmentationFunctionRequest augmentationFunctionRequest) throws AugmentationFunctionException {
         try {
-
-            // Check if the augmentation function is registered
-            if (!augmentationFunctionMap.containsKey(augmentationFunctionId)) {
-                throw new AugmentationFunctionException(String.format("Augmentation Function with id %s is not registered.", augmentationFunctionId));
-            }
-
-            // Check if the Augmentation Function is of the correct type for the execution and the instance of StatefulAugmentationFunction
-            if (augmentationFunctionMap.get(augmentationFunctionId).getType() != AugmentationFunctionType.STATEFUL || !(augmentationFunctionMap.get(augmentationFunctionId) instanceof StatefulAugmentationFunction)) {
-                throw new AugmentationFunctionException(String.format("Augmentation Function with id %s is not a Stateful Augmentation Function and cannot be executed with this method.", augmentationFunctionId));
-            }
-
-            // Cast the augmentation function to StatefulAugmentationFunction
-            StatefulAugmentationFunction statefulAugmentationFunction = (StatefulAugmentationFunction) augmentationFunctionMap.get(augmentationFunctionId);
-
             // Stop the augmentation function
-            statefulAugmentationFunction.stop(new AugmentationFunctionContext());
+            statefulAugmentationFunction.handleStop(augmentationFunctionRequest);
 
         } catch (Exception e) {
-            throw new AugmentationFunctionException(String.format("Error while stopping augmentation function with id %s: %s", augmentationFunctionId, e.getMessage()));
+            throw new AugmentationFunctionException(String.format("Error while stopping augmentation function with id %s: %s", statefulAugmentationFunction.getId(), e.getMessage()));
         }
     }
 
     /**
      * TODO ...
      *
-     * @param augmentationFunctionId
-     * @param augmentationFunctionContext
+     * @param statelessAugmentationFunction
+     * @param augmentationFunctionRequest
      * @return
      * @throws AugmentationFunctionException
      */
     @Override
-    protected List<AugmentationFunctionResult<?>> handleAugmentationFunctionExecution(String augmentationFunctionId, AugmentationFunctionContext augmentationFunctionContext) throws AugmentationFunctionException {
-
+    protected List<AugmentationFunctionResult<?>> handleAugmentationFunctionExecution(StatelessAugmentationFunction statelessAugmentationFunction, AugmentationFunctionRequest augmentationFunctionRequest) throws AugmentationFunctionException {
         try {
-
-            // Check if the augmentation function is registered
-            if (!augmentationFunctionMap.containsKey(augmentationFunctionId)) {
-                throw new AugmentationFunctionException(String.format("Augmentation Function with id %s is not registered.", augmentationFunctionId));
-            }
-
-            // Check if the Augmentation Function is of the correct type for the execution and the instance of StatelessAugmentationFunction
-            if (augmentationFunctionMap.get(augmentationFunctionId).getType() != AugmentationFunctionType.STATELESS || !(augmentationFunctionMap.get(augmentationFunctionId) instanceof StatelessAugmentationFunction)) {
-                throw new AugmentationFunctionException(String.format("Augmentation Function with id %s is not a Stateless Augmentation Function and cannot be executed with this method.", augmentationFunctionId));
-            }
-
-            // Cast the augmentation function to StatelessAugmentationFunction
-            StatelessAugmentationFunction statelessAugmentationFunction = (StatelessAugmentationFunction) augmentationFunctionMap.get(augmentationFunctionId);
-
             // Execute the augmentation function
-            return statelessAugmentationFunction.run(augmentationFunctionContext);
+            return statelessAugmentationFunction.handleRun(augmentationFunctionRequest);
 
         } catch (Exception e) {
-            throw new AugmentationFunctionException(String.format("Error while executing augmentation function with id %s: %s", augmentationFunctionId, e.getMessage()));
+            throw new AugmentationFunctionException(String.format("Error while executing augmentation function with id %s: %s", statelessAugmentationFunction.getId(), e.getMessage()));
         }
     }
 
     @Override
-    public List<AugmentationFunction> getAllAugmentationFunctions() {
-        return new ArrayList<>(augmentationFunctionMap.values());
+    protected void handleAugmentationFunctionQueryResultRefresh(StatefulAugmentationFunction statefulAugmentationFunction, QueryRequest queryRequest, QueryResult<?> queryResult) throws AugmentationFunctionException {
+        try {
+            statefulAugmentationFunction.onQueryResultRefresh(queryRequest, queryResult);
+        } catch (AugmentationFunctionException e) {
+            throw new AugmentationFunctionException(String.format("Error while refreshing query result to augmentation function with id %s: %s", statefulAugmentationFunction.getId(), e.getMessage()));
+        }
     }
 
     @Override
-    protected void onStateUpdate(DigitalTwinState newDigitalTwinState, DigitalTwinState previousDigitalTwinState, ArrayList<DigitalTwinStateChange> digitalTwinStateChangeList) {
-
+    protected void onStateUpdate(ArrayList<StatefulAugmentationFunction> statefulAugmentationFunctions, DigitalTwinState newDigitalTwinState, DigitalTwinState previousDigitalTwinState, ArrayList<DigitalTwinStateChange> digitalTwinStateChangeList) {
         // The handler should notify active Stateful Augmentation Function about the state update,
         // so that they can update their internal state and generate new results if needed
-        for(AugmentationFunction augmentationFunction : augmentationFunctionMap.values()) {
-            if (augmentationFunction.getType() == AugmentationFunctionType.STATEFUL && augmentationFunction instanceof StatefulAugmentationFunction) {
-                StatefulAugmentationFunction statefulAugmentationFunction = (StatefulAugmentationFunction) augmentationFunction;
-                try {
-                    statefulAugmentationFunction.onStateUpdate(newDigitalTwinState);
-                } catch (AugmentationFunctionException e) {
-                    // Log the error and continue with the next augmentation function
-                   logger.error(String.format("Error while notifying state update to augmentation function with id %s: %s", statefulAugmentationFunction.getId(), e.getMessage()));
-                }
+        for(StatefulAugmentationFunction statefulAugmentationFunction : statefulAugmentationFunctions) {
+            try {
+                statefulAugmentationFunction.onStateUpdate(newDigitalTwinState);
+            } catch (AugmentationFunctionException e) {
+                // Log the error and continue with the next augmentation function
+               logger.error(String.format("Error while notifying state update to augmentation function with id %s: %s", statefulAugmentationFunction.getId(), e.getMessage()));
             }
         }
     }
 
     @Override
-    protected void onEventNotificationReceived(DigitalTwinStateEventNotification<?> digitalTwinStateEventNotification) {
+    protected void onEventNotificationReceived(ArrayList<StatefulAugmentationFunction> statefulAugmentationFunctions, DigitalTwinStateEventNotification<?> digitalTwinStateEventNotification) {
         // The handler should notify active Stateful Augmentation Function about the State Event Notification update,
         // so that they can update their internal state and generate new results if needed
-        for(AugmentationFunction augmentationFunction : augmentationFunctionMap.values()) {
-            if (augmentationFunction.getType() == AugmentationFunctionType.STATEFUL && augmentationFunction instanceof StatefulAugmentationFunction) {
-                StatefulAugmentationFunction statefulAugmentationFunction = (StatefulAugmentationFunction) augmentationFunction;
-                try {
-                    statefulAugmentationFunction.onEventNotificationReceived(digitalTwinStateEventNotification);
-                } catch (AugmentationFunctionException e) {
-                    // Log the error and continue with the next augmentation function
-                    logger.error(String.format("Error while notifying event notification to augmentation function with id %s: %s", statefulAugmentationFunction.getId(), e.getMessage()));
-                }
+        for(StatefulAugmentationFunction statefulAugmentationFunction : statefulAugmentationFunctions) {
+            try {
+                statefulAugmentationFunction.onEventNotificationReceived(digitalTwinStateEventNotification);
+            } catch (AugmentationFunctionException e) {
+                // Log the error and continue with the next augmentation function
+                logger.error(String.format("Error while notifying event notification to augmentation function with id %s: %s", statefulAugmentationFunction.getId(), e.getMessage()));
             }
         }
     }

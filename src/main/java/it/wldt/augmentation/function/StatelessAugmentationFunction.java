@@ -22,12 +22,26 @@ package it.wldt.augmentation.function;
 
 import it.wldt.augmentation.context.AugmentationFunctionContext;
 import it.wldt.augmentation.context.AugmentationFunctionContextRequest;
+import it.wldt.augmentation.error.AugmentationFunctionError;
+import it.wldt.augmentation.listener.StatefulAugmentationListener;
+import it.wldt.augmentation.listener.StatelessAugmentationListener;
+import it.wldt.augmentation.request.AugmentationFunctionRequest;
 import it.wldt.augmentation.result.AugmentationFunctionResult;
 import it.wldt.exception.AugmentationFunctionException;
+import it.wldt.log.WldtLogger;
+import it.wldt.log.WldtLoggerProvider;
+import jdk.jpackage.internal.Log;
 
+import java.security.PrivateKey;
 import java.util.List;
 
 public abstract class StatelessAugmentationFunction extends AugmentationFunction{
+
+    private static final WldtLogger logger = WldtLoggerProvider.getLogger(StatelessAugmentationFunction.class);
+
+    private StatelessAugmentationListener statelessAugmentationListener;
+
+    private AugmentationFunctionRequest request;
 
     /**
      * Constructor of the AugmentationFunction class with all the parameters.
@@ -81,6 +95,43 @@ public abstract class StatelessAugmentationFunction extends AugmentationFunction
                 new AugmentationFunctionContextRequest());
     }
 
-    public abstract List<AugmentationFunctionResult<?>> run(AugmentationFunctionContext context) throws AugmentationFunctionException;
+    /**
+     * TODO: ...
+     * @return
+     */
+    public StatelessAugmentationListener getStatelessAugmentationListener() {
+        return statelessAugmentationListener;
+    }
 
+    /**
+     * TODO: ...
+     * @param statelessAugmentationListener
+     */
+    public void setStatelessAugmentationListener(StatelessAugmentationListener statelessAugmentationListener) {
+        this.statelessAugmentationListener = statelessAugmentationListener;
+    }
+
+    public List<AugmentationFunctionResult<?>> handleRun(AugmentationFunctionRequest augmentationFunctionRequest) throws AugmentationFunctionException {
+        this.request = augmentationFunctionRequest;
+        List<AugmentationFunctionResult<?>> results = this.run(augmentationFunctionRequest);
+        for(AugmentationFunctionResult<?> result : results) {
+            result.setRequest(augmentationFunctionRequest);
+        }
+        return results;
+    }
+
+    protected abstract List<AugmentationFunctionResult<?>> run(AugmentationFunctionRequest request) throws AugmentationFunctionException;
+
+    /**
+     * TODO
+     * @param augmentationFunctionError
+     */
+    protected void notifyError(AugmentationFunctionError augmentationFunctionError) {
+        if (statelessAugmentationListener != null) {
+            augmentationFunctionError.setAugmentationFunctionRequestId(this.request != null ? this.request.getRequestId() : null);
+            statelessAugmentationListener.onStatelessAugmentationFunctionError(this.getId(), augmentationFunctionError);
+        }
+        else
+            logger.error("Cannot notify error of the Stateful Augmentation Function with id {}: result listener is null.", this.getId());
+    }
 }
