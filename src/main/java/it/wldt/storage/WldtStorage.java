@@ -22,6 +22,11 @@ package it.wldt.storage;
 
 import it.wldt.adapter.digital.DigitalActionRequest;
 import it.wldt.adapter.physical.*;
+import it.wldt.augmentation.error.AugmentationFunctionError;
+import it.wldt.augmentation.function.AugmentationFunction;
+import it.wldt.augmentation.function.AugmentationFunctionType;
+import it.wldt.augmentation.request.AugmentationFunctionRequest;
+import it.wldt.augmentation.result.AugmentationFunctionResult;
 import it.wldt.core.engine.LifeCycleStateVariation;
 import it.wldt.core.state.DigitalTwinState;
 import it.wldt.core.state.DigitalTwinStateChange;
@@ -29,6 +34,7 @@ import it.wldt.core.state.DigitalTwinStateEventNotification;
 import it.wldt.exception.StorageException;
 import it.wldt.adapter.physical.PhysicalAssetPropertyVariation;
 import it.wldt.storage.model.StorageStats;
+import it.wldt.storage.model.augmentation.*;
 import it.wldt.storage.model.digital.DigitalActionRequestRecord;
 import it.wldt.storage.model.lifecycle.LifeCycleVariationRecord;
 import it.wldt.storage.model.physical.*;
@@ -76,6 +82,9 @@ public abstract class WldtStorage {
     // If true the storage manager will observe life cycle events and receive callback to handle the storage
     private boolean observeLifeCycleEvents = false;
 
+    // If true the storage manager will observe augmentation function events and receive callback to handle the storage
+    private boolean observeAugmentationFunctionEvents = false;
+
     // Id of the storage instance
     private String storageId = null;
 
@@ -99,6 +108,7 @@ public abstract class WldtStorage {
         this.observePhysicalAssetDescriptionEvents = observeAll;
         this.observerDigitalActionEvents = observeAll;
         this.observeLifeCycleEvents = observeAll;
+        this.observeAugmentationFunctionEvents = observeAll;
     }
 
     /**
@@ -110,6 +120,7 @@ public abstract class WldtStorage {
      * @param observePhysicalAssetDescriptionEvents if true the storage manager will observe physical asset description events and receive callback to handle the storage
      * @param observerDigitalActionEvents if true the storage manager will observe digital action events and receive callback to handle the storage
      * @param observeLifeCycleEvents if true the storage manager will observe life cycle events and receive callback to handle the storage
+     * @param observeAugmentationFunctionEvents if true the storage manager will observe augmentation function events and receive callback to handle the storage
      */
     protected WldtStorage(String storageId,
                        boolean observeStateEvents,
@@ -117,7 +128,8 @@ public abstract class WldtStorage {
                        boolean observerPhysicalAssetActionEvents,
                        boolean observePhysicalAssetDescriptionEvents,
                        boolean observerDigitalActionEvents,
-                       boolean observeLifeCycleEvents){
+                       boolean observeLifeCycleEvents,
+                       boolean observeAugmentationFunctionEvents){
         this(storageId);
 
         this.observeStateEvents = observeStateEvents;
@@ -126,6 +138,7 @@ public abstract class WldtStorage {
         this.observePhysicalAssetDescriptionEvents = observePhysicalAssetDescriptionEvents;
         this.observerDigitalActionEvents = observerDigitalActionEvents;
         this.observeLifeCycleEvents = observeLifeCycleEvents;
+        this.observeAugmentationFunctionEvents = observeAugmentationFunctionEvents;
     }
 
     public boolean isObserveStateEvents() {
@@ -174,6 +187,12 @@ public abstract class WldtStorage {
 
     public void setObserveLifeCycleEvents(boolean observeLifeCycleEvents) {
         this.observeLifeCycleEvents = observeLifeCycleEvents;
+    }
+
+    public boolean isObserveAugmentationFunctionEvents() {return observeAugmentationFunctionEvents;}
+
+    public void setObserveAugmentationFunctionEvents(boolean observeAugmentationFunctionEvents) {
+        this.observeAugmentationFunctionEvents = observeAugmentationFunctionEvents;
     }
 
     public String getStorageId() {
@@ -528,6 +547,191 @@ public abstract class WldtStorage {
      * @throws IllegalArgumentException if startIndex is greater than endIndex
      */
     public abstract List<PhysicalRelationshipInstanceVariationRecord> getPhysicalAssetRelationshipInstanceDeletedNotificationInRange(int startIndex, int endIndex) throws StorageException, IndexOutOfBoundsException, IllegalArgumentException;
+
+    /**
+     * Save the Augmentation Function Error
+     * @param augmentationFunctionHandlerId the id of the handler of the Augmentation Function associated to the error
+     * @param augmentationFunctionId the id of the Augmentation Function associated to the error
+     * @param augmentationFunctionError the Augmentation Function Error to be saved
+     * @throws StorageException if any error occurs during the storage of the Augmentation Function Error
+     */
+    public abstract void saveAugmentationFunctionError(String augmentationFunctionId, String augmentationFunctionHandlerId, AugmentationFunctionError augmentationFunctionError) throws StorageException;
+
+    /**
+     * Get the number of errors occurred during the execution of the Augmentation Functions
+     * @return the number of errors occurred during the execution of the Augmentation Functions
+     * @throws StorageException if an error occurs while retrieving the number of errors occurred during the execution of the Augmentation Functions
+     */
+    public abstract int getAugmentationFunctionErrorCount() throws StorageException;
+
+    /**
+     * Get the errors occurred during the execution of the Augmentation Functions in the specified time range
+     * @param startTimestampMs the start timestamp of the time range
+     * @param endTimestampMs the end timestamp of the time range
+     * @return the list of errors occurred during the execution of the Augmentation Functions in the specified time range
+     * @throws StorageException if an error occurs while retrieving the errors occurred during the execution of the Augmentation Functions in the specified time range
+     * @throws IllegalArgumentException if startTimestampMs is greater than endTimestampMs
+     */
+    public abstract List<AugmentationFunctionErrorRecord> getAugmentationFunctionErrorsInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException;
+
+    /**
+     * Get the errors occurred during the execution of the Augmentation Functions in the specified range of indices
+     * @param startIndex the index of the first error occurred during the execution of the Augmentation Functions to retrieve (inclusive). Starting index is 0.
+     * @param endIndex the index of the last error occurred during the execution of the Augmentation Functions to retrieve (inclusive)
+     * @return a list of errors occurred during the execution of the Augmentation Functions within the specified index range
+     * @throws StorageException if an error occurs while retrieving the errors occurred during the execution of the Augmentation Functions in the specified range of indices
+     * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
+     * @throws IllegalArgumentException if startIndex is greater than endIndex
+     */
+    public abstract List<AugmentationFunctionErrorRecord> getAugmentationFunctionErrorsInRange(int startIndex, int endIndex) throws StorageException, IndexOutOfBoundsException, IllegalArgumentException;
+
+    /**
+     * Save the Augmentation Function Request
+     * @param augmentationFunctionId the id of the Augmentation Function associated to the request
+     * @param augmentationFunctionHandlerId the id of the handler of the Augmentation Function associated to the request
+     * @param augmentationFunctionRequest the Augmentation Function Request to be saved
+     * @throws StorageException if any error occurs during the storage of the Augmentation Function Request
+     */
+    public abstract void saveAugmentationFunctionRequest(String augmentationFunctionId, String augmentationFunctionHandlerId, AugmentationFunctionRequest augmentationFunctionRequest) throws StorageException;
+
+    /**
+     * Get the number of Augmentation Function Requests stored in the storage
+     * @return the number of Augmentation Function Requests stored in the storage
+     * @throws StorageException if an error occurs while retrieving the number of Augmentation Function Requests stored in the storage
+     */
+    public abstract int getAugmentationFunctionRequestCount() throws StorageException;
+
+    /**
+     * Get the Augmentation Function Requests stored in the storage in the specified time range
+     * @param startTimestampMs the start timestamp of the time range
+     * @param endTimestampMs the end timestamp of the time range
+     * @return the list of Augmentation Function Requests stored in the storage in the specified time range
+     * @throws StorageException if an error occurs while retrieving the Augmentation Function Requests stored in the storage in the specified time range
+     * @throws IllegalArgumentException if startTimestampMs is greater than endTimestampMs
+     */
+    public abstract List<AugmentationFunctionRequestRecord> getAugmentationFunctionRequestInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException;
+
+    /**
+     * Get the Augmentation Function Requests stored in the storage in the specified range of indices
+     * @param startIndex the index of the first Augmentation Function Request to retrieve (inclusive). Starting index is 0.
+     * @param endIndex the index of the last Augmentation Function Request to retrieve (inclusive)
+     * @return a list of Augmentation Function Requests stored in the storage within the specified index range
+     * @throws StorageException if an error occurs while retrieving the Augmentation Function Requests stored in the storage in the specified range of indices
+     * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
+     * @throws IllegalArgumentException if startIndex is greater than endIndex
+     */
+    public abstract List<AugmentationFunctionRequestRecord> getAugmentationFunctionRequestInRange(int startIndex, int endIndex) throws StorageException, IndexOutOfBoundsException, IllegalArgumentException;
+
+    /**
+     * Save the Augmentation Function Result
+     * @param augmentationFunctionId the id of the Augmentation Function associated to the result
+     * @param augmentationFunctionHandlerId the id of the handler of the Augmentation Function associated to the result
+     * @param augmentationFunctionResult the Augmentation Function Result to be saved
+     * @throws StorageException if any error occurs during the storage of the Augmentation Function Result
+     */
+    public abstract void saveAugmentationFunctionResult(String augmentationFunctionId, String augmentationFunctionHandlerId, AugmentationFunctionResult<?> augmentationFunctionResult) throws StorageException;
+
+    /**
+     * Get the number of Augmentation Function Results stored in the storage
+     * @return the number of Augmentation Function Results stored in the storage
+     * @throws StorageException if an error occurs while retrieving the number of Augmentation Function Results stored in the storage
+     */
+    public abstract int getAugmentationFunctionResultCount() throws StorageException;
+
+    /**
+     * Get the Augmentation Function Results stored in the storage in the specified time range
+     * @param startTimestampMs the start timestamp of the time range
+     * @param endTimestampMs the end timestamp of the time range
+     * @return the list of Augmentation Function Results stored in the storage in the specified time range
+     * @throws StorageException if an error occurs while retrieving the Augmentation Function Results stored in the storage in the specified time range
+     * @throws IllegalArgumentException if startTimestampMs is greater than endTimestampMs
+     */
+    public abstract List<AugmentationFunctionResultRecord> getAugmentationFunctionResultInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException;
+
+    /**
+     * Get the Augmentation Function Results stored in the storage in the specified range of indices
+     * @param startIndex the index of the first Augmentation Function Result to retrieve (inclusive). Starting index is 0.
+     * @param endIndex the index of the last Augmentation Function Result to retrieve (inclusive)
+     * @return a list of Augmentation Function Results stored in the storage within the specified index range
+     * @throws StorageException if an error occurs while retrieving the Augmentation Function Results stored in the storage in the specified range of indices
+     * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
+     * @throws IllegalArgumentException if startIndex is greater than endIndex
+     */
+    public abstract List<AugmentationFunctionResultRecord> getAugmentationFunctionResultInRange(int startIndex, int endIndex) throws StorageException, IndexOutOfBoundsException, IllegalArgumentException;
+
+    /**
+     * Save the Augmentation Function Registration
+     * @param augmentationFunctionId the id of the Augmentation Function associated to the registration
+     * @param augmentationFunctionHandlerId the id of the handler of the Augmentation Function associated to the registration
+     * @param augmentationFunctionType the type of the Augmentation Function associated to the registration
+     * @throws StorageException if any error occurs during the storage of the Augmentation Function Registration
+     */
+    public abstract void saveAugmentationFunctionRegistration(String augmentationFunctionId, String augmentationFunctionHandlerId, AugmentationFunctionType augmentationFunctionType) throws StorageException;
+
+    /**
+     * Get the number of Augmentation Function Registrations stored in the storage
+     * @return the number of Augmentation Function Registrations stored in the storage
+     * @throws StorageException if an error occurs while retrieving the number of Augmentation Function Registrations stored in the storage
+     */
+    public abstract int getAugmentationFunctionRegistrationCount() throws StorageException;
+
+    /**
+     * Get the Augmentation Function Registrations stored in the storage in the specified time range
+     * @param startTimestampMs the start timestamp of the time range
+     * @param endTimestampMs the end timestamp of the time range
+     * @return the list of Augmentation Function Registrations stored in the storage in the specified time range
+     * @throws StorageException if an error occurs while retrieving the Augmentation Function Registrations stored in the storage in the specified time range
+     * @throws IllegalArgumentException if startTimestampMs is greater than endTimestampMs
+     */
+    public abstract List<AugmentationFunctionRegistrationRecord> getAugmentationFunctionRegistrationInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException;
+
+    /**
+     * Get the Augmentation Function Registrations stored in the storage in the specified range of indices
+     * @param startIndex the index of the first Augmentation Function Registration to retrieve (inclusive). Starting index is 0.
+     * @param endIndex the index of the last Augmentation Function Registration to retrieve (inclusive)
+     * @return a list of Augmentation Function Registrations stored in the storage within the specified index range
+     * @throws StorageException if an error occurs while retrieving the Augmentation Function Registrations stored in the storage in the specified range of indices
+     * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
+     * @throws IllegalArgumentException if startIndex is greater than endIndex
+     */
+    public abstract List<AugmentationFunctionRegistrationRecord> getAugmentationFunctionRegistrationInRange(int startIndex, int endIndex) throws StorageException, IndexOutOfBoundsException, IllegalArgumentException;
+
+    /**
+     * Save the Augmentation Function Unregistration
+     * @param augmentationFunctionId the id of the Augmentation Function associated to the unregistration
+     * @param augmentationFunctionHandlerId the id of the handler of the Augmentation Function associated to the unregistration
+     * @param augmentationFunctionType the type of the Augmentation Function associated to the unregistration
+     * @throws StorageException if any error occurs during the storage of the Augmentation Function Unregistration
+     */
+    public abstract void saveAugmentationFunctionUnregistration(String augmentationFunctionId, String augmentationFunctionHandlerId, AugmentationFunctionType augmentationFunctionType) throws StorageException;
+
+    /**
+     * Get the number of Augmentation Function Unregistrations stored in the storage
+     * @return the number of Augmentation Function Unregistrations stored in the storage
+     * @throws StorageException if an error occurs while retrieving the number of Augmentation Function Unregistrations stored in the storage
+     */
+    public abstract int getAugmentationFunctionUnregistrationCount() throws StorageException;
+
+    /**
+     * Get the Augmentation Function Unregistrations stored in the storage in the specified time range
+     * @param startTimestampMs the start timestamp of the time range
+     * @param endTimestampMs the end timestamp of the time range
+     * @return the list of Augmentation Function Unregistrations stored in the storage in the specified time range
+     * @throws StorageException if an error occurs while retrieving the Augmentation Function Unregistrations stored in the storage in the specified time range
+     * @throws IllegalArgumentException if startTimestampMs is greater than endTimestampMs
+     */
+    public abstract List<AugmentationFunctionUnregistrationRecord> getAugmentationFunctionUnregistrationInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException;
+
+    /**
+     * Get the Augmentation Function Unregistrations stored in the storage in the specified range of indices
+     * @param startIndex the index of the first Augmentation Function Unregistration to retrieve (inclusive). Starting index is 0.
+     * @param endIndex the index of the last Augmentation Function Unregistration to retrieve (inclusive)
+     * @return a list of Augmentation Function Unregistrations stored in the storage within the specified index range
+     * @throws StorageException if an error occurs while retrieving the Augmentation Function Unregistrations stored in the storage in the specified range of indices
+     * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
+     * @throws IllegalArgumentException if startIndex is greater than endIndex
+     */
+    public abstract List<AugmentationFunctionUnregistrationRecord> getAugmentationFunctionUnregistrationInRange(int startIndex, int endIndex) throws StorageException, IndexOutOfBoundsException, IllegalArgumentException;
 
     /**
      * Retrieve and returns storage statistics in terms of the number of stored records for each type and the

@@ -17,18 +17,6 @@ public class AugmentationFunctionError {
     private final Long timestamp;
 
     /**
-     * Identifier of the augmentation function that generated the error, this can be used to trace back the error to
-     * the specific function that caused it.
-     */
-    private final String augmentationFunctionId;
-
-    /**
-     * Identifier of the augmentation function handler that was executing the function when the error occurred, this
-     * can be used to trace back the error to the specific handler that was executing the function when the error occurred.
-     */
-    private String augmentationFunctionHandlerId;
-
-    /**
      * Identifier of the augmentation function request that was being processed when the error occurred, this can be
      * used to trace back the error to the specific request that was being processed when the error occurred.
      */
@@ -58,37 +46,33 @@ public class AugmentationFunctionError {
 
     /**
      * Constructor of the AugmentationFunctionError class with all the parameters.
-     * @param augmentationFunctionId the identifier of the augmentation function that generated the error
      * @param errorType the type of the error
      * @param message the message describing the error
      */
-    public AugmentationFunctionError(String augmentationFunctionId, AugmentationFunctionErrorType errorType, String message) {
-        this(augmentationFunctionId, errorType, message, System.currentTimeMillis());
+    public AugmentationFunctionError(AugmentationFunctionErrorType errorType, String message) {
+        this(errorType, message, System.currentTimeMillis());
     }
 
     /**
      * Constructor of the AugmentationFunctionError class with all the parameters.
-     * @param augmentationFunctionId the identifier of the augmentation function that generated the error
      * @param errorType the type of the error
      * @param message the message describing the error
      * @param timestamp the timestamp of when the error occurred
      */
-    public AugmentationFunctionError(String augmentationFunctionId, AugmentationFunctionErrorType errorType, String message, Long timestamp) {
-        this(augmentationFunctionId, errorType, message, System.currentTimeMillis(), new HashMap<>());
+    public AugmentationFunctionError(AugmentationFunctionErrorType errorType, String message, Long timestamp) {
+        this(errorType, message, System.currentTimeMillis(), new HashMap<>());
 
     }
 
     /**
      * Constructor of the AugmentationFunctionError class with all the parameters.
-     * @param augmentationFunctionId the identifier of the augmentation function that generated the error
      * @param errorType the type of the error
      * @param message the message describing the error
      * @param timestamp the timestamp of when the error occurred
      * @param metadata the metadata related to the error
      */
-    public AugmentationFunctionError(String augmentationFunctionId, AugmentationFunctionErrorType errorType, String message, Long timestamp, HashMap<String, Object> metadata) {
+    public AugmentationFunctionError(AugmentationFunctionErrorType errorType, String message, Long timestamp, HashMap<String, Object> metadata) {
         this.errorId = UUID.randomUUID().toString();
-        this.augmentationFunctionId = augmentationFunctionId;
         this.errorType = errorType;
         this.message = message;
         this.timestamp = timestamp;
@@ -109,22 +93,6 @@ public class AugmentationFunctionError {
      */
     public Long getTimestamp() {
         return timestamp;
-    }
-
-    /**
-     * Getters and Setters for the class attributes
-     * @return the identifier of the augmentation function that generated the error
-     */
-    public String getAugmentationFunctionId() {
-        return augmentationFunctionId;
-    }
-
-    /**
-     * Getters and Setters for the class attributes
-     * @return the identifier of the augmentation function handler that was executing the function when the error occurred
-     */
-    public String getAugmentationFunctionHandlerId() {
-        return augmentationFunctionHandlerId;
     }
 
     /**
@@ -161,15 +129,6 @@ public class AugmentationFunctionError {
 
     /**
      * Setters for the class attributes
-     * @param augmentationFunctionHandlerId the identifier of the augmentation function handler that was executing
-     *                                      the function when the error occurred
-     */
-    public void setAugmentationFunctionHandlerId(String augmentationFunctionHandlerId) {
-        this.augmentationFunctionHandlerId = augmentationFunctionHandlerId;
-    }
-
-    /**
-     * Setters for the class attributes
      * @param augmentationFunctionRequestId the identifier of the augmentation function request that was being
      *                                      processed when the error occurred
      */
@@ -190,8 +149,6 @@ public class AugmentationFunctionError {
         return "AugmentationFunctionError{" +
                 "errorId='" + errorId + '\'' +
                 ", timestamp=" + timestamp +
-                ", augmentationFunctionId='" + augmentationFunctionId + '\'' +
-                ", augmentationFunctionHandlerId='" + augmentationFunctionHandlerId + '\'' +
                 ", augmentationFunctionRequestId='" + augmentationFunctionRequestId + '\'' +
                 ", errorType=" + errorType +
                 ", message='" + message + '\'' +

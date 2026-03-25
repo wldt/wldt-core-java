@@ -27,18 +27,16 @@ import it.wldt.adapter.physical.PhysicalAssetProperty;
 import it.wldt.adapter.physical.PhysicalAssetRelationship;
 import it.wldt.augmentation.*;
 import it.wldt.augmentation.error.AugmentationFunctionError;
-import it.wldt.augmentation.event.AugmentationFunctionErrorWldtEvent;
-import it.wldt.augmentation.event.AugmentationFunctionRegistrationWldtEvent;
-import it.wldt.augmentation.event.AugmentationFunctionUnRegistrationWldtEvent;
+import it.wldt.augmentation.event.*;
 import it.wldt.augmentation.function.AugmentationFunction;
 import it.wldt.augmentation.context.AugmentationFunctionContext;
 import it.wldt.augmentation.context.AugmentationFunctionContextRequest;
 import it.wldt.augmentation.function.AugmentationFunctionType;
 import it.wldt.augmentation.handler.AugmentationFunctionHandler;
 import it.wldt.augmentation.request.AugmentationFunctionRequest;
+import it.wldt.augmentation.request.AugmentationFunctionRequestType;
 import it.wldt.augmentation.result.AugmentationFunctionResult;
 import it.wldt.core.event.*;
-import it.wldt.core.state.DigitalTwinState;
 import it.wldt.core.state.DigitalTwinStateManager;
 import it.wldt.exception.AugmentationFunctionException;
 import it.wldt.exception.EventBusException;
@@ -221,6 +219,9 @@ public abstract class DigitalTwinModel implements WldtEventListener {
             // In this case since we have the Augmentation Manager -> Observe Aug. Function Results
             this.observeAugmentationFunctionResults();
 
+            // Observe Augmentation Function Error Events
+            this.observeAugmentationFunctionErrorEvents();
+
         }catch(Exception e){
             logger.error("Error Handling Augmentation Function Results ! Error: {}", e.getMessage());
         }
@@ -238,6 +239,9 @@ public abstract class DigitalTwinModel implements WldtEventListener {
 
             // In this case since we have the Augmentation Manager -> Un-Observe Aug. Function Results
             this.unObserveAugmentationFunctionResults();
+
+            // Un-Observe Augmentation Function Error Events
+            this.unObserveAugmentationFunctionErrorEvents();
 
         }catch(Exception e){
             logger.error("Error Un-Handling Augmentation Function Results ! Error: {}", e.getMessage());
@@ -315,6 +319,34 @@ public abstract class DigitalTwinModel implements WldtEventListener {
         WldtEventBus.getInstance().unSubscribe(this.digitalTwinStateManager.getDigitalTwinId(), this.id, wldtEventFilter, this);
 
         logger.info("Cancel Observation for Augmentation Function Results Un-Subscribed ! Digital Twin Model ID: {}, Event Filter: {}", this.id, wldtEventFilter);
+    }
+
+    /**
+     * TODO ...
+     * @throws EventBusException
+     */
+    protected void observeAugmentationFunctionErrorEvents() throws EventBusException {
+        //Define EventFilter and add the target topics
+        WldtEventFilter wldtEventFilter = new WldtEventFilter();
+        wldtEventFilter.add(WldtEventTypes.AUGMENTATION_FUNCTION_ERROR_EVENT_TYPE);
+
+        WldtEventBus.getInstance().subscribe(this.digitalTwinStateManager.getDigitalTwinId(), this.id, wldtEventFilter, this);
+
+        logger.info("Observer for Augmentation Function Errors Subscribed ! Digital Twin Model ID: {}, Event Filter: {}", this.id, wldtEventFilter);
+    }
+
+    /**
+     * TODO ...
+     * @throws EventBusException
+     */
+    protected void unObserveAugmentationFunctionErrorEvents() throws EventBusException {
+        //Define EventFilter and add the target topics
+        WldtEventFilter wldtEventFilter = new WldtEventFilter();
+        wldtEventFilter.add(WldtEventTypes.AUGMENTATION_FUNCTION_ERROR_EVENT_TYPE);
+
+        WldtEventBus.getInstance().unSubscribe(this.digitalTwinStateManager.getDigitalTwinId(), this.id, wldtEventFilter, this);
+
+        logger.info("Observer for Augmentation Function Errors Unsubscribed ! Digital Twin Model ID: {}, Event Filter: {}", this.id, wldtEventFilter);
     }
 
     /**
@@ -791,18 +823,16 @@ public abstract class DigitalTwinModel implements WldtEventListener {
         }
 
         // Create an empty Augmentation Function Request to be then populated according to the Context Request and the augmentation function id
-        AugmentationFunctionRequest augmentationFunctionRequest = new AugmentationFunctionRequest(augmentationFunctionRequestId, new AugmentationFunctionContext());
+        AugmentationFunctionRequest augmentationFunctionRequest = new AugmentationFunctionRequest(augmentationFunctionRequestId, new AugmentationFunctionContext(), AugmentationFunctionRequestType.EXECUTE);
 
         // If the Context Request requires the Digital Twin State, retrieve it and set it in the context
         if(contextRequest.isObserveState())
             // TODO ... Check if the state to observe is the entire Digital Twin State or just a subset of it (e.g., specific properties or relationships) and retrieve only the required state information to set in the context
             augmentationFunctionRequest.getContext().setDigitalTwinState(this.digitalTwinStateManager.getDigitalTwinState());
 
-        // Create the correct Event Type to trigger the execution of the Augmentation Function
-        String eventType = String.format("%s.%s.%s", WldtEventTypes.AUGMENTATION_FUNCTION_EXECUTION_BASE_TYPE, augmentationFunctionHandlerId, augmentationFunctionId);
+        AugmentationFunctionExecuteWldtEvent augmentationFunctionExecuteWldtEvent = new AugmentationFunctionExecuteWldtEvent(augmentationFunctionHandlerId, augmentationFunctionId, augmentationFunctionRequest);
 
-        // Publish an event to trigger the execution of the Augmentation Function (Stateless) with the provided context
-        WldtEventBus.getInstance().publishEvent(this.digitalTwinStateManager.getDigitalTwinId(), this.id, new WldtEvent<>(eventType, augmentationFunctionRequest));
+        WldtEventBus.getInstance().publishEvent(this.digitalTwinStateManager.getDigitalTwinId(), this.id, augmentationFunctionExecuteWldtEvent);
 
     }
 
@@ -894,18 +924,16 @@ public abstract class DigitalTwinModel implements WldtEventListener {
         }
 
         // Create a new Augmentation Function Request with the provided augmentation function request id and an empty context to be then populated according to the Context Request and the augmentation function id
-        AugmentationFunctionRequest augmentationFunctionRequest = new AugmentationFunctionRequest(augmentationFunctionRequestId, new AugmentationFunctionContext());
+        AugmentationFunctionRequest augmentationFunctionRequest = new AugmentationFunctionRequest(augmentationFunctionRequestId, new AugmentationFunctionContext(), AugmentationFunctionRequestType.START);
 
         // If the Context Request requires the Digital Twin State, retrieve it and set it in the context
         if(contextRequest.isObserveState())
             // TODO ... Check if the state to observe is the entire Digital Twin State or just a subset of it (e.g., specific properties or relationships) and retrieve only the required state information to set in the context
             augmentationFunctionRequest.getContext().setDigitalTwinState(this.digitalTwinStateManager.getDigitalTwinState());
 
-        // Create the correct Event Type to trigger the execution of the Augmentation Function
-        String eventType = String.format("%s.%s.%s", WldtEventTypes.AUGMENTATION_FUNCTION_START_BASE_TYPE, augmentationFunctionHandlerId, augmentationFunctionId);
+        AugmentationFunctionStartWldtEvent augmentationFunctionStartWldtEvent = new AugmentationFunctionStartWldtEvent(augmentationFunctionHandlerId, augmentationFunctionId, augmentationFunctionRequest);
 
-        // Publish an event to trigger the start of the Augmentation Function (Stateful) with the provided context
-        WldtEventBus.getInstance().publishEvent(this.digitalTwinStateManager.getDigitalTwinId(), this.id, new WldtEvent<>(eventType, augmentationFunctionRequest));
+        WldtEventBus.getInstance().publishEvent(this.digitalTwinStateManager.getDigitalTwinId(), this.id, augmentationFunctionStartWldtEvent);
 
     }
 
@@ -992,18 +1020,16 @@ public abstract class DigitalTwinModel implements WldtEventListener {
         }
 
         // Create a new Augmentation Function Request with the provided augmentation function request id and an empty context to be then populated according to the Context Request and the augmentation function id
-        AugmentationFunctionRequest augmentationFunctionRequest = new AugmentationFunctionRequest(augmentationFunctionRequestId, new AugmentationFunctionContext());
+        AugmentationFunctionRequest augmentationFunctionRequest = new AugmentationFunctionRequest(augmentationFunctionRequestId, new AugmentationFunctionContext(), AugmentationFunctionRequestType.STOP);
 
         // If the Context Request requires the Digital Twin State, retrieve it and set it in the context
         if(contextRequest.isObserveState())
             // TODO ... Check if the state to observe is the entire Digital Twin State or just a subset of it (e.g., specific properties or relationships) and retrieve only the required state information to set in the context
             augmentationFunctionRequest.getContext().setDigitalTwinState(this.digitalTwinStateManager.getDigitalTwinState());
 
-        // Create the correct Event Type to trigger the execution of the Augmentation Function
-        String eventType = String.format("%s.%s.%s", WldtEventTypes.AUGMENTATION_FUNCTION_STOP_BASE_TYPE, augmentationFunctionHandlerId, augmentationFunctionId);
+        AugmentationFunctionStopWldtEvent augmentationFunctionStopWldtEvent = new AugmentationFunctionStopWldtEvent(augmentationFunctionHandlerId, augmentationFunctionId, augmentationFunctionRequest);
 
-        // Publish an event to trigger the execution of the Augmentation Function (Stateless) with the provided context
-        WldtEventBus.getInstance().publishEvent(this.digitalTwinStateManager.getDigitalTwinId(), this.id, new WldtEvent<>(eventType, augmentationFunctionRequest));
+        WldtEventBus.getInstance().publishEvent(this.digitalTwinStateManager.getDigitalTwinId(), this.id, augmentationFunctionStopWldtEvent);
     }
 
     @Override

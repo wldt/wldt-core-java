@@ -81,13 +81,38 @@ public class StorageStats {
     private StorageStatsRecord physicalRelationshipInstanceDeletedNotificationStats;
 
     /**
+     * Storage Stats for the Augmentation Function Error Records
+     */
+    private StorageStatsRecord augmentationFunctionErrorStats;
+
+    /**
+     * Storage Stats for the Augmentation Function Registration Records
+     */
+    private StorageStatsRecord augmentationFunctionRegistrationStats;
+
+    /**
+     * Storage Stats for the Augmentation Function Unregistration Records
+     */
+    private StorageStatsRecord augmentationFunctionUnregistrationStats;
+
+    /**
+     * Storage Stats for the Augmentation Function Request Records
+     */
+    private StorageStatsRecord augmentationFunctionRequestStats;
+
+    /**
+     * Storage Stats for the Augmentation Function Result Records
+     */
+    private StorageStatsRecord augmentationFunctionResultStats;
+
+    /**
      * Default Constructor
      */
     public StorageStats() {
     }
 
     /**
-     * Constructor
+     * Constructor with all the parameters
      * @param stateVariationStats Storage Stats for the State Variation Records
      * @param lifeCycleVariationStats Storage Stats for the Life Cycle Variation Records
      * @param physicalAssetPropertyVariationStats Storage Stats for the Physical Asset Property Variation Records
@@ -98,8 +123,13 @@ public class StorageStats {
      * @param updatedPhysicalAssetDescriptionNotificationStats Storage Stats for the Updated Physical Asset Description Notification Records
      * @param physicalRelationshipInstanceCreatedNotificationStats Storage Stats for the Physical Relationship Instance Created Notification Records
      * @param physicalRelationshipInstanceDeletedNotificationStats Storage Stats for the Physical Relationship Instance Deleted Notification Records
+     * @param augmentationFunctionErrorStats Storage Stats for the Augmentation Function Error Records
+     * @param augmentationFunctionRegistrationStats Storage Stats for the Augmentation Function Registration Records
+     * @param augmentationFunctionUnregistrationStats Storage Stats for the Augmentation Function Unregistration Records
+     * @param augmentationFunctionRequestStats Storage Stats for the Augmentation Function Request Records
+     * @param augmentationFunctionResultStats Storage Stats for the Augmentation Function Result Records
      */
-    public StorageStats(StorageStatsRecord stateVariationStats, StorageStatsRecord lifeCycleVariationStats, StorageStatsRecord physicalAssetPropertyVariationStats, StorageStatsRecord physicalAssetEventNotificationStats, StorageStatsRecord physicalAssetActionRequestStats, StorageStatsRecord digitalActionRequestStats, StorageStatsRecord newPhysicalAssetDescriptionNotificationStats, StorageStatsRecord updatedPhysicalAssetDescriptionNotificationStats, StorageStatsRecord physicalRelationshipInstanceCreatedNotificationStats, StorageStatsRecord physicalRelationshipInstanceDeletedNotificationStats) {
+    public StorageStats(StorageStatsRecord stateVariationStats, StorageStatsRecord lifeCycleVariationStats, StorageStatsRecord physicalAssetPropertyVariationStats, StorageStatsRecord physicalAssetEventNotificationStats, StorageStatsRecord physicalAssetActionRequestStats, StorageStatsRecord digitalActionRequestStats, StorageStatsRecord newPhysicalAssetDescriptionNotificationStats, StorageStatsRecord updatedPhysicalAssetDescriptionNotificationStats, StorageStatsRecord physicalRelationshipInstanceCreatedNotificationStats, StorageStatsRecord physicalRelationshipInstanceDeletedNotificationStats, StorageStatsRecord augmentationFunctionErrorStats, StorageStatsRecord augmentationFunctionRegistrationStats, StorageStatsRecord augmentationFunctionUnregistrationStats, StorageStatsRecord augmentationFunctionRequestStats, StorageStatsRecord augmentationFunctionResultStats) {
         this.stateVariationStats = stateVariationStats;
         this.lifeCycleVariationStats = lifeCycleVariationStats;
         this.physicalAssetPropertyVariationStats = physicalAssetPropertyVariationStats;
@@ -110,6 +140,11 @@ public class StorageStats {
         this.updatedPhysicalAssetDescriptionNotificationStats = updatedPhysicalAssetDescriptionNotificationStats;
         this.physicalRelationshipInstanceCreatedNotificationStats = physicalRelationshipInstanceCreatedNotificationStats;
         this.physicalRelationshipInstanceDeletedNotificationStats = physicalRelationshipInstanceDeletedNotificationStats;
+        this.augmentationFunctionErrorStats = augmentationFunctionErrorStats;
+        this.augmentationFunctionRegistrationStats = augmentationFunctionRegistrationStats;
+        this.augmentationFunctionUnregistrationStats = augmentationFunctionUnregistrationStats;
+        this.augmentationFunctionRequestStats = augmentationFunctionRequestStats;
+        this.augmentationFunctionResultStats = augmentationFunctionResultStats;
     }
 
     /**
@@ -272,6 +307,86 @@ public class StorageStats {
         this.physicalRelationshipInstanceDeletedNotificationStats = physicalRelationshipInstanceDeletedNotificationStats;
     }
 
+    /**
+     * Get the Storage Stats for the Augmentation Function Error Records
+     * @return Storage Stats for the Augmentation Function Error Records
+     */
+    public StorageStatsRecord getAugmentationFunctionErrorStats() {
+        return augmentationFunctionErrorStats;
+    }
+
+    /**
+     * Set the Storage Stats for the Augmentation Function Error Records
+     * @param augmentationFunctionErrorStats Storage Stats for the Augmentation Function Error Records
+     */
+    public void setAugmentationFunctionErrorStats(StorageStatsRecord augmentationFunctionErrorStats) {
+        this.augmentationFunctionErrorStats = augmentationFunctionErrorStats;
+    }
+
+    /**
+     * Get the Storage Stats for the Augmentation Function Registration Records
+     * @return Storage Stats for the Augmentation Function Registration Records
+     */
+    public StorageStatsRecord getAugmentationFunctionRegistrationStats() {
+        return augmentationFunctionRegistrationStats;
+    }
+
+    /**
+     * Set the Storage Stats for the Augmentation Function Registration Records
+     * @param augmentationFunctionRegistrationStats Storage Stats for the Augmentation Function Registration Records
+     */
+    public void setAugmentationFunctionRegistrationStats(StorageStatsRecord augmentationFunctionRegistrationStats) {
+        this.augmentationFunctionRegistrationStats = augmentationFunctionRegistrationStats;
+    }
+
+    /**
+     * Get the Storage Stats for the Augmentation Function Unregistration Records
+     * @return Storage Stats for the Augmentation Function Unregistration Records
+     */
+    public StorageStatsRecord getAugmentationFunctionUnregistrationStats() {
+        return augmentationFunctionUnregistrationStats;
+    }
+
+    /**
+     * Set the Storage Stats for the Augmentation Function Unregistration Records
+     * @param augmentationFunctionUnregistrationStats Storage Stats for the Augmentation Function Unregistration Records
+     */
+    public void setAugmentationFunctionUnregistrationStats(StorageStatsRecord augmentationFunctionUnregistrationStats) {
+        this.augmentationFunctionUnregistrationStats = augmentationFunctionUnregistrationStats;
+    }
+
+    /**
+     * Get the Storage Stats for the Augmentation Function Request Records
+     * @return Storage Stats for the Augmentation Function Request Records
+     */
+    public StorageStatsRecord getAugmentationFunctionRequestStats() {
+        return augmentationFunctionRequestStats;
+    }
+
+    /**
+     * Set the Storage Stats for the Augmentation Function Request Records
+     * @param augmentationFunctionRequestStats Storage Stats for the Augmentation Function Request Records
+     */
+    public void setAugmentationFunctionRequestStats(StorageStatsRecord augmentationFunctionRequestStats) {
+        this.augmentationFunctionRequestStats = augmentationFunctionRequestStats;
+    }
+
+    /**
+     * Get the Storage Stats for the Augmentation Function Result Records
+     * @return Storage Stats for the Augmentation Function Result Records
+     */
+    public StorageStatsRecord getAugmentationFunctionResultStats() {
+        return augmentationFunctionResultStats;
+    }
+
+    /**
+     * Set the Storage Stats for the Augmentation Function Result Records
+     * @param augmentationFunctionResultStats Storage Stats for the Augmentation Function Result Records
+     */
+    public void setAugmentationFunctionResultStats(StorageStatsRecord augmentationFunctionResultStats) {
+        this.augmentationFunctionResultStats = augmentationFunctionResultStats;
+    }
+
     @Override
     public String toString() {
         final StringBuffer sb = new StringBuffer("StorageStats{");
@@ -285,6 +400,11 @@ public class StorageStats {
         sb.append(", updatedPhysicalAssetDescriptionNotificationStats=").append(updatedPhysicalAssetDescriptionNotificationStats);
         sb.append(", physicalRelationshipInstanceCreatedNotificationStats=").append(physicalRelationshipInstanceCreatedNotificationStats);
         sb.append(", physicalRelationshipInstanceDeletedNotificationStats=").append(physicalRelationshipInstanceDeletedNotificationStats);
+        sb.append(", augmentationFunctionErrorStats=").append(augmentationFunctionErrorStats);
+        sb.append(", augmentationFunctionRegistrationStats=").append(augmentationFunctionRegistrationStats);
+        sb.append(", augmentationFunctionUnregistrationStats=").append(augmentationFunctionUnregistrationStats);
+        sb.append(", augmentationFunctionRequestStats=").append(augmentationFunctionRequestStats);
+        sb.append(", augmentationFunctionResultStats=").append(augmentationFunctionResultStats);
         sb.append('}');
         return sb.toString();
     }

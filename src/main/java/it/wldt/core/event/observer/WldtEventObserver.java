@@ -56,6 +56,8 @@ public class WldtEventObserver implements WldtEventListener {
 
     private WldtEventFilter physicalAssetDescriptionEventFilter = null;
 
+    private WldtEventFilter augmentationFunctionEventFilter = null;
+
     private WldtEventFilter lifeCycleEventFilter = null;
 
     private WldtEventFilter queryRequestFilter = null;
@@ -98,6 +100,7 @@ public class WldtEventObserver implements WldtEventListener {
         this.physicalAssetActionEventFilter = new WldtEventFilter();
         this.digitalActionEventFilter = new WldtEventFilter();
         this.physicalAssetDescriptionEventFilter = new WldtEventFilter();
+        this.augmentationFunctionEventFilter = new WldtEventFilter();
         this.lifeCycleEventFilter = new WldtEventFilter();
         this.queryRequestFilter = new WldtEventFilter();
         this.queryResultFilter = new WldtEventFilter();
@@ -252,6 +255,23 @@ public class WldtEventObserver implements WldtEventListener {
     }
 
     /**
+     * Trigger the observation of events generated from the Augmentation Functions
+     * @throws EventBusException
+     */
+    public void observeAugmentationFunctionEvents() throws EventBusException {
+        observeEventsWithFilter(this.augmentationFunctionEventFilter,
+                WldtEventTypes.ALL_AUGMENTATION_FUNCTION_EVENT_TYPE);
+    }
+
+    /**
+     * Cancel the observation of events generated from the Augmentation Functions
+     * @throws EventBusException
+     */
+    public void unObserveAugmentationFunctionEvents() throws EventBusException {
+        unObserveEventsWithFilter(this.augmentationFunctionEventFilter);
+    }
+
+    /**
      * Trigger the observation of Life Cycle Events
      * Function
      * @throws EventBusException
@@ -349,6 +369,10 @@ public class WldtEventObserver implements WldtEventListener {
             if(this.physicalAssetDescriptionEventFilter != null && this.physicalAssetDescriptionEventFilter.matchEventType(wldtEvent.getType()))
                 this.observerListener.onPhysicalAssetDescriptionEvent(wldtEvent);
 
+            // Check Augmentation Function Error Events
+            if(this.augmentationFunctionEventFilter != null && this.augmentationFunctionEventFilter.matchEventType(wldtEvent.getType()))
+                this.observerListener.onAugmentationFunctionEvent(wldtEvent);
+
             // Life Cycle Events
             if(this.lifeCycleEventFilter != null && this.lifeCycleEventFilter.matchEventType(wldtEvent.getType()))
                 this.observerListener.onLifeCycleEvent(wldtEvent);
@@ -381,6 +405,26 @@ public class WldtEventObserver implements WldtEventListener {
         return digitalActionEventFilter;
     }
 
+    public WldtEventFilter getPhysicalAssetDescriptionEventFilter() {
+        return physicalAssetDescriptionEventFilter;
+    }
+
+    public WldtEventFilter getAugmentationFunctionEventFilter() {
+        return augmentationFunctionEventFilter;
+    }
+
+    public WldtEventFilter getLifeCycleEventFilter() {
+        return lifeCycleEventFilter;
+    }
+
+    public WldtEventFilter getQueryRequestFilter() {
+        return queryRequestFilter;
+    }
+
+    public WldtEventFilter getQueryResultFilter() {
+        return queryResultFilter;
+    }
+
     public String getObserverId() {
         return observerId;
     }
@@ -409,6 +453,26 @@ public class WldtEventObserver implements WldtEventListener {
         this.digitalActionEventFilter = digitalActionEventFilter;
     }
 
+    public void setPhysicalAssetDescriptionEventFilter(WldtEventFilter physicalAssetDescriptionEventFilter) {
+        this.physicalAssetDescriptionEventFilter = physicalAssetDescriptionEventFilter;
+    }
+
+    public void setAugmentationFunctionEventFilter(WldtEventFilter augmentationFunctionEventFilter) {
+        this.augmentationFunctionEventFilter = augmentationFunctionEventFilter;
+    }
+
+    public void setLifeCycleEventFilter(WldtEventFilter lifeCycleEventFilter) {
+        this.lifeCycleEventFilter = lifeCycleEventFilter;
+    }
+
+    public void setQueryRequestFilter(WldtEventFilter queryRequestFilter) {
+        this.queryRequestFilter = queryRequestFilter;
+    }
+
+    public void setQueryResultFilter(WldtEventFilter queryResultFilter) {
+        this.queryResultFilter = queryResultFilter;
+    }
+
     public void setObserverId(String observerId) {
         this.observerId = observerId;
     }
@@ -428,6 +492,11 @@ public class WldtEventObserver implements WldtEventListener {
         sb.append(", physicalAssetEventFilter=").append(physicalAssetEventFilter);
         sb.append(", physicalAssetActionEventFilter=").append(physicalAssetActionEventFilter);
         sb.append(", digitalActionEventFilter=").append(digitalActionEventFilter);
+        sb.append(", physicalAssetDescriptionEventFilter=").append(physicalAssetDescriptionEventFilter);
+        sb.append(", augmentationFunctionEventFilter=").append(augmentationFunctionEventFilter);
+        sb.append(", lifeCycleEventFilter=").append(lifeCycleEventFilter);
+        sb.append(", queryRequestFilter=").append(queryRequestFilter);
+        sb.append(", queryResultFilter=").append(queryResultFilter);
         sb.append(", observerId='").append(observerId).append('\'');
         sb.append(", digitalTwinId='").append(digitalTwinId).append('\'');
         sb.append(", observerListener=").append(observerListener);

@@ -162,6 +162,7 @@ public class AugmentationManager implements LifeCycleListener {
                 this.augmentationFunctionHandlerMap.size(),
                 this.digitalTwinId);
 
+
         //Init PhysicalAdapter Executor
         augmentationFunctionHandlerExecutor = Executors.newFixedThreadPool(this.augmentationFunctionHandlerMap.size());
 

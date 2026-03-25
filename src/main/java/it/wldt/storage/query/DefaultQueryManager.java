@@ -22,6 +22,7 @@ package it.wldt.storage.query;
 
 import it.wldt.exception.StorageException;
 import it.wldt.storage.WldtStorage;
+import it.wldt.storage.model.augmentation.*;
 import it.wldt.storage.model.state.DigitalTwinStateEventNotificationRecord;
 import it.wldt.storage.model.state.DigitalTwinStateRecord;
 import java.util.Collections;
@@ -723,6 +724,291 @@ public class DefaultQueryManager extends QueryManager{
                         1);
             } else
                 return new QueryResult<>(queryRequest, false, "Invalid Digital Twin State Query Request Type !");
+
+        }catch (Exception e){
+            return new QueryResult<>(queryRequest, false, e.getMessage());
+        }
+    }
+
+    /**
+     * Handle Augmentation Function Error Query Request
+     * @param queryRequest Query Request Object
+     * @param storage Storage Object to be used for the query management
+     * @return Query Result Object containing the query result
+     * @throws StorageException Storage Exception
+     */
+    @Override
+    public QueryResult<?> handleAugmentationFunctionErrorQuery(QueryRequest queryRequest, WldtStorage storage) throws StorageException {
+        try{
+
+            if(queryRequest.getRequestType().equals(QueryRequestType.TIME_RANGE)){
+
+                // Get the Digital Twin State in the Time Range
+                List<AugmentationFunctionErrorRecord> result = storage.getAugmentationFunctionErrorsInTimeRange(
+                        queryRequest.getStartTimestampMs(),
+                        queryRequest.getEndTimestampMs());
+
+                // Return the Query Result
+                return new QueryResult<>(queryRequest,
+                        true,
+                        null,
+                        result,
+                        result.size());
+            } else if (queryRequest.getRequestType().equals(QueryRequestType.SAMPLE_RANGE)){
+
+                // Get the Digital Twin State in the Sample Range
+                List<AugmentationFunctionErrorRecord> result = storage.getAugmentationFunctionErrorsInRange(
+                        queryRequest.getStartIndex(),
+                        queryRequest.getEndIndex());
+
+                // Return the Query Result
+                return new QueryResult<>(queryRequest,
+                        true,
+                        null,
+                        result,
+                        result.size());
+            } else if (queryRequest.getRequestType().equals(QueryRequestType.COUNT)){
+
+                // Get the Digital Twin State Count
+                int result = storage.getAugmentationFunctionErrorCount();
+
+                // Return the Query Result
+                return new QueryResult<>(queryRequest,
+                        true,
+                        null,
+                        Collections.singletonList(result),
+                        1);
+
+            } else
+                return new QueryResult<>(queryRequest, false, "Invalid Augmentation Function Error Query Request Type !");
+
+        }catch (Exception e){
+            return new QueryResult<>(queryRequest, false, e.getMessage());
+        }
+    }
+
+    /**
+     * Handle Augmentation Function Request Query Request
+     * @param queryRequest Query Request Object
+     * @param storage Storage Object to be used for the query management
+     * @return Query Result Object containing the query result
+     * @throws StorageException Storage Exception
+     */
+    @Override
+    public QueryResult<?> handleAugmentationFunctionRequestQuery(QueryRequest queryRequest, WldtStorage storage) throws StorageException {
+        try{
+
+            if(queryRequest.getRequestType().equals(QueryRequestType.TIME_RANGE)){
+
+                // Get the Digital Twin State in the Time Range
+                List<AugmentationFunctionRequestRecord> result = storage.getAugmentationFunctionRequestInTimeRange(
+                        queryRequest.getStartTimestampMs(),
+                        queryRequest.getEndTimestampMs());
+
+                // Return the Query Result
+                return new QueryResult<>(queryRequest,
+                        true,
+                        null,
+                        result,
+                        result.size());
+            } else if (queryRequest.getRequestType().equals(QueryRequestType.SAMPLE_RANGE)){
+
+                // Get the Digital Twin State in the Sample Range
+                List<AugmentationFunctionRequestRecord> result = storage.getAugmentationFunctionRequestInRange(
+                        queryRequest.getStartIndex(),
+                        queryRequest.getEndIndex());
+
+                // Return the Query Result
+                return new QueryResult<>(queryRequest,
+                        true,
+                        null,
+                        result,
+                        result.size());
+            } else if (queryRequest.getRequestType().equals(QueryRequestType.COUNT)){
+
+                // Get the Digital Twin State Count
+                int result = storage.getAugmentationFunctionRequestCount();
+
+                // Return the Query Result
+                return new QueryResult<>(queryRequest,
+                        true,
+                        null,
+                        Collections.singletonList(result),
+                        1);
+
+            } else
+                return new QueryResult<>(queryRequest, false, "Invalid Augmentation Function Request Query Request Type !");
+
+        }catch (Exception e){
+            return new QueryResult<>(queryRequest, false, e.getMessage());
+        }
+    }
+
+    /**
+     * Handle Augmentation Function Result Query Request
+     * @param queryRequest Query Request Object
+     * @param storage Storage Object to be used for the query management
+     * @return Query Result Object containing the query result
+     * @throws StorageException Storage Exception
+     */
+    @Override
+    public QueryResult<?> handleAugmentationFunctionResultQuery(QueryRequest queryRequest, WldtStorage storage) throws StorageException {
+        try{
+
+            if(queryRequest.getRequestType().equals(QueryRequestType.TIME_RANGE)){
+
+                // Get the Digital Twin State in the Time Range
+                List<AugmentationFunctionResultRecord> result = storage.getAugmentationFunctionResultInTimeRange(
+                        queryRequest.getStartTimestampMs(),
+                        queryRequest.getEndTimestampMs());
+
+                // Return the Query Result
+                return new QueryResult<>(queryRequest,
+                        true,
+                        null,
+                        result,
+                        result.size());
+            } else if (queryRequest.getRequestType().equals(QueryRequestType.SAMPLE_RANGE)){
+
+                // Get the Digital Twin State in the Sample Range
+                List<AugmentationFunctionResultRecord> result = storage.getAugmentationFunctionResultInRange(
+                        queryRequest.getStartIndex(),
+                        queryRequest.getEndIndex());
+
+                // Return the Query Result
+                return new QueryResult<>(queryRequest,
+                        true,
+                        null,
+                        result,
+                        result.size());
+            } else if (queryRequest.getRequestType().equals(QueryRequestType.COUNT)){
+
+                // Get the Digital Twin State Count
+                int result = storage.getAugmentationFunctionResultCount();
+
+                // Return the Query Result
+                return new QueryResult<>(queryRequest,
+                        true,
+                        null,
+                        Collections.singletonList(result),
+                        1);
+
+            } else
+                return new QueryResult<>(queryRequest, false, "Invalid Augmentation Function Result Query Request Type !");
+
+        }catch (Exception e){
+            return new QueryResult<>(queryRequest, false, e.getMessage());
+        }
+    }
+
+    /**
+     * Handle Augmentation Function Registration Query Request
+     * @param queryRequest Query Request Object
+     * @param storage Storage Object to be used for the query management
+     * @return Query Result Object containing the query result
+     * @throws StorageException Storage Exception
+     */
+    @Override
+    public QueryResult<?> handleAugmentationFunctionRegistrationQuery(QueryRequest queryRequest, WldtStorage storage) throws StorageException {
+        try{
+
+            if(queryRequest.getRequestType().equals(QueryRequestType.TIME_RANGE)){
+
+                // Get the Digital Twin State in the Time Range
+                List<AugmentationFunctionRegistrationRecord> result = storage.getAugmentationFunctionRegistrationInTimeRange(
+                        queryRequest.getStartTimestampMs(),
+                        queryRequest.getEndTimestampMs());
+
+                // Return the Query Result
+                return new QueryResult<>(queryRequest,
+                        true,
+                        null,
+                        result,
+                        result.size());
+            } else if (queryRequest.getRequestType().equals(QueryRequestType.SAMPLE_RANGE)){
+
+                // Get the Digital Twin State in the Sample Range
+                List<AugmentationFunctionRegistrationRecord> result = storage.getAugmentationFunctionRegistrationInRange(
+                        queryRequest.getStartIndex(),
+                        queryRequest.getEndIndex());
+
+                // Return the Query Result
+                return new QueryResult<>(queryRequest,
+                        true,
+                        null,
+                        result,
+                        result.size());
+            } else if (queryRequest.getRequestType().equals(QueryRequestType.COUNT)){
+
+                // Get the Digital Twin State Count
+                int result = storage.getAugmentationFunctionRegistrationCount();
+
+                // Return the Query Result
+                return new QueryResult<>(queryRequest,
+                        true,
+                        null,
+                        Collections.singletonList(result),
+                        1);
+
+            } else
+                return new QueryResult<>(queryRequest, false, "Invalid Augmentation Function Registration Query Request Type !");
+
+        }catch (Exception e){
+            return new QueryResult<>(queryRequest, false, e.getMessage());
+        }
+    }
+
+    /**
+     * Handle Augmentation Function Unregistration Query Request
+     * @param queryRequest Query Request Object
+     * @param storage Storage Object to be used for the query management
+     * @return Query Result Object containing the query result
+     * @throws StorageException Storage Exception
+     */
+    @Override
+    public QueryResult<?> handleAugmentationFunctionUnregistrationQuery(QueryRequest queryRequest, WldtStorage storage) throws StorageException {
+        try{
+
+            if(queryRequest.getRequestType().equals(QueryRequestType.TIME_RANGE)){
+
+                // Get the Digital Twin State in the Time Range
+                List<AugmentationFunctionUnregistrationRecord> result = storage.getAugmentationFunctionUnregistrationInTimeRange(
+                        queryRequest.getStartTimestampMs(),
+                        queryRequest.getEndTimestampMs());
+
+                // Return the Query Result
+                return new QueryResult<>(queryRequest,
+                        true,
+                        null,
+                        result,
+                        result.size());
+            } else if (queryRequest.getRequestType().equals(QueryRequestType.SAMPLE_RANGE)){
+
+                // Get the Digital Twin State in the Sample Range
+                List<AugmentationFunctionUnregistrationRecord> result = storage.getAugmentationFunctionUnregistrationInRange(
+                        queryRequest.getStartIndex(),
+                        queryRequest.getEndIndex());
+
+                // Return the Query Result
+                return new QueryResult<>(queryRequest,
+                        true,
+                        null,
+                        result,
+                        result.size());
+            } else if (queryRequest.getRequestType().equals(QueryRequestType.COUNT)){
+
+                // Get the Digital Twin State Count
+                int result = storage.getAugmentationFunctionUnregistrationCount();
+
+                // Return the Query Result
+                return new QueryResult<>(queryRequest,
+                        true,
+                        null,
+                        Collections.singletonList(result),
+                        1);
+
+            } else
+                return new QueryResult<>(queryRequest, false, "Invalid Augmentation Function Unregistration Query Request Type !");
 
         }catch (Exception e){
             return new QueryResult<>(queryRequest, false, e.getMessage());

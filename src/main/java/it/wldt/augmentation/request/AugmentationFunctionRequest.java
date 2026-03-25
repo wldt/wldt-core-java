@@ -10,14 +10,17 @@ public class AugmentationFunctionRequest {
 
     private final Long timestamp;
 
-    public AugmentationFunctionRequest(String requestId, AugmentationFunctionContext context, Long timestamp) {
+    private final AugmentationFunctionRequestType type;
+
+    public AugmentationFunctionRequest(String requestId, AugmentationFunctionContext context, AugmentationFunctionRequestType requestType, Long timestamp) {
         this.requestId = requestId;
         this.context = context;
+        this.type = requestType;
         this.timestamp = timestamp;
     }
 
-    public AugmentationFunctionRequest(String requestId, AugmentationFunctionContext context) {
-        this(requestId, context, System.currentTimeMillis());
+    public AugmentationFunctionRequest(String requestId, AugmentationFunctionContext context, AugmentationFunctionRequestType requestType) {
+        this(requestId, context, requestType, System.currentTimeMillis());
     }
 
     public String getRequestId() {
@@ -32,13 +35,17 @@ public class AugmentationFunctionRequest {
         return timestamp;
     }
 
-        @Override
+    public AugmentationFunctionRequestType getType() {
+        return type;
+    }
+
+    @Override
     public String toString() {
-        final StringBuilder sb = new StringBuilder("AugmentationFunctionRequest{");
-        sb.append("id='").append(requestId).append('\'');
-        sb.append(", context=").append(context);
-        sb.append(", timestamp=").append(timestamp);
-        sb.append('}');
-        return sb.toString();
+        return "AugmentationFunctionRequest{" +
+                "requestId='" + requestId + '\'' +
+                ", context=" + context +
+                ", timestamp=" + timestamp +
+                ", type=" + type +
+                '}';
     }
 }

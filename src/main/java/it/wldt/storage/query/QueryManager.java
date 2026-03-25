@@ -97,6 +97,16 @@ public class QueryManager {
                     return handlePhysicalRelationshipInstanceCreatedNotificationQuery(queryRequest, storageOptional.get());
                 else if(queryRequest.getResourceType().equals(QueryResourceType.PHYSICAL_RELATIONSHIP_INSTANCE_DELETED_NOTIFICATION))
                     return handlePhysicalRelationshipInstanceDeletedNotificationQuery(queryRequest, storageOptional.get());
+                else if(queryRequest.getResourceType().equals(QueryResourceType.AUGMENTATION_FUNCTION_ERROR))
+                    return handleAugmentationFunctionErrorQuery(queryRequest, storageOptional.get());
+                else if(queryRequest.getResourceType().equals(QueryResourceType.AUGMENTATION_FUNCTION_REQUEST))
+                    return handleAugmentationFunctionRequestQuery(queryRequest, storageOptional.get());
+                else if(queryRequest.getResourceType().equals(QueryResourceType.AUGMENTATION_FUNCTION_RESULT))
+                    return handleAugmentationFunctionResultQuery(queryRequest, storageOptional.get());
+                else if(queryRequest.getResourceType().equals(QueryResourceType.AUGMENTATION_FUNCTION_REGISTRATION))
+                    return handleAugmentationFunctionRegistrationQuery(queryRequest, storageOptional.get());
+                else if(queryRequest.getResourceType().equals(QueryResourceType.AUGMENTATION_FUNCTION_UNREGISTRATION))
+                    return handleAugmentationFunctionUnregistrationQuery(queryRequest, storageOptional.get());
                 else if(queryRequest.getResourceType().equals(QueryResourceType.LIFE_CYCLE_EVENT))
                     return handleLifeCycleEventQuery(queryRequest, storageOptional.get());
                 else if(queryRequest.getResourceType().equals(QueryResourceType.STORAGE_STATS))
@@ -244,6 +254,61 @@ public class QueryManager {
      * @throws StorageException Storage Exception
      */
     public QueryResult<?> handleStorageStatsQuery(QueryRequest queryRequest, WldtStorage storage) throws StorageException{
+        return new QueryResult<>(queryRequest, false, "Query not supported by the current implementation !");
+    }
+
+    /**
+     * Handle Augmentation Function Error Query
+     * @param queryRequest Query Request Object
+     * @param storage Storage Object to be used for the query management
+     * @return Query Result Object containing the query result
+     * @throws StorageException Storage Exception
+     */
+    public QueryResult<?> handleAugmentationFunctionErrorQuery(QueryRequest queryRequest, WldtStorage storage) throws StorageException {
+        return new QueryResult<>(queryRequest, false, "Query not supported by the current implementation !");
+    }
+
+    /**
+     * Handle Augmentation Function Request Query
+     * @param queryRequest Query Request Object
+     * @param storage Storage Object to be used for the query management
+     * @return Query Result Object containing the query result
+     * @throws StorageException Storage Exception
+     */
+    public QueryResult<?> handleAugmentationFunctionRequestQuery(QueryRequest queryRequest, WldtStorage storage) throws StorageException {
+        return new QueryResult<>(queryRequest, false, "Query not supported by the current implementation !");
+    }
+
+    /**
+     * Handle Augmentation Function Result Query
+     * @param queryRequest Query Request Object
+     * @param storage Storage Object to be used for the query management
+     * @return Query Result Object containing the query result
+     * @throws StorageException Storage Exception
+     */
+    public QueryResult<?> handleAugmentationFunctionResultQuery(QueryRequest queryRequest, WldtStorage storage) throws StorageException {
+        return new QueryResult<>(queryRequest, false, "Query not supported by the current implementation !");
+    }
+
+    /**
+     * Handle Augmentation Function Registration Query
+     * @param queryRequest Query Request Object
+     * @param storage Storage Object to be used for the query management
+     * @return Query Result Object containing the query result
+     * @throws StorageException Storage Exception
+     */
+    public QueryResult<?> handleAugmentationFunctionRegistrationQuery(QueryRequest queryRequest, WldtStorage storage) throws StorageException {
+        return new QueryResult<>(queryRequest, false, "Query not supported by the current implementation !");
+    }
+
+    /**
+     * Handle Augmentation Function Unregistration Query
+     * @param queryRequest Query Request Object
+     * @param storage Storage Object to be used for the query management
+     * @return Query Result Object containing the query result
+     * @throws StorageException Storage Exception
+     */
+    public QueryResult<?> handleAugmentationFunctionUnregistrationQuery(QueryRequest queryRequest, WldtStorage storage) throws StorageException {
         return new QueryResult<>(queryRequest, false, "Query not supported by the current implementation !");
     }
 

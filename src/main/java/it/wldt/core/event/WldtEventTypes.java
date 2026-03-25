@@ -80,20 +80,28 @@ public class WldtEventTypes {
     public static final String ALL_STORAGE_QUERY_RESULT_EVENT_TYPE = String.format("%s.%s", STORAGE_QUERY_RESULT_EVENT_TYPE, MULTI_LEVEL_WILDCARD_VALUE);
 
     /* Augmentation Function Events */
-    public static final String AUGMENTATION_FUNCTION_START_BASE_TYPE = "dt.augmentation.function.execution.start";
+    public static final String AUGMENTATION_FUNCTION_EVENT_BASE_TYPE = "dt.augmentation.function";
 
-    public static final String AUGMENTATION_FUNCTION_STOP_BASE_TYPE = "dt.augmentation.function.execution.stop";
+    public static final String AUGMENTATION_FUNCTION_EXECUTION_EVENT_BASE_TYPE = String.format("%s.execution", AUGMENTATION_FUNCTION_EVENT_BASE_TYPE);
 
-    public static final String AUGMENTATION_FUNCTION_EXECUTION_BASE_TYPE = "dt.augmentation.function.execution.execute";
+    public static final String ALL_AUGMENTATION_FUNCTION_EVENT_TYPE = String.format("%s.%s", AUGMENTATION_FUNCTION_EVENT_BASE_TYPE, MULTI_LEVEL_WILDCARD_VALUE);
 
-    public static final String AUGMENTATION_FUNCTION_QUERY_EXECUTION_BASE_TYPE = "dt.augmentation.function.execution.update";
+    public static final String AUGMENTATION_FUNCTION_START_BASE_TYPE = String.format("%s.start", AUGMENTATION_FUNCTION_EXECUTION_EVENT_BASE_TYPE);
 
-    public static final String AUGMENTATION_FUNCTION_RESULT_BASE_TYPE = "dt.augmentation.function.result";
+    public static final String AUGMENTATION_FUNCTION_STOP_BASE_TYPE = String.format("%s.stop", AUGMENTATION_FUNCTION_EXECUTION_EVENT_BASE_TYPE);
 
-    public static final String AUGMENTATION_FUNCTION_REGISTERED_EVENT_TYPE = "dt.augmentation.function.registered";
+    public static final String AUGMENTATION_FUNCTION_EXECUTE_BASE_TYPE = String.format("%s.execute", AUGMENTATION_FUNCTION_EXECUTION_EVENT_BASE_TYPE);
 
-    public static final String AUGMENTATION_FUNCTION_UNREGISTERED_EVENT_TYPE = "dt.augmentation.function.unregistered";
+    public static final String AUGMENTATION_FUNCTION_QUERY_EXECUTION_BASE_TYPE = String.format("%s.query", AUGMENTATION_FUNCTION_EXECUTION_EVENT_BASE_TYPE);
 
-    public static final String AUGMENTATION_FUNCTION_ERROR_EVENT_TYPE = "dt.augmentation.function.error";
+    public static final String AUGMENTATION_FUNCTION_RESULT_BASE_TYPE = String.format("%s.result", AUGMENTATION_FUNCTION_EVENT_BASE_TYPE);
+
+    public static final String AUGMENTATION_FUNCTION_REGISTERED_EVENT_TYPE = String.format("%s.registered", AUGMENTATION_FUNCTION_EVENT_BASE_TYPE);
+
+    public static final String AUGMENTATION_FUNCTION_UNREGISTERED_EVENT_TYPE = String.format("%s.unregistered", AUGMENTATION_FUNCTION_EVENT_BASE_TYPE);
+
+    public static final String AUGMENTATION_FUNCTION_ERROR_EVENT_TYPE = String.format("%s.error", AUGMENTATION_FUNCTION_EVENT_BASE_TYPE);
+
+     /* Subscription Events */
 
 }

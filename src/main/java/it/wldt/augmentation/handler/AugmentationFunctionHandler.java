@@ -23,11 +23,8 @@ package it.wldt.augmentation.handler;
 import it.wldt.adapter.digital.DigitalAdapterLifeCycleListener;
 import it.wldt.adapter.digital.DigitalAdapterListener;
 import it.wldt.augmentation.error.AugmentationFunctionError;
-import it.wldt.augmentation.event.AugmentationFunctionErrorWldtEvent;
-import it.wldt.augmentation.event.AugmentationFunctionRegistrationWldtEvent;
-import it.wldt.augmentation.event.AugmentationFunctionUnRegistrationWldtEvent;
+import it.wldt.augmentation.event.*;
 import it.wldt.augmentation.function.AugmentationFunction;
-import it.wldt.augmentation.context.AugmentationFunctionContext;
 import it.wldt.augmentation.function.AugmentationFunctionType;
 import it.wldt.augmentation.function.StatefulAugmentationFunction;
 import it.wldt.augmentation.function.StatelessAugmentationFunction;
@@ -125,18 +122,11 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
      */
     private void notifyAugmentationFunctionResult(String augmentationFunctionId, List<AugmentationFunctionResult<?>> resultList) throws EventBusException {
 
-        // Build the Event Type for the Augmentation Function Result associated to the target Handler and the target Augmentation Function Id
-        String eventType = String.format("%s.%s", buildHandlerEventType(WldtEventTypes.AUGMENTATION_FUNCTION_RESULT_BASE_TYPE), augmentationFunctionId);
+        // Create the Event associated to the result of the Augmentation Function
+        AugmentationFunctionResultWldtEvent augmentationFunctionResultWldtEvent = new AugmentationFunctionResultWldtEvent(this.id, augmentationFunctionId, resultList);
 
-        // Create the Event associated to the Augmentation Function Result
-        WldtEvent<List<AugmentationFunctionResult<?>>> augmentationFunctionResultEvent = new WldtEvent<>(
-                eventType,
-                resultList
-        );
-
-        // Publish the Event on the EventBus
-        WldtEventBus.getInstance().publishEvent(this.digitalTwinId, this.id, augmentationFunctionResultEvent);
-
+        // Notify the result of the Augmentation Function publishing the associated event on the EventBus
+        WldtEventBus.getInstance().publishEvent(this.digitalTwinId, this.id, augmentationFunctionResultWldtEvent);
     }
 
     /**
@@ -150,7 +140,8 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
         WldtEventFilter wldtEventFilter = new WldtEventFilter();
         wldtEventFilter.add(buildHandlerWildCardEventType(WldtEventTypes.AUGMENTATION_FUNCTION_START_BASE_TYPE));
         wldtEventFilter.add(buildHandlerWildCardEventType(WldtEventTypes.AUGMENTATION_FUNCTION_STOP_BASE_TYPE));
-        wldtEventFilter.add(buildHandlerWildCardEventType(WldtEventTypes.AUGMENTATION_FUNCTION_EXECUTION_BASE_TYPE));
+        wldtEventFilter.add(buildHandlerWildCardEventType(WldtEventTypes.AUGMENTATION_FUNCTION_EXECUTE_BASE_TYPE));
+        wldtEventFilter.add(buildHandlerWildCardEventType(WldtEventTypes.AUGMENTATION_FUNCTION_QUERY_EXECUTION_BASE_TYPE));
 
         //Save the adopted EventFilter
         this.augmentationFunctionWldtEventFilter = wldtEventFilter;
@@ -168,7 +159,8 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
         WldtEventFilter wldtEventFilter = new WldtEventFilter();
         wldtEventFilter.add(buildHandlerWildCardEventType(WldtEventTypes.AUGMENTATION_FUNCTION_START_BASE_TYPE));
         wldtEventFilter.add(buildHandlerWildCardEventType(WldtEventTypes.AUGMENTATION_FUNCTION_STOP_BASE_TYPE));
-        wldtEventFilter.add(buildHandlerWildCardEventType(WldtEventTypes.AUGMENTATION_FUNCTION_EXECUTION_BASE_TYPE));
+        wldtEventFilter.add(buildHandlerWildCardEventType(WldtEventTypes.AUGMENTATION_FUNCTION_EXECUTE_BASE_TYPE));
+        wldtEventFilter.add(buildHandlerWildCardEventType(WldtEventTypes.AUGMENTATION_FUNCTION_QUERY_EXECUTION_BASE_TYPE));
 
         //Save the adopted EventFilter
         this.augmentationFunctionWldtEventFilter = wldtEventFilter;
@@ -850,7 +842,7 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
         ////////// STATELESS AUGMENTATION FUNCTION EXECUTION EVENTS MANAGEMENT ///////////
         if(wldtEvent != null
                 && wldtEvent.getType() != null
-                && (wldtEvent.getType().startsWith(WldtEventTypes.AUGMENTATION_FUNCTION_EXECUTION_BASE_TYPE))
+                && (wldtEvent.getType().startsWith(WldtEventTypes.AUGMENTATION_FUNCTION_EXECUTE_BASE_TYPE))
                 && wldtEvent.getBody() != null
                 && (wldtEvent.getBody() instanceof AugmentationFunctionRequest)){
 
@@ -859,7 +851,7 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
 
             // Extract the Augmentation Function Id from the Event Type after the base type and the handler id
             // Substring after the base type and the handler id considering the '.' as separator
-            String augmentationFunctionId = wldtEvent.getType().substring(buildHandlerEventType(WldtEventTypes.AUGMENTATION_FUNCTION_EXECUTION_BASE_TYPE).length() + 1);
+            String augmentationFunctionId = wldtEvent.getType().substring(buildHandlerEventType(WldtEventTypes.AUGMENTATION_FUNCTION_EXECUTE_BASE_TYPE).length() + 1);
 
             logger.info("Received Augmentation Function Execution Event for function with id {} and request: {}", augmentationFunctionId, augmentationFunctionRequest);
 
@@ -1107,8 +1099,6 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
             // Log the error
             logger.error(String.format("Error in Stateless Augmentation Function with id %s: %s", augmentationFunctionId, augmentationFunctionError.getMessage()));
 
-            augmentationFunctionError.setAugmentationFunctionHandlerId(this.id);
-
             notifyAugmentationFunctionError(augmentationFunctionId, augmentationFunctionError);
         } catch (Exception e) {
             logger.error(String.format("Error while handling error notification for Stateless Augmentation Function with id %s: %s", augmentationFunctionId, e.getLocalizedMessage()));
@@ -1143,8 +1133,6 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
         try {
             // Log the error
             logger.error(String.format("Error in Stateful Augmentation Function with id %s: %s", augmentationFunctionId, augmentationFunctionError.getMessage()));
-
-            augmentationFunctionError.setAugmentationFunctionHandlerId(this.id);
 
             notifyAugmentationFunctionError(augmentationFunctionId, augmentationFunctionError);
         } catch (Exception e) {

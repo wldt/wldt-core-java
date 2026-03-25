@@ -24,6 +24,11 @@ import it.wldt.adapter.digital.DigitalActionRequest;
 import it.wldt.adapter.digital.event.DigitalActionWldtEvent;
 import it.wldt.adapter.physical.*;
 import it.wldt.adapter.physical.event.*;
+import it.wldt.augmentation.error.AugmentationFunctionError;
+import it.wldt.augmentation.event.*;
+import it.wldt.augmentation.function.AugmentationFunction;
+import it.wldt.augmentation.request.AugmentationFunctionRequest;
+import it.wldt.augmentation.result.AugmentationFunctionResult;
 import it.wldt.core.engine.DigitalTwinWorker;
 import it.wldt.core.engine.LifeCycleState;
 import it.wldt.core.engine.LifeCycleStateVariation;
@@ -145,6 +150,7 @@ public class StorageManager extends DigitalTwinWorker implements IWldtEventObser
             wldtEventObserver.observePhysicalAssetEvents();
             wldtEventObserver.observePhysicalAssetActionEvents();
             wldtEventObserver.observePhysicalAssetDescriptionEvents();
+            wldtEventObserver.observeAugmentationFunctionEvents();
             wldtEventObserver.observeDigitalActionEvents();
             wldtEventObserver.observeLifeCycleEvents();
 
@@ -176,6 +182,7 @@ public class StorageManager extends DigitalTwinWorker implements IWldtEventObser
                 wldtEventObserver.unObservePhysicalAssetActionEvents();
                 wldtEventObserver.unObservePhysicalAssetDescriptionEvents();
                 wldtEventObserver.unObserveDigitalActionEvents();
+                wldtEventObserver.unObserveAugmentationFunctionEvents();
                 wldtEventObserver.unObserveLifeCycleEvents();
 
                 // Cancel the observation for query Request
@@ -417,6 +424,78 @@ public class StorageManager extends DigitalTwinWorker implements IWldtEventObser
                 logger.error("Error saving the PhysicalAssetDescription Event ! The event body is not a PhysicalAssetDescription !");
         }catch (Exception e){
             logger.error("Error saving the PhysicalAssetDescription Event ! Error: {}", e.getLocalizedMessage());
+        }
+    }
+
+    @Override
+    public void onAugmentationFunctionEvent(WldtEvent<?> wldtEvent) {
+        try {
+            for(Map.Entry<String, WldtStorage> entry : storageMap.entrySet()) {
+                WldtStorage storage = entry.getValue();
+                if(storage != null && storage.isObserveAugmentationFunctionEvents()) {
+
+                    // Check if the event is a AugmentationFunctionStartEvent
+                    if(wldtEvent != null && wldtEvent.getBody() != null && wldtEvent.getType().startsWith(WldtEventTypes.AUGMENTATION_FUNCTION_START_BASE_TYPE) && wldtEvent.getBody() instanceof AugmentationFunctionRequest) {
+                        AugmentationFunctionStartWldtEvent augmentationFunctionStartWldtEvent = (AugmentationFunctionStartWldtEvent) wldtEvent;
+                        storage.saveAugmentationFunctionRequest(augmentationFunctionStartWldtEvent.getAugmentationFunctionId(),
+                                augmentationFunctionStartWldtEvent.getAugmentationHandlerId(),
+                                augmentationFunctionStartWldtEvent.getBody());
+                    }
+
+                    // Check if the event is a AugmentationFunctionStopEvent
+                    if(wldtEvent != null && wldtEvent.getBody() != null && wldtEvent.getType().startsWith(WldtEventTypes.AUGMENTATION_FUNCTION_STOP_BASE_TYPE) && wldtEvent.getBody() instanceof AugmentationFunctionRequest) {
+                        AugmentationFunctionStopWldtEvent augmentationFunctionStopWldtEvent = (AugmentationFunctionStopWldtEvent) wldtEvent;
+                        storage.saveAugmentationFunctionRequest(augmentationFunctionStopWldtEvent.getAugmentationFunctionId(),
+                                augmentationFunctionStopWldtEvent.getAugmentationHandlerId(),
+                                augmentationFunctionStopWldtEvent.getBody());
+                    }
+
+                    // Check if the event is a AugmentationFunctionExecuteEvent
+                    if(wldtEvent != null && wldtEvent.getBody() != null && wldtEvent.getType().startsWith(WldtEventTypes.AUGMENTATION_FUNCTION_EXECUTE_BASE_TYPE) && wldtEvent.getBody() instanceof AugmentationFunctionRequest) {
+                        AugmentationFunctionExecuteWldtEvent augmentationFunctionExecuteWldtEvent = (AugmentationFunctionExecuteWldtEvent) wldtEvent;
+                        storage.saveAugmentationFunctionRequest(augmentationFunctionExecuteWldtEvent.getAugmentationFunctionId(),
+                                augmentationFunctionExecuteWldtEvent.getAugmentationHandlerId(),
+                                augmentationFunctionExecuteWldtEvent.getBody());
+                    }
+
+                    // Check if the event is a AugmentationFunctionResultEvent
+                    if(wldtEvent != null && wldtEvent.getBody() != null && wldtEvent.getType().startsWith(WldtEventTypes.AUGMENTATION_FUNCTION_RESULT_BASE_TYPE) && wldtEvent.getBody() instanceof List<?>) {
+                        AugmentationFunctionResultWldtEvent augmentationFunctionResultWldtEvent = (AugmentationFunctionResultWldtEvent) wldtEvent;
+                        List<AugmentationFunctionResult<?>> results = augmentationFunctionResultWldtEvent.getBody();
+                        for(AugmentationFunctionResult<?> result : results) {
+                            storage.saveAugmentationFunctionResult(augmentationFunctionResultWldtEvent.getAugmentationFunctionId(),
+                                    augmentationFunctionResultWldtEvent.getAugmentationHandlerId(),
+                                    result);
+                        }
+                    }
+
+                    // Check if the event is a AugmentationFunctionErrorEvent
+                    if(wldtEvent != null && wldtEvent.getBody() != null && wldtEvent.getType().startsWith(WldtEventTypes.AUGMENTATION_FUNCTION_ERROR_EVENT_TYPE) && wldtEvent.getBody() instanceof AugmentationFunctionError) {
+                        AugmentationFunctionErrorWldtEvent augmentationFunctionErrorWldtEvent = (AugmentationFunctionErrorWldtEvent) wldtEvent;
+                        storage.saveAugmentationFunctionError(augmentationFunctionErrorWldtEvent.getAugmentationFunctionId(),
+                                augmentationFunctionErrorWldtEvent.getAugmentationHandlerId(),
+                                augmentationFunctionErrorWldtEvent.getBody());
+                    }
+
+                    // Check if the event is a AugmentationFunctionRegistrationEvent
+                    if(wldtEvent != null && wldtEvent.getBody() != null && wldtEvent.getType().startsWith(WldtEventTypes.AUGMENTATION_FUNCTION_REGISTERED_EVENT_TYPE) && wldtEvent.getBody() instanceof AugmentationFunctionRequest) {
+                        AugmentationFunctionRegistrationWldtEvent augmentationFunctionRegistrationWldtEvent = (AugmentationFunctionRegistrationWldtEvent) wldtEvent;
+                        storage.saveAugmentationFunctionRegistration(augmentationFunctionRegistrationWldtEvent.getBody().getId(),
+                                augmentationFunctionRegistrationWldtEvent.getAugmentationHandlerId(),
+                                augmentationFunctionRegistrationWldtEvent.getBody().getType());
+                    }
+
+                    // Check if the event is a AugmentationFunctionUnRegistrationEvent
+                    if(wldtEvent != null && wldtEvent.getBody() != null && wldtEvent.getType().startsWith(WldtEventTypes.AUGMENTATION_FUNCTION_UNREGISTERED_EVENT_TYPE) && wldtEvent.getBody() instanceof AugmentationFunctionRequest) {
+                        AugmentationFunctionUnRegistrationWldtEvent augmentationFunctionUnRegistrationWldtEvent = (AugmentationFunctionUnRegistrationWldtEvent) wldtEvent;
+                        storage.saveAugmentationFunctionUnregistration(augmentationFunctionUnRegistrationWldtEvent.getBody().getId(),
+                                augmentationFunctionUnRegistrationWldtEvent.getAugmentationHandlerId(),
+                                augmentationFunctionUnRegistrationWldtEvent.getBody().getType());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Error saving the AugmentationFunction Event ! Error: {}", e.getLocalizedMessage());
         }
     }
 
