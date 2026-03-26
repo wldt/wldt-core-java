@@ -35,12 +35,45 @@ import jdk.jpackage.internal.Log;
 import java.security.PrivateKey;
 import java.util.List;
 
+/**
+ * Extends the base class {@link AugmentationFunction} and represents a specific type of augmentation function that is executed in a stateless manner.
+ * In a stateless augmentation function, each execution is independent and does not maintain any state or context between
+ * executions. This means that each time the function is executed, it starts with a clean slate, without any knowledge
+ * of previous executions or any shared state. This can be useful for functions that perform simple, self-contained
+ * tasks that do not require any context or state to be maintained across executions. The StatelessAugmentationFunction
+ * class provides a structure for implementing such functions, allowing developers to focus on the specific logic of the
+ * function without worrying about managing state or context between executions. It also includes a listener mechanism
+ * to notify about errors that may occur during the execution of the function, enabling better error handling and
+ * management in a stateless execution context.
+ */
 public abstract class StatelessAugmentationFunction extends AugmentationFunction{
 
+    /**
+     * Logger instance for logging messages related to the StatelessAugmentationFunction class. This logger is used to
+     * log important information, errors, and other relevant messages during the execution of stateless augmentation
+     * functions, providing insights into the behavior and performance of the functions, as well as aiding in debugging
+     * and troubleshooting when issues arise.
+     */
     private static final WldtLogger logger = WldtLoggerProvider.getLogger(StatelessAugmentationFunction.class);
 
+    /**
+     * Listener for handling events and notifications related to the execution of stateless augmentation functions.
+     * This listener can be used to receive notifications about errors that occur during the execution of the function,
+     * allowing for better error handling and management in a stateless execution context. By implementing the
+     * StatelessAugmentationListener interface, developers can define custom behavior for handling errors and other
+     * events that may arise during the execution of stateless augmentation functions, enabling more robust and
+     * effective management of the execution process and improving the overall reliability and performance of the functions.
+     */
     private StatelessAugmentationListener statelessAugmentationListener;
 
+    /**
+     * The request associated with the current execution of the stateless augmentation function. This request contains
+     * all the necessary information and parameters for executing the function, allowing the function to perform its
+     * tasks based on the specific context and requirements of the execution. By maintaining a reference to the current
+     * request, the StatelessAugmentationFunction can access relevant information and parameters during the execution
+     * process, enabling it to perform its tasks effectively and efficiently while also providing the necessary context
+     * for error handling and other notifications through the StatelessAugmentationListener.
+     */
     private AugmentationFunctionRequest request;
 
     /**
@@ -96,21 +129,37 @@ public abstract class StatelessAugmentationFunction extends AugmentationFunction
     }
 
     /**
-     * TODO: ...
-     * @return
+     * Getter for the stateless augmentation listener. This method allows access to the listener that is responsible for
+     * handling events and notifications related to the execution of stateless augmentation functions.
+     * @return The stateless augmentation listener associated with this stateless augmentation function, which can be used to receive notifications
+     * about errors and other events that may occur during the execution of the function, enabling better error handling and management in a stateless execution context.
      */
     public StatelessAugmentationListener getStatelessAugmentationListener() {
         return statelessAugmentationListener;
     }
 
     /**
-     * TODO: ...
-     * @param statelessAugmentationListener
+     * Setter for the stateless augmentation listener. This method allows setting the listener that is responsible for
+     * handling events and notifications related to the execution of stateless augmentation functions.
+     * @param statelessAugmentationListener The stateless augmentation listener to be associated with this stateless augmentation function, which can be used to receive notifications
+     * about errors and other events that may occur during the execution of the function, enabling better error handling and management in a stateless execution context.
      */
     public void setStatelessAugmentationListener(StatelessAugmentationListener statelessAugmentationListener) {
         this.statelessAugmentationListener = statelessAugmentationListener;
     }
 
+    /**
+     * Handles the execution of the stateless augmentation function based on the provided request. This method is
+     * responsible for executing the function's logic and returning the results of the execution. It also sets the
+     * request for each result, allowing for better context and management of the execution process. If any errors
+     * occur during the execution of the function, they can be handled and notified through the notifyError method,
+     * providing a mechanism for better error handling and management in a stateless execution context.
+     * @param augmentationFunctionRequest The request for the execution of the stateless augmentation function.
+     * @return A list of results from the execution of the stateless augmentation function, with each result containing
+     * the necessary information and context for further processing and management of the execution outcomes.
+     * @throws AugmentationFunctionException if there is an issue with executing the stateless augmentation function,
+     * such as invalid parameters, execution errors, or any other issues that may arise during the execution process.
+     */
     public List<AugmentationFunctionResult<?>> handleRun(AugmentationFunctionRequest augmentationFunctionRequest) throws AugmentationFunctionException {
         this.request = augmentationFunctionRequest;
         List<AugmentationFunctionResult<?>> results = this.run(augmentationFunctionRequest);
@@ -120,11 +169,25 @@ public abstract class StatelessAugmentationFunction extends AugmentationFunction
         return results;
     }
 
+    /**
+     * Abstract method that defines the logic for executing the stateless augmentation function based on the provided request.
+     * @param request The request for the execution of the stateless augmentation function, containing all the necessary
+     *                information and parameters for executing the function based on the specific context and requirements of the execution.
+     * @return A list of results from the execution of the stateless augmentation function, with each result containing
+     * the necessary information and context for further processing and management of the execution outcomes.
+     * @throws AugmentationFunctionException if there is an issue with executing the stateless augmentation function,
+     * such as invalid parameters, execution errors, or any other issues that may arise during the execution process.
+     */
     protected abstract List<AugmentationFunctionResult<?>> run(AugmentationFunctionRequest request) throws AugmentationFunctionException;
 
     /**
-     * TODO
-     * @param augmentationFunctionError
+     * Notifies about an error that occurred during the execution of the stateless augmentation function. This method
+     * is responsible for sending notifications about errors to the associated StatelessAugmentationListener, allowing
+     * for better error handling and management in a stateless execution context. If the listener is not set, it logs
+     * an error message indicating that the error cannot be notified due to the absence of the listener, providing
+     * insights into potential issues with error handling and management in the execution process.
+     * @param augmentationFunctionError The error that occurred during the execution of the stateless augmentation function,
+     *        containing all the necessary information and context about the error for effective handling and management of the issue.
      */
     protected void notifyError(AugmentationFunctionError augmentationFunctionError) {
         if (statelessAugmentationListener != null) {

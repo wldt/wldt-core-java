@@ -15,8 +15,19 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+/**
+ * The AugmentationManager class is responsible for managing the augmentation functions and their handlers for a specific
+ * digital twin. It maintains a map of augmentation function handlers, each identified by a unique ID, and provides methods 
+ * to add, remove, and retrieve these handlers. The AugmentationManager also implements the LifeCycleListener interface to 
+ * listen to the life cycle events of the digital twin and forward them to the registered augmentation function handlers.
+ * Additionally, it manages the execution of the augmentation function handlers using an ExecutorService, allowing for 
+ * concurrent execution of multiple handlers while respecting a defined thread pool size limit.
+ */
 public class AugmentationManager implements LifeCycleListener {
 
+    /**
+     * Logger instance for logging information, warnings, and errors related to the AugmentationManager's operations.
+     */
     private static final WldtLogger logger = WldtLoggerProvider.getLogger(AugmentationManager.class);
 
     /**
@@ -24,8 +35,14 @@ public class AugmentationManager implements LifeCycleListener {
      */
     private static final int AUGMENTATION_MANAGER_THREAD_POOL_SIZE_LIMIT = 5;
 
+    /**
+     * The ID of the digital twin associated with this augmentation manager.
+     */
     private final String digitalTwinId;
 
+    /**
+     * Map to store the augmentation function handlers, where the key is the handler's unique ID and the value is the handler instance.
+     */
     private Map<String, AugmentationFunctionHandler> augmentationFunctionHandlerMap;
 
     /**
@@ -43,6 +60,11 @@ public class AugmentationManager implements LifeCycleListener {
      */
     private ExecutorService augmentationFunctionHandlerExecutor = null;
 
+    /**
+     * Constructor for the AugmentationManager class, initializing the digital twin ID and the necessary data structures 
+     * for managing augmentation function handlers and life cycle listeners.
+     * @param digitalTwinId The ID of the digital twin associated with this augmentation manager.
+     */
     public AugmentationManager(String digitalTwinId) {
 
         // Set the digital twin id for this augmentation manager
@@ -78,6 +100,14 @@ public class AugmentationManager implements LifeCycleListener {
             this.augmentationFunctionlifeCycleListenerList.remove(listener);
     }
 
+    /**
+     * Adds an augmentation function handler to the augmentation manager, ensuring that the handler is not already
+     * registered and that the total number of handlers does not exceed the defined thread pool size limit. The method 
+     * also sets the digital twin ID for the handler, initializes its bound status, and registers it as a life cycle listener for the digital twin.
+     * @param augmentationFunctionHandler The augmentation function handler to be added to the augmentation manager.
+     * @throws AugmentationFunctionException if the augmentation function handler is already registered or if the handler limit has been reached.
+     * @throws WldtWorkerException if there is an error while registering the augmentation function handler as a life cycle listener for the digital twin.
+     */
     public void addAugmentationFunctionHandler(AugmentationFunctionHandler augmentationFunctionHandler) throws AugmentationFunctionException, WldtWorkerException {
 
         if(augmentationFunctionHandlerMap.containsKey(augmentationFunctionHandler.getId())){
@@ -105,6 +135,11 @@ public class AugmentationManager implements LifeCycleListener {
                 this.augmentationFunctionHandlerMap.size());
     }
 
+    /**
+     * Removes an augmentation function handler from the augmentation manager, ensuring that the handler is currently registered.
+     * @param augmentationFunctionHandlerId The unique ID of the augmentation function handler to be removed from the augmentation manager.
+     * @throws AugmentationFunctionException if the augmentation function handler with the specified ID is not registered in the augmentation manager.
+     */
     public void removeAugmentationFunctionHandler(String augmentationFunctionHandlerId) throws AugmentationFunctionException {
         if(!augmentationFunctionHandlerMap.containsKey(augmentationFunctionHandlerId)){
             throw new AugmentationFunctionException(String.format("Augmentation Function Handler with id %s is not registered.", augmentationFunctionHandlerId));
@@ -114,6 +149,12 @@ public class AugmentationManager implements LifeCycleListener {
         augmentationFunctionHandlerMap.remove(augmentationFunctionHandlerId);
     }
 
+    /**
+     * Retrieves an augmentation function handler from the augmentation manager based on its unique ID, returning an 
+     * Optional that may contain the handler if it is registered, or be empty if it is not found.
+     * @param augmentationFunctionHandlerId The unique ID of the augmentation function handler to be retrieved from the augmentation manager.
+     * @return An Optional containing the augmentation function handler if it is registered in the augmentation manager, or an empty Optional if it is not found.
+     */
     public Optional<AugmentationFunctionHandler> getAugmentationFunctionHandler(String augmentationFunctionHandlerId) {
 
         if(!augmentationFunctionHandlerMap.containsKey(augmentationFunctionHandlerId)){
@@ -124,10 +165,19 @@ public class AugmentationManager implements LifeCycleListener {
         return Optional.ofNullable(augmentationFunctionHandlerMap.get(augmentationFunctionHandlerId));
     }
 
+    /**
+     * Returns the map of all registered augmentation function handlers, where the key is the handler's unique ID
+     * and the value is the handler instance.
+     * @return the map of augmentation function handlers currently registered in the augmentation manager
+     */
     public Map<String, AugmentationFunctionHandler> getAugmentationFunctionHandlerMap() {
         return augmentationFunctionHandlerMap;
     }
 
+    /**
+     * Returns a list of all registered augmentation function handlers.
+     * @return a list containing all augmentation function handlers currently registered in the augmentation manager
+     */
     public List<AugmentationFunctionHandler> getAllAugmentationFunctionHandlers(){
         return new ArrayList<>(augmentationFunctionHandlerMap.values());
     }
@@ -156,6 +206,11 @@ public class AugmentationManager implements LifeCycleListener {
 
     }
 
+    /**
+     * Starts the augmentation manager by executing all registered augmentation function handlers using an ExecutorService. 
+     * The method logs the number of handlers being started and their respective classes. If there are no handlers 
+     * registered, it logs that the augmentation manager will not be started.
+     */
     public void startAugmentationManager(){
 
         logger.info("Starting {} Augmentation Function Handlers for Digital Twin: {}",
@@ -176,6 +231,12 @@ public class AugmentationManager implements LifeCycleListener {
         });
     }
 
+    /**
+     * Stops the augmentation manager by shutting down the ExecutorService and invoking the onWorkerStop method on all 
+     * registered augmentation function handlers. The method logs the number of handlers being stopped and their respective
+     * classes. If there are no handlers registered, it logs that the augmentation manager is not running and will not be stopped.
+     * @throws WldtRuntimeException if there is an error while stopping the augmentation function handlers or shutting down the ExecutorService.
+     */
     public void stopAugmentationManager() throws WldtRuntimeException {
 
         if(this.augmentationFunctionHandlerMap.isEmpty()) {
@@ -205,6 +266,9 @@ public class AugmentationManager implements LifeCycleListener {
         return sb.toString();
     }
 
+    /**
+     * Forwards the {@code onCreate} life cycle event to all registered augmentation life cycle listeners.
+     */
     @Override
     public void onCreate() {
         // Forward the notification to the life cycle listeners
@@ -215,6 +279,9 @@ public class AugmentationManager implements LifeCycleListener {
         }
     }
 
+    /**
+     * Forwards the {@code onStart} life cycle event to all registered augmentation life cycle listeners.
+     */
     @Override
     public void onStart() {
         // Forward the notification to the life cycle listeners
@@ -225,31 +292,60 @@ public class AugmentationManager implements LifeCycleListener {
         }
     }
 
+    /**
+     * Not relevant for augmentation functions. This event is ignored.
+     * @param adapterId the ID of the physical adapter that has been bound
+     * @param physicalAssetDescription the description of the physical asset associated with the adapter
+     */
     @Override
     public void onPhysicalAdapterBound(String adapterId, PhysicalAssetDescription physicalAssetDescription) {
         // Augmentation Function are not interested in this type of event and its granularity
     }
 
+    /**
+     * Not relevant for augmentation functions. This event is ignored.
+     * @param adapterId the ID of the physical adapter whose binding has been updated
+     * @param physicalAssetDescription the updated description of the physical asset associated with the adapter
+     */
     @Override
     public void onPhysicalAdapterBindingUpdate(String adapterId, PhysicalAssetDescription physicalAssetDescription) {
         // Augmentation Function are not interested in this type of event and its granularity
     }
 
+    /**
+     * Not relevant for augmentation functions. This event is ignored.
+     * @param adapterId the ID of the physical adapter that has been unbound
+     * @param physicalAssetDescription the description of the physical asset associated with the adapter
+     * @param errorMessage the error message describing the reason for the unbinding, if any
+     */
     @Override
     public void onPhysicalAdapterUnBound(String adapterId, PhysicalAssetDescription physicalAssetDescription, String errorMessage) {
         // Augmentation Function are not interested in this type of event and its granularity
     }
 
+    /**
+     * Not relevant for augmentation functions. This event is ignored.
+     * @param adapterId the ID of the digital adapter that has been bound
+     */
     @Override
     public void onDigitalAdapterBound(String adapterId) {
         // Augmentation Function are not interested in this type of event and its granularity
     }
 
+    /**
+     * Not relevant for augmentation functions. This event is ignored.
+     * @param adapterId the ID of the digital adapter that has been unbound
+     * @param errorMessage the error message describing the reason for the unbinding, if any
+     */
     @Override
     public void onDigitalAdapterUnBound(String adapterId, String errorMessage) {
         // Augmentation Function are not interested in this type of event and its granularity
     }
 
+    /**
+     * Forwards the {@code onDigitalTwinBound} life cycle event to all registered augmentation life cycle listeners.
+     * @param adaptersPhysicalAssetDescriptionMap the map of physical asset descriptions for all bound adapters
+     */
     @Override
     public void onDigitalTwinBound(Map<String, PhysicalAssetDescription> adaptersPhysicalAssetDescriptionMap) {
         // Forward the notification to the life cycle listeners
@@ -260,6 +356,11 @@ public class AugmentationManager implements LifeCycleListener {
         }
     }
 
+    /**
+     * Forwards the {@code onDigitalTwinUnBound} life cycle event to all registered augmentation life cycle listeners.
+     * @param adaptersPhysicalAssetDescriptionMap the map of physical asset descriptions for all unbound adapters
+     * @param errorMessage the error message describing the reason for the unbinding, if any
+     */
     @Override
     public void onDigitalTwinUnBound(Map<String, PhysicalAssetDescription> adaptersPhysicalAssetDescriptionMap, String errorMessage) {
         // Forward the notification to the life cycle listeners
@@ -270,6 +371,11 @@ public class AugmentationManager implements LifeCycleListener {
         }
     }
 
+    /**
+     * Forwards the {@code onSync} life cycle event and the current Digital Twin state to all registered
+     * augmentation life cycle listeners.
+     * @param digitalTwinState the current state of the Digital Twin at the moment of synchronization
+     */
     @Override
     public void onSync(DigitalTwinState digitalTwinState) {
 
@@ -281,6 +387,11 @@ public class AugmentationManager implements LifeCycleListener {
         }
     }
 
+    /**
+     * Forwards the {@code onUnSync} life cycle event and the last known Digital Twin state to all registered
+     * augmentation life cycle listeners.
+     * @param digitalTwinState the last known state of the Digital Twin before losing synchronization
+     */
     @Override
     public void onUnSync(DigitalTwinState digitalTwinState) {
         // Forward the notification to the life cycle listeners
@@ -291,6 +402,9 @@ public class AugmentationManager implements LifeCycleListener {
         }
     }
 
+    /**
+     * Forwards the {@code onStop} life cycle event to all registered augmentation life cycle listeners.
+     */
     @Override
     public void onStop() {
         // Forward the notification to the life cycle listeners
@@ -301,6 +415,9 @@ public class AugmentationManager implements LifeCycleListener {
         }
     }
 
+    /**
+     * Forwards the {@code onDestroy} life cycle event to all registered augmentation life cycle listeners.
+     */
     @Override
     public void onDestroy() {
         // Forward the notification to the life cycle listeners
