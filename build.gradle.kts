@@ -24,14 +24,14 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-engine:5.10.1")
     //testImplementation("org.junit.jupiter:junit-jupiter:5.10.1")
     // Comment before publishing to avoid double signing of the same dependency
-    //testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.10.1")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.10.1")
 }
 
 tasks.named<Test>("test") {
     // Comment before publishing
-    //useJUnitPlatform()
+    useJUnitPlatform()
     // Uncomment before publishing
-    enabled = false
+    //enabled = false
 }
 
 java {
