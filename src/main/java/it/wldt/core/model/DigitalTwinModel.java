@@ -159,7 +159,6 @@ public abstract class DigitalTwinModel implements WldtEventListener {
     /**
      * Method called by the Kernel to trigger specific logic to be executed at the
      * start of the Model
-     * TODO ...
      */
     protected void start(){
         // Start handling Augmentation Functions (e.g., observe Augmentation Function Registration Events, etc.)
@@ -176,7 +175,7 @@ public abstract class DigitalTwinModel implements WldtEventListener {
     }
 
     /**
-     * TODO ...
+     * Method called by the Kernel to trigger specific logic to be executed at the stop of the Model
      */
     protected void stop(){
         // Stop handling Augmentation Functions (e.g., un-observe Augmentation Function Registration Events, etc.)
@@ -207,7 +206,7 @@ public abstract class DigitalTwinModel implements WldtEventListener {
     }
 
     /**
-     * TODO ...
+     * Method to handle the Augmentation Function related logic at the start of the Model
      */
     protected void startHandlingAugmentationFunction(){
 
@@ -228,7 +227,7 @@ public abstract class DigitalTwinModel implements WldtEventListener {
     }
 
     /**
-     * TODO ...
+     * Method to handle the Augmentation Function related logic at the stop of the Model
      */
     protected void stopHandlingAugmentationFunction(){
 
@@ -249,14 +248,14 @@ public abstract class DigitalTwinModel implements WldtEventListener {
     }
 
     /**
-     * TODO ...
+     * Build the Event Type to observe all the Augmentation Function Result Events related to the Model
      */
     private String buildResultWildCardEventType(){
         return String.format("%s.%s", WldtEventTypes.AUGMENTATION_FUNCTION_RESULT_BASE_TYPE, WldtEventTypes.MULTI_LEVEL_WILDCARD_VALUE);
     }
 
     /**
-     * TODO ...
+     * Method to observe the Augmentation Function Registration and Un-Registration Events to keep the Model updated about the available Augmentation Functions
      */
     protected void observeAugmentationFunctionRegistrationEvents() throws EventBusException {
 
@@ -272,7 +271,7 @@ public abstract class DigitalTwinModel implements WldtEventListener {
     }
 
     /**
-     * TODO ...
+     * Method to un-observe the Augmentation Function Registration and Un-Registration Events to keep the Model updated about the available Augmentation Functions
      */
     protected void unObserveAugmentationFunctionRegistrationEvents() throws EventBusException {
 
@@ -288,7 +287,7 @@ public abstract class DigitalTwinModel implements WldtEventListener {
     }
 
     /**
-     * TODO ...
+     * Method to observe the Augmentation Function Result Events to keep the Model updated about the results of the executed Augmentation Functions
      */
     protected void observeAugmentationFunctionResults() throws EventBusException {
 
@@ -305,7 +304,7 @@ public abstract class DigitalTwinModel implements WldtEventListener {
     }
 
     /**
-     * TODO ...
+     * Method to un-observe the Augmentation Function Result Events to keep the Model updated about the results of the executed Augmentation Functions
      */
     protected void unObserveAugmentationFunctionResults() throws EventBusException, KernelException {
 
@@ -322,8 +321,8 @@ public abstract class DigitalTwinModel implements WldtEventListener {
     }
 
     /**
-     * TODO ...
-     * @throws EventBusException
+     * Method to observe the Augmentation Function Error Events to keep the Model updated about the errors of the executed Augmentation Functions
+     * @throws EventBusException If an error occurs during the event subscription
      */
     protected void observeAugmentationFunctionErrorEvents() throws EventBusException {
         //Define EventFilter and add the target topics
@@ -336,8 +335,8 @@ public abstract class DigitalTwinModel implements WldtEventListener {
     }
 
     /**
-     * TODO ...
-     * @throws EventBusException
+     * Method to un-observe the Augmentation Function Error Events to keep the Model updated about the errors of the executed Augmentation Functions
+     * @throws EventBusException If an error occurs during the event un-subscription
      */
     protected void unObserveAugmentationFunctionErrorEvents() throws EventBusException {
         //Define EventFilter and add the target topics
@@ -658,8 +657,8 @@ public abstract class DigitalTwinModel implements WldtEventListener {
     }
 
     /**
-     * TODO
-     * @param augmentationFunctionId
+     * Method to refresh the result of a query for a specific Augmentation Function by providing the Augmentation Function id
+     * @param augmentationFunctionId Id of the Augmentation Function to refresh the query result for
      */
     protected void refreshAugmentationFunctionQueryResult(String augmentationFunctionId) throws AugmentationFunctionException, EventBusException {
         logger.info("DigitalTwinModel -> Executing Query Request for Augmentation Function with id {} ...", augmentationFunctionId);
@@ -676,11 +675,11 @@ public abstract class DigitalTwinModel implements WldtEventListener {
     }
 
     /**
-     * TODO
-     * @param augmentationFunctionHandlerId
-     * @param augmentationFunctionId
-     * @throws AugmentationFunctionException
-     * @throws EventBusException
+     * Method to refresh the result of a query for a specific Augmentation Function by providing the Augmentation Function Handler id and the Augmentation Function id
+     * @param augmentationFunctionHandlerId Id of the Augmentation Function Handler of the Augmentation Function to refresh the query result for
+     * @param augmentationFunctionId Id of the Augmentation Function to refresh the query result for
+     * @throws AugmentationFunctionException If the provided Augmentation Function Handler id or Augmentation Function id are not valid or if the Augmentation Function is not of type STATEFUL
+     * @throws EventBusException If an error occurs during the event publication to trigger the execution of the Augmentation Function
      */
     protected void refreshAugmentationFunctionQueryResult(String augmentationFunctionHandlerId, String augmentationFunctionId) throws AugmentationFunctionException, EventBusException {
         // Retrieve the Augmentation Function Handler with the specified id from the Augmentation Manager
@@ -736,9 +735,10 @@ public abstract class DigitalTwinModel implements WldtEventListener {
     }
 
     /**
-     * TODO In this case the context is automatically retrieved from the registered Augmentation Function and the
-     * execution is triggered without providing an explicit context
+     * Method to execute a specific Stateless Augmentation Function by providing the Augmentation Function id. In this case the
+     * context is automatically retrieved from the registered Augmentation Function and the execution is triggered without providing an explicit context.
      * This method is used for stateless augmentation function
+     * @param augmentationFunctionId Id of the Augmentation Function to execute
      */
     protected void executeAugmentationFunction(String augmentationFunctionId) throws EventBusException, AugmentationFunctionException {
 
@@ -756,9 +756,13 @@ public abstract class DigitalTwinModel implements WldtEventListener {
     }
 
     /**
-     * TODO In this case the context is automatically retrieved from the registered Augmentation Function and the
-     * execution is triggered without providing an explicit context
-     * This method is used for stateless augmentation function
+     * Method to execute a specific Stateless Augmentation Function by providing the Augmentation Function id and a specific Augmentation
+     * Function Request id. In this case the context is automatically retrieved from the registered Augmentation Function
+     * and the execution is triggered without providing an explicit context. This method is used for stateless augmentation
+     * function and allows to specify a custom Augmentation Function Request id to be used for the execution of the
+     * Augmentation Function, otherwise a random UUID is generated and used as Augmentation Function Request id for the execution of the Augmentation Function
+     * @param augmentationFunctionId Id of the Augmentation Function to execute
+     * @param augmentationFunctionRequestId Id of the Augmentation Function Request to use for the execution of the Augmentation Function
      */
     protected void executeAugmentationFunction(String augmentationFunctionId, String augmentationFunctionRequestId) throws EventBusException, AugmentationFunctionException {
 
@@ -776,9 +780,15 @@ public abstract class DigitalTwinModel implements WldtEventListener {
     }
 
     /**
-     * TODO In this case the context is automatically retrieved from the registered Augmentation Function and the
-     * execution is triggered without providing an explicit context.
-     * This method is used for stateless augmentation function
+     * Method to execute a specific Stateless Augmentation Function by providing the Augmentation Function Handler id, the
+     * Augmentation Function id and a specific Augmentation Function Request id. In this case the context is
+     * automatically retrieved from the registered Augmentation Function and the execution is triggered without
+     * providing an explicit context. This method is used for stateless augmentation function and allows to specify a
+     * custom Augmentation Function Request id to be used for the execution of the Augmentation Function, otherwise a
+     * random UUID is generated and used as Augmentation Function Request id for the execution of the Augmentation Function
+     * @param augmentationFunctionHandlerId Id of the Augmentation Function Handler of the Augmentation Function to execute
+     * @param augmentationFunctionId Id of the Augmentation Function to execute
+     * @param augmentationFunctionRequestId Id of the Augmentation Function Request to use for the execution of the Augmentation Function
      */
     protected void executeAugmentationFunction(String augmentationFunctionHandlerId, String augmentationFunctionId, String augmentationFunctionRequestId) throws EventBusException, AugmentationFunctionException {
 
@@ -837,9 +847,10 @@ public abstract class DigitalTwinModel implements WldtEventListener {
     }
 
     /**
-     * TODO In this case the context is automatically retrieved from the registered Augmentation Function and the
-     * execution is triggered without providing an explicit context
-     * This method is used for stateful augmentation function
+     * Method to start a specific Stateful Augmentation Function by providing the Augmentation Function id. In this case the context
+     * is automatically retrieved from the registered Augmentation Function and the execution is triggered without providing
+     * an explicit Augmentation Function Request Id. This method is used for stateful augmentation function
+     * @param augmentationFunctionId Id of the Augmentation Function to execute
      */
     protected void startAugmentationFunction(String augmentationFunctionId) throws EventBusException, AugmentationFunctionException {
 
@@ -857,9 +868,13 @@ public abstract class DigitalTwinModel implements WldtEventListener {
     }
 
     /**
-     * TODO In this case the context is automatically retrieved from the registered Augmentation Function and the
-     * execution is triggered without providing an explicit context
-     * This method is used for stateful augmentation function
+     * Method to start a specific Stateful Augmentation Function by providing the Augmentation Function id and a specific Augmentation
+     * Function Request id. In this case the context is automatically retrieved from the registered Augmentation Function
+     * and the execution is triggered without providing an explicit context. This method is used for stateful augmentation
+     * function and allows to specify a custom Augmentation Function Request id to be used for the execution of the
+     * Augmentation Function.
+     * @param augmentationFunctionId Id of the Augmentation Function to execute
+     * @param augmentationFunctionRequestId Id of the Augmentation Function Request to use for the execution of the Augmentation Function
      */
     protected void startAugmentationFunction(String augmentationFunctionId, String augmentationFunctionRequestId) throws EventBusException, AugmentationFunctionException {
 
@@ -877,9 +892,14 @@ public abstract class DigitalTwinModel implements WldtEventListener {
     }
 
     /**
-     * TODO In this case the context is automatically retrieved from the registered Augmentation Function and the
-     * execution is triggered without providing an explicit context
-     * (e.g., for stateful augmentation functions that manage their own context internally)
+     * Method to start a specific Stateful Augmentation Function by providing the Augmentation Function Handler id, the
+     * Augmentation Function id and a specific Augmentation Function Request id. In this case the context is
+     * automatically retrieved from the registered Augmentation Function and the execution is triggered without
+     * providing an explicit context. This method is used for stateful augmentation function and allows to specify a custom
+     * Augmentation Function Request id to be used for the execution of the Augmentation Function.
+     * @param augmentationFunctionHandlerId Id of the Augmentation Function Handler of the Augmentation Function to execute
+     * @param augmentationFunctionId Id of the Augmentation Function to execute
+     * @param augmentationFunctionRequestId Id of the Augmentation Function Request to use for the execution of the Augmentation Function
      */
     protected void startAugmentationFunction(String augmentationFunctionHandlerId, String augmentationFunctionId, String augmentationFunctionRequestId) throws EventBusException, AugmentationFunctionException {
 
@@ -938,8 +958,10 @@ public abstract class DigitalTwinModel implements WldtEventListener {
     }
 
     /**
-     * TODO
-     * @param augmentationFunctionId
+     * Method to stop a specific Stateful Augmentation Function by providing the Augmentation Function id. In this case
+     * the context is automatically retrieved from the registered Augmentation Function and the execution is triggered
+     * without providing an explicit context. This method is used for stateful augmentation function
+     * @param augmentationFunctionId Id of the Augmentation Function to stop
      */
     protected void stopAugmentationFunction(String augmentationFunctionId) throws AugmentationFunctionException, EventBusException {
         logger.info("DigitalTwinModel -> Stopping Augmentation Function with id {} ...", augmentationFunctionId);
@@ -956,8 +978,13 @@ public abstract class DigitalTwinModel implements WldtEventListener {
     }
 
     /**
-     * TODO
-     * @param augmentationFunctionId
+     * Method to stop a specific Stateful Augmentation Function by providing the Augmentation Function id and a specific Augmentation
+     * Function Request id. In this case the context is automatically retrieved from the registered Augmentation Function
+     * and the execution is triggered without providing an explicit context. This method is used for stateful augmentation
+     * function and allows to specify a custom Augmentation Function Request id to be used for the execution of the
+     * Augmentation Function.
+     * @param augmentationFunctionId Id of the Augmentation Function to stop
+     * @param augmentationFunctionRequestId Id of the Augmentation Function Request to use for stopping the Augmentation Function
      */
     protected void stopAugmentationFunction(String augmentationFunctionId, String augmentationFunctionRequestId) throws AugmentationFunctionException, EventBusException {
         logger.info("DigitalTwinModel -> Stopping Augmentation Function with id {} ...", augmentationFunctionId);
@@ -974,9 +1001,14 @@ public abstract class DigitalTwinModel implements WldtEventListener {
     }
 
     /**
-     * TODO
-     * @param augmentationFunctionHandlerId
-     * @param augmentationFunctionId
+     * Method to stop a specific Stateful Augmentation Function by providing the Augmentation Function Handler id, the
+     * Augmentation Function id and a specific Augmentation Function Request id. In this case the context is automatically
+     * retrieved from the registered Augmentation Function and the execution is triggered without providing an explicit context.
+     * This method is used for stateful augmentation function and allows to specify a custom Augmentation Function Request
+     * id to be used for the execution of the Augmentation Function.
+     * @param augmentationFunctionHandlerId Id of the Augmentation Function Handler of the Augmentation Function to stop
+     * @param augmentationFunctionId Id of the Augmentation Function to stop
+     * @param augmentationFunctionRequestId Id of the Augmentation Function Request to use for stopping the Augmentation Function
      */
     protected void stopAugmentationFunction(String augmentationFunctionHandlerId, String augmentationFunctionId, String augmentationFunctionRequestId) throws AugmentationFunctionException, EventBusException {
         // Retrieve the Augmentation Function Handler with the specified id from the Augmentation Manager
@@ -1319,13 +1351,11 @@ public abstract class DigitalTwinModel implements WldtEventListener {
     }
 
     /**
-     * TODO ...
-     * This method is called when the Model start to notify
-     * already registered Augmentation Functions that are available at the start of the Digital Twin Model
-     * This method is called once for each Handler with the associated list of
-     * Augmentation Function that are registered in the Handler
-     * @param handlerId
-     * @param augmentationFunctionList
+     * Method to handle the availability of a list of Augmentation Functions, for example when a new Augmentation Function
+     * Handler is registered with a list of Augmentation Functions or when the Digital Twin is created and it is notified
+     * of the currently available Augmentation Functions that are registered at the creation of the Digital Twin.
+     * @param handlerId the id of the Augmentation Function Handler that registered the Augmentation Functions
+     * @param augmentationFunctionList the list of Augmentation Functions that became available
      */
     protected void onAugmentationFunctionListAvailable(String handlerId, List<AugmentationFunction> augmentationFunctionList) {
         // Default implementation does nothing, can be overridden by specific
@@ -1335,11 +1365,14 @@ public abstract class DigitalTwinModel implements WldtEventListener {
     }
 
     /**
-     * This method is called when an error occurs during the execution of an Augmentation Function,
-     * and the error is notified through the Event Bus with a specific event type for Augmentation Function errors.
-     * @param handlerId
-     * @param augmentationFunctionError
-     * @param functionId
+     * This method is called when an error occurs during the execution of an Augmentation Function. It provides a callback
+     * to handle such errors, allowing specific Digital Twin Models to implement custom error handling logic for Augmentation
+     * Function executions. This method is not abstract because not all Digital Twin Models may need to handle Augmentation
+     * Function errors, so it provides a default implementation that can be optionally overridden by specific Digital
+     * Twin Models that need to process Augmentation Function errors.
+     * @param handlerId the id of the Augmentation Function Handler that executed the Augmentation Function that caused the error
+     * @param augmentationFunctionError the error that occurred during the execution of the Augmentation Function
+     * @param functionId the id of the Augmentation Function that caused the error
      */
     protected void onAugmentationFunctionError(String handlerId, String functionId, AugmentationFunctionError augmentationFunctionError) {
         // Default implementation does nothing, can be overridden by specific
