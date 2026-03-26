@@ -163,6 +163,10 @@ public class AugmentationManager implements LifeCycleListener {
                 this.digitalTwinId);
 
 
+        if(this.augmentationFunctionHandlerMap.isEmpty()){
+            logger.info("No Augmentation Function Handler to start for Digital Twin: {}. Augmentation Manager will not be started.", this.digitalTwinId);
+            return;
+        }
         //Init PhysicalAdapter Executor
         augmentationFunctionHandlerExecutor = Executors.newFixedThreadPool(this.augmentationFunctionHandlerMap.size());
 
@@ -173,6 +177,11 @@ public class AugmentationManager implements LifeCycleListener {
     }
 
     public void stopAugmentationManager() throws WldtRuntimeException {
+
+        if(this.augmentationFunctionHandlerMap.isEmpty()) {
+            logger.info("No Augmentation Function Handler to stop for Digital Twin: {}. Augmentation Manager is not running.", this.digitalTwinId);
+            return;
+        }
 
         logger.info("Stopping {} Augmentation Function Handlers for Digital Twin: {}",
                 this.augmentationFunctionHandlerMap.size(),

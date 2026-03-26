@@ -478,7 +478,7 @@ public class StorageManager extends DigitalTwinWorker implements IWldtEventObser
                     }
 
                     // Check if the event is a AugmentationFunctionRegistrationEvent
-                    if(wldtEvent != null && wldtEvent.getBody() != null && wldtEvent.getType().startsWith(WldtEventTypes.AUGMENTATION_FUNCTION_REGISTERED_EVENT_TYPE) && wldtEvent.getBody() instanceof AugmentationFunctionRequest) {
+                    if(wldtEvent != null && wldtEvent.getBody() != null && wldtEvent.getType().startsWith(WldtEventTypes.AUGMENTATION_FUNCTION_REGISTERED_EVENT_TYPE) && wldtEvent.getBody() instanceof AugmentationFunction) {
                         AugmentationFunctionRegistrationWldtEvent augmentationFunctionRegistrationWldtEvent = (AugmentationFunctionRegistrationWldtEvent) wldtEvent;
                         storage.saveAugmentationFunctionRegistration(augmentationFunctionRegistrationWldtEvent.getBody().getId(),
                                 augmentationFunctionRegistrationWldtEvent.getAugmentationHandlerId(),
@@ -486,7 +486,7 @@ public class StorageManager extends DigitalTwinWorker implements IWldtEventObser
                     }
 
                     // Check if the event is a AugmentationFunctionUnRegistrationEvent
-                    if(wldtEvent != null && wldtEvent.getBody() != null && wldtEvent.getType().startsWith(WldtEventTypes.AUGMENTATION_FUNCTION_UNREGISTERED_EVENT_TYPE) && wldtEvent.getBody() instanceof AugmentationFunctionRequest) {
+                    if(wldtEvent != null && wldtEvent.getBody() != null && wldtEvent.getType().startsWith(WldtEventTypes.AUGMENTATION_FUNCTION_UNREGISTERED_EVENT_TYPE) && wldtEvent.getBody() instanceof AugmentationFunction) {
                         AugmentationFunctionUnRegistrationWldtEvent augmentationFunctionUnRegistrationWldtEvent = (AugmentationFunctionUnRegistrationWldtEvent) wldtEvent;
                         storage.saveAugmentationFunctionUnregistration(augmentationFunctionUnRegistrationWldtEvent.getBody().getId(),
                                 augmentationFunctionUnRegistrationWldtEvent.getAugmentationHandlerId(),

@@ -437,6 +437,11 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
             if(augmentationFunction.getType().equals(AugmentationFunctionType.STATEFUL) && augmentationFunction instanceof StatefulAugmentationFunction)
                 ((StatefulAugmentationFunction) augmentationFunction).setStatefulAugmentationListener(this);
 
+            // If the Augmentation Function is Stateless, set the listener for the error notification of the Augmentation Function to
+            // the current Handler to allow the notification of the error of the function execution
+            if(augmentationFunction.getType().equals(AugmentationFunctionType.STATELESS) && augmentationFunction instanceof StatelessAugmentationFunction)
+                ((StatelessAugmentationFunction) augmentationFunction).setStatelessAugmentationListener(this);
+
             if(this.augmentationFunctionHashMap.containsKey(augmentationFunction.getId()))
                 throw new AugmentationFunctionException(String.format("Error registering Augmentation Function with id %s: Augmentation Function with the same id already registered !", augmentationFunction.getId()));
             // Add the Augmentation Function to the list of the managed Augmentation Functions by the Handler

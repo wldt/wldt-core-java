@@ -1428,7 +1428,7 @@ public class DefaultWldtStorage extends WldtStorage {
             storageStats.setUpdatedPhysicalAssetDescriptionNotificationStats(getStorageStatsFromMap(updatedPhysicalAssetDescriptionNotificationMap));
             storageStats.setPhysicalRelationshipInstanceCreatedNotificationStats(getStorageStatsFromMap(physicalRelationshipInstanceCreatedMap));
             storageStats.setPhysicalRelationshipInstanceDeletedNotificationStats(getStorageStatsFromMap(physicalRelationshipInstanceDeletedMap));
-            storageStats.setAugmentationFunctionRequestStats(getStorageStatsFromMap(augmentationFunctionErrorMap));
+            storageStats.setAugmentationFunctionErrorStats(getStorageStatsFromMap(augmentationFunctionErrorMap));
             storageStats.setAugmentationFunctionRequestStats(getStorageStatsFromMap(augmentationFunctionRequestMap));
             storageStats.setAugmentationFunctionResultStats(getStorageStatsFromMap(augmentationFunctionResultMap));
             storageStats.setAugmentationFunctionRegistrationStats(getStorageStatsFromMap(augmentationFunctionRegistrationMap));
