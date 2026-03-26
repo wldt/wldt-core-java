@@ -31,8 +31,6 @@ public class DigitalTwinStatePropertyObserverTester {
 
     public DigitalTwinStateManager digitalTwinStateManager = null;
 
-    public DigitalTwinState digitalTwinState = null;
-
     public DigitalTwinStateProperty<String> testProperty1 = null;
 
     private CountDownLatch lock = new CountDownLatch(1);
@@ -54,10 +52,9 @@ public class DigitalTwinStatePropertyObserverTester {
     private void initTestDtState() throws WldtDigitalTwinStateException {
         //Init DigitaTwin State
         digitalTwinStateManager = new DigitalTwinStateManager(DIGITAL_TWIN_ID);
-        digitalTwinState = digitalTwinStateManager.getDigitalTwinState();
     }
 
-    private void createProperty() throws WldtDigitalTwinStatePropertyException, WldtDigitalTwinStatePropertyBadRequestException, WldtDigitalTwinStatePropertyConflictException, WldtDigitalTwinStateException {
+    private void createProperty() throws WldtDigitalTwinStateException {
 
         testProperty1 = new DigitalTwinStateProperty<>(TEST_PROPERTY_KEY_0001, TEST_PROPERTY_VALUE_0001);
         testProperty1.setType(TEST_PROPERTY_TYPE);
@@ -124,7 +121,7 @@ public class DigitalTwinStatePropertyObserverTester {
     }
 
     @Test
-    public void observeStateChanges() throws WldtDigitalTwinStateException, InterruptedException, WldtDigitalTwinStatePropertyException, WldtDigitalTwinStatePropertyBadRequestException, WldtDigitalTwinStatePropertyConflictException, WldtDigitalTwinStatePropertyNotFoundException, EventBusException {
+    public void observeStateChanges() throws WldtDigitalTwinStateException, InterruptedException, WldtDigitalTwinStatePropertyException, EventBusException {
 
         //Init DigitaTwin State
         initTestDtState();
@@ -149,7 +146,7 @@ public class DigitalTwinStatePropertyObserverTester {
         // Check Received Event
         assertNotNull(stateUpdatedReceivedWldtEvent);
         assertEquals(stateUpdatedReceivedWldtEvent.getType(), DigitalTwinStateManager.getStatusUpdatesWldtEventMessageType());
-        assertEquals(stateUpdatedReceivedWldtEvent.getBody(), digitalTwinState);
+        assertEquals(stateUpdatedReceivedWldtEvent.getBody(), digitalTwinStateManager.getDigitalTwinState());
 
         // Check if the property is correctly available in the State
         assertTrue(receivedDigitalTwinStateUpdate.getProperty(TEST_PROPERTY_KEY_0001).isPresent());
@@ -160,9 +157,9 @@ public class DigitalTwinStatePropertyObserverTester {
         assertEquals(receivedPreviousDigitalTwinState, originalDtState);
 
         // Check State Change List
-        assertEquals(receivedDigitalTwinStateChangeList.size(), 1);
-        assertEquals(receivedDigitalTwinStateChangeList.get(0).getOperation(), DigitalTwinStateChange.Operation.OPERATION_ADD);
-        assertEquals(receivedDigitalTwinStateChangeList.get(0).getResourceType(), DigitalTwinStateChange.ResourceType.PROPERTY);
+        assertEquals(1, receivedDigitalTwinStateChangeList.size());
+        assertEquals(DigitalTwinStateChange.Operation.OPERATION_ADD, receivedDigitalTwinStateChangeList.get(0).getOperation());
+        assertEquals(DigitalTwinStateChange.ResourceType.PROPERTY, receivedDigitalTwinStateChangeList.get(0).getResourceType());
         assertEquals(receivedDigitalTwinStateChangeList.get(0).getResource(), testProperty1);
 
         //Remove Subscription for target topic
@@ -170,7 +167,7 @@ public class DigitalTwinStatePropertyObserverTester {
     }
 
     @Test
-    public void observeStateUpdatedProperty() throws WldtDigitalTwinStateException, InterruptedException, WldtDigitalTwinStatePropertyException, WldtDigitalTwinStatePropertyBadRequestException, WldtDigitalTwinStatePropertyConflictException, WldtDigitalTwinStatePropertyNotFoundException, EventBusException {
+    public void observeStateUpdatedProperty() throws WldtDigitalTwinStateException, InterruptedException, WldtDigitalTwinStatePropertyException, EventBusException {
 
         //Init DigitaTwin State
         initTestDtState();
@@ -204,7 +201,7 @@ public class DigitalTwinStatePropertyObserverTester {
         // Check Received Event
         assertNotNull(stateUpdatedReceivedWldtEvent);
         assertEquals(stateUpdatedReceivedWldtEvent.getType(), DigitalTwinStateManager.getStatusUpdatesWldtEventMessageType());
-        assertEquals(stateUpdatedReceivedWldtEvent.getBody(), digitalTwinState);
+        assertEquals(stateUpdatedReceivedWldtEvent.getBody(), digitalTwinStateManager.getDigitalTwinState());
 
         // Check if the property has been correctly updated in the State
         assertTrue(receivedDigitalTwinStateUpdate.getProperty(TEST_PROPERTY_KEY_0001).isPresent());
@@ -215,9 +212,9 @@ public class DigitalTwinStatePropertyObserverTester {
         assertEquals(receivedPreviousDigitalTwinState, originalDtState);
 
         // Check State Change List
-        assertEquals(receivedDigitalTwinStateChangeList.size(), 1);
-        assertEquals(receivedDigitalTwinStateChangeList.get(0).getOperation(), DigitalTwinStateChange.Operation.OPERATION_UPDATE);
-        assertEquals(receivedDigitalTwinStateChangeList.get(0).getResourceType(), DigitalTwinStateChange.ResourceType.PROPERTY);
+        assertEquals(1, receivedDigitalTwinStateChangeList.size());
+        assertEquals(DigitalTwinStateChange.Operation.OPERATION_UPDATE, receivedDigitalTwinStateChangeList.get(0).getOperation());
+        assertEquals(DigitalTwinStateChange.ResourceType.PROPERTY, receivedDigitalTwinStateChangeList.get(0).getResourceType());
         assertEquals(receivedDigitalTwinStateChangeList.get(0).getResource(), updatedProperty);
 
         //Remove Subscription for target topic
@@ -225,7 +222,7 @@ public class DigitalTwinStatePropertyObserverTester {
     }
 
     @Test
-    public void observeStateDeletedProperty() throws WldtDigitalTwinStateException, InterruptedException, WldtDigitalTwinStatePropertyException, WldtDigitalTwinStatePropertyBadRequestException, WldtDigitalTwinStatePropertyConflictException, WldtDigitalTwinStatePropertyNotFoundException, EventBusException {
+    public void observeStateDeletedProperty() throws WldtDigitalTwinStateException, InterruptedException, WldtDigitalTwinStatePropertyException, EventBusException {
 
         //Init DigitaTwin State
         initTestDtState();
@@ -254,7 +251,7 @@ public class DigitalTwinStatePropertyObserverTester {
         // Check Received Event
         assertNotNull(stateUpdatedReceivedWldtEvent);
         assertEquals(stateUpdatedReceivedWldtEvent.getType(), DigitalTwinStateManager.getStatusUpdatesWldtEventMessageType());
-        assertEquals(stateUpdatedReceivedWldtEvent.getBody(), digitalTwinState);
+        assertEquals(stateUpdatedReceivedWldtEvent.getBody(), digitalTwinStateManager.getDigitalTwinState());
 
         // Check if the property has been correctly removed from the State
         assertFalse(receivedDigitalTwinStateUpdate.getProperty(TEST_PROPERTY_KEY_0001).isPresent());
@@ -264,9 +261,9 @@ public class DigitalTwinStatePropertyObserverTester {
         assertEquals(receivedPreviousDigitalTwinState, originalDtState);
 
         // Check State Change List
-        assertEquals(receivedDigitalTwinStateChangeList.size(), 1);
-        assertEquals(receivedDigitalTwinStateChangeList.get(0).getOperation(), DigitalTwinStateChange.Operation.OPERATION_REMOVE);
-        assertEquals(receivedDigitalTwinStateChangeList.get(0).getResourceType(), DigitalTwinStateChange.ResourceType.PROPERTY);
+        assertEquals(1, receivedDigitalTwinStateChangeList.size());
+        assertEquals(DigitalTwinStateChange.Operation.OPERATION_REMOVE, receivedDigitalTwinStateChangeList.get(0).getOperation());
+        assertEquals(DigitalTwinStateChange.ResourceType.PROPERTY, receivedDigitalTwinStateChangeList.get(0).getResourceType());
         assertEquals(receivedDigitalTwinStateChangeList.get(0).getResource(), testProperty1);
 
         //Remove Subscription for target topic
@@ -274,7 +271,7 @@ public class DigitalTwinStatePropertyObserverTester {
     }
 
     @Test
-    public void observePropertyValueUpdated() throws WldtDigitalTwinStateException, InterruptedException, WldtDigitalTwinStatePropertyException, WldtDigitalTwinStatePropertyBadRequestException, WldtDigitalTwinStatePropertyConflictException, WldtDigitalTwinStatePropertyNotFoundException, EventBusException {
+    public void observePropertyValueUpdated() throws WldtDigitalTwinStateException, InterruptedException, WldtDigitalTwinStatePropertyException, EventBusException {
 
         //Init DigitaTwin State
         initTestDtState();
@@ -308,7 +305,7 @@ public class DigitalTwinStatePropertyObserverTester {
         // Check Received Event
         assertNotNull(stateUpdatedReceivedWldtEvent);
         assertEquals(stateUpdatedReceivedWldtEvent.getType(), DigitalTwinStateManager.getStatusUpdatesWldtEventMessageType());
-        assertEquals(stateUpdatedReceivedWldtEvent.getBody(), digitalTwinState);
+        assertEquals(stateUpdatedReceivedWldtEvent.getBody(), digitalTwinStateManager.getDigitalTwinState());
 
         // Check if the property has been correctly updated in the State
         assertTrue(receivedDigitalTwinStateUpdate.getProperty(TEST_PROPERTY_KEY_0001).isPresent());
@@ -319,9 +316,9 @@ public class DigitalTwinStatePropertyObserverTester {
         assertEquals(receivedPreviousDigitalTwinState, originalDtState);
 
         // Check State Change List
-        assertEquals(receivedDigitalTwinStateChangeList.size(), 1);
-        assertEquals(receivedDigitalTwinStateChangeList.get(0).getOperation(), DigitalTwinStateChange.Operation.OPERATION_UPDATE_VALUE);
-        assertEquals(receivedDigitalTwinStateChangeList.get(0).getResourceType(), DigitalTwinStateChange.ResourceType.PROPERTY_VALUE);
+        assertEquals(1, receivedDigitalTwinStateChangeList.size());
+        assertEquals(DigitalTwinStateChange.Operation.OPERATION_UPDATE_VALUE, receivedDigitalTwinStateChangeList.get(0).getOperation());
+        assertEquals(DigitalTwinStateChange.ResourceType.PROPERTY_VALUE, receivedDigitalTwinStateChangeList.get(0).getResourceType());
         assertEquals(receivedDigitalTwinStateChangeList.get(0).getResource(), updatedProperty);
 
         //Remove Subscription for target topic

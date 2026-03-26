@@ -2,9 +2,7 @@ package it.wldt.core.state.action;
 
 import it.wldt.core.state.DigitalTwinStateManager;
 import it.wldt.core.state.DigitalTwinStateAction;
-import it.wldt.exception.WldtDigitalTwinStateActionConflictException;
 import it.wldt.exception.WldtDigitalTwinStateActionException;
-import it.wldt.exception.WldtDigitalTwinStateActionNotFoundException;
 import it.wldt.exception.WldtDigitalTwinStateException;
 
 import java.util.Optional;
@@ -23,11 +21,20 @@ public class DigitalTwinStateActionCRUDTester {
     private final static String ACTION_CONTENT_TYPE = "application/json";
     private final static String ACTION_CONTENT_TYPE_UPDATED = "text/plain";
 
+    public DigitalTwinStateManager digitalTwinStateManager = null;
+
+    private void createDigitalTwinStateManager() throws WldtDigitalTwinStateException {
+        if(digitalTwinStateManager == null) {
+            //Init DigitaTwin State Manager
+            digitalTwinStateManager = new DigitalTwinStateManager(DIGITAL_TWIN_ID);
+        }
+    }
+
 
     @Test
     public void enableAction() throws WldtDigitalTwinStateException, WldtDigitalTwinStateActionException {
 
-        DigitalTwinStateManager digitalTwinStateManager = new DigitalTwinStateManager(DIGITAL_TWIN_ID);
+        createDigitalTwinStateManager();
 
         DigitalTwinStateAction action = new DigitalTwinStateAction(ACTION_KEY_1, ACTION_TYPE, ACTION_CONTENT_TYPE);
 
@@ -43,9 +50,9 @@ public class DigitalTwinStateActionCRUDTester {
     }
 
     @Test
-    public void updateAction() throws WldtDigitalTwinStateActionConflictException, WldtDigitalTwinStateException, WldtDigitalTwinStateActionException, WldtDigitalTwinStateActionNotFoundException {
+    public void updateAction() throws WldtDigitalTwinStateException, WldtDigitalTwinStateActionException {
 
-        DigitalTwinStateManager digitalTwinStateManager = new DigitalTwinStateManager(DIGITAL_TWIN_ID);
+        createDigitalTwinStateManager();
 
         DigitalTwinStateAction action = new DigitalTwinStateAction(ACTION_KEY_1, ACTION_TYPE, ACTION_CONTENT_TYPE);
 
@@ -70,9 +77,9 @@ public class DigitalTwinStateActionCRUDTester {
     }
 
     @Test
-    public void disableAction() throws WldtDigitalTwinStateActionConflictException, WldtDigitalTwinStateException, WldtDigitalTwinStateActionException, WldtDigitalTwinStateActionNotFoundException {
+    public void disableAction() throws WldtDigitalTwinStateException, WldtDigitalTwinStateActionException {
 
-        DigitalTwinStateManager digitalTwinStateManager = new DigitalTwinStateManager(DIGITAL_TWIN_ID);
+        createDigitalTwinStateManager();
 
         DigitalTwinStateAction action = new DigitalTwinStateAction(ACTION_KEY_1, ACTION_TYPE, ACTION_CONTENT_TYPE);
 
@@ -96,9 +103,9 @@ public class DigitalTwinStateActionCRUDTester {
     }
 
     @Test
-    public void completeActionManagement() throws WldtDigitalTwinStateActionConflictException, WldtDigitalTwinStateException, WldtDigitalTwinStateActionException, WldtDigitalTwinStateActionNotFoundException {
+    public void completeActionManagement() throws WldtDigitalTwinStateException, WldtDigitalTwinStateActionException {
 
-        DigitalTwinStateManager digitalTwinStateManager = new DigitalTwinStateManager(DIGITAL_TWIN_ID);
+        createDigitalTwinStateManager();
 
         DigitalTwinStateAction action = new DigitalTwinStateAction(ACTION_KEY_1, ACTION_TYPE, ACTION_CONTENT_TYPE);
 
@@ -126,6 +133,7 @@ public class DigitalTwinStateActionCRUDTester {
         digitalTwinStateManager.commitStateTransaction();
 
         assertTrue(digitalTwinStateManager.getDigitalTwinState().containsAction(ACTION_KEY_2));
+        assertTrue(digitalTwinStateManager.getDigitalTwinState().getAction(ACTION_KEY_2).isPresent());
         assertEquals(ACTION_CONTENT_TYPE_UPDATED, digitalTwinStateManager.getDigitalTwinState().getAction(ACTION_KEY_2).get().getContentType());
         assertEquals(ACTION_CONTENT_TYPE, digitalTwinStateManager.getDigitalTwinState().getAction(ACTION_KEY_1).get().getContentType());
         assertEquals(2, digitalTwinStateManager.getDigitalTwinState().getActionList().get().size());
