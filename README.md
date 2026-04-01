@@ -4,6 +4,11 @@
 
 # 🤖 White Label Digital Twin (WLDT) Framework
 
+[![Build Status](https://img.shields.io/badge/github-passing-green?logo=github)](https://github.com/wldt/wldt-core-java/actions)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.wldt/wldt-core)](https://central.sonatype.com/artifact/io.github.wldt/wldt-core)
+[![Documentation](https://img.shields.io/badge/Docs-Read-blue.svg?logo=ReadtheDocs)](https://central.sonatype.com/artifact/io.github.wldt/wldt-core)
+[![Join the chat](https://img.shields.io/badge/Chat-Slack-red.svg?logo=GoogleMessages)](https://join.slack.com/t/wldt-digitaltwin-lib/shared_invite/zt-2eq7zibzo-a1idNCEZ3HcaqsTbWKbu8Q)
+
 ```text
 A Digital Twin (DT) is a comprehensive software representation of an individual physical asset (PA). 
 It includes the properties, conditions, relationships and behavior(s) of the real-life object through models and data. 
