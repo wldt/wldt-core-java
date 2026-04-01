@@ -111,6 +111,11 @@ public class TestObserverListener implements IWldtEventObserverListener {
     }
 
     @Override
+    public void onAugmentationFunctionEvent(WldtEvent<?> wldtEvent) {
+
+    }
+
+    @Override
     public void onLifeCycleEvent(WldtEvent<?> wldtEvent) {
         handleNewEvent(this.lifeCycleEvents, wldtEvent);
     }

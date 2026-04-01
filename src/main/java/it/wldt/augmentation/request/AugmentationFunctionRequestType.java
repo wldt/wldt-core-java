@@ -18,15 +18,30 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
-package it.wldt.augmentation;
+package it.wldt.augmentation.request;
 
 /**
- * @author Marco Picone, Ph.D. - picone.m@gmail.com
+ * Enum representing the types of requests that can be made for an augmentation function. This enum defines the possible
+ * actions that can be performed on an augmentation function, such as starting the function, stopping it, or executing it.
+ * Each enum constant is associated with a string value that represents the type of request, allowing for easy
+ * identification and handling of different request types within the system.
  */
-public interface AugmentationFunctionListener<T> {
+public enum AugmentationFunctionRequestType {
+    START("START"),
+    STOP("STOP"),
+    EXECUTE("EXECUTE");
 
-    public void onFunctionResult(T result);
+    private String value;
 
-    public void onFunctionError(String errorMessage);
+    private AugmentationFunctionRequestType(String value) {
+        this.value = value;
+    }
 
+    public String getValue() {
+        return value;
+    }
+
+    public void setValue(String value) {
+        this.value = value;
+    }
 }

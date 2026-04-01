@@ -18,30 +18,19 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
-package it.wldt.augmentation;
+package it.wldt.exception;
 
 /**
- * @author Marco Picone, Ph.D. - picone.m@gmail.com
+ * Author:
+ *      Marco Picone, Ph.D. (picone.m@gmail.com)
+ * Date: 09/06/2020
+ *
+ * Project: White Label Digital Twin Java Framework - (whitelabel-digitaltwin)
  */
-public class AverageHrAugmentationFunction extends AugmentationFunction<Double>{
+public class AugmentationFunctionException extends Exception {
 
-    private int secTimeWindow;
-
-    public AverageHrAugmentationFunction(String id, int secTimeWindow, AugmentationFunctionListener<Double> listener) {
-        super(id, listener);
-        this.secTimeWindow = secTimeWindow;
+    public AugmentationFunctionException(String s) {
+        super(s);
     }
 
-    @Override
-    public Double execute() {
-        return 25.0;
-    }
-
-    public int getSecTimeWindow() {
-        return secTimeWindow;
-    }
-
-    public void setSecTimeWindow(int secTimeWindow) {
-        this.secTimeWindow = secTimeWindow;
-    }
 }

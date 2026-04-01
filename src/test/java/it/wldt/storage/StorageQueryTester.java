@@ -163,6 +163,11 @@ public class StorageQueryTester {
                     }
 
                     @Override
+                    public void onAugmentationFunctionEvent(WldtEvent<?> wldtEvent) {
+
+                    }
+
+                    @Override
                     public void onLifeCycleEvent(WldtEvent<?> wldtEvent) {
 
                     }

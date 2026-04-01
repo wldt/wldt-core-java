@@ -21,6 +21,7 @@
 package it.wldt.core.model;
 
 import it.wldt.adapter.physical.PhysicalAssetDescription;
+import it.wldt.augmentation.AugmentationManager;
 import it.wldt.core.engine.LifeCycleListener;
 import it.wldt.core.state.DigitalTwinState;
 import it.wldt.core.state.DigitalTwinStateManager;
@@ -46,8 +47,6 @@ public class DigitalTwinKernel extends DigitalTwinWorker implements LifeCycleLis
 
     private static final WldtLogger logger = WldtLoggerProvider.getLogger(DigitalTwinKernel.class);
 
-    private String digitalTwinId = null;
-
     private final DigitalTwinModel digitalTwinModel;
 
     /**
@@ -63,7 +62,8 @@ public class DigitalTwinKernel extends DigitalTwinWorker implements LifeCycleLis
                              DigitalTwinStateManager digitalTwinStateManager,
                              DigitalTwinModel digitalTwinModel,
                              StorageManager storageManager,
-                             ResourceManager resourceManager) throws KernelException, WldtWorkerException {
+                             ResourceManager resourceManager,
+                             AugmentationManager augmentationManager) throws KernelException, WldtWorkerException {
 
         super();
 
@@ -76,8 +76,14 @@ public class DigitalTwinKernel extends DigitalTwinWorker implements LifeCycleLis
 
             //Init the Shadowing Function with the current Digital Twin State and call the associated onCreate method
             this.digitalTwinModel = digitalTwinModel;
-            this.digitalTwinModel.init(digitalTwinStateManager, storageManager, resourceManager);
-            this.digitalTwinModel.onCreate();
+
+            // Old init without the Augmentation Manager of the Digital Twin Engine
+            //this.digitalTwinModel.init(digitalTwinStateManager, storageManager, resourceManager);
+            // Init with the Augmentation Manager of the Digital Twin Engine
+            this.digitalTwinModel.init(digitalTwinStateManager,
+                 storageManager,
+                 resourceManager,
+                 augmentationManager);
         }
         else {
             logger.error("KERNEL ERROR ! Shadowing Function = NULL !");
@@ -93,7 +99,8 @@ public class DigitalTwinKernel extends DigitalTwinWorker implements LifeCycleLis
 
         //Stop Shadowing Function
         if(this.digitalTwinModel != null)
-            this.digitalTwinModel.onStop();
+            // Notify Digital Twin Model the stop of the Kernel and consequently of the operation of the Model
+            this.digitalTwinModel.stop();
 
         logger.info("Kernel Correctly Stopped !");
     }
@@ -101,7 +108,8 @@ public class DigitalTwinKernel extends DigitalTwinWorker implements LifeCycleLis
     @Override
     public void onWorkerStart() throws WldtRuntimeException {
         try {
-            this.digitalTwinModel.onStart();
+            // Notify Digital Twin Model the start of the Kernel and consequently of the operation of the Model
+            this.digitalTwinModel.start();
         } catch (Exception e) {
             String errorMessage = String.format("Shadowing Function Error Observing Physical Event: %s", e.getLocalizedMessage());
             logger.error(errorMessage);

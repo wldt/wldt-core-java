@@ -25,6 +25,7 @@ import it.wldt.adapter.digital.DigitalAdapterListener;
 import it.wldt.adapter.physical.PhysicalAdapter;
 import it.wldt.adapter.physical.PhysicalAdapterListener;
 import it.wldt.adapter.physical.PhysicalAssetDescription;
+import it.wldt.augmentation.AugmentationManager;
 import it.wldt.core.event.DefaultWldtEventLogger;
 import it.wldt.core.event.EventManager;
 import it.wldt.core.event.WldtEventBus;
@@ -95,6 +96,12 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
      * List of Digital Adapters
      */
     private List<DigitalAdapter<?>> digitalAdapterList;
+
+    /**
+     * Augmentation Manager for the Digital Twin to manage different Augmentation Function Handlers
+     * in charge of executing the Augmentation Functions associated to the Digital Twin
+     */
+    private AugmentationManager augmentationManager = null;
 
     /**
      * Map of PhysicalAssetDescription associated to each Physical Adapter
@@ -257,6 +264,12 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
         // Initialize the Resource Manager of the current Digital Twin instance
         this.resourceManager = new ResourceManager(this.digitalTwinId);
 
+        // Initialize the Augmentation Manager of the current Digital Twin instance
+        this.augmentationManager = new AugmentationManager(this.digitalTwinId);
+
+        // Add the Augmentation Manager as a LifeCycle Listener
+        addLifeCycleListener(this.augmentationManager);
+
         //Init DT Initial Life Cycle Phase
         this.currentLifeCycleState = LifeCycleState.NONE;
 
@@ -271,11 +284,13 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
         this.digitalTwinModel.setShadowingModelListener(this);
 
         // Initialize the Digital Twin Model with digital twin ID, state manager, shadowing function, and storage manager
-        this.digitalTwinKernel = new DigitalTwinKernel(this.digitalTwinId,
+        this.digitalTwinKernel = new DigitalTwinKernel(
+                this.digitalTwinId,
                 this.digitalTwinStateManager,
                 this.digitalTwinModel,
                 this.storageManager,
-                this.resourceManager);
+                this.resourceManager,
+                this.augmentationManager);
 
         //Save the Model Engine as Digital Twin Life Cycle Listener
         addLifeCycleListener(this.digitalTwinKernel);
@@ -674,6 +689,11 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
      */
     protected void startLifeCycle() throws WldtConfigurationException {
 
+        // Start the Augmentation Function Manager
+        // This component should be ready before the Model since it can be used immediately by the Model Engine
+        // to execute Augmentation Functions
+        this.augmentationManager.startAugmentationManager();
+
         // Start Executing as first component the Model Engine
         executeModelEngine();
 
@@ -756,6 +776,12 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
                 this.managementInterfaceThread = null;
                 this.managementInterface.onWorkerStop();
             }
+
+            // Stop the Augmentation Function Handlers
+            this.augmentationManager.stopAugmentationManager();
+
+            // Remove Augmentation Manager as a LifeCycle Listener
+            removeLifeCycleListener(this.augmentationManager);
 
         } catch (Exception e){
             logger.error("ERROR Stopping DT LifeCycle ! Error: {}", e.getLocalizedMessage());
@@ -1004,6 +1030,14 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
         }catch (Exception e){
             logger.error("Error setting Management Interface: {}", e.getLocalizedMessage());
         }
+    }
+
+    /**
+     * Returns the Augmentation Manager of the current Digital Twin.
+     * @return AugmentationManager instance associated with the Digital Twin.
+     */
+    public AugmentationManager getAugmentationManager() {
+        return augmentationManager;
     }
 
     /**

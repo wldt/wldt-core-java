@@ -1,5 +1,7 @@
 package it.wldt.storage;
 
+import it.wldt.augmentation.handler.AugmentationFunctionHandler;
+import it.wldt.augmentation.handler.DefaultAugmentationFunctionHandler;
 import it.wldt.core.adapter.physical.TestPhysicalAdapter;
 import it.wldt.core.engine.DigitalTwin;
 import it.wldt.core.engine.DigitalTwinEngine;
@@ -33,6 +35,8 @@ public class StorageManagerTester {
 
     private static final String DEFAULT_STORAGE_ID = "default-storage";
 
+    private static final String TEST_AUGMENTATION_HANDLER_ID = "test-augmentation-handler";
+
     private DigitalTwin digitalTwin = null;
 
     private DigitalTwinEngine digitalTwinEngine = null;
@@ -42,7 +46,7 @@ public class StorageManagerTester {
     private DemoPhysicalAdapter physicalAdapter = null;
 
     @BeforeEach
-    public void setUp() throws KernelException, WldtRuntimeException, EventBusException, WldtConfigurationException, WldtWorkerException, WldtDigitalTwinStateException, WldtEngineException, StorageException {
+    public void setUp() throws KernelException, WldtRuntimeException, EventBusException, WldtConfigurationException, WldtWorkerException, WldtDigitalTwinStateException, WldtEngineException, StorageException, AugmentationFunctionException {
 
         logger.info("Setting up Test Environment ...");
 
@@ -69,6 +73,12 @@ public class StorageManagerTester {
         );
 
         digitalTwin.addDigitalAdapter(digitalAdapter);
+
+        // Create an instance of the Augmentation Manager to test the augmentation functions
+        AugmentationFunctionHandler myAugmentationFunctionHandler = new DefaultAugmentationFunctionHandler(TEST_AUGMENTATION_HANDLER_ID);
+
+        // Set the Augmentation Manager to the specific Digital Twin to test the augmentation functions
+        digitalTwin.getAugmentationManager().addAugmentationFunctionHandler(myAugmentationFunctionHandler);
 
         // Register DT to Shared Test Metrics
         SharedTestMetrics.getInstance().registerDigitalTwin(TEST_DIGITAL_TWIN_ID);

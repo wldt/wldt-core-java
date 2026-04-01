@@ -39,6 +39,11 @@ public enum QueryResourceType {
     UPDATED_PAD_NOTIFICATION("storage_updated_pad_notification"),
     PHYSICAL_RELATIONSHIP_INSTANCE_CREATED_NOTIFICATION("storage_physical_relationship_instance_created_notification"),
     PHYSICAL_RELATIONSHIP_INSTANCE_DELETED_NOTIFICATION("storage_physical_relationship_instance_deleted_notification"),
+    AUGMENTATION_FUNCTION_ERROR("storage_augmentation_function_error"),
+    AUGMENTATION_FUNCTION_REQUEST("storage_augmentation_function_request"),
+    AUGMENTATION_FUNCTION_RESULT("storage_augmentation_function_result"),
+    AUGMENTATION_FUNCTION_REGISTRATION("storage_augmentation_function_registration"),
+    AUGMENTATION_FUNCTION_UNREGISTRATION("storage_augmentation_function_unregistration"),
     LIFE_CYCLE_EVENT("storage_life_cycle_event"),
     STORAGE_STATS("storage_stats");
 

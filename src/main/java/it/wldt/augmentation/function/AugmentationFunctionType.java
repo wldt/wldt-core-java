@@ -18,41 +18,33 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
-package it.wldt.augmentation;
+package it.wldt.augmentation.function;
 
 /**
- * @author Marco Picone, Ph.D. - picone.m@gmail.com
+ * Authors:
+ *          Marco Picone, Ph.D. (picone.m@gmail.com)
+ * Date: 12/02/2026
+ * This Enum define the type of augmentation function associate in particular to the type execution
+ * working in Stateless or Stateful mode. In Stateless mode the augmentation function is executed one shot,
+ * while in Stateful mode the augmentation function is executed in a loop until the end of the execution
+ * or once it is explicitly stopped.
  */
-public abstract class AugmentationFunction<T> implements Runnable {
+public enum AugmentationFunctionType {
 
-    private String id;
+    STATELESS("STATELESS"),
+    STATEFUL("STATEFUL");
 
-    private AugmentationFunctionListener<T> listener;
+    private String value;
 
-    private AugmentationFunction(){
-
+    private AugmentationFunctionType(String value) {
+        this.value = value;
     }
 
-    public AugmentationFunction(String id, AugmentationFunctionListener<T> listener) {
-        this.id = id;
-        this.listener = listener;
+    public String getValue() {
+        return value;
     }
 
-    @Override
-    public void run() {
-        try{
-
-            T result = execute();
-            if(this.listener != null)
-                this.listener.onFunctionResult(result);
-
-        }catch (Exception e){
-            if(this.listener != null)
-                this.listener.onFunctionError(e.getLocalizedMessage());
-            //TODO Else + Log
-
-        }
+    public void setValue(String value) {
+        this.value = value;
     }
-
-    public abstract T execute();
 }

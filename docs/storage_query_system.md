@@ -32,7 +32,7 @@ The main module of the Storage Layer is the one associated to Storage Capabiliti
         * Physical Asset Action Request storage and retrieval;
         * Physical Asset Event Notification storage and retrieval;
     * Each WldtStorage instance can be configured (using the right constructor method) to:
-        * Observe all Wldt events (`stateEvents`,  `physicalAssetEvents`,  `physicalAssetActionEvents`,  `physicalAssetDescriptionEvents`,  `digitalActionEvents`,  `lifeCycleEvents`)
+        * Observe all Wldt events (`stateEvents`,  `physicalAssetEvents`,  `physicalAssetActionEvents`,  `physicalAssetDescriptionEvents`,  `digitalActionEvents`,  `lifeCycleEvents`, `augmentationFunctionEvents`)
         * Filter only for specific class of events
         * Once the WldtStorage has been properly configured to receive target events the `StorageManager` automatically save information of interest for that specific storage. For example we can have a `StorageA` (e.g, REDIS) configured to receive all the generated events and a `StorageB` (e.g., MongoDB) in charge of saving only DT's state variation over time.
     * The default implementation of the `WldtStorage` is the class `DefaultWldtStorage`. This class provides a simple storage solution for digital twin states,  digital twin state changes, physical asset events, and digital twin events. The class provides **ONLY** a memory based  approach for storage using ArrayLists and HashMaps and more advanced solution should be implemented for production oriented Digital Twins for examples using external storage and memorization solutions.
@@ -96,6 +96,32 @@ The main module of the Storage Layer is the one associated to Storage Capabiliti
                 * `getPhysicalAssetRelationshipInstanceDeletedNotificationCount()`: Get the number of Physical Asset Relationship Instance Updated Event
                 * `getPhysicalAssetRelationshipInstanceDeletedNotificationInTimeRange(long startTimestampMs, long endTimestampMs)`: Get the Physical Asset Relationship Instance Updated Event in the specified time range
                 * `getPhysicalAssetRelationshipInstanceDeletedNotificationInRange(int startIndex, int endIndex)`: Get the Physical Asset Relationship Instance Updated Event in the specified range of indices
+        * **Augmentation Function**:
+            * Error
+                * `saveAugmentationFunctionError(String augmentationFunctionId, String augmentationFunctionHandlerId, AugmentationFunctionError augmentationFunctionError)`: Save the Augmentation Function Error
+                * `getAugmentationFunctionErrorCount()`: Get the number of errors occurred during the execution of the Augmentation Functions
+                * `getAugmentationFunctionErrorsInTimeRange(long startTimestampMs, long endTimestampMs)`: Get the errors in the specified time range
+                * `getAugmentationFunctionErrorsInRange(int startIndex, int endIndex)`: Get the errors in the specified range of indices
+            * Request
+                * `saveAugmentationFunctionRequest(String augmentationFunctionId, String augmentationFunctionHandlerId, AugmentationFunctionRequest augmentationFunctionRequest)`: Save the Augmentation Function Request
+                * `getAugmentationFunctionRequestCount()`: Get the number of Augmentation Function Requests stored
+                * `getAugmentationFunctionRequestInTimeRange(long startTimestampMs, long endTimestampMs)`: Get the requests in the specified time range
+                * `getAugmentationFunctionRequestInRange(int startIndex, int endIndex)`: Get the requests in the specified range of indices
+            * Result
+                * `saveAugmentationFunctionResult(String augmentationFunctionId, String augmentationFunctionHandlerId, AugmentationFunctionResult<?> augmentationFunctionResult)`: Save the Augmentation Function Result
+                * `getAugmentationFunctionResultCount()`: Get the number of Augmentation Function Results stored
+                * `getAugmentationFunctionResultInTimeRange(long startTimestampMs, long endTimestampMs)`: Get the results in the specified time range
+                * `getAugmentationFunctionResultInRange(int startIndex, int endIndex)`: Get the results in the specified range of indices
+            * Registration
+                * `saveAugmentationFunctionRegistration(String augmentationFunctionId, String augmentationFunctionHandlerId, AugmentationFunctionType augmentationFunctionType)`: Save the Augmentation Function Registration
+                * `getAugmentationFunctionRegistrationCount()`: Get the number of Augmentation Function Registrations stored
+                * `getAugmentationFunctionRegistrationInTimeRange(long startTimestampMs, long endTimestampMs)`: Get the registrations in the specified time range
+                * `getAugmentationFunctionRegistrationInRange(int startIndex, int endIndex)`: Get the registrations in the specified range of indices
+            * Unregistration
+                * `saveAugmentationFunctionUnregistration(String augmentationFunctionId, String augmentationFunctionHandlerId, AugmentationFunctionType augmentationFunctionType)`: Save the Augmentation Function Unregistration
+                * `getAugmentationFunctionUnregistrationCount()`: Get the number of Augmentation Function Unregistrations stored
+                * `getAugmentationFunctionUnregistrationInTimeRange(long startTimestampMs, long endTimestampMs)`: Get the unregistrations in the specified time range
+                * `getAugmentationFunctionUnregistrationInRange(int startIndex, int endIndex)`: Get the unregistrations in the specified range of indices
 
 Some examples of usage for the Storage Layer are the following:
 
@@ -143,7 +169,7 @@ myRedisStorage.setRedisConfiguration(myRedisConfiguration);
 digitalTwin.getStorageManager().putStorage(myRedisStorage);
 
 // Create a new MongoDbWldtStorage instance using the default implementation and observing only State and LifeCycle Events
-MongoDbWldtStorage myMongoDbStorage = new MongoDbWldtStorage("mongo_db_storage", true, false, false, false, false, true);
+MongoDbWldtStorage myMongoDbStorage = new MongoDbWldtStorage("mongo_db_storage", true, false, false, false, false, true, false);
 myMongoDbStorage.setMongoDbConfiguration(myMongoDbConfiguration);
 
 // Add the new MongoDb Storage Instance to the Digital Twin Storage Manager 
@@ -240,6 +266,26 @@ The main classes associated to the Query System are the following:
         - SAMPLE_RANGE
         - COUNT
         - LAST_VALUE
+    - AUGMENTATION_FUNCTION_ERROR
+        - TIME_RANGE
+        - SAMPLE_RANGE
+        - COUNT
+    - AUGMENTATION_FUNCTION_REQUEST
+        - TIME_RANGE
+        - SAMPLE_RANGE
+        - COUNT
+    - AUGMENTATION_FUNCTION_RESULT
+        - TIME_RANGE
+        - SAMPLE_RANGE
+        - COUNT
+    - AUGMENTATION_FUNCTION_REGISTRATION
+        - TIME_RANGE
+        - SAMPLE_RANGE
+        - COUNT
+    - AUGMENTATION_FUNCTION_UNREGISTRATION
+        - TIME_RANGE
+        - SAMPLE_RANGE
+        - COUNT
     - STORAGE_STATS
         - LAST_VALUE
 - `QueryExecutor`: This class represents the Query Executor used to execute queries on the storage system supporting both synchronous and asynchronous query execution. Internally is implemented through an event-based mechanism to handle the query request and response

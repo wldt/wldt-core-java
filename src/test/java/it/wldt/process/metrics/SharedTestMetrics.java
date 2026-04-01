@@ -2,6 +2,9 @@ package it.wldt.process.metrics;
 
 import it.wldt.adapter.physical.event.PhysicalAssetEventWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetPropertyWldtEvent;
+import it.wldt.augmentation.error.AugmentationFunctionError;
+import it.wldt.augmentation.function.AugmentationFunction;
+import it.wldt.augmentation.result.AugmentationFunctionResult;
 import it.wldt.core.state.DigitalTwinState;
 import it.wldt.core.state.DigitalTwinStateEventNotification;
 import it.wldt.log.WldtLogger;
@@ -48,6 +51,17 @@ public class SharedTestMetrics {
     // the resourceId and the value is the subResourceId
     private Map<String, Map<String, String>> managedResourceNotificationMap;
 
+    // DT Augmentation Function Result Notification Map
+    private Map<String, Map<String, List<List<AugmentationFunctionResult<?>>>>> augmentationFunctionResultNotificationMap;
+
+    // Registration Augmentation Function Callbacks for each Handler
+    private Map<String, Map<String, List<AugmentationFunction>>> augmentationFunctionRegistrationCallbackMap;
+
+    // Registration Augmentation Function Callbacks for each Handler
+    private Map<String, Map<String, List<AugmentationFunction>>> augmentationFunctionUnRegistrationCallbackMap;
+
+    private Map<String, Map<String, List<AugmentationFunctionError>>> augmentationFunctionErrorNotificationMap;
+
     private SharedTestMetrics(){
         logger.info("SharedTestMetrics Constructor Called !");
         init();
@@ -71,6 +85,10 @@ public class SharedTestMetrics {
         this.digitalAdapterStateUpdateMap = new HashMap<>();
         this.resourceManagerNotificationMap = new HashMap<>();
         this.managedResourceNotificationMap = new HashMap<>();
+        this.augmentationFunctionResultNotificationMap = new HashMap<>();
+        this.augmentationFunctionRegistrationCallbackMap = new HashMap<>();
+        this.augmentationFunctionUnRegistrationCallbackMap = new HashMap<>();
+        this.augmentationFunctionErrorNotificationMap = new HashMap<>();
     }
 
     public void registerDigitalTwin(String digitalTwinId){
@@ -83,6 +101,10 @@ public class SharedTestMetrics {
         this.digitalAdapterStateUpdateMap.put(digitalTwinId, new ArrayList<>());
         this.resourceManagerNotificationMap.put(digitalTwinId, new ArrayList<>());
         this.managedResourceNotificationMap.put(digitalTwinId, new HashMap<>());
+        this.augmentationFunctionResultNotificationMap.put(digitalTwinId, new HashMap<>());
+        this.augmentationFunctionRegistrationCallbackMap.put(digitalTwinId, new HashMap<>());
+        this.augmentationFunctionUnRegistrationCallbackMap.put(digitalTwinId, new HashMap<>());
+        this.augmentationFunctionErrorNotificationMap.put(digitalTwinId, new HashMap<>());
     }
 
     public void unRegisterDigitalTwin(String digitalTwinId){
@@ -95,6 +117,10 @@ public class SharedTestMetrics {
         this.digitalAdapterStateUpdateMap.remove(digitalTwinId);
         this.resourceManagerNotificationMap.remove(digitalTwinId);
         this.managedResourceNotificationMap.remove(digitalTwinId);
+        this.augmentationFunctionResultNotificationMap.remove(digitalTwinId);
+        this.augmentationFunctionRegistrationCallbackMap.remove(digitalTwinId);
+        this.augmentationFunctionUnRegistrationCallbackMap.remove(digitalTwinId);
+        this.augmentationFunctionErrorNotificationMap.remove(digitalTwinId);
     }
 
     public void resetMetrics(){
@@ -109,6 +135,10 @@ public class SharedTestMetrics {
         this.digitalAdapterStateUpdateMap.clear();
         this.resourceManagerNotificationMap.clear();
         this.managedResourceNotificationMap.clear();
+        this.augmentationFunctionResultNotificationMap.clear();
+        this.augmentationFunctionRegistrationCallbackMap.clear();
+        this.augmentationFunctionUnRegistrationCallbackMap.clear();
+        this.augmentationFunctionErrorNotificationMap.clear();
 
         init();
     }
@@ -143,6 +173,78 @@ public class SharedTestMetrics {
 
     public void addManagedResourceNotification(String digitalTwinId, String resourceId, String subResourceId){
         this.managedResourceNotificationMap.get(digitalTwinId).put(resourceId, subResourceId);
+    }
+
+    public void addAugmentationFunctionRegistrationCallback(String digitalTwinId,
+                                                            String augmentationFunctionHandlerId,
+                                                            AugmentationFunction augmentationFunction){
+        // If the initial list of augmentation function registration callbacks for the specific augmentation function handler is not present, create a new one
+        if(!this.augmentationFunctionRegistrationCallbackMap.get(digitalTwinId).containsKey(augmentationFunctionHandlerId)){
+            this.augmentationFunctionRegistrationCallbackMap.get(digitalTwinId).put(augmentationFunctionHandlerId, new ArrayList<>());
+        }
+
+        // Save the augmentation function registration callback in the map
+        this.augmentationFunctionRegistrationCallbackMap.get(digitalTwinId).get(augmentationFunctionHandlerId).add(augmentationFunction);
+    }
+
+    public void addAugmentationFunctionUnRegistrationCallback(String digitalTwinId,
+                                                            String augmentationFunctionHandlerId,
+                                                            AugmentationFunction augmentationFunction){
+        // If the initial list of augmentation function unregistration callbacks for the specific augmentation function handler is not present, create a new one
+        if(!this.augmentationFunctionUnRegistrationCallbackMap.get(digitalTwinId).containsKey(augmentationFunctionHandlerId)){
+            this.augmentationFunctionUnRegistrationCallbackMap.get(digitalTwinId).put(augmentationFunctionHandlerId, new ArrayList<>());
+        }
+
+        // Save the augmentation function unregistration callback in the map
+        this.augmentationFunctionUnRegistrationCallbackMap.get(digitalTwinId).get(augmentationFunctionHandlerId).add(augmentationFunction);
+    }
+
+    public void addAugmentationFunctionResultNotification(String digitalTwinId,
+                                                          String augmentationFunctionHandlerId,
+                                                          String augmentationFunctionId,
+                                                          List<AugmentationFunctionResult<?>> augmentationFunctionResult){
+
+        // Concatenate the augmentation function handler id and the augmentation function id to create a
+        // unique key for the augmentation function result notification map
+        String augmentationInternalId = String.format("%s.%s", augmentationFunctionHandlerId, augmentationFunctionId);
+
+        // If the initial list of augmentation function results for the specific augmentation function is not present, create a new one
+        if(!this.augmentationFunctionResultNotificationMap.get(digitalTwinId).containsKey(augmentationInternalId)){
+            this.augmentationFunctionResultNotificationMap.get(digitalTwinId).put(augmentationInternalId, new ArrayList<>());
+        }
+
+        // Save the augmentation function result in the map
+        this.augmentationFunctionResultNotificationMap.get(digitalTwinId).get(augmentationInternalId).add(augmentationFunctionResult);
+    }
+
+    public void addAugmentationFunctionErrorNotification(String digitalTwinId,
+                                                          String augmentationFunctionHandlerId,
+                                                          String augmentationFunctionId,
+                                                          AugmentationFunctionError augmentationFunctionError){
+
+        // Concatenate the augmentation function handler id and the augmentation function id to create a
+        // unique key for the augmentation function error notification map
+        String augmentationInternalId = String.format("%s.%s", augmentationFunctionHandlerId, augmentationFunctionId);
+
+        // If the initial list of augmentation function errors for the specific augmentation function is not present, create a new one
+        if(!this.augmentationFunctionErrorNotificationMap.get(digitalTwinId).containsKey(augmentationInternalId)){
+            this.augmentationFunctionErrorNotificationMap.get(digitalTwinId).put(augmentationInternalId, new ArrayList<>());
+        }
+
+        // Save the augmentation function error in the map
+        this.augmentationFunctionErrorNotificationMap.get(digitalTwinId).get(augmentationInternalId).add(augmentationFunctionError);
+    }
+
+    public List<List<AugmentationFunctionResult<?>>> getAugmentationFunctionResultNotification(String digitalTwinId,
+                                                                                         String augmentationFunctionHandlerId,
+                                                                                         String augmentationFunctionId){
+
+        // Concatenate the augmentation function handler id and the augmentation function id to create a
+        // unique key for the augmentation function result notification map
+        String augmentationInternalId = String.format("%s.%s", augmentationFunctionHandlerId, augmentationFunctionId);
+
+        // Get the augmentation function result from the map
+        return this.augmentationFunctionResultNotificationMap.get(digitalTwinId).get(augmentationInternalId);
     }
 
     public Map<String, List<PhysicalAssetPropertyWldtEvent<?>>> getPhysicalAdapterPropertyEventMap() {
@@ -203,18 +305,37 @@ public class SharedTestMetrics {
         return digitalAdapterStateUpdateMap.get(digitalTwinId);
     }
 
+    public Map<String, Map<String, List<List<AugmentationFunctionResult<?>>>>> getAugmentationFunctionResultNotificationMap() {
+        return augmentationFunctionResultNotificationMap;
+    }
+
+    public Map<String, Map<String, List<AugmentationFunction>>> getAugmentationFunctionRegistrationCallbackMap() {
+        return augmentationFunctionRegistrationCallbackMap;
+    }
+
+    public Map<String, Map<String, List<AugmentationFunction>>> getAugmentationFunctionUnRegistrationCallbackMap() {
+        return augmentationFunctionUnRegistrationCallbackMap;
+    }
+
+    public Map<String, Map<String, List<AugmentationFunctionError>>> getAugmentationFunctionErrorNotificationMap() {
+        return augmentationFunctionErrorNotificationMap;
+    }
+
     @Override
     public String toString() {
-        final StringBuffer sb = new StringBuffer("SharedTestMetrics{");
-        sb.append("physicalAdapterPropertyEventMap=").append(physicalAdapterPropertyEventMap);
-        sb.append(", physicalAdapterEventNotificationMap=").append(physicalAdapterEventNotificationMap);
-        sb.append(", shadowingFunctionPropertyEventMap=").append(shadowingFunctionPropertyEventMap);
-        sb.append(", shadowingFunctionEventNotificationMap=").append(shadowingFunctionEventNotificationMap);
-        sb.append(", digitalAdapterEventNotificationMap=").append(digitalAdapterEventNotificationMap);
-        sb.append(", digitalAdapterStateUpdateMap=").append(digitalAdapterStateUpdateMap);
-        sb.append(", resourceManagerNotificationMap=").append(resourceManagerNotificationMap);
-        sb.append(", managedResourceNotificationMap=").append(managedResourceNotificationMap);
-        sb.append('}');
-        return sb.toString();
+        return "SharedTestMetrics{" +
+                "physicalAdapterPropertyEventMap=" + physicalAdapterPropertyEventMap +
+                ", physicalAdapterEventNotificationMap=" + physicalAdapterEventNotificationMap +
+                ", shadowingFunctionPropertyEventMap=" + shadowingFunctionPropertyEventMap +
+                ", shadowingFunctionEventNotificationMap=" + shadowingFunctionEventNotificationMap +
+                ", digitalAdapterEventNotificationMap=" + digitalAdapterEventNotificationMap +
+                ", digitalAdapterStateUpdateMap=" + digitalAdapterStateUpdateMap +
+                ", resourceManagerNotificationMap=" + resourceManagerNotificationMap +
+                ", managedResourceNotificationMap=" + managedResourceNotificationMap +
+                ", augmentationFunctionResultNotificationMap=" + augmentationFunctionResultNotificationMap +
+                ", augmentationFunctionRegistrationCallbackMap=" + augmentationFunctionRegistrationCallbackMap +
+                ", augmentationFunctionUnRegistrationCallbackMap=" + augmentationFunctionUnRegistrationCallbackMap +
+                ", augmentationFunctionErrorNotificationMap=" + augmentationFunctionErrorNotificationMap +
+                '}';
     }
 }

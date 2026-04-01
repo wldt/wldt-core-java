@@ -1,0 +1,54 @@
+---
+config:
+  theme: neo
+---
+sequenceDiagram
+    actor Dev as Developer
+    participant AM as Augmentation Manager
+    participant AFH as Augmentation Function Handler
+    participant EB as Event Bus
+    participant DT as Digital Twin
+    participant DTM as Digital Twin Model
+    actor EAF as External Augmentation Function
+
+    %% Phase 1: Developer registers first Augmentation Function (DT not yet started)
+    Dev->>AM: getAugmentationFunctionHandler(handlerId)
+    AM-->>Dev: AugmentationFunctionHandler
+
+    Dev->>AFH: register(AugmentationFunction1)
+    AFH->>EB: publish(RegistrationEvent1)
+    Note over EB: No subscribers — event is ignored
+
+    %% Phase 2: Developer starts the Digital Twin
+    Dev->>DT: start()
+    DT->>DTM: start()
+    DTM->>EB: subscribe(RegistrationEvent, UnregistrationEvent)
+
+    DTM->>AM: getAugmentationFunctionHandlers()
+    AM-->>DTM: [AugmentationFunctionHandler]
+
+    DTM->>AFH: getRegisteredAugmentationFunctions()
+    AFH-->>DTM: [AugmentationFunction1]
+    DTM->>DTM: Internal notification new AF List registered for an Handler
+
+    %% Phase 3: Developer registers a second Augmentation Function
+    Note over Dev, EAF: Some time passes...
+
+    Dev->>AFH: register(AugmentationFunction 2)
+    AFH->>EB: publish(RegistrationEvent 2)
+    EB-->>DTM: notify(RegistrationEvent 2)
+    Note over DTM: AF 2 Registered Notified
+
+    %% Phase 4: External Augmentation Function self-registers
+    EAF->>AFH: register(self)
+    AFH->>EB: publish(RegistrationEvent 3)
+    EB-->>DTM: notify(RegistrationEvent 3)
+    Note over DTM: External AF Registered Notified
+
+    %% Phase 5: Developer unregisters the Augmentation Function
+    Note over Dev, EAF: Some time passes...
+
+    Dev->>AFH: unregister(AugmentationFunction 2)
+    AFH->>EB: publish(UnRegistrationEvent 2)
+    EB-->>DTM: notify(UnRegistrationEvent 2)
+    Note over DTM: AF 2 Unregistered Notified
