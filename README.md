@@ -1,5 +1,7 @@
 # 🤖 White Label Digital Twin (WLDT) Framework
 
+![dt_high_level_schema](images/dt_high_level_schema.jpg)
+
 ```text
 A Digital Twin (DT) is a comprehensive software representation of an individual physical asset (PA). 
 It includes the properties, conditions, relationships and behavior(s) of the real-life object through models and data. 
