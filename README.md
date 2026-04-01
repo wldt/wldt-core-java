@@ -1,6 +1,8 @@
-# 🤖 White Label Digital Twin (WLDT) Framework
+<div align="center">
+  <img src="https://wldt.github.io/images/logo.png" alt="WLDT Logo" height="100">
+</div>
 
-![dt_high_level_schema](images/dt_high_level_schema.jpg)
+# 🤖 White Label Digital Twin (WLDT) Framework
 
 ```text
 A Digital Twin (DT) is a comprehensive software representation of an individual physical asset (PA). 
@@ -8,6 +10,8 @@ It includes the properties, conditions, relationships and behavior(s) of the rea
 A Digital Twin is a set of realistic models that can digitalize an object’s behavior in the deployed environment. 
 The Digital Twin represents and reflects its physical twin and remains its virtual counterpart across the object’s entire lifecycle.
 ```
+
+![dt_high_level_schema](images/dt_high_level_schema.jpg)
 
 ☕️ The White Label Digital Twin (WLDT) library aims to support the design, development, and deployment of Digital Twins within the Internet of Things (IoT) ecosystems.
 The library has been designed following the latest DT definitions coming from both Industrial and Scientific domains and identifying DTs as active, flexible and scalable software components.
