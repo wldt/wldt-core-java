@@ -20,19 +20,14 @@
  */
 package it.wldt.augmentation.function;
 
-import it.wldt.augmentation.context.AugmentationFunctionContext;
 import it.wldt.augmentation.context.AugmentationFunctionContextRequest;
 import it.wldt.augmentation.error.AugmentationFunctionError;
-import it.wldt.augmentation.listener.StatefulAugmentationListener;
 import it.wldt.augmentation.listener.StatelessAugmentationListener;
 import it.wldt.augmentation.request.AugmentationFunctionRequest;
 import it.wldt.augmentation.result.AugmentationFunctionResult;
 import it.wldt.exception.AugmentationFunctionException;
 import it.wldt.log.WldtLogger;
 import it.wldt.log.WldtLoggerProvider;
-import jdk.jpackage.internal.Log;
-
-import java.security.PrivateKey;
 import java.util.List;
 
 /**

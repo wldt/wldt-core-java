@@ -21,7 +21,6 @@
 package it.wldt.augmentation.event;
 
 import it.wldt.augmentation.error.AugmentationFunctionError;
-import it.wldt.augmentation.function.AugmentationFunction;
 import it.wldt.core.event.WldtEvent;
 import it.wldt.core.event.WldtEventTypes;
 import it.wldt.exception.EventBusException;
