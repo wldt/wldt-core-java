@@ -27,14 +27,14 @@ The complete Documentation of the Library is available at the following link: [h
 <dependency>
     <groupId>io.github.wldt</groupId>
     <artifactId>wldt-core</artifactId>
-    <version>0.6.0</version>
+    <version>0.7.0</version>
 </dependency>
 ```
 
 If you are using Gradle use instead the following: 
 
 ```groovy
-implementation group: 'io.github.wldt', name: 'wldt-core', version: '0.6.0'
+implementation group: 'io.github.wldt', name: 'wldt-core', version: '0.7.0'
 ```
 
 ---
