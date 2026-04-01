@@ -54,6 +54,7 @@ that led the design and development of the WLDT library.
 - ️️⚙️ [Resources & Management Interface](docs/resources_management_interface.md): Provides the details about 
 the management interface of the WLDT library and how to use it to handle the manageable DT's resource through its life cycle.
 - 📝 [Logging in WLDT](docs/wldt_logger.md): Describes the logging system of the WLDT library, including how to configure, customize and use it.
+- 🧠 [Augmentation Functions](docs/augmentation_function.md): Provides the details about the Augmentation Functions, which are used to enhance the capabilities of the Digital Twin by adding new stateless or stateful functionalities.
 
 ---
 
