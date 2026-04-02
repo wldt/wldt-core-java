@@ -45,6 +45,11 @@ import it.wldt.adapter.physical.event.*;
 import it.wldt.log.WldtLogger;
 import it.wldt.log.WldtLoggerProvider;
 import it.wldt.management.ResourceManager;
+import it.wldt.monitoring.CoreMonitoringUtils;
+import it.wldt.monitoring.MonitoringInterface;
+import it.wldt.monitoring.metrics.WldtCounter;
+import it.wldt.monitoring.metrics.WldtMetricComponent;
+import it.wldt.monitoring.metrics.WldtTimer;
 import it.wldt.storage.StorageManager;
 
 import java.util.*;
@@ -129,6 +134,12 @@ public abstract class DigitalTwinModel implements WldtEventListener {
      * used to execute Augmentation Functions from the Model
      */
     private AugmentationManager augmentationManager;
+
+    /**
+     * Reference to the Monitoring Interface in order to add metrics
+     * related to the Models and its behavior
+     */
+    private MonitoringInterface monitoringInterface;
 
     /**
      * Default Constructor
@@ -1074,6 +1085,57 @@ public abstract class DigitalTwinModel implements WldtEventListener {
         logger.info("Digital Twin Model -> Unsubscribed from: {}", eventType);
     }
 
+    /**
+     * TODO ...
+     * @param wldtEvent
+     */
+    private void handlePhysicalAssetPropertyVariation(PhysicalAssetPropertyWldtEvent<?> wldtEvent){
+
+        // Check if the Monitoring Interface is configured and has the handler configured
+        if(this.monitoringInterface == null || !this.monitoringInterface.isActive()){
+            try {
+                onPhysicalAssetPropertyVariation(wldtEvent);
+            }
+            catch (Exception e){
+                String errorMessage = String.format("onPhysicalAssetPropertyVariation Function Error Observing Physical Asset Property Variation Event: %s", e.getLocalizedMessage());
+                logger.error(errorMessage);
+            }
+        }
+        else {
+
+            // Build metric namespace
+            String namespace = CoreMonitoringUtils.buildNamespace(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
+                    CoreMonitoringUtils.DT_COMPONENT_MODEL_KEY);
+
+            long startMs = System.currentTimeMillis();
+            try {
+                onPhysicalAssetPropertyVariation(wldtEvent);
+                this.monitoringInterface.notifyMetric(new WldtCounter(
+                        namespace,
+                        CoreMonitoringUtils.PA_PROPERTY_VARIATION_EXEC_SUCCESS_COUNT,
+                        WldtMetricComponent.DT_MODEL,
+                        1));
+            }
+            catch (Exception e){
+                String errorMessage = String.format("onPhysicalAssetPropertyVariation Function Error Observing Physical Asset Property Variation Event: %s", e.getLocalizedMessage());
+                logger.error(errorMessage);
+                this.monitoringInterface.notifyMetric(new WldtCounter(namespace,
+                        CoreMonitoringUtils.PA_PROPERTY_VARIATION_EXEC_ERROR_COUNT,
+                        WldtMetricComponent.DT_MODEL,
+                        1));
+            }
+            finally {
+                this.monitoringInterface.notifyMetric(
+                        WldtTimer.since(
+                                namespace,
+                                CoreMonitoringUtils.PA_PROPERTY_VARIATION_EXEC_TIME,
+                                WldtMetricComponent.DT_MODEL,
+                                startMs));
+            }
+        }
+    }
+
     @Override
     public void onEvent(WldtEvent<?> wldtEvent) {
 
@@ -1082,7 +1144,7 @@ public abstract class DigitalTwinModel implements WldtEventListener {
         // TODO Re-write all the following checks with Event Filters & Wildcard instead of Class Instances
 
         if(wldtEvent instanceof PhysicalAssetPropertyWldtEvent)
-            onPhysicalAssetPropertyVariation((PhysicalAssetPropertyWldtEvent<?>) wldtEvent);
+            handlePhysicalAssetPropertyVariation((PhysicalAssetPropertyWldtEvent<?>) wldtEvent);
 
         if(wldtEvent instanceof PhysicalAssetEventWldtEvent)
             onPhysicalAssetEventNotification((PhysicalAssetEventWldtEvent<?>) wldtEvent);
@@ -1417,6 +1479,21 @@ public abstract class DigitalTwinModel implements WldtEventListener {
         // Notify the Shadowing Model Listener that the Shadowing Model is out of sync with the Physical Asset
         if(getShadowingModelListener() != null)
             getShadowingModelListener().onShadowingOutOfSync(digitalTwinStateManager.getDigitalTwinState());
+    }
+
+    /**
+     * TODO ...
+     * @return
+     */
+    public MonitoringInterface getMonitoringInterface() {
+        return monitoringInterface;
+    }
+
+    /**
+     * TODO ...
+     */
+    public void setMonitoringInterface(MonitoringInterface monitoringInterface) {
+        this.monitoringInterface = monitoringInterface;
     }
 
     @Override

@@ -39,6 +39,7 @@ import it.wldt.log.WldtLogger;
 import it.wldt.log.WldtLoggerProvider;
 import it.wldt.management.ManagementInterface;
 import it.wldt.management.ResourceManager;
+import it.wldt.monitoring.MonitoringInterface;
 import it.wldt.storage.StorageManager;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
@@ -186,6 +187,11 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
     private StorageManager storageManager = null;
 
     /**
+     * Monitoring Interface for the Digital Twin
+     */
+    private MonitoringInterface monitoringInterface = null;
+
+    /**
      * Constructor for creating a DigitalTwin instance.
      *
      * @param digitalTwinId                 The unique identifier for the Digital Twin.
@@ -266,6 +272,9 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
 
         // Initialize the Augmentation Manager of the current Digital Twin instance
         this.augmentationManager = new AugmentationManager(this.digitalTwinId);
+
+        // Initialize the Monitoring Interface of the current Digital Twin instance
+        this.monitoringInterface = new MonitoringInterface();
 
         // Add the Augmentation Manager as a LifeCycle Listener
         addLifeCycleListener(this.augmentationManager);
@@ -689,6 +698,12 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
      */
     protected void startLifeCycle() throws WldtConfigurationException {
 
+        // If the Monitoring interface is configured and the handler is set, add the reference to the Model
+        if(this.monitoringInterface != null && this.monitoringInterface.getConfiguration() != null && this.monitoringInterface.getHandler() != null)
+            this.digitalTwinModel.setMonitoringInterface(this.monitoringInterface);
+        else
+            logger.warn("Monitoring Interface is not properly configured ! Check Configuration or Handler");
+
         // Start the Augmentation Function Manager
         // This component should be ready before the Model since it can be used immediately by the Model Engine
         // to execute Augmentation Functions
@@ -1046,5 +1061,13 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
      */
     public ResourceManager getResourceManager() {
         return resourceManager;
+    }
+
+    /**
+     * Returns the Monitoring Interface Instance
+     * @return the current Monitoring Interface for the target Digital Twin
+     */
+    public MonitoringInterface getMonitoringInterface() {
+        return monitoringInterface;
     }
 }
