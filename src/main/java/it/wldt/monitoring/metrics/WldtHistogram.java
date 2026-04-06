@@ -3,89 +3,214 @@ package it.wldt.monitoring.metrics;
 /**
  * A WLDT metric representing the statistical distribution of a set of observed samples.
  *
- * <p>{@code WldtHistogram} aggregates multiple observations into a compact
- * statistical summary carrying the sample count, sum, minimum, and maximum
- * values recorded over an observation window. It is the correct choice when
- * a single data point per operation is insufficient and the spread or
- * central tendency of a measurement over many occurrences is relevant.</p>
+ * <p>Instances are mutable. The constructor records the first observation window. New
+ * observations are added via {@link #observe(double)} (single value) or
+ * {@link #update(long, double, double, double)} (pre-aggregated window). The metric tracks
+ * both per-window fields ({@code count}, {@code sum}, {@code min}, {@code max}) and
+ * cumulative fields ({@code totalCount}, {@code totalSum}, {@code globalMin}, {@code globalMax})
+ * across all windows.</p>
  *
- * <p>Typical WLDT use cases:</p>
- * <ul>
- *   <li>{@code wldt.physical_adapter.message_size_bytes} — distribution of
- *       the byte sizes of messages received from the physical asset over a
- *       processing window.</li>
- *   <li>{@code wldt.dt_model.processing_latency_ms} — latency distribution
- *       of Shadowing Function executions when individual {@link WldtTimer}
- *       push granularity is too high and pre-aggregation is preferred.</li>
- *   <li>{@code wldt.event_bus.batch_size} — distribution of event batch
- *       sizes dispatched through the internal Event Bus.</li>
- * </ul>
- *
- * <p><strong>OpenTelemetry mapping:</strong> {@code LongHistogram} /
- * {@code DoubleHistogram} — full semantic match. The OTel SDK typically
- * manages bucket boundaries on the SDK side; {@code count} and {@code sum}
- * from this class map directly to the OTel histogram's cumulative fields.
- * {@code min} and {@code max} map to OTel's optional min/max attributes
- * when {@code ExplicitBucketHistogramAggregation} is configured.</p>
- *
- * <p><strong>Prometheus mapping:</strong> {@code Histogram} — full semantic
- * match. {@code count} maps to {@code _count}, {@code sum} maps to
- * {@code _sum}. {@code min} and {@code max} can be exposed as additional
- * gauge metrics or used internally by the handler. Prometheus bucket
- * boundaries ({@code _bucket}) must be defined in the handler implementation,
- * as WLDT histograms do not carry per-bucket counts.</p>
- *
- * <p>If only a single duration per operation needs to be recorded, prefer
- * the lighter-weight {@link WldtTimer}.</p>
+ * <p><strong>OpenTelemetry mapping:</strong> {@code LongHistogram} / {@code DoubleHistogram}.</p>
+ * <p><strong>Prometheus mapping:</strong> {@code Histogram}.</p>
  */
 public class WldtHistogram extends WldtMetric {
 
-    /**
-     * The total number of observations included in this histogram snapshot.
-     * Always positive — a histogram with zero observations should not be emitted.
-     */
-    private final long count;
+    // Current window fields (last observe/update call)
+    private long   count;
+    private double sum;
+    private double min;
+    private double max;
+
+    // Cumulative fields across all windows
+    private long   totalCount;
+    private double totalSum;
+    private double globalMin;
+    private double globalMax;
+    private long   windowCount;
 
     /**
-     * The arithmetic sum of all observed values.
-     * Used together with {@code count} to compute the mean: {@code sum / count}.
-     */
-    private final double sum;
-
-    /**
-     * The minimum observed value across all samples in this snapshot.
-     * Always less than or equal to {@code max}.
-     */
-    private final double min;
-
-    /**
-     * The maximum observed value across all samples in this snapshot.
-     * Always greater than or equal to {@code min}.
-     */
-    private final double max;
-
-    /**
-     * Constructs a new {@code WldtHistogram} metric from pre-aggregated statistics.
+     * Constructs a new {@code WldtHistogram} from the first pre-aggregated window.
+     * All cumulative fields are initialized from the window values; {@code windowCount} is 1.
      *
      * @param namespace the logical namespace grouping this metric
-     *                  (e.g. {@code "wldt.internal"} or {@code "custom.myapp"})
      * @param name      the metric name within its namespace
-     *                  (e.g. {@code "physical_adapter.message_size_bytes"})
      * @param component the DT component that emitted this metric
-     * @param count     total number of observations; must be positive
-     * @param sum       arithmetic sum of all observed values
-     * @param min       minimum observed value; must be less than or equal to max
-     * @param max       maximum observed value; must be greater than or equal to min
-     * @throws IllegalArgumentException if namespace, name, or component is null,
-     *                                  if count is non-positive,
-     *                                  if sum is NaN or infinite,
-     *                                  if min or max are NaN or infinite,
-     *                                  or if min is greater than max
+     * @param count     number of observations in this window; must be positive
+     * @param sum       arithmetic sum of all observations; must be finite
+     * @param min       minimum observation; must be finite and &le; max
+     * @param max       maximum observation; must be finite and &ge; min
+     * @throws IllegalArgumentException if any constraint is violated
      */
+    /**
+     * Constructs an uninitialized {@code WldtHistogram} for pre-registration.
+     * {@link #isInitialized()} returns {@code false} until the first {@link #observe(double)}
+     * or {@link #update(long, double, double, double)} call. All stats are 0 and must not
+     * be used before initialization.
+     */
+    public WldtHistogram(String namespace, String name, WldtMetricComponent component) {
+        super(namespace, name, component);
+        this.count       = 0;
+        this.sum         = 0;
+        this.min         = 0;
+        this.max         = 0;
+        this.totalCount  = 0;
+        this.totalSum    = 0;
+        this.globalMin   = 0;
+        this.globalMax   = 0;
+        this.windowCount = 0;
+        this.initialized = false;
+    }
+
     public WldtHistogram(String namespace, String name, WldtMetricComponent component,
                          long count, double sum, double min, double max) {
         super(namespace, name, component);
+        validateWindow(count, sum, min, max);
+        this.count       = count;
+        this.sum         = sum;
+        this.min         = min;
+        this.max         = max;
+        this.totalCount  = count;
+        this.totalSum    = sum;
+        this.globalMin   = min;
+        this.globalMax   = max;
+        this.windowCount = 1;
+        this.initialized = true;
+    }
 
+    /**
+     * Adds a single observation to the histogram.
+     * Equivalent to merging a window of {@code count=1, sum=value, min=value, max=value}.
+     *
+     * @param value the observed value; must be finite
+     * @throws IllegalArgumentException if value is NaN or infinite
+     */
+    public synchronized WldtHistogram observe(double value) {
+        if (Double.isNaN(value) || Double.isInfinite(value))
+            throw new IllegalArgumentException("WldtHistogram observation must be finite, got: " + value);
+        if (!initialized) {
+            this.count       = 1;
+            this.sum         = value;
+            this.min         = value;
+            this.max         = value;
+            this.totalCount  = 1;
+            this.totalSum    = value;
+            this.globalMin   = value;
+            this.globalMax   = value;
+            this.windowCount = 1;
+            this.initialized = true;
+            this.lastUpdatedMs = System.currentTimeMillis();
+            return this;
+        }
+        this.count       = 1;
+        this.sum         = value;
+        this.min         = value;
+        this.max         = value;
+        this.totalCount++;
+        this.totalSum   += value;
+        this.globalMin   = Math.min(this.globalMin, value);
+        this.globalMax   = Math.max(this.globalMax, value);
+        this.windowCount++;
+        this.lastUpdatedMs = System.currentTimeMillis();
+        return this;
+    }
+
+    /**
+     * Merges a pre-aggregated window into this histogram.
+     *
+     * @param count number of observations in the new window; must be positive
+     * @param sum   arithmetic sum; must be finite
+     * @param min   minimum in the window; must be finite and &le; max
+     * @param max   maximum in the window; must be finite and &ge; min
+     * @throws IllegalArgumentException if any constraint is violated
+     */
+    public synchronized WldtHistogram update(long count, double sum, double min, double max) {
+        validateWindow(count, sum, min, max);
+        if (!initialized) {
+            this.count       = count;
+            this.sum         = sum;
+            this.min         = min;
+            this.max         = max;
+            this.totalCount  = count;
+            this.totalSum    = sum;
+            this.globalMin   = min;
+            this.globalMax   = max;
+            this.windowCount = 1;
+            this.initialized = true;
+            this.lastUpdatedMs = System.currentTimeMillis();
+            return this;
+        }
+        this.count       = count;
+        this.sum         = sum;
+        this.min         = min;
+        this.max         = max;
+        this.totalCount  += count;
+        this.totalSum    += sum;
+        this.globalMin   = Math.min(this.globalMin, min);
+        this.globalMax   = Math.max(this.globalMax, max);
+        this.windowCount++;
+        this.lastUpdatedMs = System.currentTimeMillis();
+        return this;
+    }
+
+    private WldtHistogram(WldtHistogram source) {
+        super(source.getNamespace(), source.getName(), source.getComponent());
+        this.count       = source.count;
+        this.sum         = source.sum;
+        this.min         = source.min;
+        this.max         = source.max;
+        this.totalCount  = source.totalCount;
+        this.totalSum    = source.totalSum;
+        this.globalMin   = source.globalMin;
+        this.globalMax   = source.globalMax;
+        this.windowCount = source.windowCount;
+        this.initialized = source.initialized;
+        this.lastUpdatedMs = source.lastUpdatedMs;
+    }
+
+    @Override
+    public synchronized WldtHistogram copy() { return new WldtHistogram(this); }
+
+    @Override
+    public WldtHistogram emptySnapshot() { return new WldtHistogram(getNamespace(), getName(), getComponent()); }
+
+    // --- Current-window accessors ---
+
+    /** @return observation count in the most recent window */
+    public synchronized long getCount()   { return count; }
+
+    /** @return sum of observations in the most recent window */
+    public synchronized double getSum()   { return sum; }
+
+    /** @return minimum in the most recent window */
+    public synchronized double getMin()   { return min; }
+
+    /** @return maximum in the most recent window */
+    public synchronized double getMax()   { return max; }
+
+    /** @return arithmetic mean of the most recent window, or {@link Double#NaN} if uninitialized */
+    public synchronized double getMean()  { return count == 0 ? Double.NaN : sum / count; }
+
+    // --- Cumulative accessors ---
+
+    /** @return total observation count across all windows */
+    public synchronized long getTotalCount()    { return totalCount; }
+
+    /** @return total sum across all windows */
+    public synchronized double getTotalSum()    { return totalSum; }
+
+    /** @return global minimum across all windows */
+    public synchronized double getGlobalMin()   { return globalMin; }
+
+    /** @return global maximum across all windows */
+    public synchronized double getGlobalMax()   { return globalMax; }
+
+    /** @return number of windows recorded (including initial construction) */
+    public synchronized long getWindowCount()   { return windowCount; }
+
+    /** @return global arithmetic mean, or {@link Double#NaN} if uninitialized */
+    public synchronized double getGlobalMean()  { return totalCount == 0 ? Double.NaN : totalSum / totalCount; }
+
+    private static void validateWindow(long count, double sum, double min, double max) {
         if (count <= 0)
             throw new IllegalArgumentException("WldtHistogram count must be positive, got: " + count);
         if (Double.isNaN(sum) || Double.isInfinite(sum))
@@ -97,77 +222,24 @@ public class WldtHistogram extends WldtMetric {
         if (min > max)
             throw new IllegalArgumentException(
                     "WldtHistogram min must be <= max, got min=" + min + " max=" + max);
-
-        this.count = count;
-        this.sum   = sum;
-        this.min   = min;
-        this.max   = max;
     }
 
-    /**
-     * Returns the total number of observations included in this histogram snapshot.
-     *
-     * @return positive observation count
-     */
-    public long getCount() {
-        return count;
-    }
-
-    /**
-     * Returns the arithmetic sum of all observed values.
-     * Divide by {@link #getCount()} to obtain the mean.
-     *
-     * @return sum of all observations
-     */
-    public double getSum() {
-        return sum;
-    }
-
-    /**
-     * Returns the minimum observed value across all samples in this snapshot.
-     *
-     * @return minimum observed value
-     */
-    public double getMin() {
-        return min;
-    }
-
-    /**
-     * Returns the maximum observed value across all samples in this snapshot.
-     *
-     * @return maximum observed value
-     */
-    public double getMax() {
-        return max;
-    }
-
-    /**
-     * Computes and returns the arithmetic mean of all observed values.
-     * Equivalent to {@code getSum() / getCount()}.
-     *
-     * @return mean of all observations
-     */
-    public double getMean() {
-        return sum / count;
-    }
-
-    /**
-     * Returns a string representation including all statistical fields.
-     *
-     * @return string representation
-     */
     @Override
     public String toString() {
         return "WldtHistogram{" +
                 "namespace='" + getNamespace() + '\'' +
                 ", name='" + getName() + '\'' +
                 ", component=" + getComponent() +
-                ", timestampMs=" + getTimestampMs() +
                 ", count=" + count +
                 ", sum=" + sum +
                 ", min=" + min +
                 ", max=" + max +
-                ", mean=" + getMean() +
+                ", totalCount=" + totalCount +
+                ", totalSum=" + totalSum +
+                ", globalMin=" + globalMin +
+                ", globalMax=" + globalMax +
+                ", windowCount=" + windowCount +
+                ", lastUpdatedMs=" + lastUpdatedMs +
                 '}';
     }
 }

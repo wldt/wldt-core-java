@@ -142,6 +142,11 @@ public abstract class DigitalTwinModel implements WldtEventListener {
     private MonitoringInterface monitoringInterface;
 
     /**
+     * DT Model Metrics Namespace
+     */
+    private String metricsNamespace;
+
+    /**
      * Default Constructor
      * @param id Unique Identifier of the Digital Twin Model
      */
@@ -168,10 +173,45 @@ public abstract class DigitalTwinModel implements WldtEventListener {
     }
 
     /**
+     * TODO ...
+     */
+    private void handleMetricsRegistration() {
+
+        // Check if the Monitoring Interface is configured and has the handler configured
+        if(this.monitoringInterface != null && this.monitoringInterface.isActive()){
+
+            // Build metric namespace
+            this.metricsNamespace = CoreMonitoringUtils.buildNamespace(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
+                    CoreMonitoringUtils.DT_COMPONENT_MODEL_KEY);
+
+            // Register Counter Metric(s)
+            this.monitoringInterface.registerMetric(new WldtCounter(this.metricsNamespace,
+                    CoreMonitoringUtils.PA_PROPERTY_VARIATION_EXEC_SUCCESS_COUNT,
+                    WldtMetricComponent.DT_MODEL));
+
+            this.monitoringInterface.registerMetric(new WldtCounter(this.metricsNamespace,
+                    CoreMonitoringUtils.PA_PROPERTY_VARIATION_EXEC_ERROR_COUNT,
+                    WldtMetricComponent.DT_MODEL));
+
+            // Register Execution Time Metrics
+            this.monitoringInterface.registerMetric(new WldtTimer(
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.PA_PROPERTY_VARIATION_EXEC_TIME,
+                    WldtMetricComponent.DT_MODEL));
+        }
+
+    }
+
+    /**
      * Method called by the Kernel to trigger specific logic to be executed at the
      * start of the Model
      */
     protected void start(){
+
+        // Handle Metrics Registration for the DT Model
+        handleMetricsRegistration();
+
         // Start handling Augmentation Functions (e.g., observe Augmentation Function Registration Events, etc.)
         this.startHandlingAugmentationFunction();
 
@@ -1103,35 +1143,26 @@ public abstract class DigitalTwinModel implements WldtEventListener {
         }
         else {
 
-            // Build metric namespace
-            String namespace = CoreMonitoringUtils.buildNamespace(
-                    this.digitalTwinStateManager.getDigitalTwinId(),
-                    CoreMonitoringUtils.DT_COMPONENT_MODEL_KEY);
-
             long startMs = System.currentTimeMillis();
             try {
+
+                // Call the actual function to handle the Physical Asset Property Variation Event (implemented by the developer)
                 onPhysicalAssetPropertyVariation(wldtEvent);
-                this.monitoringInterface.notifyMetric(new WldtCounter(
-                        namespace,
-                        CoreMonitoringUtils.PA_PROPERTY_VARIATION_EXEC_SUCCESS_COUNT,
-                        WldtMetricComponent.DT_MODEL,
-                        1));
+
+                // Increase Success Counter
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.PA_PROPERTY_VARIATION_EXEC_SUCCESS_COUNT);
             }
             catch (Exception e){
                 String errorMessage = String.format("onPhysicalAssetPropertyVariation Function Error Observing Physical Asset Property Variation Event: %s", e.getLocalizedMessage());
                 logger.error(errorMessage);
-                this.monitoringInterface.notifyMetric(new WldtCounter(namespace,
-                        CoreMonitoringUtils.PA_PROPERTY_VARIATION_EXEC_ERROR_COUNT,
-                        WldtMetricComponent.DT_MODEL,
-                        1));
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.PA_PROPERTY_VARIATION_EXEC_ERROR_COUNT);
             }
             finally {
-                this.monitoringInterface.notifyMetric(
-                        WldtTimer.since(
-                                namespace,
-                                CoreMonitoringUtils.PA_PROPERTY_VARIATION_EXEC_TIME,
-                                WldtMetricComponent.DT_MODEL,
-                                startMs));
+                // Update new Timer Value for the execution of the Physical Property Variation
+                this.monitoringInterface.updateTimerSince(
+                        this.metricsNamespace,
+                        CoreMonitoringUtils.PA_PROPERTY_VARIATION_EXEC_TIME,
+                        startMs);
             }
         }
     }

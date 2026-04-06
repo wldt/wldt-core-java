@@ -4,49 +4,25 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import it.wldt.monitoring.MonitoringInterfaceHandler;
 
 /**
  * Internal registry that tracks all active metrics within a {@code MonitoringInterface}.
  *
- * <p>The {@code WldtMetricRegistry} serves two purposes:</p>
- * <ol>
- *   <li><strong>Delta computation</strong> — for {@link WldtCounter} and
- *       {@link WldtUpDownCounter}, the registry stores the last known absolute
- *       value and computes the delta before the metric is dispatched to the
- *       developer's {@link MonitoringInterfaceHandler}. This relieves developers
- *       from maintaining their own tracking state.</li>
- *   <li><strong>Query support</strong> — developers can interrogate the current
- *       registered value of any metric by its full name ({@code namespace.name})
- *       via {@link #getMetric(String)} and {@link #getAllMetrics()}.</li>
- * </ol>
+ * <p>Each metric is registered once via {@link #register(WldtMetric)} and then updated
+ * in-place via {@link #update(WldtMetric)}. The stored instance is the single live object
+ * that accumulates history (delta, min/max, counts, etc.) across all pushes. Callers
+ * must register a metric before updating it.</p>
  *
- * <p><strong>Registration policy:</strong> metrics are registered lazily on the
- * first call to {@link #computeAndRegister(WldtMetric)}. There is no need to
- * pre-declare metrics — they are auto-registered on their first push. Library
- * components that want explicit upfront registration can call
- * {@link #register(WldtMetric)} directly.</p>
- *
- * <p><strong>Thread safety:</strong> the internal store is a
- * {@link ConcurrentHashMap}, making all read and write operations safe for
- * concurrent access from multiple DT component threads.</p>
+ * <p><strong>Thread safety:</strong> the internal store is a {@link ConcurrentHashMap};
+ * individual metric mutations are synchronized within each metric class.</p>
  */
 public class WldtMetricRegistry {
 
-    /**
-     * Internal store mapping each metric's full name ({@code namespace.name})
-     * to its last known {@link WldtMetric} instance.
-     * ConcurrentHashMap ensures thread-safe access without external synchronization.
-     */
     private final Map<String, WldtMetric> store = new ConcurrentHashMap<>();
 
     /**
-     * Registers a metric in the registry without triggering a push notification.
-     *
-     * <p>If a metric with the same full name is already registered, the existing
-     * entry is replaced with the new one. This method is typically called at DT
-     * startup by the library to pre-register internal metrics, or by the developer
-     * to pre-declare custom metrics before the first push.</p>
+     * Registers a metric in the registry as the live instance for its full name.
+     * If a metric with the same full name is already registered, it is replaced.
      *
      * @param metric the metric to register; must not be null
      * @throws IllegalArgumentException if metric is null
@@ -58,14 +34,61 @@ public class WldtMetricRegistry {
     }
 
     /**
-     * Removes a previously registered metric from the registry by its full name.
+     * Updates the live stored metric for the incoming metric's full name.
      *
-     * <p>If no metric with the given full name exists, this method does nothing.
-     * After deregistration, the next push for this metric name will be treated
-     * as a first push — delta will be {@code null}.</p>
+     * <p>The incoming metric acts as a value carrier: its measurement fields are
+     * extracted and applied to the stored instance via the appropriate typed mutation
+     * method. The stored instance (now mutated) is returned for dispatch to the handler.</p>
      *
-     * @param fullName the full metric name in the form {@code namespace.name};
-     *                 must not be null or blank
+     * <p>Dispatch by type:</p>
+     * <ul>
+     *   <li>{@link WldtCounter}       → {@code stored.update(incoming.getValue())}</li>
+     *   <li>{@link WldtUpDownCounter} → {@code stored.update(incoming.getValue())}</li>
+     *   <li>{@link WldtGauge}         → {@code stored.update(incoming.getValue())}</li>
+     *   <li>{@link WldtTimer}         → {@code stored.update(incoming.getDurationMs())}</li>
+     *   <li>{@link WldtHistogram}     → {@code stored.update(count, sum, min, max)}</li>
+     * </ul>
+     *
+     * @param incoming the metric carrying the new value; must not be null
+     * @return the mutated live stored instance
+     * @throws IllegalArgumentException if incoming is null
+     * @throws IllegalStateException    if no metric with this full name has been registered
+     */
+    public WldtMetric update(WldtMetric incoming) {
+        if (incoming == null)
+            throw new IllegalArgumentException("Cannot update with a null metric");
+
+        String key = incoming.getFullName();
+        WldtMetric stored = store.get(key);
+        if (stored == null)
+            throw new IllegalStateException(
+                    "Metric '" + key + "' is not registered. Call register() before update().");
+
+        if (stored instanceof WldtCounter && incoming instanceof WldtCounter)
+            ((WldtCounter) stored).update(((WldtCounter) incoming).getValue());
+        else if (stored instanceof WldtUpDownCounter && incoming instanceof WldtUpDownCounter)
+            ((WldtUpDownCounter) stored).update(((WldtUpDownCounter) incoming).getValue());
+        else if (stored instanceof WldtGauge && incoming instanceof WldtGauge)
+            ((WldtGauge) stored).update(((WldtGauge) incoming).getValue());
+        else if (stored instanceof WldtTimer && incoming instanceof WldtTimer)
+            ((WldtTimer) stored).update(((WldtTimer) incoming).getDurationMs());
+        else if (stored instanceof WldtHistogram && incoming instanceof WldtHistogram) {
+            WldtHistogram h = (WldtHistogram) incoming;
+            ((WldtHistogram) stored).update(h.getCount(), h.getSum(), h.getMin(), h.getMax());
+        } else {
+            throw new IllegalArgumentException(
+                    "Type mismatch: registered metric is " + stored.getClass().getSimpleName() +
+                    " but incoming is " + incoming.getClass().getSimpleName());
+        }
+
+        return stored;
+    }
+
+    /**
+     * Removes a metric from the registry by its full name.
+     * After deregistration the next {@link #register(WldtMetric)} call resets delta tracking.
+     *
+     * @param fullName the full metric name ({@code namespace.name}); must not be null or blank
      * @throws IllegalArgumentException if fullName is null or blank
      */
     public void deregister(String fullName) {
@@ -75,58 +98,10 @@ public class WldtMetricRegistry {
     }
 
     /**
-     * Processes an incoming metric, computes the delta if applicable, updates
-     * the registry, and returns the enriched metric ready for dispatch.
+     * Returns the live stored metric for the given full name.
      *
-     * <p>The enrichment logic is as follows:</p>
-     * <ul>
-     *   <li>{@link WldtCounter} — delta is computed as
-     *       {@code newValue - previousValue} if a previous entry exists,
-     *       or {@code null} on the first push. The returned instance is a
-     *       new {@code WldtCounter} with the delta injected via
-     *       {@link WldtCounter#withDelta(long)}.</li>
-     *   <li>{@link WldtUpDownCounter} — same logic, but delta may be negative
-     *       when the count decreased.</li>
-     *   <li>All other types ({@link WldtGauge}, {@link WldtTimer},
-     *       {@link WldtHistogram}) — no delta is computed; the registry entry
-     *       is updated and the metric is returned unchanged.</li>
-     * </ul>
-     *
-     * <p>If the metric is not yet in the registry (first push), it is
-     * auto-registered (lazy registration) before the enriched instance
-     * is returned.</p>
-     *
-     * @param incoming the raw metric received from a DT component; must not be null
-     * @return the enriched metric to dispatch to the handler — may be a new
-     *         instance (for counters) or the same instance (for other types)
-     * @throws IllegalArgumentException if incoming is null
-     */
-    public WldtMetric computeAndRegister(WldtMetric incoming) {
-        if (incoming == null)
-            throw new IllegalArgumentException("Cannot process a null metric");
-
-        String key = incoming.getFullName();
-        WldtMetric previous = store.get(key);
-
-        WldtMetric enriched = enrich(incoming, previous);
-
-        // Update the registry with the latest raw incoming value
-        // (not the enriched copy, to keep the stored value clean)
-        store.put(key, incoming);
-
-        return enriched;
-    }
-
-    /**
-     * Returns the last registered {@link WldtMetric} instance for the given
-     * full name, if present.
-     *
-     * <p>The full name is in the form {@code namespace.name}, e.g.
-     * {@code "wldt.internal.dt_model.events_processed"}.</p>
-     *
-     * @param fullName the full metric name to look up; must not be null or blank
-     * @return an {@link Optional} containing the last known metric, or empty if
-     *         no metric with that name has been registered yet
+     * @param fullName the full metric name; must not be null or blank
+     * @return an {@link Optional} containing the stored metric, or empty if not registered
      * @throws IllegalArgumentException if fullName is null or blank
      */
     public Optional<WldtMetric> getMetric(String fullName) {
@@ -136,34 +111,18 @@ public class WldtMetricRegistry {
     }
 
     /**
-     * Returns an unmodifiable snapshot of all currently registered metrics,
-     * keyed by their full name ({@code namespace.name}).
+     * Returns an unmodifiable snapshot of all currently registered metrics.
      *
-     * <p>The returned map is a live unmodifiable view — its contents reflect
-     * the registry state at the time of the call. Modifications to the registry
-     * after this call are not reflected in the returned map.</p>
-     *
-     * @return unmodifiable map of full metric names to their last known instances
+     * @return unmodifiable map of full metric names to live metric instances
      */
     public Map<String, WldtMetric> getAllMetrics() {
         return Collections.unmodifiableMap(store);
     }
 
     /**
-     * Returns the number of metrics currently registered in this registry.
+     * Returns {@code true} if a metric with the given full name is currently registered.
      *
-     * @return the count of registered metrics
-     */
-    public int size() {
-        return store.size();
-    }
-
-    /**
-     * Returns {@code true} if a metric with the given full name is currently
-     * registered in this registry.
-     *
-     * @param fullName the full metric name to check; must not be null or blank
-     * @return {@code true} if registered, {@code false} otherwise
+     * @param fullName the full metric name; must not be null or blank
      * @throws IllegalArgumentException if fullName is null or blank
      */
     public boolean isRegistered(String fullName) {
@@ -172,55 +131,23 @@ public class WldtMetricRegistry {
         return store.containsKey(fullName);
     }
 
-    /**
-     * Removes all registered metrics from this registry.
-     * After this call the registry is empty and all subsequent pushes
-     * will be treated as first pushes (delta will be {@code null}).
-     */
-    public void clear() {
-        store.clear();
-    }
+    /** @return number of metrics currently registered */
+    public int size() { return store.size(); }
 
     /**
-     * Enriches an incoming metric with delta information by comparing it to
-     * the previously stored value. Returns the enriched metric instance.
+     * Registers a metric only if no metric with the same full name is already registered.
+     * This operation is atomic (backed by {@link java.util.concurrent.ConcurrentHashMap#putIfAbsent}).
      *
-     * <p>Only {@link WldtCounter} and {@link WldtUpDownCounter} are enriched
-     * with a delta. All other types are returned unchanged.</p>
-     *
-     * @param incoming the new metric value
-     * @param previous the previously stored metric value, or {@code null} if
-     *                 this is the first push for this metric name
-     * @return the enriched metric (a new instance for counters, the same
-     *         instance for other types)
+     * @param metric the metric to register; must not be null
+     * @return {@code true} if the metric was newly registered, {@code false} if already present
+     * @throws IllegalArgumentException if metric is null
      */
-    private WldtMetric enrich(WldtMetric incoming, WldtMetric previous) {
-
-        // WldtCounter — compute non-negative delta from previous absolute value
-        if (incoming instanceof WldtCounter) {
-            WldtCounter newCounter = (WldtCounter) incoming;
-            if (previous instanceof WldtCounter) {
-                WldtCounter prevCounter = (WldtCounter) previous;
-                long delta = newCounter.getValue() - prevCounter.getValue();
-                return newCounter.withDelta(Math.max(delta, 0));
-            }
-            // First push — delta not yet available, return as-is (delta=null)
-            return incoming;
-        }
-
-        // WldtUpDownCounter — compute signed delta from previous absolute value
-        if (incoming instanceof WldtUpDownCounter) {
-            WldtUpDownCounter newCounter = (WldtUpDownCounter) incoming;
-            if (previous instanceof WldtUpDownCounter) {
-                WldtUpDownCounter prevCounter = (WldtUpDownCounter) previous;
-                long delta = newCounter.getValue() - prevCounter.getValue();
-                return newCounter.withDelta(delta);
-            }
-            // First push — delta not yet available, return as-is (delta=null)
-            return incoming;
-        }
-
-        // WldtGauge, WldtTimer, WldtHistogram — no delta applicable
-        return incoming;
+    public boolean registerIfAbsent(WldtMetric metric) {
+        if (metric == null)
+            throw new IllegalArgumentException("Cannot register a null metric");
+        return store.putIfAbsent(metric.getFullName(), metric) == null;
     }
+
+    /** Removes all registered metrics. */
+    public void clear() { store.clear(); }
 }

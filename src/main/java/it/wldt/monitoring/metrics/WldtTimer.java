@@ -3,130 +3,151 @@ package it.wldt.monitoring.metrics;
 /**
  * A WLDT metric representing the duration of a measured operation in milliseconds.
  *
- * <p>{@code WldtTimer} captures how long a specific operation took to complete.
- * It is the correct choice for latency and processing-time measurements where
- * a single duration value per operation is sufficient. When a statistical
- * distribution of durations over many samples is needed, use
- * {@link WldtHistogram} instead.</p>
+ * <p>Instances are mutable. The constructor records the first observation. Subsequent
+ * observations are recorded via {@link #update(long)} or {@link #updateSince(long)}.
+ * The metric accumulates min, max, total, and observation count across all recordings.</p>
  *
- * <p>Typical WLDT use cases:</p>
- * <ul>
- *   <li>{@code wldt.dt_model.processing_latency_ms} — time taken by the
- *       Shadowing Function to process a single incoming physical event.</li>
- *   <li>{@code wldt.physical_adapter.message_processing_ms} — time taken to
- *       decode and forward a single message from the physical asset.</li>
- *   <li>{@code wldt.augmentation.function_execution_ms} — execution time of
- *       a single Augmentation Function invocation.</li>
- *   <li>{@code wldt.storage.write_latency_ms} — time taken to persist a single
- *       DT state update to the Storage layer.</li>
- * </ul>
- *
- * <p><strong>OpenTelemetry mapping:</strong> OTel has no dedicated Timer
- * instrument. The standard approach is to use a {@code LongHistogram} with unit
- * {@code "ms"} and record each duration as a single observation. In the
- * developer's {@code WldtMonitoringHandler}, call
- * {@code histogram.record(metric.getDurationMs())}.</p>
- *
- * <p><strong>Prometheus mapping:</strong> Two options are available in the handler
- * implementation:</p>
- * <ul>
- *   <li>{@code Histogram} — client-side bucket aggregation; preferred when
- *       Prometheus scrapes the application directly and quantile accuracy
- *       at query time is important.</li>
- *   <li>{@code Summary} — server-side quantile calculation; preferred when
- *       quantiles must be accurate at recording time rather than query time.</li>
- * </ul>
- * <p>Both are partial matches — the developer must choose between them in the
- * handler implementation based on their observability backend requirements.</p>
+ * <p><strong>OpenTelemetry mapping:</strong> {@code LongHistogram} with unit {@code "ms"}.</p>
+ * <p><strong>Prometheus mapping:</strong> {@code Histogram} or {@code Summary}.</p>
  */
 public class WldtTimer extends WldtMetric {
 
-    /**
-     * The measured duration in milliseconds.
-     * Always non-negative — a duration of zero is valid for extremely fast operations.
-     */
-    private final long durationMs;
+    private long durationMs;
+    private long minDurationMs;
+    private long maxDurationMs;
+    private long totalDurationMs;
+    private long observationCount;
 
     /**
-     * Constructs a new {@code WldtTimer} metric with a pre-computed duration.
-     * Use this constructor when the caller has already measured the elapsed time.
+     * Constructs a new {@code WldtTimer} recording the first observation.
+     * All cumulative fields ({@code min}, {@code max}, {@code total}) are initialized
+     * from {@code initialDurationMs}; {@code observationCount} starts at 1.
      *
-     * @param namespace  the logical namespace grouping this metric
-     *                   (e.g. {@code "wldt.internal"} or {@code "custom.myapp"})
-     * @param name       the metric name within its namespace
-     *                   (e.g. {@code "dt_model.processing_latency_ms"})
-     * @param component  the DT component that emitted this metric
-     * @param durationMs the measured duration in milliseconds; must be non-negative
-     * @throws IllegalArgumentException if namespace, name, or component is null,
-     *                                  or if durationMs is negative
+     * @param namespace         the logical namespace grouping this metric
+     * @param name              the metric name within its namespace
+     * @param component         the DT component that emitted this metric
+     * @param initialDurationMs the first measured duration in milliseconds; must be &ge; 0
+     * @throws IllegalArgumentException if namespace, name, or component is null/blank,
+     *                                  or if initialDurationMs is negative
      */
-    public WldtTimer(String namespace, String name, WldtMetricComponent component, long durationMs) {
+    /**
+     * Constructs an uninitialized {@code WldtTimer} for pre-registration.
+     * {@link #isInitialized()} returns {@code false} until the first {@link #update(long)}.
+     * All duration and count fields are 0 and must not be used before initialization.
+     */
+    public WldtTimer(String namespace, String name, WldtMetricComponent component) {
         super(namespace, name, component);
+        this.durationMs       = 0;
+        this.minDurationMs    = 0;
+        this.maxDurationMs    = 0;
+        this.totalDurationMs  = 0;
+        this.observationCount = 0;
+        this.initialized      = false;
+    }
+
+    public WldtTimer(String namespace, String name, WldtMetricComponent component, long initialDurationMs) {
+        super(namespace, name, component);
+        if (initialDurationMs < 0)
+            throw new IllegalArgumentException("WldtTimer durationMs must be non-negative, got: " + initialDurationMs);
+        this.durationMs       = initialDurationMs;
+        this.minDurationMs    = initialDurationMs;
+        this.maxDurationMs    = initialDurationMs;
+        this.totalDurationMs  = initialDurationMs;
+        this.observationCount = 1;
+        this.initialized      = true;
+    }
+
+    /**
+     * Records a new duration observation, updating min/max/total and observation count.
+     *
+     * @param durationMs new measured duration in milliseconds; must be &ge; 0
+     * @throws IllegalArgumentException if durationMs is negative
+     */
+    public synchronized WldtTimer update(long durationMs) {
         if (durationMs < 0)
-            throw new IllegalArgumentException("WldtTimer durationMs must be non-negative, got: " + durationMs);
-        this.durationMs = durationMs;
+            throw new IllegalArgumentException("WldtTimer update durationMs must be non-negative, got: " + durationMs);
+        if (!initialized) {
+            this.durationMs       = durationMs;
+            this.minDurationMs    = durationMs;
+            this.maxDurationMs    = durationMs;
+            this.totalDurationMs  = durationMs;
+            this.observationCount = 1;
+            this.initialized      = true;
+            this.lastUpdatedMs    = System.currentTimeMillis();
+            return this;
+        }
+        this.durationMs       = durationMs;
+        this.minDurationMs    = Math.min(this.minDurationMs, durationMs);
+        this.maxDurationMs    = Math.max(this.maxDurationMs, durationMs);
+        this.totalDurationMs += durationMs;
+        this.observationCount++;
+        this.lastUpdatedMs    = System.currentTimeMillis();
+        return this;
     }
 
     /**
-     * Factory method to create a {@code WldtTimer} by computing the elapsed time
-     * between a recorded start time and the current system time.
+     * Records an observation by computing elapsed time since {@code startMs}.
+     * Equivalent to {@code update(System.currentTimeMillis() - startMs)}.
      *
-     * <p>Usage example inside a library component:</p>
-     * <pre>{@code
-     * long start = System.currentTimeMillis();
-     * // ... operation ...
-     * WldtTimer timer = WldtTimer.since(
-     *     "wldt.internal", "dt_model.processing_latency_ms",
-     *     WldtMetricComponent.DT_MODEL, start);
-     * monitoringInterface.notifyMetric(timer);
-     * }</pre>
-     *
-     * @param namespace  the logical namespace grouping this metric
-     * @param name       the metric name within its namespace
-     * @param component  the DT component that emitted this metric
-     * @param startMs    the epoch millisecond timestamp when the operation started
-     * @return a new {@code WldtTimer} with durationMs computed as
-     *         {@code System.currentTimeMillis() - startMs}
-     * @throws IllegalArgumentException if the computed duration is negative
-     *                                  (i.e. startMs is in the future)
+     * @param startMs epoch milliseconds when the operation started
+     * @throws IllegalArgumentException if computed duration is negative (startMs in the future)
      */
-    public static WldtTimer since(String namespace, String name,
-                                  WldtMetricComponent component, long startMs) {
-        return new WldtTimer(namespace, name, component, System.currentTimeMillis() - startMs);
+    public synchronized WldtTimer updateSince(long startMs) {
+        return update(System.currentTimeMillis() - startMs);
     }
 
-    /**
-     * Returns the measured duration in milliseconds.
-     *
-     * @return non-negative duration in milliseconds
-     */
-    public long getDurationMs() {
-        return durationMs;
+    private WldtTimer(WldtTimer source) {
+        super(source.getNamespace(), source.getName(), source.getComponent());
+        this.durationMs       = source.durationMs;
+        this.minDurationMs    = source.minDurationMs;
+        this.maxDurationMs    = source.maxDurationMs;
+        this.totalDurationMs  = source.totalDurationMs;
+        this.observationCount = source.observationCount;
+        this.initialized      = source.initialized;
+        this.lastUpdatedMs    = source.lastUpdatedMs;
     }
 
-    /**
-     * Returns the measured duration converted to seconds as a double.
-     * Convenience method for backends that expect second-precision values.
-     *
-     * @return duration in seconds, preserving sub-second precision
-     */
-    public double getDurationSeconds() {
-        return durationMs / 1000.0;
+    @Override
+    public synchronized WldtTimer copy() { return new WldtTimer(this); }
+
+    @Override
+    public WldtTimer emptySnapshot() { return new WldtTimer(getNamespace(), getName(), getComponent()); }
+
+    /** @return the most recent recorded duration in milliseconds */
+    public synchronized long getDurationMs()        { return durationMs; }
+
+    /** @return the most recent duration in seconds */
+    public synchronized double getDurationSeconds() { return durationMs / 1000.0; }
+
+    /** @return minimum duration ever recorded */
+    public synchronized long getMinDurationMs()     { return minDurationMs; }
+
+    /** @return maximum duration ever recorded */
+    public synchronized long getMaxDurationMs()     { return maxDurationMs; }
+
+    /** @return sum of all recorded durations */
+    public synchronized long getTotalDurationMs()   { return totalDurationMs; }
+
+    /** @return number of observations recorded (including initial construction) */
+    public synchronized long getObservationCount()  { return observationCount; }
+
+    /** @return arithmetic mean of all recorded durations, or {@link Double#NaN} if uninitialized */
+    public synchronized double getMeanDurationMs()  {
+        return observationCount == 0 ? Double.NaN : (double) totalDurationMs / observationCount;
     }
 
-    /**
-     * Returns a string representation including the duration value.
-     *
-     * @return string representation
-     */
     @Override
     public String toString() {
         return "WldtTimer{" +
                 "namespace='" + getNamespace() + '\'' +
                 ", name='" + getName() + '\'' +
                 ", component=" + getComponent() +
-                ", timestampMs=" + getTimestampMs() +
                 ", durationMs=" + durationMs +
+                ", minDurationMs=" + minDurationMs +
+                ", maxDurationMs=" + maxDurationMs +
+                ", totalDurationMs=" + totalDurationMs +
+                ", observationCount=" + observationCount +
+                ", lastUpdatedMs=" + lastUpdatedMs +
                 '}';
     }
 }

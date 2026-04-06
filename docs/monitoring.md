@@ -6,129 +6,517 @@
 
 ## Digital Twin Monitoring Interface
 
-Version 0.8.0 introduces the **Monitoring Interface** — a built-in observability layer for Digital Twin instances.
-This release provides a push-based, per-component metric system with OpenTelemetry-inspired types, an internal metric
-registry with automatic delta computation, and a clean developer extension point. The monitoring system is designed to
-integrate naturally with external backends such as Prometheus, Grafana, and OpenTelemetry without introducing any external
-dependencies in the core library.
-
-Key Updates:
-
-- **Monitoring Interface**: New push-based observability system, unique per `DigitalTwin` instance, injected automatically into all internal components by the `DigitalTwinKernel`
-- **WLDT Metric Types**: Five typed metric classes (`WldtCounter`, `WldtUpDownCounter`, `WldtGauge`, `WldtTimer`, `WldtHistogram`) extending a common `WldtMetric` base, with semantics inspired by OpenTelemetry
-- **Metric Registry**: Internal `WldtMetricRegistry` with lazy registration, automatic delta computation for counters, and developer query support
-- **Developer Extension Point**: `WldtMonitoringHandler` abstract class with per-component callbacks and no-op defaults, allowing partial implementation without boilerplate
+The WLDT monitoring system is built around three collaborating classes: `MonitoringInterface`, `MonitoringInterfaceHandler`, and `WldtMetricRegistry`. 
+Metrics are **registered once** with an initial value and then **updated in-place** as new measurements arrive. 
+Each metric instance accumulates type-specific supporting fields (delta, min/max, cumulative counts) across all updates.
 
 ---
 
-## Monitoring Interface
+### Core Classes
 
-The Monitoring Interface introduces a structured observability layer for WLDT Digital Twins. It enables developers to receive push notifications for metrics emitted by internal DT components — such as the `DigitalTwinModel` (Shadowing Function), the Event Bus, Physical and Digital Adapters, Augmentation Functions, and the Storage layer — without modifying internal library code.
+#### `MonitoringInterface`
 
-The system follows a **push model**: each time a measurable event occurs inside a DT component, the library pushes an enriched metric to the developer's handler immediately. No polling, no background threads, no periodic aggregation — raw values are delivered on every event and aggregation is left to the developer's chosen backend.
+The central hub. Each `DigitalTwin` instance owns one `MonitoringInterface` which is automatically injected into all DT components (Model, Adapters, Augmentation Functions, Storage).
 
-### Architecture Overview
+It exposes two primary methods used by framework components:
 
-The Monitoring Interface is composed of four collaborating elements:
+- **`notifyMetric(WldtMetric metric)`** — the standard push path. On the **first push** for a given metric name the metric is registered and `MonitoringInterfaceHandler.onMetricRegistered()` is called. On **every subsequent push** for the same name the stored live instance is mutated in-place and `MonitoringInterfaceHandler.onMetricUpdated()` is called.
+- **`trackCustomMetric(WldtMetric metric)`** — same pipeline for developer-defined custom metrics; bypasses per-component flag gating; metric component must be `WldtMetricComponent.CUSTOM`.
 
-- `MonitoringConfiguration` defines which components are monitored via per-component flags (all disabled by default) and sets the namespace prefix for custom developer metrics.
-- `MonitoringInterface` is the concrete library class that acts as the central hub. It is instantiated once per `DigitalTwin`, injected into all internal components by the `DigitalTwinKernel`, and is responsible for flag gating, registry management, delta computation, and routing.
-- `WldtMetricRegistry` is the internal registry that tracks the last known value of every metric, performs lazy auto-registration on the first push, computes deltas for counter types, and exposes query methods to the developer.
-- `WldtMonitoringHandler` is the abstract class that developers extend to define what happens with each received metric. It declares one callback per DT component with default no-op implementations, so developers only override what they need.
+Additional utility methods:
 
-The `MonitoringInterface` is **unique per `DigitalTwin` instance**. Multiple DTs running concurrently in the same `DigitalTwinEngine` each own a separate `MonitoringInterface` with an independent registry and handler — metrics from different twins never mix.
+| Method | Purpose |
+|---|---|
+| `registerMetric(WldtMetric)` | Pre-register a metric without firing any callback (useful at startup) |
+| `deregisterMetric(String fullName)` | Remove a metric; next push starts fresh |
+| `getMetric(String fullName)` | Query the live instance by full name (`namespace.name`) |
+| `getAllMetrics()` | Snapshot of all registered live instances |
+| `isMetricRegistered(String fullName)` | Check presence |
+| `setConfiguration(MonitoringInterfaceConfiguration)` | Configure per-component enable flags |
+| `setHandler(MonitoringInterfaceHandler)` | Attach the developer callback implementation |
 
-### Registration and Lifecycle
-
-The developer registers the `MonitoringInterface` on the `DigitalTwin` before starting the engine, using the same pattern already established for `StorageManager`:
+Obtaining and configuring the interface on a `DigitalTwin`:
 
 ```java
-MonitoringConfiguration config = new MonitoringConfiguration.Builder()
-    .withDtModelMonitoring()
-    .withEventBusMonitoring()
-    .withPhysicalAdapterMonitoring()
-    .withCustomNamespace("myapp.sensor")
-    .build();
+MonitoringInterfaceConfiguration config = new MonitoringInterfaceConfiguration.Builder()
+        .withDtModelMonitoring()
+        .withPhysicalAdapterMonitoring()
+        .withDigitalAdapterMonitoring()
+        .withCustomNamespace("myapp.dt")
+        .build();
 
-MonitoringInterface monitoring = new MonitoringInterface(
-    config,
-    new MyMonitoringHandler(),
-    WldtLoggerProvider.getLogger(MyMonitoringHandler.class)
-);
-
-DigitalTwin dt = new DigitalTwin("my-dt-id", new MyDigitalTwinModel());
-dt.setMonitoringInterface(monitoring);
-
-DigitalTwinEngine engine = new DigitalTwinEngine();
-engine.addDigitalTwin(dt);
-engine.startAll();
+digitalTwin.getMonitoringInterface().setConfiguration(config);
+digitalTwin.getMonitoringInterface().setHandler(new MyMonitoringHandler());
 ```
 
-The `DigitalTwinKernel` injects the `MonitoringInterface` into all active internal components during DT startup. Components that receive a `null` reference (i.e. monitoring is not configured) simply skip all metric push calls with no overhead.
+#### `MonitoringInterfaceConfiguration`
 
-### Delta Computation
+Immutable, builder-based. Controls which DT components have monitoring enabled. Custom metrics always bypass flag gating.
 
-For `WldtCounter` and `WldtUpDownCounter`, the `WldtMetricRegistry` automatically computes the delta between the current push and the previously registered value before dispatching the metric to the handler. This relieves developers from maintaining their own tracking state when integrating with backends like Prometheus that expect incremental updates.
+| Builder method | Enables |
+|---|---|
+| `withDtModelMonitoring()` | DT Model (Shadowing Function) |
+| `withPhysicalAdapterMonitoring()` | Physical Adapter |
+| `withDigitalAdapterMonitoring()` | Digital Adapter |
+| `withAugmentationMonitoring()` | Augmentation Functions |
+| `withStorageMonitoring()` | Storage layer |
+| `withAllMonitoring()` | All of the above |
+| `withCustomNamespace(String)` | Namespace prefix for custom metrics (default: `"custom"`) |
 
-- On the **first push** for a given metric name, `getDelta()` returns `null` — no previous value is available.
-- On **all subsequent pushes**, `getDelta()` returns the signed difference from the previous value. For `WldtCounter` the delta is always non-negative (monotonic). For `WldtUpDownCounter` the delta may be positive or negative.
+#### `MonitoringInterfaceHandler`
+
+Abstract class with two callbacks. Developers extend it and override whichever callbacks they need — both have no-op default implementations.
 
 ```java
-@Override
-public void onDigitalTwinModelMetric(WldtMetric metric) {
-    if (metric instanceof WldtCounter) {
-        WldtCounter c = (WldtCounter) metric;
-        // getDelta() is null on first push, non-negative Long on subsequent pushes
-        if (c.isDeltaAvailable())
-            prometheusCounter.inc(c.getDelta());
+public abstract class MonitoringInterfaceHandler {
+
+    /** Fires once when a metric name is first observed. */
+    public void onMetricRegistered(WldtMetricComponent component, WldtMetric metric) {}
+
+    /** Fires on every subsequent push for an already-registered metric.
+     *  The metric is a snapshot copy of the live instance taken at callback time. */
+    public void onMetricUpdated(WldtMetricComponent component, WldtMetric metric) {}
+}
+```
+
+The `component` parameter identifies which DT component emitted the metric. Use it together with `instanceof` to access typed fields:
+
+##### Metric snapshots in handler callbacks
+
+Both `onMetricRegistered` and `onMetricUpdated` receive a **snapshot copy** of the metric, not a reference to the live registry instance.
+
+`MonitoringInterface` calls `metric.copy()` — defined on every metric type — immediately before invoking each callback. The copy captures all fields at that instant: the current value, delta, min/max, cumulative counters, and `lastUpdatedMs`. From that point on, the snapshot and the live instance are fully independent objects — subsequent pushes that mutate the live registry entry do not affect the copy held by the handler.
+
+This guarantee is important when a handler stores metrics for later inspection (e.g., in a list or a metrics sink), because without it the stored reference would silently reflect future mutations rather than the value at the time of the callback.
+
+```java
+public class MyHandler extends MonitoringInterfaceHandler {
+
+    private final List<WldtMetric> history = new ArrayList<>();
+
+    @Override
+    public void onMetricUpdated(WldtMetricComponent component, WldtMetric metric) {
+        // Safe: metric is a snapshot — adding it to a list captures its state
+        // at this exact moment, unaffected by any subsequent push.
+        history.add(metric);
     }
 }
 ```
 
-### Custom Metrics
-
-Developers can push their own metrics through the same pipeline via `MonitoringInterface.trackCustomMetric()`. Custom metrics must use `WldtMetricComponent.CUSTOM` and the configured custom namespace. They bypass per-component flag gating and are always forwarded to `WldtMonitoringHandler.onCustomMetric()`. They also benefit from delta computation if they are `WldtCounter` or `WldtUpDownCounter` instances.
+If you need the **current live value** of a metric at any time outside a callback, use `MonitoringInterface.getMetric(fullName)` which returns the live registry instance directly.
 
 ```java
-monitoring.trackCustomMetric(
-    new WldtGauge("myapp.sensor", "room.temperature",
-                  WldtMetricComponent.CUSTOM, 21.5)
-);
+public class MyHandler extends MonitoringInterfaceHandler {
+
+    @Override
+    public void onMetricUpdated(WldtMetricComponent component, WldtMetric metric) {
+        if (component == WldtMetricComponent.DT_MODEL) {
+            if (metric instanceof WldtCounter) {
+                WldtCounter c = (WldtCounter) metric;
+                if (c.isDeltaAvailable())
+                    prometheusCounter.inc(c.getDelta());
+            }
+            if (metric instanceof WldtTimer) {
+                WldtTimer t = (WldtTimer) metric;
+                prometheusHistogram.observe(t.getDurationSeconds());
+            }
+        }
+    }
+}
+```
+
+#### `WldtMetricRegistry`
+
+Internal store (not used directly by developers). Maintains the live mutable metric instance for each registered name in a `ConcurrentHashMap`. Key operations:
+
+- `register(WldtMetric)` — stores initial instance
+- `registerIfAbsent(WldtMetric)` — atomic; returns `true` if newly registered (used internally by `MonitoringInterface`)
+- `update(WldtMetric incoming)` — looks up the stored live instance, calls its typed `update()` method with the value from `incoming`, returns the mutated live instance
+
+---
+
+### Metric Types
+
+All metrics extend `WldtMetric` and carry:
+- `namespace` — logical grouping prefix (e.g. `"wldt.internal"` or `"myapp.sensor"`)
+- `name` — identifier within the namespace
+- `component` — `WldtMetricComponent` enum value (routing and flag gating)
+- `timestampMs` — epoch ms at construction
+- `lastUpdatedMs` — epoch ms of the most recent mutation
+
+The **full name** used for registry lookup is `namespace + "." + name`.
+
+---
+
+#### `WldtCounter` — Monotonically Increasing Counter
+
+Models discrete occurrences that can only increase (total events processed, errors encountered, messages sent). Tracks `delta` (last increment) and `totalIncrements` across all mutations.
+
+**Mutation methods:**
+- `update(long newAbsoluteValue)` — set new absolute cumulative value; must be ≥ current value
+- `increment()` — add 1
+- `increment(long amount)` — add `amount` (must be > 0)
+
+**Supporting fields:** `getValue()`, `getDelta()` (null until first mutation), `isDeltaAvailable()`, `getTotalIncrements()`
+
+**Example:**
+
+```java
+// --- Registration (first push) ---
+String namespace = CoreMonitoringUtils.buildNamespace(digitalTwinId, "my_component");
+
+monitoringInterface.notifyMetric(
+        new WldtCounter(namespace, "events_processed", WldtMetricComponent.DT_MODEL, 0L));
+// → fires onMetricRegistered(DT_MODEL, counter)
+//   counter.getValue() == 0, counter.getDelta() == null
+
+// --- Update (absolute value) ---
+monitoringInterface.notifyMetric(
+        new WldtCounter(namespace, "events_processed", WldtMetricComponent.DT_MODEL, 5L));
+// → fires onMetricUpdated(DT_MODEL, liveCounter)
+//   liveCounter.getValue() == 5, liveCounter.getDelta() == 5L
+
+// --- Update (increment directly on the stored instance) ---
+WldtCounter stored = (WldtCounter) monitoringInterface
+        .getMetric(namespace + ".events_processed").get();
+stored.increment(3L);
+// liveCounter.getValue() == 8, liveCounter.getDelta() == 3L
 ```
 
 ---
 
-### WLDT Metric Types
+#### `WldtUpDownCounter` — Bidirectional Counter
 
-The following tables provide a reference for the monitoring types introduced in the WLDT monitoring system. The first table covers all metric types and infrastructure classes. The second maps each metric type to its OpenTelemetry and Prometheus equivalents to guide developer integrations.
+Models discrete entity counts that can increase or decrease (active connections, registered functions, connected adapters). Tracks signed `delta`, `peakValue`, and `troughValue`.
 
-The metric type system is inspired by the OpenTelemetry semantic model but introduces **no external dependencies**. Developers who want to export metrics to OTel or Prometheus write a bridge in their `WldtMonitoringHandler` implementation. This approach is consistent with the existing WLDT logging design philosophy.
+**Mutation methods:**
+- `update(long newAbsoluteValue)` — signed delta = new − old
+- `increment()` / `increment(long amount)` — add to current value
+- `decrement()` / `decrement(long amount)` — subtract from current value
 
-#### Metric Types & Infrastructure Classes
+**Supporting fields:** `getValue()`, `getDelta()`, `isDeltaAvailable()`, `getPeakValue()`, `getTroughValue()`, `getTotalUpdates()`
 
-| WLDT Type | Java Type | Description |
+**Example:**
+
+```java
+// --- Registration ---
+monitoringInterface.notifyMetric(
+        new WldtUpDownCounter(namespace, "active_connections",
+                WldtMetricComponent.PHYSICAL_ADAPTER, 0L));
+// → onMetricRegistered fired, delta == null
+
+// --- Update via absolute value ---
+monitoringInterface.notifyMetric(
+        new WldtUpDownCounter(namespace, "active_connections",
+                WldtMetricComponent.PHYSICAL_ADAPTER, 3L));
+// → onMetricUpdated fired
+//   delta == +3, peakValue == 3
+
+// --- Decrement directly on the stored instance ---
+WldtUpDownCounter stored = (WldtUpDownCounter) monitoringInterface
+        .getMetric(namespace + ".active_connections").get();
+stored.decrement(1L);
+// value == 2, delta == -1, troughValue == 2
+```
+
+---
+
+#### `WldtGauge` — Point-in-Time Observed Value
+
+Models a continuously observed numeric value with no direction constraint (queue depth, sensor temperature, CPU usage, state property count). Tracks `previousValue`, signed `delta`, `minObserved`, and `maxObserved`.
+
+**Mutation methods:**
+- `update(double newValue)` — records new observation; updates all supporting fields
+
+**Supporting fields:** `getValue()`, `getPreviousValue()` (null before first update), `getDelta()` (null before first update), `getMinObserved()`, `getMaxObserved()`, `getUpdateCount()`
+
+**Example:**
+
+```java
+// --- Registration ---
+monitoringInterface.notifyMetric(
+        new WldtGauge("myapp.sensor", "temperature",
+                WldtMetricComponent.CUSTOM, 20.0));
+// → onMetricRegistered fired
+//   minObserved == maxObserved == 20.0, previousValue == null
+
+// --- Update ---
+monitoringInterface.notifyMetric(
+        new WldtGauge("myapp.sensor", "temperature",
+                WldtMetricComponent.CUSTOM, 23.5));
+// → onMetricUpdated fired
+//   value == 23.5, previousValue == 20.0, delta == +3.5
+//   maxObserved == 23.5
+
+// --- Query supporting fields ---
+WldtGauge g = (WldtGauge) monitoringInterface
+        .getMetric("myapp.sensor.temperature").get();
+System.out.println("Range: " + g.getMinObserved() + " – " + g.getMaxObserved());
+```
+
+---
+
+#### `WldtTimer` — Duration Measurement
+
+Records the elapsed time of operations in milliseconds. The constructor records the first observation. Accumulates `minDurationMs`, `maxDurationMs`, `totalDurationMs`, and `observationCount` across all recordings.
+
+**Mutation methods:**
+- `update(long durationMs)` — record a new observation; updates min/max/total/count
+- `updateSince(long startMs)` — equivalent to `update(System.currentTimeMillis() - startMs)`
+
+**Supporting fields:** `getDurationMs()` (last observation), `getDurationSeconds()`, `getMinDurationMs()`, `getMaxDurationMs()`, `getTotalDurationMs()`, `getObservationCount()`, `getMeanDurationMs()`
+
+**Example:**
+
+```java
+// --- Registration (first measurement) ---
+long startMs = System.currentTimeMillis();
+// ... operation ...
+monitoringInterface.notifyMetric(
+        new WldtTimer(namespace, "processing_latency_ms",
+                WldtMetricComponent.DT_MODEL,
+                System.currentTimeMillis() - startMs));
+// → onMetricRegistered fired
+//   min == max == total == firstDuration, observationCount == 1
+
+// --- Update (subsequent measurements via absolute duration) ---
+startMs = System.currentTimeMillis();
+// ... next operation ...
+monitoringInterface.notifyMetric(
+        new WldtTimer(namespace, "processing_latency_ms",
+                WldtMetricComponent.DT_MODEL,
+                System.currentTimeMillis() - startMs));
+// → onMetricUpdated fired with the live timer
+
+// --- Update directly on the stored instance ---
+WldtTimer timer = (WldtTimer) monitoringInterface
+        .getMetric(namespace + ".processing_latency_ms").get();
+timer.updateSince(startMs);
+// observationCount++, min/max/mean recalculated
+
+// --- Read statistics ---
+System.out.printf("Latency — last: %dms  min: %dms  max: %dms  mean: %.1fms%n",
+        timer.getDurationMs(), timer.getMinDurationMs(),
+        timer.getMaxDurationMs(), timer.getMeanDurationMs());
+```
+
+---
+
+#### `WldtHistogram` — Statistical Distribution
+
+Aggregates observations into a statistical summary. Supports two accumulation modes: single-value observations via `observe(double)` and pre-aggregated windows via `update(count, sum, min, max)`. Tracks per-window fields and cumulative fields across all windows.
+
+**Mutation methods:**
+- `observe(double value)` — add one observation; `totalCount++`, `totalSum += value`, update global min/max
+- `update(long count, double sum, double min, double max)` — merge a pre-aggregated window into the cumulative state
+
+**Per-window accessors:** `getCount()`, `getSum()`, `getMin()`, `getMax()`, `getMean()`
+
+**Cumulative accessors:** `getTotalCount()`, `getTotalSum()`, `getGlobalMin()`, `getGlobalMax()`, `getWindowCount()`, `getGlobalMean()`
+
+**Example:**
+
+```java
+// --- Registration (first window) ---
+monitoringInterface.notifyMetric(
+        new WldtHistogram(namespace, "message_size_bytes",
+                WldtMetricComponent.PHYSICAL_ADAPTER,
+                10L, 1200.0, 80.0, 160.0));
+// → onMetricRegistered fired
+//   count==10, mean==120, globalMin==80, globalMax==160, windowCount==1
+
+// --- Update via single observations ---
+WldtHistogram h = (WldtHistogram) monitoringInterface
+        .getMetric(namespace + ".message_size_bytes").get();
+h.observe(95.0);
+h.observe(200.0);
+// totalCount==12, windowCount==3
+// globalMax updated to 200.0 if larger than previous globalMax
+
+// --- Update via pre-aggregated window ---
+monitoringInterface.notifyMetric(
+        new WldtHistogram(namespace, "message_size_bytes",
+                WldtMetricComponent.PHYSICAL_ADAPTER,
+                5L, 600.0, 60.0, 180.0));
+// → onMetricUpdated fired
+//   previous window fields replaced; cumulative fields merged
+
+// --- Read global statistics ---
+System.out.printf("Messages — total: %d  global mean: %.1f bytes%n",
+        h.getTotalCount(), h.getGlobalMean());
+```
+
+---
+
+### `WldtMetricComponent` — Component Routing Enum
+
+| Value | DT Component |
+|---|---|
+| `DT_MODEL` | Digital Twin Model (Shadowing Function) |
+| `PHYSICAL_ADAPTER` | Physical Adapter |
+| `DIGITAL_ADAPTER` | Digital Adapter |
+| `AUGMENTATION` | Augmentation Function |
+| `STORAGE` | Storage layer |
+| `CUSTOM` | Developer-defined custom metric |
+
+Custom metrics (`CUSTOM`) always bypass per-component flag gating and reach the handler regardless of the `MonitoringInterfaceConfiguration` flags set.
+
+---
+
+### Convenience Mutation Methods
+
+`MonitoringInterface` exposes a set of high-level methods that let developers update an 
+already-registered metric by specifying only the **namespace**, the **name**, and the **new value**. 
+The library handles the registry lookup, type validation, casting, mutation, and handler notification internally. 
+Any error (metric not found, wrong type, invalid value) is logged and 
+silently swallowed — metric updates never affect the normal execution of the program.
+
+#### Method Reference
+
+| Method | Target type | Description |
 |---|---|---|
-| `WldtMetric` | `abstract class` | Base class for all metric types. Carries common metadata: namespace, name, component, timestampMs. Acts as an escape hatch for composite or non-standard metrics not covered by the typed subclasses |
-| `WldtCounter` | `class` | Monotonically increasing counter. Models events processed, errors, messages sent. Increment only, never reset. Carries an optional `delta` field computed by the registry before dispatch |
-| `WldtUpDownCounter` | `class` | Counter for discrete countable entities that can increase and decrease. Models connected adapters, registered functions. Semantically distinct from `WldtGauge` — represents a discrete count, not a continuous observation. Carries an optional signed `delta` field computed by the registry before dispatch |
-| `WldtGauge` | `class` | Continuously observed numeric value that freely rises and falls. Models queue depth, memory usage, CPU load, sensor readings. No delta — each value is an independent point-in-time observation |
-| `WldtTimer` | `class` | Duration measurement in milliseconds. Models processing latency, round-trip time. Includes a `since(startMs)` factory method for convenient inline measurement. Maps to OTel `LongHistogram` or Prometheus `Summary`/`Histogram` |
-| `WldtHistogram` | `class` | Distribution of observed samples carrying count, sum, min, max. Exposes a computed `getMean()` method. Models message size distribution, value spread over time. No delta — the distribution is already a self-contained aggregate |
-| `WldtMetricComponent` | `enum` | Identifies the DT component that emitted the metric. Values: `DT_MODEL`, `EVENT_BUS`, `PHYSICAL_ADAPTER`, `DIGITAL_ADAPTER`, `AUGMENTATION`, `STORAGE`, `CUSTOM`. Used by `MonitoringInterface` for flag gating and callback routing |
-| `MonitoringConfiguration` | `class` | Immutable configuration holding per-component enable flags and the custom metric namespace. All flags default to `false`. Built via the nested `Builder`. Provides `withAllMonitoring()` as a convenience method and `isAnyMonitoringEnabled()` for kernel-level optimisation |
-| `WldtMetricRegistry` | `class` | Internal registry tracking the last known value of every active metric. Performs lazy auto-registration on the first push, computes and injects delta for counter types, and exposes `getMetric()`, `getAllMetrics()`, `isRegistered()` query methods to the developer via `MonitoringInterface`. Thread-safe via `ConcurrentHashMap` |
-| `WldtMonitoringHandler` | `abstract class` | Developer extension point. Declares one callback per DT component with default no-op implementations. Developers override only the callbacks relevant to their use case. Callbacks may be invoked concurrently — implementations must handle shared state in a thread-safe manner |
-| `MonitoringInterface` | `final class` | Concrete library class and central hub of the monitoring system. Instantiated by the developer, registered on `DigitalTwin`, and injected into internal components by `DigitalTwinKernel`. Responsible for flag gating, registry management, delta injection, and routing. Composes `WldtMonitoringHandler`, `WldtMetricRegistry`, and `WldtLogger`. Not intended to be extended |
+| `increaseCounter(ns, name)` | `WldtCounter` / `WldtUpDownCounter` | Increments by 1 |
+| `increaseCounter(ns, name, amount)` | `WldtCounter` / `WldtUpDownCounter` | Increments by `amount` |
+| `decreaseCounter(ns, name)` | `WldtUpDownCounter` | Decrements by 1 |
+| `decreaseCounter(ns, name, amount)` | `WldtUpDownCounter` | Decrements by `amount` |
+| `updateGauge(ns, name, value)` | `WldtGauge` | Sets a new observed value |
+| `updateTimer(ns, name, durationMs)` | `WldtTimer` | Records an absolute duration |
+| `updateTimerSince(ns, name, startMs)` | `WldtTimer` | Records `now − startMs` as duration |
+| `histogramObservation(ns, name, value)` | `WldtHistogram` | Adds a single observation |
+| `histogramObservation(ns, name, count, sum, min, max)` | `WldtHistogram` | Merges a pre-aggregated window |
 
-#### OpenTelemetry & Prometheus Mapping
+> **Note:** calling `decreaseCounter` on a `WldtCounter` (which is monotonically increasing) logs an error and has no effect. Use `WldtUpDownCounter` for metrics that can go down.
 
-The WLDT metric type system is designed so that three out of five typed metrics map mechanically and completely to both OpenTelemetry and Prometheus. `WldtTimer` requires a one-line implementation choice in the handler. `WldtMetric` (generic) is intentionally outside any standard and serves only as an escape hatch.
+#### Examples
 
-| WLDT Type | OTel Equivalent | Prometheus Equivalent | Match | Notes |
-|---|---|---|---|---|
-| `WldtCounter` | `LongCounter` / `DoubleCounter` | `Counter` | Full | Identical semantics. Increment only. Use `getDelta()` to drive `Counter.inc()` without additional tracking. Example: `wldt.dt_model.events_processed` |
-| `WldtUpDownCounter` | `LongUpDownCounter` | `Gauge` | Full | OTel has a dedicated type. Prometheus maps it to `Gauge` with no relevant semantic loss. Use `getDelta()` to drive `Gauge.inc()` / `Gauge.dec()` based on sign. Example: `wldt.physical_adapter.connected_count` |
-| `WldtGauge` | `LongGauge` / `ObservableGauge` | `Gauge` | Full | Continuously observed point-in-time value. Use `getValue()` directly with `Gauge.set()`. Example: `wldt.event_bus.queue_depth` |
-| `WldtTimer` | `LongHistogram` with unit `ms` | `Summary` or `Histogram` | Partial | OTel has no dedicated Timer type — duration is modelled as a `Histogram`. On the Prometheus side the developer chooses between `Summary` (server-side quantiles) and `Histogram` (client-side buckets) in the handler implementation. Example: `wldt.dt_model.processing_latency_ms` |
-| `WldtHistogram` | `LongHistogram` / `DoubleHistogram` | `Histogram` | Full | count, sum, min, max map directly to native OTel and Prometheus fields. Example: `wldt.physical_adapter.message_size_bytes` |
-| `WldtMetric` (generic) | None | None | No standard | Escape hatch for composite or non-standard metrics. Export logic is entirely delegated to the developer's handler implementation |
+**Counter:**
+
+```java
+// Register once
+monitoringInterface.registerMetric(
+        new WldtCounter(namespace, "events_processed", WldtMetricComponent.DT_MODEL, 0L));
+
+// Later — increment by 1
+monitoringInterface.increaseCounter(namespace, "events_processed");
+
+// Or increment by a specific amount
+monitoringInterface.increaseCounter(namespace, "events_processed", 5L);
+```
+
+**UpDownCounter:**
+
+```java
+monitoringInterface.registerMetric(
+        new WldtUpDownCounter(namespace, "active_connections",
+                WldtMetricComponent.PHYSICAL_ADAPTER, 0L));
+
+// New connection established
+monitoringInterface.increaseCounter(namespace, "active_connections");
+
+// Connection closed
+monitoringInterface.decreaseCounter(namespace, "active_connections");
+```
+
+**Gauge:**
+
+```java
+monitoringInterface.registerMetric(
+        new WldtGauge("myapp.sensor", "temperature", WldtMetricComponent.CUSTOM, 20.0));
+
+// Record a new reading
+monitoringInterface.updateGauge("myapp.sensor", "temperature", 23.5);
+```
+
+**Timer:**
+
+```java
+monitoringInterface.registerMetric(
+        new WldtTimer(namespace, "processing_latency_ms", WldtMetricComponent.DT_MODEL, 0L));
+
+// Record an already-measured duration
+monitoringInterface.updateTimer(namespace, "processing_latency_ms", elapsedMs);
+
+// Or let the library compute the elapsed time from a start timestamp
+long startMs = System.currentTimeMillis();
+// ... operation ...
+monitoringInterface.updateTimerSince(namespace, "processing_latency_ms", startMs);
+```
+
+**Histogram:**
+
+```java
+monitoringInterface.registerMetric(
+        new WldtHistogram(namespace, "message_size_bytes",
+                WldtMetricComponent.PHYSICAL_ADAPTER, 1L, 120.0, 120.0, 120.0));
+
+// Add individual observations
+monitoringInterface.histogramObservation(namespace, "message_size_bytes", 95.0);
+monitoringInterface.histogramObservation(namespace, "message_size_bytes", 142.0);
+
+// Or merge a pre-aggregated window
+monitoringInterface.histogramObservation(namespace, "message_size_bytes",
+        10L, 1150.0, 80.0, 160.0);
+```
+
+---
+
+### Fluent Mutation API
+
+Every mutation method on a registered metric returns `this`, allowing calls to be chained on the same instance. 
+This is useful when multiple updates need to be applied in sequence, or when the result should be passed immediately to `notifyMetric`.
+
+#### Chaining multiple updates on a stored instance
+
+Retrieve the live instance once and apply updates in a single expression:
+
+```java
+// Counter — chain two increments
+((WldtCounter) monitoringInterface.getMetric(ns + ".events").get())
+        .increment(3L)
+        .increment(2L);
+// value += 5 in one line
+
+// UpDownCounter — increment then decrement
+((WldtUpDownCounter) monitoringInterface.getMetric(ns + ".connections").get())
+        .increment(5L)
+        .decrement(2L);
+// net change: +3
+
+// Histogram — record several observations without intermediate variables
+((WldtHistogram) monitoringInterface.getMetric(ns + ".msg_size").get())
+        .observe(42.0)
+        .observe(55.0)
+        .observe(38.0);
+```
+
+#### Updating and notifying in one expression
+
+Because mutation methods return the metric instance, you can update a stored metric and pass it directly to `notifyMetric` 
+without a temporary variable:
+
+```java
+WldtGauge temperature = (WldtGauge) monitoringInterface
+        .getMetric("myapp.sensor.temperature").get();
+
+// Update the stored instance and notify in one line
+monitoringInterface.notifyMetric(temperature.update(24.1));
+
+// Same pattern with a timer — record elapsed time and notify immediately
+WldtTimer latency = (WldtTimer) monitoringInterface
+        .getMetric(ns + ".processing_latency_ms").get();
+
+monitoringInterface.notifyMetric(latency.updateSince(startMs));
+```
+
+#### Inline registration and first update
+
+The fluent return also simplifies the registration-then-first-update pattern when using `registerMetric()` followed by an immediate mutation before the first `notifyMetric` call:
+
+```java
+// Register a counter at zero, then immediately set an initial real value
+WldtCounter errors = new WldtCounter(ns, "errors", WldtMetricComponent.DT_MODEL, 0L);
+monitoringInterface.registerMetric(errors);
+
+// Later, increment and notify without a separate lookup
+monitoringInterface.notifyMetric(errors.increment());
+```

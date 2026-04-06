@@ -8,10 +8,12 @@ import it.wldt.exception.*;
 import it.wldt.log.WldtLogger;
 import it.wldt.log.WldtLoggerProvider;
 import it.wldt.monitoring.handler.TestMonitoringInterfaceHandler;
+import it.wldt.monitoring.metrics.WldtMetric;
+import it.wldt.monitoring.metrics.WldtMetricComponent;
 import it.wldt.process.DemoProcessTester;
 import it.wldt.process.digital.DemoDigitalAdapter;
 import it.wldt.process.digital.DemoDigitalAdapterConfiguration;
-import it.wldt.process.metrics.SharedTestMetrics;
+import it.wldt.utils.SharedTestMetrics;
 import it.wldt.process.physical.DemoPhysicalAdapter;
 import it.wldt.process.physical.DemoPhysicalAdapterConfiguration;
 import it.wldt.process.shadowing.DemoDigitalTwinModel;
@@ -19,6 +21,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -65,7 +71,7 @@ public class DigitalTwinProcessMetricsTests {
         );
 
         // Retrieve the Monitoring Interface to set the Handler to be used
-        digitalTwin.getMonitoringInterface().setHandler(new TestMonitoringInterfaceHandler());
+        digitalTwin.getMonitoringInterface().setHandler(new TestMonitoringInterfaceHandler(TEST_DIGITAL_TWIN_ID));
 
         // Register DT to Shared Test Metrics
         SharedTestMetrics.getInstance().registerDigitalTwin(TEST_DIGITAL_TWIN_ID);
@@ -91,7 +97,7 @@ public class DigitalTwinProcessMetricsTests {
 
     @Test
     @Order(1)
-    public void testPhysicalAdapterEvents() throws WldtConfigurationException, EventBusException, KernelException, InterruptedException, WldtRuntimeException {
+    public void testPhysicalEventsProcessing() throws WldtConfigurationException, EventBusException, KernelException, InterruptedException, WldtRuntimeException {
 
         //Set EventBus Logger
         WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
@@ -99,17 +105,45 @@ public class DigitalTwinProcessMetricsTests {
         //Wait until all the messages have been received
         Thread.sleep((DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS + ((DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES + DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_EVENT_UPDATES) * DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS)));
 
-        //Check Generated Physical Events Not Null
-        assertNotNull(SharedTestMetrics.getInstance().getPhysicalAdapterPropertyEventList(TEST_DIGITAL_TWIN_ID));
+        // Retrieve Shared Stats Components
+        List<WldtMetricComponent> registeredComponentList = SharedTestMetrics.getInstance().getMonitoringRegisteredComponentList(TEST_DIGITAL_TWIN_ID);
+        List<WldtMetric> registeredMetricList = SharedTestMetrics.getInstance().getMonitoringRegisteredMetricList(TEST_DIGITAL_TWIN_ID);
+        List<WldtMetric> registeredUpdateMetricsList = SharedTestMetrics.getInstance().getMonitoringUpdatedMetricList(TEST_DIGITAL_TWIN_ID);
 
-        //Check Received Physical Event on the Shadowing Function
-        assertEquals(TestPhysicalAdapter.TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES, SharedTestMetrics.getInstance().getPhysicalAdapterPropertyEventList(TEST_DIGITAL_TWIN_ID).size());
+        // Check Registered Stats are not null
+        assertNotNull(registeredComponentList);
+        assertNotNull(registeredMetricList);
+        assertNotNull(registeredUpdateMetricsList);
+
+        // Filter Metrics Update for Their Type and create a List of resulting metrics updates
+        List<WldtMetric> paEventExecutionTime = registeredUpdateMetricsList.stream()
+                .filter(m -> m.getComponent().equals(WldtMetricComponent.DT_MODEL) && m.getName().equals(CoreMonitoringUtils.PA_PROPERTY_VARIATION_EXEC_TIME))
+                .collect(Collectors.toList());
+
+        //Check the number of execution is equals to the number of generated PA Property Variation Events
+        assertEquals(TestPhysicalAdapter.TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES, paEventExecutionTime.size());
+
+        // Filter PA Event Processing Success Count
+        List<WldtMetric> paEventSuccessCount = registeredUpdateMetricsList.stream()
+                .filter(m -> m.getComponent().equals(WldtMetricComponent.DT_MODEL) && m.getName().equals(CoreMonitoringUtils.PA_PROPERTY_VARIATION_EXEC_SUCCESS_COUNT))
+                .collect(Collectors.toList());
+
+        // Check the number of execution is equals to the number of generated PA Property Variation Events
+        assertEquals(TestPhysicalAdapter.TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES, paEventSuccessCount.size());
+
+        // Filter PA Event Processing Error Count
+        List<WldtMetric> paEventErrorCount = registeredUpdateMetricsList.stream()
+                .filter(m -> m.getComponent().equals(WldtMetricComponent.DT_MODEL) && m.getName().equals(CoreMonitoringUtils.PA_PROPERTY_VARIATION_EXEC_ERROR_COUNT))
+                .collect(Collectors.toList());
+
+        // Check the number of execution is equals to the number of generated PA Property Variation Events
+        assertEquals(0, paEventErrorCount.size());
 
         //Check Received Physical Events on the Shadowing Function Not Null
-        assertNotNull(SharedTestMetrics.getInstance().getShadowingFunctionPropertyEventList(TEST_DIGITAL_TWIN_ID));
+        //assertNotNull(SharedTestMetrics.getInstance().getShadowingFunctionPropertyEventList(TEST_DIGITAL_TWIN_ID));
 
         //Check Received Physical Asset Events Availability correctly received by the Shadowing Function
-        assertEquals(TestPhysicalAdapter.TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES, SharedTestMetrics.getInstance().getShadowingFunctionPropertyEventList(TEST_DIGITAL_TWIN_ID).size());
+        //assertEquals(TestPhysicalAdapter.TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES, SharedTestMetrics.getInstance().getShadowingFunctionPropertyEventList(TEST_DIGITAL_TWIN_ID).size());
 
         Thread.sleep(2000);
     }

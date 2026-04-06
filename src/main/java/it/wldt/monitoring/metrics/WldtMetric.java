@@ -7,48 +7,47 @@ package it.wldt.monitoring.metrics;
  * {@code MonitoringInterface.trackCustomMetric()} extends this class.
  * It carries the common metadata that allows the {@code MonitoringInterface}
  * to route, filter, and enrich metrics before dispatching them to the
- * developer's {@code WldtMonitoringHandler}.</p>
+ * developer's {@code MonitoringInterfaceHandler}.</p>
  *
  * <p>Metadata fields:</p>
  * <ul>
  *   <li>{@code namespace}  — logical grouping prefix, e.g. {@code "wldt.internal"}
- *       for library-generated metrics or a custom string (configured via
- *       {@code MonitoringConfiguration}) for developer metrics.</li>
- *   <li>{@code name}       — metric identifier within its namespace, e.g.
- *       {@code "shadowing.processing.latency"}.</li>
- *   <li>{@code component}  — the {@link WldtMetricComponent} that emitted this
- *       metric (used by {@code MonitoringInterface} for flag-gating and routing).</li>
- *   <li>{@code timestampMs} — epoch milliseconds at the moment the metric was
- *       recorded; set automatically by subclass constructors.</li>
+ *       for library-generated metrics or a custom string for developer metrics.</li>
+ *   <li>{@code name}       — metric identifier within its namespace.</li>
+ *   <li>{@code component}  — the {@link WldtMetricComponent} that emitted this metric.</li>
+ *   <li>{@code timestampMs} — epoch milliseconds at the moment the metric was created.</li>
+ *   <li>{@code lastUpdatedMs} — epoch milliseconds of the most recent mutation.</li>
  * </ul>
  *
- * <p>Typed subclasses ({@link WldtCounter}, {@link WldtUpDownCounter},
- * {@link WldtGauge}, {@link WldtTimer}, {@link WldtHistogram}) carry the actual
- * measured value. {@code WldtMetric} itself acts as a generic escape hatch for
- * composite or non-standard metrics that do not fit any typed subclass.</p>
+ * <p>Metric instances are mutable: subclasses update their value fields in-place
+ * via typed mutation methods ({@code update()}, {@code increment()}, etc.) and
+ * keep the {@code lastUpdatedMs} field current on each mutation.</p>
  */
 public abstract class WldtMetric {
 
-    /** Logical grouping prefix for this metric (e.g. {@code "wldt.internal"} or {@code "custom.myapp"}). */
     private final String namespace;
-
-    /** Metric identifier within its namespace (e.g. {@code "shadowing.processing.latency"}). */
     private final String name;
-
-    /** The DT component that produced this metric. Used for routing and flag-gating. */
     private final WldtMetricComponent component;
-
-    /** Epoch milliseconds at the moment this metric instance was created. */
     private final long timestampMs;
 
+    /** Epoch milliseconds of the most recent in-place mutation; equals timestampMs before any mutation. */
+    protected volatile long lastUpdatedMs;
+
     /**
-     * Constructs a new {@code WldtMetric} with the given metadata.
-     * The timestamp is set to {@link System#currentTimeMillis()} at construction time.
+     * {@code true} once the metric has received at least one measured value.
+     * {@code false} for metrics created via the no-value constructor (pre-registration only).
+     * Subclasses must set this to {@code true} on any mutation that records a real measurement.
+     */
+    protected volatile boolean initialized;
+
+    /**
+     * Constructs a new {@code WldtMetric}.
+     * Both {@code timestampMs} and {@code lastUpdatedMs} are set to {@link System#currentTimeMillis()}.
      *
      * @param namespace the logical namespace grouping this metric
      * @param name      the metric name within its namespace
      * @param component the DT component that emitted this metric
-     * @throws IllegalArgumentException if namespace, name, or component is null
+     * @throws IllegalArgumentException if namespace, name, or component is null or blank
      */
     protected WldtMetric(String namespace, String name, WldtMetricComponent component) {
         if (namespace == null || namespace.trim().isEmpty())
@@ -58,63 +57,43 @@ public abstract class WldtMetric {
         if (component == null)
             throw new IllegalArgumentException("Metric component must not be null");
 
-        this.namespace   = namespace;
-        this.name        = name;
-        this.component   = component;
-        this.timestampMs = System.currentTimeMillis();
+        this.namespace     = namespace;
+        this.name          = name;
+        this.component     = component;
+        this.timestampMs   = System.currentTimeMillis();
+        this.lastUpdatedMs = this.timestampMs;
     }
 
-    /**
-     * Returns the namespace of this metric.
-     *
-     * @return the namespace string, never null or blank
-     */
-    public String getNamespace() {
-        return namespace;
-    }
+    /** @return {@code true} if this metric has received at least one measured value */
+    public boolean isInitialized() { return initialized; }
 
     /**
-     * Returns the name of this metric within its namespace.
+     * Returns a new instance of the same concrete type with the same namespace, name, and
+     * component but with <em>no</em> measured value — i.e., an uninitialized snapshot.
+     * Used by {@code MonitoringInterface} to fire {@code onMetricRegistered} with a clean
+     * placeholder before the first value is reported via {@code onMetricUpdated}.
      *
-     * @return the metric name string, never null or blank
+     * @return a fresh uninitialized metric of the same concrete type
      */
-    public String getName() {
-        return name;
-    }
+    public abstract WldtMetric emptySnapshot();
 
     /**
-     * Returns the fully qualified metric identifier in the form {@code namespace.name}.
+     * Returns a deep copy of this metric instance, capturing all current field values.
+     * The copy is an independent object — subsequent mutations to the original do not
+     * affect the copy and vice versa. Used by {@code MonitoringInterface} to hand
+     * immutable snapshots to {@code MonitoringInterfaceHandler} callbacks.
      *
-     * @return dot-separated namespace and name
+     * @return a new metric instance of the same concrete type with identical field values
      */
-    public String getFullName() {
-        return namespace + "." + name;
-    }
+    public abstract WldtMetric copy();
 
-    /**
-     * Returns the DT component that emitted this metric.
-     *
-     * @return the originating {@link WldtMetricComponent}
-     */
-    public WldtMetricComponent getComponent() {
-        return component;
-    }
+    public String getNamespace() { return namespace; }
+    public String getName()      { return name; }
+    public String getFullName()  { return namespace + "." + name; }
+    public WldtMetricComponent getComponent() { return component; }
+    public long getTimestampMs()    { return timestampMs; }
+    public long getLastUpdatedMs()  { return lastUpdatedMs; }
 
-    /**
-     * Returns the epoch millisecond timestamp at which this metric was recorded.
-     *
-     * @return epoch milliseconds
-     */
-    public long getTimestampMs() {
-        return timestampMs;
-    }
-
-    /**
-     * Returns a human-readable string representation of this metric's metadata.
-     * Subclasses should override to append their specific value fields.
-     *
-     * @return string representation
-     */
     @Override
     public String toString() {
         return getClass().getSimpleName() +
@@ -122,6 +101,7 @@ public abstract class WldtMetric {
                 ", name='" + name + '\'' +
                 ", component=" + component +
                 ", timestampMs=" + timestampMs +
+                ", lastUpdatedMs=" + lastUpdatedMs +
                 '}';
     }
 }

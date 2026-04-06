@@ -11,17 +11,15 @@ import static org.junit.jupiter.api.Assertions.*;
  *
  * <p>Covers:</p>
  * <ul>
- *   <li>Lazy registration on first push</li>
- *   <li>Explicit register() and deregister()</li>
- *   <li>Delta computation for WldtCounter across multiple pushes</li>
- *   <li>Delta computation for WldtUpDownCounter (positive and negative)</li>
- *   <li>No delta for WldtGauge, WldtTimer, WldtHistogram</li>
- *   <li>getMetric() query by full name</li>
- *   <li>getAllMetrics() snapshot</li>
- *   <li>isRegistered() check</li>
- *   <li>deregister() resets delta tracking</li>
- *   <li>clear() empties the registry</li>
- *   <li>Guard validation (null inputs)</li>
+ *   <li>Explicit {@link WldtMetricRegistry#register(WldtMetric)} stores the live instance</li>
+ *   <li>{@link WldtMetricRegistry#update(WldtMetric)} mutates the stored instance in-place</li>
+ *   <li>Delta is computed by the metric class itself (WldtCounter, WldtUpDownCounter)</li>
+ *   <li>Gauge, Timer, Histogram accumulate supporting fields on update</li>
+ *   <li>update() on unregistered metric throws {@link IllegalStateException}</li>
+ *   <li>update() with type mismatch throws {@link IllegalArgumentException}</li>
+ *   <li>deregister() removes the metric; next register starts fresh</li>
+ *   <li>getMetric(), getAllMetrics(), isRegistered(), size(), clear() query methods</li>
+ *   <li>Null / blank guard validation</li>
  * </ul>
  */
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -47,341 +45,214 @@ public class WldtMetricRegistryTest {
     }
 
     // -------------------------------------------------------------------------
-    // Lazy registration
+    // register() and isRegistered()
     // -------------------------------------------------------------------------
 
-    /**
-     * On the first push the metric is auto-registered and returned
-     * without a delta (delta=null).
-     */
-    @Test
-    @Order(1)
-    public void testLazyRegistrationOnFirstPush() {
-        logger.info("Testing lazy registration on first push ...");
-        WldtCounter incoming = new WldtCounter(NS, NAME, WldtMetricComponent.DT_MODEL, 5L);
+    @Test @Order(1)
+    public void testRegisterStoresMetric() {
+        WldtCounter c = new WldtCounter(NS, NAME, WldtMetricComponent.DT_MODEL, 5L);
+        registry.register(c);
+        assertTrue(registry.isRegistered(c.getFullName()));
+    }
 
-        WldtMetric result = registry.computeAndRegister(incoming);
-
-        assertTrue(result instanceof WldtCounter);
-        WldtCounter counter = (WldtCounter) result;
-        assertEquals(5L, counter.getValue());
-        assertNull(counter.getDelta(), "Delta must be null on first push");
-        assertFalse(counter.isDeltaAvailable());
-        assertTrue(registry.isRegistered(incoming.getFullName()));
+    @Test @Order(2)
+    public void testRegisterNullThrows() {
+        assertThrows(IllegalArgumentException.class, () -> registry.register(null));
     }
 
     // -------------------------------------------------------------------------
-    // WldtCounter delta computation
+    // update() — WldtCounter delta
     // -------------------------------------------------------------------------
 
-    /**
-     * Second push computes correct non-negative delta for WldtCounter.
-     */
-    @Test
-    @Order(2)
-    public void testCounterDeltaOnSecondPush() {
-        logger.info("Testing WldtCounter delta computed on second push ...");
-        registry.computeAndRegister(
-                new WldtCounter(NS, NAME, WldtMetricComponent.DT_MODEL, 5L));
+    @Test @Order(3)
+    public void testCounterUpdateComputesDelta() {
+        WldtCounter live = new WldtCounter(NS, NAME, WldtMetricComponent.DT_MODEL, 5L);
+        registry.register(live);
 
-        WldtCounter result = (WldtCounter) registry.computeAndRegister(
-                new WldtCounter(NS, NAME, WldtMetricComponent.DT_MODEL, 8L));
+        WldtMetric returned = registry.update(new WldtCounter(NS, NAME, WldtMetricComponent.DT_MODEL, 8L));
 
-        assertEquals(8L, result.getValue());
-        assertEquals(Long.valueOf(3L), result.getDelta());
-        assertTrue(result.isDeltaAvailable());
+        assertSame(live, returned, "registry.update() must return the stored live instance");
+        assertEquals(8L, live.getValue());
+        assertEquals(Long.valueOf(3L), live.getDelta());
+        assertTrue(live.isDeltaAvailable());
     }
 
-    /**
-     * Multiple sequential pushes accumulate delta correctly at each step.
-     */
-    @Test
-    @Order(3)
-    public void testCounterDeltaAcrossMultiplePushes() {
-        logger.info("Testing WldtCounter delta across multiple sequential pushes ...");
-        long[] values          = {0L, 5L, 12L, 20L, 20L};
-        Long[] expectedDeltas  = {null, 5L, 7L, 8L, 0L};
+    @Test @Order(4)
+    public void testCounterMultipleUpdatesDeltaAccumulates() {
+        WldtCounter live = new WldtCounter(NS, NAME, WldtMetricComponent.DT_MODEL, 0L);
+        registry.register(live);
 
-        for (int i = 0; i < values.length; i++) {
-            WldtCounter result = (WldtCounter) registry.computeAndRegister(
-                    new WldtCounter(NS, NAME, WldtMetricComponent.DT_MODEL, values[i]));
-            assertEquals(values[i], result.getValue(), "Value mismatch at step " + i);
-            assertEquals(expectedDeltas[i], result.getDelta(), "Delta mismatch at step " + i);
-        }
-    }
+        registry.update(new WldtCounter(NS, NAME, WldtMetricComponent.DT_MODEL, 5L));
+        registry.update(new WldtCounter(NS, NAME, WldtMetricComponent.DT_MODEL, 12L));
+        registry.update(new WldtCounter(NS, NAME, WldtMetricComponent.DT_MODEL, 20L));
 
-    /**
-     * Delta is clamped to zero when new value equals previous value.
-     */
-    @Test
-    @Order(4)
-    public void testCounterDeltaZeroWhenValueUnchanged() {
-        logger.info("Testing WldtCounter delta is zero when value unchanged ...");
-        registry.computeAndRegister(
-                new WldtCounter(NS, NAME, WldtMetricComponent.DT_MODEL, 10L));
-        WldtCounter result = (WldtCounter) registry.computeAndRegister(
-                new WldtCounter(NS, NAME, WldtMetricComponent.DT_MODEL, 10L));
-
-        assertEquals(Long.valueOf(0L), result.getDelta());
+        assertEquals(20L, live.getValue());
+        assertEquals(Long.valueOf(8L), live.getDelta());
+        assertEquals(3L, live.getTotalIncrements());
     }
 
     // -------------------------------------------------------------------------
-    // WldtUpDownCounter delta computation
+    // update() — WldtUpDownCounter signed delta
     // -------------------------------------------------------------------------
 
-    /**
-     * WldtUpDownCounter computes positive delta when count increases.
-     */
-    @Test
-    @Order(5)
+    @Test @Order(5)
     public void testUpDownCounterPositiveDelta() {
-        logger.info("Testing WldtUpDownCounter positive delta computation ...");
-        registry.computeAndRegister(
-                new WldtUpDownCounter(NS, "pa.connected", WldtMetricComponent.PHYSICAL_ADAPTER, 2L));
-        WldtUpDownCounter result = (WldtUpDownCounter) registry.computeAndRegister(
-                new WldtUpDownCounter(NS, "pa.connected", WldtMetricComponent.PHYSICAL_ADAPTER, 5L));
-
-        assertEquals(Long.valueOf(3L), result.getDelta());
+        WldtUpDownCounter live = new WldtUpDownCounter(NS, "pa.connected", WldtMetricComponent.PHYSICAL_ADAPTER, 2L);
+        registry.register(live);
+        registry.update(new WldtUpDownCounter(NS, "pa.connected", WldtMetricComponent.PHYSICAL_ADAPTER, 5L));
+        assertEquals(Long.valueOf(3L), live.getDelta());
     }
 
-    /**
-     * WldtUpDownCounter computes negative delta when count decreases.
-     */
-    @Test
-    @Order(6)
+    @Test @Order(6)
     public void testUpDownCounterNegativeDelta() {
-        logger.info("Testing WldtUpDownCounter negative delta computation ...");
-        registry.computeAndRegister(
-                new WldtUpDownCounter(NS, "pa.connected", WldtMetricComponent.PHYSICAL_ADAPTER, 5L));
-        WldtUpDownCounter result = (WldtUpDownCounter) registry.computeAndRegister(
-                new WldtUpDownCounter(NS, "pa.connected", WldtMetricComponent.PHYSICAL_ADAPTER, 3L));
-
-        assertEquals(Long.valueOf(-2L), result.getDelta());
-    }
-
-    /**
-     * First push of WldtUpDownCounter has null delta.
-     */
-    @Test
-    @Order(7)
-    public void testUpDownCounterNullDeltaOnFirstPush() {
-        logger.info("Testing WldtUpDownCounter delta is null on first push ...");
-        WldtUpDownCounter result = (WldtUpDownCounter) registry.computeAndRegister(
-                new WldtUpDownCounter(NS, "pa.connected", WldtMetricComponent.PHYSICAL_ADAPTER, 3L));
-
-        assertNull(result.getDelta());
+        WldtUpDownCounter live = new WldtUpDownCounter(NS, "pa.connected", WldtMetricComponent.PHYSICAL_ADAPTER, 5L);
+        registry.register(live);
+        registry.update(new WldtUpDownCounter(NS, "pa.connected", WldtMetricComponent.PHYSICAL_ADAPTER, 3L));
+        assertEquals(Long.valueOf(-2L), live.getDelta());
+        assertEquals(3L, live.getTroughValue());
     }
 
     // -------------------------------------------------------------------------
-    // No delta for Gauge, Timer, Histogram
+    // update() — WldtGauge accumulates min/max
     // -------------------------------------------------------------------------
 
-    /**
-     * WldtGauge passes through unchanged — no delta enrichment.
-     */
-    @Test
-    @Order(8)
-    public void testGaugePassesThroughUnchanged() {
-        logger.info("Testing WldtGauge passes through without delta enrichment ...");
-        registry.computeAndRegister(
-                new WldtGauge(NS, "test.queue_depth", WldtMetricComponent.CUSTOM, 10.0));
-        WldtGauge result = (WldtGauge) registry.computeAndRegister(
-                new WldtGauge(NS, "test.queue_depth", WldtMetricComponent.CUSTOM, 15.0));
-
-        assertEquals(15.0, result.getValue(), 0.0001);
-    }
-
-    /**
-     * WldtTimer passes through unchanged on repeated pushes.
-     */
-    @Test
-    @Order(9)
-    public void testTimerPassesThroughUnchanged() {
-        logger.info("Testing WldtTimer passes through without delta enrichment ...");
-        registry.computeAndRegister(
-                new WldtTimer(NS, "dt_model.latency_ms", WldtMetricComponent.DT_MODEL, 100L));
-        WldtTimer result = (WldtTimer) registry.computeAndRegister(
-                new WldtTimer(NS, "dt_model.latency_ms", WldtMetricComponent.DT_MODEL, 200L));
-
-        assertEquals(200L, result.getDurationMs());
-    }
-
-    /**
-     * WldtHistogram passes through unchanged on repeated pushes.
-     */
-    @Test
-    @Order(10)
-    public void testHistogramPassesThroughUnchanged() {
-        logger.info("Testing WldtHistogram passes through without delta enrichment ...");
-        registry.computeAndRegister(new WldtHistogram(NS, "pa.msg_size",
-                WldtMetricComponent.PHYSICAL_ADAPTER, 4L, 400.0, 80.0, 120.0));
-        WldtHistogram result = (WldtHistogram) registry.computeAndRegister(
-                new WldtHistogram(NS, "pa.msg_size",
-                        WldtMetricComponent.PHYSICAL_ADAPTER, 8L, 900.0, 70.0, 140.0));
-
-        assertEquals(8L, result.getCount());
+    @Test @Order(7)
+    public void testGaugeUpdateAccumulatesMinMax() {
+        WldtGauge live = new WldtGauge(NS, "queue.depth", WldtMetricComponent.CUSTOM, 10.0);
+        registry.register(live);
+        registry.update(new WldtGauge(NS, "queue.depth", WldtMetricComponent.CUSTOM, 15.0));
+        registry.update(new WldtGauge(NS, "queue.depth", WldtMetricComponent.CUSTOM, 3.0));
+        assertEquals(3.0,  live.getValue(),      0.0001);
+        assertEquals(3.0,  live.getMinObserved(), 0.0001);
+        assertEquals(15.0, live.getMaxObserved(), 0.0001);
+        assertEquals(2L,   live.getUpdateCount());
     }
 
     // -------------------------------------------------------------------------
-    // Explicit register() and deregister()
+    // update() — WldtTimer accumulates min/max/count
     // -------------------------------------------------------------------------
 
-    /**
-     * Explicit register() pre-populates the registry.
-     * Next push computes delta against pre-registered value.
-     */
-    @Test
-    @Order(11)
-    public void testExplicitRegisterAffectsDeltaOnNextPush() {
-        logger.info("Testing explicit register() influences delta on next push ...");
-        registry.register(new WldtCounter(NS, NAME, WldtMetricComponent.DT_MODEL, 10L));
-
-        WldtCounter result = (WldtCounter) registry.computeAndRegister(
-                new WldtCounter(NS, NAME, WldtMetricComponent.DT_MODEL, 14L));
-
-        assertEquals(Long.valueOf(4L), result.getDelta());
+    @Test @Order(8)
+    public void testTimerUpdateAccumulates() {
+        WldtTimer live = new WldtTimer(NS, "latency", WldtMetricComponent.DT_MODEL, 100L);
+        registry.register(live);
+        registry.update(new WldtTimer(NS, "latency", WldtMetricComponent.DT_MODEL, 200L));
+        registry.update(new WldtTimer(NS, "latency", WldtMetricComponent.DT_MODEL, 50L));
+        assertEquals(50L,  live.getDurationMs());
+        assertEquals(50L,  live.getMinDurationMs());
+        assertEquals(200L, live.getMaxDurationMs());
+        assertEquals(350L, live.getTotalDurationMs());
+        assertEquals(3L,   live.getObservationCount());
     }
 
-    /**
-     * After deregister(), the next push is treated as a first push (delta=null).
-     */
-    @Test
-    @Order(12)
-    public void testDeregisterResetsTracking() {
-        logger.info("Testing deregister() resets delta tracking ...");
-        registry.computeAndRegister(
-                new WldtCounter(NS, NAME, WldtMetricComponent.DT_MODEL, 10L));
+    // -------------------------------------------------------------------------
+    // update() — WldtHistogram merges windows
+    // -------------------------------------------------------------------------
+
+    @Test @Order(9)
+    public void testHistogramUpdateMergesWindows() {
+        WldtHistogram live = new WldtHistogram(NS, "msg_size", WldtMetricComponent.PHYSICAL_ADAPTER,
+                2L, 20.0, 8.0, 12.0);
+        registry.register(live);
+        registry.update(new WldtHistogram(NS, "msg_size", WldtMetricComponent.PHYSICAL_ADAPTER,
+                3L, 60.0, 5.0, 25.0));
+        assertEquals(5L,    live.getTotalCount());
+        assertEquals(80.0,  live.getTotalSum(),  0.0001);
+        assertEquals(5.0,   live.getGlobalMin(), 0.0001);
+        assertEquals(25.0,  live.getGlobalMax(), 0.0001);
+        assertEquals(2L,    live.getWindowCount());
+    }
+
+    // -------------------------------------------------------------------------
+    // update() — error cases
+    // -------------------------------------------------------------------------
+
+    @Test @Order(10)
+    public void testUpdateUnregisteredMetricThrows() {
+        assertThrows(IllegalStateException.class,
+                () -> registry.update(new WldtCounter(NS, NAME, WldtMetricComponent.DT_MODEL, 5L)));
+    }
+
+    @Test @Order(11)
+    public void testUpdateNullThrows() {
+        assertThrows(IllegalArgumentException.class, () -> registry.update(null));
+    }
+
+    @Test @Order(12)
+    public void testUpdateTypeMismatchThrows() {
+        registry.register(new WldtCounter(NS, NAME, WldtMetricComponent.DT_MODEL, 0L));
+        assertThrows(IllegalArgumentException.class,
+                () -> registry.update(new WldtGauge(NS, NAME, WldtMetricComponent.DT_MODEL, 5.0)));
+    }
+
+    // -------------------------------------------------------------------------
+    // deregister()
+    // -------------------------------------------------------------------------
+
+    @Test @Order(13)
+    public void testDeregisterRemovesMetric() {
+        WldtCounter c = new WldtCounter(NS, NAME, WldtMetricComponent.DT_MODEL, 10L);
+        registry.register(c);
+        registry.deregister(NS + "." + NAME);
+        assertFalse(registry.isRegistered(NS + "." + NAME));
+    }
+
+    @Test @Order(14)
+    public void testDeregisterThenReregisterStartsFresh() {
+        WldtCounter live1 = new WldtCounter(NS, NAME, WldtMetricComponent.DT_MODEL, 10L);
+        registry.register(live1);
+        registry.update(new WldtCounter(NS, NAME, WldtMetricComponent.DT_MODEL, 15L));
         registry.deregister(NS + "." + NAME);
 
-        WldtCounter result = (WldtCounter) registry.computeAndRegister(
-                new WldtCounter(NS, NAME, WldtMetricComponent.DT_MODEL, 15L));
+        WldtCounter live2 = new WldtCounter(NS, NAME, WldtMetricComponent.DT_MODEL, 0L);
+        registry.register(live2);
+        assertNull(live2.getDelta(), "Delta must be null for freshly registered metric");
+    }
 
-        assertNull(result.getDelta(), "After deregister delta must be null on next push");
+    @Test @Order(15)
+    public void testDeregisterNullThrows() {
+        assertThrows(IllegalArgumentException.class, () -> registry.deregister(null));
     }
 
     // -------------------------------------------------------------------------
     // Query methods
     // -------------------------------------------------------------------------
 
-    /**
-     * getMetric() returns the last registered raw value for a known full name.
-     */
-    @Test
-    @Order(13)
-    public void testGetMetricReturnsLastValue() {
-        logger.info("Testing getMetric() returns last pushed value ...");
-        registry.computeAndRegister(
-                new WldtCounter(NS, NAME, WldtMetricComponent.DT_MODEL, 5L));
-        registry.computeAndRegister(
-                new WldtCounter(NS, NAME, WldtMetricComponent.DT_MODEL, 9L));
+    @Test @Order(16)
+    public void testGetMetricReturnsLiveInstance() {
+        WldtCounter live = new WldtCounter(NS, NAME, WldtMetricComponent.DT_MODEL, 5L);
+        registry.register(live);
+        registry.update(new WldtCounter(NS, NAME, WldtMetricComponent.DT_MODEL, 9L));
 
         assertTrue(registry.getMetric(NS + "." + NAME).isPresent());
-        WldtCounter stored = (WldtCounter) registry.getMetric(NS + "." + NAME).get();
-        assertEquals(9L, stored.getValue());
+        assertSame(live, registry.getMetric(NS + "." + NAME).get());
+        assertEquals(9L, ((WldtCounter) registry.getMetric(NS + "." + NAME).get()).getValue());
     }
 
-    /**
-     * getMetric() returns empty Optional for unknown full name.
-     */
-    @Test
-    @Order(14)
-    public void testGetMetricReturnsEmptyForUnknown() {
-        logger.info("Testing getMetric() returns empty for unknown metric ...");
-        assertFalse(registry.getMetric("wldt.internal.unknown.metric").isPresent());
+    @Test @Order(17)
+    public void testGetMetricEmptyForUnknown() {
+        assertFalse(registry.getMetric("wldt.internal.unknown").isPresent());
     }
 
-    /**
-     * getAllMetrics() returns all currently registered entries.
-     */
-    @Test
-    @Order(15)
+    @Test @Order(18)
     public void testGetAllMetricsSize() {
-        logger.info("Testing getAllMetrics() returns correct entry count ...");
-        registry.computeAndRegister(
-                new WldtCounter(NS, "metric.one", WldtMetricComponent.DT_MODEL, 1L));
-        registry.computeAndRegister(
-                new WldtGauge(NS, "metric.two", WldtMetricComponent.CUSTOM, 2.0));
-        registry.computeAndRegister(
-                new WldtTimer(NS, "metric.three", WldtMetricComponent.STORAGE, 300L));
-
+        registry.register(new WldtCounter(NS, "m1", WldtMetricComponent.DT_MODEL, 0L));
+        registry.register(new WldtGauge(NS, "m2", WldtMetricComponent.CUSTOM, 1.0));
+        registry.register(new WldtTimer(NS, "m3", WldtMetricComponent.STORAGE, 10L));
         assertEquals(3, registry.getAllMetrics().size());
     }
 
-    /**
-     * isRegistered() returns true after first push and false before.
-     */
-    @Test
-    @Order(16)
-    public void testIsRegistered() {
-        logger.info("Testing isRegistered() lifecycle ...");
-        assertFalse(registry.isRegistered(NS + "." + NAME));
-        registry.computeAndRegister(
-                new WldtCounter(NS, NAME, WldtMetricComponent.DT_MODEL, 1L));
-        assertTrue(registry.isRegistered(NS + "." + NAME));
-    }
-
-    /**
-     * clear() empties the registry completely.
-     */
-    @Test
-    @Order(17)
+    @Test @Order(19)
     public void testClearEmptiesRegistry() {
-        logger.info("Testing clear() empties the registry ...");
-        registry.computeAndRegister(
-                new WldtCounter(NS, NAME, WldtMetricComponent.DT_MODEL, 5L));
-        registry.computeAndRegister(
-                new WldtGauge(NS, "gauge.metric", WldtMetricComponent.CUSTOM, 1.0));
-
+        registry.register(new WldtCounter(NS, NAME, WldtMetricComponent.DT_MODEL, 5L));
+        registry.register(new WldtGauge(NS, "g", WldtMetricComponent.CUSTOM, 1.0));
         assertEquals(2, registry.size());
         registry.clear();
         assertEquals(0, registry.size());
     }
 
-    // -------------------------------------------------------------------------
-    // Guard validation
-    // -------------------------------------------------------------------------
-
-    /**
-     * computeAndRegister() with null metric must throw IllegalArgumentException.
-     */
-    @Test
-    @Order(18)
-    public void testComputeAndRegisterNullThrows() {
-        logger.info("Testing computeAndRegister() rejects null ...");
-        assertThrows(IllegalArgumentException.class,
-                () -> registry.computeAndRegister(null));
-    }
-
-    /**
-     * register() with null metric must throw IllegalArgumentException.
-     */
-    @Test
-    @Order(19)
-    public void testRegisterNullThrows() {
-        logger.info("Testing register() rejects null ...");
-        assertThrows(IllegalArgumentException.class,
-                () -> registry.register(null));
-    }
-
-    /**
-     * deregister() with null fullName must throw IllegalArgumentException.
-     */
-    @Test
-    @Order(20)
-    public void testDeregisterNullThrows() {
-        logger.info("Testing deregister() rejects null fullName ...");
-        assertThrows(IllegalArgumentException.class,
-                () -> registry.deregister(null));
-    }
-
-    /**
-     * getMetric() with blank fullName must throw IllegalArgumentException.
-     */
-    @Test
-    @Order(21)
+    @Test @Order(20)
     public void testGetMetricBlankThrows() {
-        logger.info("Testing getMetric() rejects blank fullName ...");
-        assertThrows(IllegalArgumentException.class,
-                () -> registry.getMetric("   "));
+        assertThrows(IllegalArgumentException.class, () -> registry.getMetric("   "));
     }
 }

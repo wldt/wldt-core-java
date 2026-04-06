@@ -6,7 +6,7 @@ import it.wldt.core.event.WldtEventBus;
 import it.wldt.exception.EventBusException;
 import it.wldt.log.WldtLogger;
 import it.wldt.log.WldtLoggerProvider;
-import it.wldt.process.metrics.SharedTestMetrics;
+import it.wldt.utils.SharedTestMetrics;
 import java.util.ArrayList;
 import java.util.Random;
 

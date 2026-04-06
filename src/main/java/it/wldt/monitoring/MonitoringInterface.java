@@ -8,94 +8,61 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Concrete library class that serves as the central hub of the WLDT monitoring system.
- *
- * <p>{@code MonitoringInterface} is instantiated once by the developer and registered
- * on the {@code DigitalTwin} instance. Internally, the DT kernel injects it into all
- * active components (DT Model, Event Bus, Physical Adapters, Digital Adapters,
- * Augmentation Functions, Storage) so that each component can push metrics without
- * knowing about the developer's handler implementation.</p>
+ * Central hub of the WLDT monitoring system.
  *
  * <p>Responsibilities:</p>
  * <ol>
- *   <li><strong>Flag gating</strong> — checks {@link MonitoringInterfaceConfiguration} before
- *       processing any incoming metric; silently discards metrics whose component
- *       flag is disabled.</li>
- *   <li><strong>Registry management</strong> — maintains a {@link WldtMetricRegistry}
- *       that tracks the last known value of every metric, performs lazy registration
- *       on first push, and exposes query methods to the developer.</li>
- *   <li><strong>Delta computation</strong> — for {@link WldtCounter} and
- *       {@link WldtUpDownCounter}, delegates to the registry to compute and inject
- *       the delta before dispatching the enriched metric to the handler.</li>
- *   <li><strong>Routing</strong> — dispatches the enriched metric to the correct
- *       typed callback on the developer's {@link MonitoringInterfaceHandler}.</li>
- *   <li><strong>Custom metric support</strong> — exposes {@link #trackCustomMetric(WldtMetric)}
- *       so that developers can push their own metrics through the same pipeline.</li>
+ *   <li><strong>Flag gating</strong> — silently discards metrics whose component flag is
+ *       disabled in the {@link MonitoringInterfaceConfiguration}.</li>
+ *   <li><strong>Registry management</strong> — maintains a {@link WldtMetricRegistry} that
+ *       holds the live mutable metric instance for each registered name.</li>
+ *   <li><strong>Registration vs update routing</strong> — the first push for a name calls
+ *       {@link MonitoringInterfaceHandler#onMetricRegistered}; subsequent pushes call
+ *       {@link MonitoringInterfaceHandler#onMetricUpdated} with the mutated live instance.</li>
+ *   <li><strong>Custom metric support</strong> — {@link #trackCustomMetric(WldtMetric)} lets
+ *       developers push their own metrics through the same pipeline, bypassing flag gating.</li>
  * </ol>
  *
- * <p>The {@link WldtLogger} composed into this class is used for internal monitoring
- * log messages (e.g. dispatch errors, flag-gated discards at DEBUG level). It is
- * separate from the application-level logger used by DT components.</p>
- *
- * <p>This class is declared {@code final} — it is not intended to be extended.
- * The developer extension point is {@link MonitoringInterfaceHandler}.</p>
+ * <p>This class is {@code final} — the developer extension point is {@link MonitoringInterfaceHandler}.</p>
  */
 public final class MonitoringInterface {
 
     private static final WldtLogger logger = WldtLoggerProvider.getLogger(MonitoringInterface.class);
 
-    /** Monitoring configuration holding per-component enable flags and custom namespace. */
     private MonitoringInterfaceConfiguration configuration;
-
-    /** Developer-provided handler that receives enriched metric push callbacks. */
     private MonitoringInterfaceHandler handler;
-
-    /**
-     * Internal registry tracking the last known value of every metric,
-     * used for delta computation and developer query support.
-     */
     private final WldtMetricRegistry registry;
 
-    /**
-     * Default constructor of the Monitoring Interface.
-     * Initialize the Metric Registry.
-     */
     public MonitoringInterface() {
         this.registry = new WldtMetricRegistry();
     }
 
     /**
-     * Receives a metric from an internal DT component, processes it through the
-     * registry (lazy registration + delta computation), and dispatches the enriched
-     * metric to the developer's handler if the component flag is enabled.
+     * Receives a metric from a DT component and routes it through the monitoring pipeline.
      *
-     * <p>If the component flag for the metric's originating component is disabled
-     * in the {@link MonitoringInterfaceConfiguration}, the metric is silently discarded.
-     * Any exception thrown by the handler callback is caught and logged at ERROR
-     * level to prevent monitoring failures from propagating into DT processing.</p>
+     * <p>On first push for a given metric name: registers the metric instance and fires
+     * {@link MonitoringInterfaceHandler#onMetricRegistered}.</p>
+     * <p>On subsequent pushes: updates the live stored instance in-place and fires
+     * {@link MonitoringInterfaceHandler#onMetricUpdated} with the mutated instance.</p>
      *
-     * @param metric the raw metric emitted by a DT component; must not be null
+     * <p>If the component flag is disabled the metric is silently discarded.
+     * Handler exceptions are caught and logged to prevent monitoring failures from
+     * affecting DT processing.</p>
+     *
+     * @param metric the metric emitted by a DT component; silently ignored if null
      */
     public void notifyMetric(WldtMetric metric) {
         if (metric == null) {
             logger.warn("notifyMetric called with a null metric — discarding");
             return;
         }
-
-        // Check whether this component's monitoring is enabled
         if (!isEnabled(metric.getComponent())) {
             logger.debug("Metric {} discarded — component {} monitoring is disabled",
                     metric.getFullName(), metric.getComponent());
             return;
         }
-
         try {
-            // Enrich with delta (for counters) and update registry
-            WldtMetric enriched = registry.computeAndRegister(metric);
-
-            // Dispatch enriched metric to the developer's handler
-            route(enriched);
-
+            dispatchMetric(metric);
         } catch (Exception e) {
             logger.error("Error dispatching metric {} from component {}: {}",
                     metric.getFullName(), metric.getComponent(), e.getMessage());
@@ -103,23 +70,10 @@ public final class MonitoringInterface {
     }
 
     /**
-     * Allows the developer to push a custom metric through the standard monitoring
-     * pipeline. Custom metrics bypass per-component flag gating and are always
-     * forwarded to {@link MonitoringInterfaceHandler#onCustomMetric(WldtMetric)}.
+     * Pushes a custom developer metric through the monitoring pipeline, bypassing flag gating.
+     * The metric's component must be {@link WldtMetricComponent#CUSTOM}.
      *
-     * <p>The metric's component must be set to {@link WldtMetricComponent#CUSTOM}.
-     * The namespace should match the custom namespace configured in
-     * {@link MonitoringInterfaceConfiguration#getCustomMetricNamespace()}.</p>
-     *
-     * <p>Usage example:</p>
-     * <pre>{@code
-     * monitoringInterface.trackCustomMetric(
-     *     new WldtGauge("myapp.dt", "room.temperature",
-     *                   WldtMetricComponent.CUSTOM, 21.5));
-     * }</pre>
-     *
-     * @param metric the custom metric to push; must not be null and must have
-     *               component {@link WldtMetricComponent#CUSTOM}
+     * @param metric the custom metric; must not be null, component must be CUSTOM
      * @throws IllegalArgumentException if metric is null or its component is not CUSTOM
      */
     public void trackCustomMetric(WldtMetric metric) {
@@ -129,195 +83,302 @@ public final class MonitoringInterface {
             throw new IllegalArgumentException(
                     "trackCustomMetric requires component CUSTOM, got: " + metric.getComponent());
         try {
-            WldtMetric enriched = registry.computeAndRegister(metric);
-            handler.onCustomMetric(enriched);
+            dispatchMetric(metric);
         } catch (Exception e) {
-            logger.error("Error dispatching custom metric {}: {}",
-                    metric.getFullName(), e.getMessage());
+            logger.error("Error dispatching custom metric {}: {}", metric.getFullName(), e.getMessage());
         }
     }
 
     /**
-     * Returns the last registered {@link WldtMetric} instance for the given
-     * full metric name ({@code namespace.name}), if present.
+     * Returns the last registered metric for the given full name ({@code namespace.name}).
      *
-     * <p>This method allows developers to query the current known value of any
-     * metric at any time, without waiting for the next push notification.</p>
-     *
-     * <p>Usage example:</p>
-     * <pre>{@code
-     * monitoringInterface.getMetric("wldt.internal.dt_model.events_processed")
-     *     .ifPresent(m -> System.out.println("Current count: " + ((WldtCounter) m).getValue()));
-     * }</pre>
-     *
-     * @param fullName the full metric name in the form {@code namespace.name}
-     * @return an {@link Optional} containing the last known metric, or empty if
-     *         no metric with that name has been registered yet
+     * @param fullName the full metric name
+     * @return an {@link Optional} with the live metric, or empty if not yet registered
      */
     public Optional<WldtMetric> getMetric(String fullName) {
         return registry.getMetric(fullName);
     }
 
     /**
-     * Returns an unmodifiable snapshot of all currently registered metrics,
-     * keyed by their full name ({@code namespace.name}).
+     * Returns an unmodifiable snapshot of all currently registered live metrics.
      *
-     * @return unmodifiable map of all registered metrics
+     * @return unmodifiable map of full metric names to live instances
      */
     public Map<String, WldtMetric> getAllMetrics() {
         return registry.getAllMetrics();
     }
 
     /**
-     * Returns {@code true} if a metric with the given full name is currently
-     * registered in the internal registry.
+     * Returns {@code true} if a metric with the given full name is registered.
      *
-     * @param fullName the full metric name to check
-     * @return {@code true} if registered, {@code false} otherwise
+     * @param fullName the full metric name
      */
     public boolean isMetricRegistered(String fullName) {
         return registry.isRegistered(fullName);
     }
 
     /**
-     * Pre-registers a metric in the internal registry without triggering a push.
-     * Useful for library components that want to declare metrics at startup
-     * before the first actual measurement is available.
+     * Registers a new metric and fires {@link MonitoringInterfaceHandler#onMetricRegistered}.
+     * Equivalent to calling {@link #notifyMetric(WldtMetric)} as the first push, but without
+     * flag gating — use this at DT startup to declare metrics before measurements are available.
      *
-     * @param metric the metric to pre-register; must not be null
+     * @param metric the metric to register; must not be null
      */
     public void registerMetric(WldtMetric metric) {
-        registry.register(metric);
+        try {
+            dispatchMetric(metric);
+        } catch (Exception e) {
+            logger.error("registerMetric: error registering '{}': {}",
+                    metric != null ? metric.getFullName() : "null", e.getMessage());
+        }
     }
 
     /**
-     * Removes a metric from the internal registry by its full name.
-     * After deregistration the next push for this metric will be treated as
-     * a first push and delta will be {@code null}.
+     * Removes a metric from the registry by its full name.
+     * After deregistration the next push for this name is treated as a fresh registration.
      *
-     * @param fullName the full metric name to deregister
+     * @param fullName the full metric name to remove
      */
     public void deregisterMetric(String fullName) {
         registry.deregister(fullName);
     }
 
+    public MonitoringInterfaceConfiguration getConfiguration() { return configuration; }
+    public void setConfiguration(MonitoringInterfaceConfiguration configuration) { this.configuration = configuration; }
+
+    public MonitoringInterfaceHandler getHandler() { return handler; }
+    public void setHandler(MonitoringInterfaceHandler handler) { this.handler = handler; }
+
+    public WldtMetricRegistry getRegistry() { return registry; }
+
+    /** @return {@code true} if both configuration and handler are set */
+    public boolean isActive() { return this.configuration != null && this.handler != null; }
+
+    /** @return {@code true} if active and the given component's flag is enabled */
+    public boolean isActive(WldtMetricComponent component) {
+        return isEnabled(component) && this.configuration != null && this.handler != null;
+    }
+
+    // -------------------------------------------------------------------------
+    // Convenience mutation methods
+    // -------------------------------------------------------------------------
+
     /**
-     * Returns the {@link MonitoringInterfaceConfiguration} associated with this interface.
+     * Increments a {@link WldtCounter} or {@link WldtUpDownCounter} by 1.
+     * Looks up the metric by {@code namespace.name}, validates its type, applies the mutation,
+     * and fires {@link MonitoringInterfaceHandler#onMetricUpdated}. All errors are logged internally.
      *
-     * @return the active monitoring configuration
+     * @param namespace the metric namespace
+     * @param name      the metric name within the namespace
      */
-    public MonitoringInterfaceConfiguration getConfiguration() {
-        return configuration;
+    public void increaseCounter(String namespace, String name) {
+        increaseCounter(namespace, name, 1L);
     }
 
     /**
-     * Routes the enriched metric to the appropriate typed callback on the
-     * developer's {@link MonitoringInterfaceHandler} based on the originating component.
+     * Increments a {@link WldtCounter} or {@link WldtUpDownCounter} by {@code amount}.
      *
-     * @param metric the enriched metric to dispatch
+     * @param namespace the metric namespace
+     * @param name      the metric name within the namespace
+     * @param amount    positive increment value
      */
-    private void route(WldtMetric metric) {
-        switch (metric.getComponent()) {
-            case DT_MODEL:
-                handler.onDigitalTwinModelMetric(metric);
-                break;
-            case PHYSICAL_ADAPTER:
-                handler.onPhysicalAdapterMetric(metric);
-                break;
-            case DIGITAL_ADAPTER:
-                handler.onDigitalAdapterMetric(metric);
-                break;
-            case AUGMENTATION:
-                handler.onAugmentationMetric(metric);
-                break;
-            case STORAGE:
-                handler.onStorageMetric(metric);
-                break;
-            case CUSTOM:
-                handler.onCustomMetric(metric);
-                break;
-            default:
-                logger.warn("route() received metric with unknown component: {}",
-                        metric.getComponent());
-                break;
+    public void increaseCounter(String namespace, String name, long amount) {
+        try {
+            WldtMetric metric = resolveMetric(namespace, name);
+            if (metric instanceof WldtCounter)
+                notifyUpdated(((WldtCounter) metric).increment(amount));
+            else if (metric instanceof WldtUpDownCounter)
+                notifyUpdated(((WldtUpDownCounter) metric).increment(amount));
+            else
+                logger.error("increaseCounter: metric '{}.{}' is not a counter type (found {})",
+                        namespace, name, metric.getClass().getSimpleName());
+        } catch (Exception e) {
+            logger.error("increaseCounter: error updating '{}.{}': {}", namespace, name, e.getMessage());
         }
     }
 
     /**
-     * Checks whether monitoring is enabled for the given component based on
-     * the current {@link MonitoringInterfaceConfiguration} flags.
-     * Custom metrics always bypass flag gating.
+     * Decrements a {@link WldtUpDownCounter} by 1.
+     * {@link WldtCounter} does not support decrease — an error is logged if the wrong type is used.
      *
-     * @param component the component to check
-     * @return {@code true} if the corresponding flag is enabled or the
-     *         component is {@link WldtMetricComponent#CUSTOM}
+     * @param namespace the metric namespace
+     * @param name      the metric name within the namespace
      */
+    public void decreaseCounter(String namespace, String name) {
+        decreaseCounter(namespace, name, 1L);
+    }
+
+    /**
+     * Decrements a {@link WldtUpDownCounter} by {@code amount}.
+     *
+     * @param namespace the metric namespace
+     * @param name      the metric name within the namespace
+     * @param amount    positive decrement value
+     */
+    public void decreaseCounter(String namespace, String name, long amount) {
+        try {
+            WldtMetric metric = resolveMetric(namespace, name);
+            if (metric instanceof WldtUpDownCounter)
+                notifyUpdated(((WldtUpDownCounter) metric).decrement(amount));
+            else if (metric instanceof WldtCounter)
+                logger.error("decreaseCounter: WldtCounter '{}.{}' is monotonically increasing — use WldtUpDownCounter to support decrements",
+                        namespace, name);
+            else
+                logger.error("decreaseCounter: metric '{}.{}' is not a counter type (found {})",
+                        namespace, name, metric.getClass().getSimpleName());
+        } catch (Exception e) {
+            logger.error("decreaseCounter: error updating '{}.{}': {}", namespace, name, e.getMessage());
+        }
+    }
+
+    /**
+     * Updates a {@link WldtGauge} to a new observed value.
+     *
+     * @param namespace the metric namespace
+     * @param name      the metric name within the namespace
+     * @param value     the new observed value; must be finite
+     */
+    public void updateGauge(String namespace, String name, double value) {
+        try {
+            WldtMetric metric = resolveMetric(namespace, name);
+            if (metric instanceof WldtGauge)
+                notifyUpdated(((WldtGauge) metric).update(value));
+            else
+                logger.error("updateGauge: metric '{}.{}' is not a WldtGauge (found {})",
+                        namespace, name, metric.getClass().getSimpleName());
+        } catch (Exception e) {
+            logger.error("updateGauge: error updating '{}.{}': {}", namespace, name, e.getMessage());
+        }
+    }
+
+    /**
+     * Records a new duration observation on a {@link WldtTimer}.
+     *
+     * @param namespace  the metric namespace
+     * @param name       the metric name within the namespace
+     * @param durationMs measured duration in milliseconds; must be &ge; 0
+     */
+    public void updateTimer(String namespace, String name, long durationMs) {
+        try {
+            WldtMetric metric = resolveMetric(namespace, name);
+            if (metric instanceof WldtTimer)
+                notifyUpdated(((WldtTimer) metric).update(durationMs));
+            else
+                logger.error("updateTimer: metric '{}.{}' is not a WldtTimer (found {})",
+                        namespace, name, metric.getClass().getSimpleName());
+        } catch (Exception e) {
+            logger.error("updateTimer: error updating '{}.{}': {}", namespace, name, e.getMessage());
+        }
+    }
+
+    /**
+     * Records a duration observation on a {@link WldtTimer} computed as
+     * {@code System.currentTimeMillis() - startMs}.
+     *
+     * @param namespace the metric namespace
+     * @param name      the metric name within the namespace
+     * @param startMs   epoch milliseconds when the measured operation started
+     */
+    public void updateTimerSince(String namespace, String name, long startMs) {
+        updateTimer(namespace, name, System.currentTimeMillis() - startMs);
+    }
+
+    /**
+     * Adds a single observation to a {@link WldtHistogram}.
+     *
+     * @param namespace the metric namespace
+     * @param name      the metric name within the namespace
+     * @param value     the observed value; must be finite
+     */
+    public void histogramObservation(String namespace, String name, double value) {
+        try {
+            WldtMetric metric = resolveMetric(namespace, name);
+            if (metric instanceof WldtHistogram)
+                notifyUpdated(((WldtHistogram) metric).observe(value));
+            else
+                logger.error("histogramObservation: metric '{}.{}' is not a WldtHistogram (found {})",
+                        namespace, name, metric.getClass().getSimpleName());
+        } catch (Exception e) {
+            logger.error("histogramObservation: error updating '{}.{}': {}", namespace, name, e.getMessage());
+        }
+    }
+
+    /**
+     * Merges a pre-aggregated window into a {@link WldtHistogram}.
+     *
+     * @param namespace the metric namespace
+     * @param name      the metric name within the namespace
+     * @param count     number of observations in the window; must be positive
+     * @param sum       arithmetic sum of observations; must be finite
+     * @param min       minimum observation; must be finite and &le; max
+     * @param max       maximum observation; must be finite and &ge; min
+     */
+    public void histogramObservation(String namespace, String name,
+                                     long count, double sum, double min, double max) {
+        try {
+            WldtMetric metric = resolveMetric(namespace, name);
+            if (metric instanceof WldtHistogram)
+                notifyUpdated(((WldtHistogram) metric).update(count, sum, min, max));
+            else
+                logger.error("histogramObservation: metric '{}.{}' is not a WldtHistogram (found {})",
+                        namespace, name, metric.getClass().getSimpleName());
+        } catch (Exception e) {
+            logger.error("histogramObservation: error updating '{}.{}': {}", namespace, name, e.getMessage());
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Internal helpers
+    // -------------------------------------------------------------------------
+
+    private void dispatchMetric(WldtMetric metric) {
+        boolean isNew = registry.registerIfAbsent(metric);
+        if (isNew) {
+            if (handler != null) {
+                handler.onMetricRegistered(metric.getComponent(), metric.emptySnapshot());
+                if (metric.isInitialized())
+                    handler.onMetricUpdated(metric.getComponent(), metric.copy());
+            }
+        } else {
+            if (metric.isInitialized()) {
+                WldtMetric live = registry.update(metric);
+                if (handler != null)
+                    handler.onMetricUpdated(live.getComponent(), live.copy());
+            }
+        }
+    }
+
+    /**
+     * Looks up the live metric by {@code namespace.name}. Throws {@link IllegalStateException}
+     * if not registered, so callers can catch it uniformly.
+     */
+    private WldtMetric resolveMetric(String namespace, String name) {
+        String fullName = namespace + "." + name;
+        return registry.getMetric(fullName).orElseThrow(() ->
+                new IllegalStateException("Metric '" + fullName + "' is not registered"));
+    }
+
+    /**
+     * Fires {@link MonitoringInterfaceHandler#onMetricUpdated} for the given already-mutated
+     * live metric. Used by convenience methods that mutate the stored instance directly.
+     */
+    private void notifyUpdated(WldtMetric live) {
+        if (handler != null)
+            handler.onMetricUpdated(live.getComponent(), live.copy());
+    }
+
     private boolean isEnabled(WldtMetricComponent component) {
+        if (configuration == null) return false;
         switch (component) {
-            case DT_MODEL:
-                return configuration.isDtModelMonitoringEnabled();
-            case PHYSICAL_ADAPTER:
-                return configuration.isPhysicalAdapterMonitoringEnabled();
-            case DIGITAL_ADAPTER:
-                return configuration.isDigitalAdapterMonitoringEnabled();
-            case AUGMENTATION:
-                return configuration.isAugmentationMonitoringEnabled();
-            case STORAGE:
-                return configuration.isStorageMonitoringEnabled();
-            case CUSTOM:
-                return true;
+            case DT_MODEL:        return configuration.isDtModelMonitoringEnabled();
+            case PHYSICAL_ADAPTER: return configuration.isPhysicalAdapterMonitoringEnabled();
+            case DIGITAL_ADAPTER: return configuration.isDigitalAdapterMonitoringEnabled();
+            case AUGMENTATION:    return configuration.isAugmentationMonitoringEnabled();
+            case STORAGE:         return configuration.isStorageMonitoringEnabled();
+            case CUSTOM:          return true;
             default:
                 logger.warn("isEnabled() received unknown component: {}", component);
                 return false;
         }
-    }
-
-    /**
-     * TODO ...
-     * @param configuration
-     */
-    public void setConfiguration(MonitoringInterfaceConfiguration configuration) {
-        this.configuration = configuration;
-    }
-
-    /**
-     * TODO ...
-     * @return
-     */
-    public MonitoringInterfaceHandler getHandler() {
-        return handler;
-    }
-
-    /**
-     * TODO ...
-     * @param handler
-     */
-    public void setHandler(MonitoringInterfaceHandler handler) {
-        this.handler = handler;
-    }
-
-    /**
-     * TODO ...
-     * @return
-     */
-    public WldtMetricRegistry getRegistry() {
-        return registry;
-    }
-
-
-    /**
-     * TODO ...
-     * @return
-     */
-    public boolean isActive(){
-        return this.configuration != null && this.handler != null;
-    }
-
-    /**
-     * TODO ...
-     * @return
-     */
-    public boolean isActive(WldtMetricComponent component){
-        return isEnabled(component) && this.configuration != null && this.handler != null;
     }
 }

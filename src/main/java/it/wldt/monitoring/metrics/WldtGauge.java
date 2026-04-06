@@ -1,89 +1,142 @@
 package it.wldt.monitoring.metrics;
 
 /**
- * A WLDT metric representing a continuously observed numeric value
- * that can freely rise and fall over time.
+ * A WLDT metric representing a continuously observed numeric value that can freely rise and fall.
  *
- * <p>{@code WldtGauge} models point-in-time observations of a physical or
- * computed quantity — the recorded value is a snapshot at the moment of
- * measurement, not an accumulation. It is the correct choice when the
- * value has no inherent direction constraint and represents a continuous
- * magnitude rather than a discrete entity count.</p>
+ * <p>Instances are mutable. Call {@link #update(double)} to record a new observation. On each
+ * update the metric tracks the previous value, the signed delta, and the running min/max across
+ * all observations.</p>
  *
- * <p>Typical WLDT use cases:</p>
- * <ul>
- *   <li>{@code wldt.event_bus.queue_depth} — current number of pending
- *       events in the internal Event Bus queue.</li>
- *   <li>{@code wldt.dt_model.state_properties_count} — current number of
- *       properties declared in the Digital Twin State.</li>
- *   <li>{@code wldt.storage.entry_count} — current number of entries
- *       persisted in the Storage layer.</li>
- *   <li>{@code custom.myapp.room_temperature} — a developer-recorded
- *       sensor reading forwarded as a custom metric.</li>
- * </ul>
- *
- * <p><strong>OpenTelemetry mapping:</strong> {@code LongGauge} /
- * {@code DoubleGauge} / {@code ObservableGauge} — full semantic match.
- * Use {@code ObservableGauge} when the value is polled asynchronously;
- * use the synchronous variants for push-based recordings as in WLDT.</p>
- *
- * <p><strong>Prometheus mapping:</strong> {@code Gauge} — full semantic match.
- * Prometheus {@code Gauge} supports arbitrary set, increment, and decrement
- * operations, making it a natural fit.</p>
- *
- * <p>If the quantity is a discrete entity count that can go up and down
- * (e.g. number of connected adapters), prefer {@link WldtUpDownCounter}.
- * If it is a duration measurement, prefer {@link WldtTimer}.</p>
+ * <p><strong>OpenTelemetry mapping:</strong> {@code DoubleGauge} / {@code ObservableGauge}.</p>
+ * <p><strong>Prometheus mapping:</strong> {@code Gauge}.</p>
  */
 public class WldtGauge extends WldtMetric {
 
-    /**
-     * The observed value at the time this metric was recorded.
-     * May be any finite double — positive, negative, or zero.
-     */
-    private final double value;
+    private double value;
+    private Double previousValue;
+    private Double delta;
+    private double minObserved;
+    private double maxObserved;
+    private long   updateCount;
 
     /**
-     * Constructs a new {@code WldtGauge} metric.
+     * Constructs a new {@code WldtGauge} with the given initial value.
+     * {@code minObserved} and {@code maxObserved} are initialized to {@code initialValue}.
+     * {@code previousValue} and {@code delta} are {@code null} until the first {@link #update(double)}.
      *
-     * @param namespace the logical namespace grouping this metric
-     *                  (e.g. {@code "wldt.internal"} or {@code "custom.myapp"})
-     * @param name      the metric name within its namespace
-     *                  (e.g. {@code "event_bus.queue_depth"})
-     * @param component the DT component that emitted this metric
-     * @param value     the observed value at recording time; may be any finite double
-     * @throws IllegalArgumentException if namespace, name, or component is null,
-     *                                  or if value is NaN or infinite
+     * @param namespace    the logical namespace grouping this metric
+     * @param name         the metric name within its namespace
+     * @param component    the DT component that emitted this metric
+     * @param initialValue the starting observed value; must be finite
+     * @throws IllegalArgumentException if namespace, name, or component is null/blank,
+     *                                  or if initialValue is NaN or infinite
      */
-    public WldtGauge(String namespace, String name, WldtMetricComponent component, double value) {
+    /**
+     * Constructs an uninitialized {@code WldtGauge} for pre-registration.
+     * {@link #isInitialized()} returns {@code false} until the first {@link #update(double)}.
+     */
+    public WldtGauge(String namespace, String name, WldtMetricComponent component) {
         super(namespace, name, component);
-        if (Double.isNaN(value) || Double.isInfinite(value))
-            throw new IllegalArgumentException("WldtGauge value must be finite, got: " + value);
-        this.value = value;
+        this.value         = 0.0;
+        this.previousValue = null;
+        this.delta         = null;
+        this.minObserved   = 0.0;
+        this.maxObserved   = 0.0;
+        this.updateCount   = 0;
+        this.initialized   = false;
+    }
+
+    public WldtGauge(String namespace, String name, WldtMetricComponent component, double initialValue) {
+        super(namespace, name, component);
+        if (Double.isNaN(initialValue) || Double.isInfinite(initialValue))
+            throw new IllegalArgumentException("WldtGauge value must be finite, got: " + initialValue);
+        this.value         = initialValue;
+        this.previousValue = null;
+        this.delta         = null;
+        this.minObserved   = initialValue;
+        this.maxObserved   = initialValue;
+        this.updateCount   = 0;
+        this.initialized   = true;
     }
 
     /**
-     * Returns the observed gauge value at the time this metric was recorded.
+     * Records a new observed value, updating the delta, previous value, and min/max tracking.
      *
-     * @return the point-in-time observed value
+     * @param newValue the new observed value; must be finite
+     * @throws IllegalArgumentException if newValue is NaN or infinite
      */
-    public double getValue() {
-        return value;
+    public synchronized WldtGauge update(double newValue) {
+        if (Double.isNaN(newValue) || Double.isInfinite(newValue))
+            throw new IllegalArgumentException("WldtGauge update value must be finite, got: " + newValue);
+        if (!initialized) {
+            this.value         = newValue;
+            this.previousValue = null;
+            this.delta         = null;
+            this.minObserved   = newValue;
+            this.maxObserved   = newValue;
+            this.initialized   = true;
+            this.lastUpdatedMs = System.currentTimeMillis();
+            return this;
+        }
+        this.previousValue = this.value;
+        this.delta         = newValue - this.value;
+        this.value         = newValue;
+        this.minObserved   = Math.min(this.minObserved, newValue);
+        this.maxObserved   = Math.max(this.maxObserved, newValue);
+        this.updateCount++;
+        this.lastUpdatedMs = System.currentTimeMillis();
+        return this;
     }
 
-    /**
-     * Returns a string representation including the gauge value.
-     *
-     * @return string representation
-     */
+    private WldtGauge(WldtGauge source) {
+        super(source.getNamespace(), source.getName(), source.getComponent());
+        this.value         = source.value;
+        this.previousValue = source.previousValue;
+        this.delta         = source.delta;
+        this.minObserved   = source.minObserved;
+        this.maxObserved   = source.maxObserved;
+        this.updateCount   = source.updateCount;
+        this.initialized   = source.initialized;
+        this.lastUpdatedMs = source.lastUpdatedMs;
+    }
+
+    @Override
+    public synchronized WldtGauge copy() { return new WldtGauge(this); }
+
+    @Override
+    public WldtGauge emptySnapshot() { return new WldtGauge(getNamespace(), getName(), getComponent()); }
+
+    /** @return current observed value */
+    public synchronized double getValue()          { return value; }
+
+    /** @return the value before the most recent update, or {@code null} if no update has occurred */
+    public synchronized Double getPreviousValue()  { return previousValue; }
+
+    /** @return signed difference (current - previous), or {@code null} before first update */
+    public synchronized Double getDelta()          { return delta; }
+
+    /** @return minimum value ever observed (including initial value) */
+    public synchronized double getMinObserved()    { return minObserved; }
+
+    /** @return maximum value ever observed (including initial value) */
+    public synchronized double getMaxObserved()    { return maxObserved; }
+
+    /** @return number of times {@link #update(double)} has been called */
+    public synchronized long getUpdateCount()      { return updateCount; }
+
     @Override
     public String toString() {
         return "WldtGauge{" +
                 "namespace='" + getNamespace() + '\'' +
                 ", name='" + getName() + '\'' +
                 ", component=" + getComponent() +
-                ", timestampMs=" + getTimestampMs() +
                 ", value=" + value +
+                ", previousValue=" + previousValue +
+                ", delta=" + delta +
+                ", minObserved=" + minObserved +
+                ", maxObserved=" + maxObserved +
+                ", updateCount=" + updateCount +
+                ", lastUpdatedMs=" + lastUpdatedMs +
                 '}';
     }
 }

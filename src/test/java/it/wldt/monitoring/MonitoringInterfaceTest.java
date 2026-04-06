@@ -15,24 +15,28 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Unit tests for {@link MonitoringInterface}.
  *
- * <p>Uses a {@link TestMonitoringHandler} — a concrete inner implementation of
- * {@link MonitoringInterfaceHandler} that captures all received metrics in per-component
- * lists, allowing assertions on routing, delta values, and callback counts.</p>
- *
- * <p>Uses a {@link NoOpLogger} — a minimal no-op implementation of {@link WldtLogger}
- * that satisfies the MonitoringInterface constructor without producing any output.</p>
+ * <p>Registration semantics (new in this version):</p>
+ * <ul>
+ *   <li>A push <em>with</em> an initial value fires {@code onMetricRegistered} with an
+ *       <strong>empty snapshot</strong> (no value, {@code isInitialized()==false}), then
+ *       immediately fires {@code onMetricUpdated} with the actual initial value
+ *       ({@code delta==null} — first value, not an increment).</li>
+ *   <li>A push <em>without</em> a value fires only {@code onMetricRegistered} (empty snapshot).</li>
+ *   <li>Every subsequent push for the same name fires {@code onMetricUpdated} with the
+ *       mutated live snapshot ({@code delta} reflects the change from previous value).</li>
+ * </ul>
  *
  * <p>Covers:</p>
  * <ul>
  *   <li>Flag gating — metrics from disabled components are silently discarded</li>
- *   <li>Routing — each component routes to the correct handler callback</li>
- *   <li>Delta injection — counter delta computed before dispatch</li>
- *   <li>Lazy registration — first push auto-registers the metric</li>
- *   <li>Custom metric push via {@code trackCustomMetric()}</li>
- *   <li>{@code getMetric()} and {@code getAllMetrics()} query support</li>
- *   <li>Constructor guard validation</li>
- *   <li>{@code trackCustomMetric()} guard validation (non-CUSTOM component)</li>
- *   <li>Concurrent push safety via CountDownLatch</li>
+ *   <li>No-value registration — only {@code onMetricRegistered} fires</li>
+ *   <li>Push with initial value — both callbacks fire; registered snapshot is empty</li>
+ *   <li>Subsequent push — {@code onMetricUpdated} with non-null delta</li>
+ *   <li>Component passed correctly to both callbacks</li>
+ *   <li>Custom metric support via {@code trackCustomMetric()}</li>
+ *   <li>Query support ({@code getMetric()}, {@code getAllMetrics()}, {@code isMetricRegistered()})</li>
+ *   <li>Concurrent push safety</li>
+ *   <li>Guard validation (null metric, wrong CUSTOM component)</li>
  * </ul>
  */
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -43,20 +47,17 @@ public class MonitoringInterfaceTest {
     private static final String NS   = "wldt.internal";
     private static final String CUST = "custom.myapp";
 
-    private static TestMonitoringHandler handler;
-    private static MonitoringInterface   monitoringInterface;
+    private TestMonitoringHandler handler;
+    private MonitoringInterface   monitoringInterface;
 
     @BeforeEach
     public void setUp() {
         logger.info("Setting up MonitoringInterfaceTest ...");
-
         handler = new TestMonitoringHandler();
-
         MonitoringInterfaceConfiguration config = new MonitoringInterfaceConfiguration.Builder()
                 .withDtModelMonitoring()
                 .withCustomNamespace(CUST)
                 .build();
-
         monitoringInterface = new MonitoringInterface();
         monitoringInterface.setConfiguration(config);
         monitoringInterface.setHandler(handler);
@@ -73,222 +74,232 @@ public class MonitoringInterfaceTest {
     // Flag gating
     // -------------------------------------------------------------------------
 
-    /**
-     * Metric from DT_MODEL (enabled) must reach the handler callback.
-     */
-    @Test
-    @Order(1)
-    public void testEnabledComponentReachesHandler() {
-        logger.info("Testing metric from enabled component reaches handler ...");
+    @Test @Order(1)
+    public void testEnabledComponentWithValueFiresBothCallbacks() {
         monitoringInterface.notifyMetric(
                 new WldtCounter(NS, "events", WldtMetricComponent.DT_MODEL, 1L));
-
-        assertEquals(1, handler.dtModelMetrics.size());
+        assertEquals(1, handler.registeredMetrics.size());
+        assertEquals(1, handler.updatedMetrics.size(),
+                "Push with initial value must also fire onMetricUpdated");
     }
 
-    /**
-     * Metric from PHYSICAL_ADAPTER (disabled in setUp config) must be silently discarded.
-     */
-    @Test
-    @Order(2)
+    @Test @Order(2)
     public void testDisabledComponentIsDiscarded() {
-        logger.info("Testing metric from disabled component (PHYSICAL_ADAPTER) is discarded ...");
         monitoringInterface.notifyMetric(
                 new WldtCounter(NS, "pa.messages", WldtMetricComponent.PHYSICAL_ADAPTER, 1L));
-
-        assertTrue(handler.physicalAdapterMetrics.isEmpty(),
-                "Physical adapter metrics must be discarded when flag is disabled");
+        assertTrue(handler.registeredMetrics.isEmpty());
+        assertTrue(handler.updatedMetrics.isEmpty());
     }
 
-    /**
-     * Metric from STORAGE (disabled in setUp config) must be silently discarded.
-     */
-    @Test
-    @Order(3)
+    @Test @Order(3)
     public void testDisabledStorageIsDiscarded() {
-        logger.info("Testing metric from disabled component (STORAGE) is discarded ...");
         monitoringInterface.notifyMetric(
                 new WldtTimer(NS, "write.latency", WldtMetricComponent.STORAGE, 50L));
-
-        assertTrue(handler.storageMetrics.isEmpty());
+        assertTrue(handler.registeredMetrics.isEmpty());
+        assertTrue(handler.updatedMetrics.isEmpty());
     }
 
     // -------------------------------------------------------------------------
-    // Routing
+    // No-value registration
     // -------------------------------------------------------------------------
 
-    /**
-     * DT_MODEL metric routes exclusively to onDigitalTwinModelMetric().
-     */
-    @Test
-    @Order(4)
-    public void testRoutingDtModelCallback() {
-        logger.info("Testing DT_MODEL metric routes to correct callback ...");
+    @Test @Order(4)
+    public void testNoValuePushFiresOnlyRegisteredCallback() {
         monitoringInterface.notifyMetric(
-                new WldtGauge(NS, "state.props", WldtMetricComponent.DT_MODEL, 5.0));
-
-        assertEquals(1, handler.dtModelMetrics.size());
-        assertTrue(handler.eventBusMetrics.isEmpty());
-        assertTrue(handler.customMetrics.isEmpty());
+                new WldtCounter(NS, "events", WldtMetricComponent.DT_MODEL));
+        assertEquals(1, handler.registeredMetrics.size());
+        assertTrue(handler.updatedMetrics.isEmpty(),
+                "No-value push must not fire onMetricUpdated");
+        assertFalse(handler.registeredMetrics.get(0).isInitialized(),
+                "Registered snapshot must be uninitialized");
     }
 
-    /**
-     * CUSTOM metric via trackCustomMetric() routes to onCustomMetric().
-     */
-    @Test
-    @Order(6)
-    public void testRoutingCustomMetricCallback() {
-        logger.info("Testing CUSTOM metric routes to onCustomMetric() ...");
-        monitoringInterface.trackCustomMetric(
-                new WldtGauge(CUST, "room.temperature", WldtMetricComponent.CUSTOM, 21.5));
+    @Test @Order(5)
+    public void testNoValueThenValuePushFiresUpdatedWithNullDelta() {
+        // Register without value
+        monitoringInterface.notifyMetric(
+                new WldtCounter(NS, "events", WldtMetricComponent.DT_MODEL));
+        // First push with actual value
+        monitoringInterface.notifyMetric(
+                new WldtCounter(NS, "events", WldtMetricComponent.DT_MODEL, 5L));
 
-        assertEquals(1, handler.customMetrics.size());
-        assertTrue(handler.dtModelMetrics.isEmpty());
+        assertEquals(1, handler.registeredMetrics.size());
+        assertEquals(1, handler.updatedMetrics.size());
+        assertNull(handler.updatedDeltas.get(0).delta,
+                "First actual value after no-value registration must have null delta");
+        assertEquals(5L, ((WldtCounter) handler.updatedMetrics.get(0)).getValue());
     }
 
     // -------------------------------------------------------------------------
-    // Delta injection
+    // Registered vs Updated callbacks (push with initial value)
     // -------------------------------------------------------------------------
 
-    /**
-     * On first push delta is null; on second push delta is computed and injected
-     * by the registry before dispatch to the handler.
-     */
-    @Test
-    @Order(7)
-    public void testDeltaInjectedBeforeDispatch() {
-        logger.info("Testing delta is computed and injected before dispatch to handler ...");
+    @Test @Order(6)
+    public void testFirstPushWithValueFiresRegisteredWithEmptySnapshot() {
+        monitoringInterface.notifyMetric(
+                new WldtCounter(NS, "events", WldtMetricComponent.DT_MODEL, 1L));
+        assertEquals(1, handler.registeredMetrics.size());
+        assertEquals(WldtMetricComponent.DT_MODEL, handler.registeredComponents.get(0));
+        assertFalse(handler.registeredMetrics.get(0).isInitialized(),
+                "onMetricRegistered must receive an empty (uninitialized) snapshot");
+    }
+
+    @Test @Order(7)
+    public void testFirstPushWithValueImmediatelyFiresUpdated() {
+        monitoringInterface.notifyMetric(
+                new WldtCounter(NS, "events", WldtMetricComponent.DT_MODEL, 1L));
+        assertEquals(1, handler.updatedMetrics.size());
+        assertTrue(handler.updatedMetrics.get(0).isInitialized());
+        assertNull(handler.updatedDeltas.get(0).delta,
+                "Initial value push must have null delta (first value, not an increment)");
+        assertEquals(1L, ((WldtCounter) handler.updatedMetrics.get(0)).getValue());
+    }
+
+    @Test @Order(8)
+    public void testSecondPushFiresUpdatedWithDelta() {
+        monitoringInterface.notifyMetric(
+                new WldtCounter(NS, "events", WldtMetricComponent.DT_MODEL, 1L));
+        monitoringInterface.notifyMetric(
+                new WldtCounter(NS, "events", WldtMetricComponent.DT_MODEL, 4L));
+
+        // 1 registered + 2 updated (initial value + incremental update)
+        assertEquals(1, handler.registeredMetrics.size());
+        assertEquals(2, handler.updatedMetrics.size());
+        assertEquals(WldtMetricComponent.DT_MODEL, handler.updatedComponents.get(1));
+        assertEquals(Long.valueOf(3L), handler.updatedDeltas.get(1).delta);
+    }
+
+    @Test @Order(9)
+    public void testDeltaSemanticsThroughFullLifecycle() {
         monitoringInterface.notifyMetric(
                 new WldtCounter(NS, "events", WldtMetricComponent.DT_MODEL, 5L));
         monitoringInterface.notifyMetric(
                 new WldtCounter(NS, "events", WldtMetricComponent.DT_MODEL, 8L));
 
-        assertEquals(2, handler.dtModelMetrics.size());
+        // Registered snapshot: empty, no delta
+        assertFalse(handler.registeredMetrics.get(0).isInitialized());
+        assertNull(handler.registeredDeltas.get(0).delta,
+                "Empty snapshot must have null delta");
 
-        WldtCounter first  = (WldtCounter) handler.dtModelMetrics.get(0);
-        WldtCounter second = (WldtCounter) handler.dtModelMetrics.get(1);
+        // First onMetricUpdated: initial value=5, delta=null (initialization)
+        assertNull(handler.updatedDeltas.get(0).delta,
+                "Initial value push delta must be null");
+        assertEquals(5L, ((WldtCounter) handler.updatedMetrics.get(0)).getValue());
 
-        assertNull(first.getDelta(), "Delta on first push must be null");
-        assertEquals(Long.valueOf(3L), second.getDelta(), "Delta on second push must be 3");
-        assertEquals(8L, second.getValue());
+        // Second onMetricUpdated: value=8, delta=3
+        assertEquals(Long.valueOf(3L), handler.updatedDeltas.get(1).delta);
+        assertEquals(8L, ((WldtCounter) handler.updatedMetrics.get(1)).getValue());
     }
 
-    /**
-     * Custom WldtCounter pushed via trackCustomMetric() also receives delta injection.
-     */
-    @Test
-    @Order(8)
-    public void testCustomCounterAlsoGetsDeltaInjected() {
-        logger.info("Testing custom WldtCounter also receives delta injection ...");
-        monitoringInterface.trackCustomMetric(
-                new WldtCounter(CUST, "custom.count", WldtMetricComponent.CUSTOM, 10L));
-        monitoringInterface.trackCustomMetric(
-                new WldtCounter(CUST, "custom.count", WldtMetricComponent.CUSTOM, 14L));
+    // -------------------------------------------------------------------------
+    // Component routing
+    // -------------------------------------------------------------------------
 
-        assertEquals(2, handler.customMetrics.size());
-        WldtCounter second = (WldtCounter) handler.customMetrics.get(1);
-        assertEquals(Long.valueOf(4L), second.getDelta());
+    @Test @Order(10)
+    public void testCustomMetricBypassesFlagGatingAndFiresBothCallbacks() {
+        monitoringInterface.trackCustomMetric(
+                new WldtGauge(CUST, "room.temp", WldtMetricComponent.CUSTOM, 21.5));
+        assertEquals(1, handler.registeredMetrics.size());
+        assertEquals(1, handler.updatedMetrics.size());
+        assertEquals(WldtMetricComponent.CUSTOM, handler.registeredComponents.get(0));
+        assertEquals(WldtMetricComponent.CUSTOM, handler.updatedComponents.get(0));
+    }
+
+    @Test @Order(11)
+    public void testCustomMetricSecondPushFiresUpdatedWithDelta() {
+        monitoringInterface.trackCustomMetric(
+                new WldtCounter(CUST, "c", WldtMetricComponent.CUSTOM, 10L));
+        monitoringInterface.trackCustomMetric(
+                new WldtCounter(CUST, "c", WldtMetricComponent.CUSTOM, 14L));
+
+        // registered=1, updated=2 (init + increment)
+        assertEquals(1, handler.registeredMetrics.size());
+        assertEquals(2, handler.updatedMetrics.size());
+        assertNull(handler.updatedDeltas.get(0).delta, "Initial push delta must be null");
+        assertEquals(Long.valueOf(4L), handler.updatedDeltas.get(1).delta);
     }
 
     // -------------------------------------------------------------------------
     // Query support
     // -------------------------------------------------------------------------
 
-    /**
-     * getMetric() returns the last pushed value for a registered metric.
-     */
-    @Test
-    @Order(9)
-    public void testGetMetricReturnsLastPushedValue() {
-        logger.info("Testing getMetric() returns last pushed value ...");
+    @Test @Order(12)
+    public void testGetMetricReturnsLiveInstance() {
         monitoringInterface.notifyMetric(
                 new WldtCounter(NS, "events", WldtMetricComponent.DT_MODEL, 7L));
-
         Optional<WldtMetric> result = monitoringInterface.getMetric(NS + ".events");
         assertTrue(result.isPresent());
         assertEquals(7L, ((WldtCounter) result.get()).getValue());
     }
 
-    /**
-     * getMetric() returns empty Optional for a name that has never been pushed.
-     */
-    @Test
-    @Order(10)
-    public void testGetMetricEmptyForUnknownName() {
-        logger.info("Testing getMetric() returns empty for unknown metric name ...");
+    @Test @Order(13)
+    public void testGetMetricEmptyForUnknown() {
         assertFalse(monitoringInterface.getMetric("wldt.internal.unknown").isPresent());
     }
 
-    /**
-     * getAllMetrics() returns all pushed metrics from enabled components.
-     */
-    @Test
-    @Order(11)
-    public void testGetAllMetricsReturnsRegisteredMetrics() {
-        logger.info("Testing getAllMetrics() returns correct number of registered metrics ...");
+    @Test @Order(14)
+    public void testGetAllMetricsSize() {
         monitoringInterface.notifyMetric(
                 new WldtCounter(NS, "events", WldtMetricComponent.DT_MODEL, 1L));
         monitoringInterface.notifyMetric(
                 new WldtGauge(NS, "model.cpu", WldtMetricComponent.DT_MODEL, 2.0));
-
         assertEquals(2, monitoringInterface.getAllMetrics().size());
     }
 
-    /**
-     * isMetricRegistered() returns true after a push and false before.
-     */
-    @Test
-    @Order(12)
+    @Test @Order(15)
     public void testIsMetricRegisteredLifecycle() {
-        logger.info("Testing isMetricRegistered() lifecycle ...");
         assertFalse(monitoringInterface.isMetricRegistered(NS + ".events"));
         monitoringInterface.notifyMetric(
                 new WldtCounter(NS, "events", WldtMetricComponent.DT_MODEL, 1L));
         assertTrue(monitoringInterface.isMetricRegistered(NS + ".events"));
     }
 
-    /**
-     * registerMetric() pre-populates the registry; next push computes delta
-     * against the pre-registered value.
-     */
-    @Test
-    @Order(13)
-    public void testExplicitRegisterMetricInfluencesDelta() {
-        logger.info("Testing explicit registerMetric() influences delta on next push ...");
+    @Test @Order(16)
+    public void testExplicitRegisterMetricWithValueFiresBothCallbacksThenUpdate() {
         monitoringInterface.registerMetric(
                 new WldtCounter(NS, "events", WldtMetricComponent.DT_MODEL, 10L));
+        // registerMetric with a value fires both registered (empty) and updated (initial value)
+        assertEquals(1, handler.registeredMetrics.size(),
+                "registerMetric() must fire onMetricRegistered");
+        assertEquals(1, handler.updatedMetrics.size(),
+                "registerMetric() with value must fire onMetricUpdated with initial value");
+        assertNull(handler.updatedDeltas.get(0).delta,
+                "Initial value via registerMetric() must have null delta");
+
+        // Subsequent notifyMetric goes into update path; delta = 13 - 10 = 3
         monitoringInterface.notifyMetric(
                 new WldtCounter(NS, "events", WldtMetricComponent.DT_MODEL, 13L));
+        assertEquals(2, handler.updatedMetrics.size());
+        assertEquals(Long.valueOf(3L), handler.updatedDeltas.get(1).delta);
+    }
 
-        WldtCounter dispatched = (WldtCounter) handler.dtModelMetrics.get(0);
-        assertEquals(Long.valueOf(3L), dispatched.getDelta());
+    @Test @Order(17)
+    public void testExplicitRegisterMetricWithoutValueFiresOnlyRegistered() {
+        monitoringInterface.registerMetric(
+                new WldtCounter(NS, "events", WldtMetricComponent.DT_MODEL));
+        assertEquals(1, handler.registeredMetrics.size());
+        assertTrue(handler.updatedMetrics.isEmpty(),
+                "registerMetric() without value must not fire onMetricUpdated");
+        assertFalse(handler.registeredMetrics.get(0).isInitialized());
     }
 
     // -------------------------------------------------------------------------
     // Concurrent push safety
     // -------------------------------------------------------------------------
 
-    /**
-     * Multiple concurrent pushes from different threads must all reach the handler
-     * and be counted correctly. Uses CountDownLatch as synchronization barrier,
-     * consistent with the WLDT test framework pattern.
-     */
-    @Test
-    @Order(14)
+    @Test @Order(18)
     public void testConcurrentPushesAreHandledSafely() throws InterruptedException {
-        logger.info("Testing concurrent pushes from multiple threads are handled safely ...");
-
         int threadCount = 10;
-        CountDownLatch allPushed = new CountDownLatch(threadCount);
+        CountDownLatch allPushed   = new CountDownLatch(threadCount);
         CountDownLatch startSignal = new CountDownLatch(1);
 
         for (int i = 0; i < threadCount; i++) {
-            final long value = i + 1;
+            final double value = i + 1.0;
             new Thread(() -> {
                 try {
                     startSignal.await();
                     monitoringInterface.notifyMetric(
-                            new WldtCounter(NS, "concurrent.counter",
+                            new WldtGauge(NS, "concurrent.gauge",
                                     WldtMetricComponent.DT_MODEL, value));
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
@@ -299,48 +310,33 @@ public class MonitoringInterfaceTest {
         }
 
         startSignal.countDown();
-        boolean completed = allPushed.await(5000, TimeUnit.MILLISECONDS);
-
-        assertTrue(completed, "All threads must complete within 5 seconds");
-        assertEquals(threadCount, handler.dtModelMetrics.size(),
-                "All " + threadCount + " metrics must reach the handler");
+        assertTrue(allPushed.await(5000, TimeUnit.MILLISECONDS),
+                "All threads must complete within 5 seconds");
+        // Exactly one registration; the registering thread also fires onMetricUpdated,
+        // so total updated = threadCount (1 from registering thread + threadCount-1 updates)
+        assertEquals(1, handler.registeredMetrics.size());
+        assertEquals(threadCount, handler.updatedMetrics.size());
     }
 
     // -------------------------------------------------------------------------
     // Guard validation
     // -------------------------------------------------------------------------
 
-    /**
-     * notifyMetric() with null must be silently guarded — no exception propagated.
-     */
-    @Test
-    @Order(18)
-    public void testNotifyNullMetricDoesNotThrow() {
-        logger.info("Testing notifyMetric(null) does not propagate exception ...");
+    @Test @Order(19)
+    public void testNotifyNullDoesNotThrow() {
         assertDoesNotThrow(() -> monitoringInterface.notifyMetric(null));
-        assertTrue(handler.dtModelMetrics.isEmpty());
+        assertTrue(handler.registeredMetrics.isEmpty());
     }
 
-    /**
-     * trackCustomMetric() with a non-CUSTOM component must throw
-     * IllegalArgumentException.
-     */
-    @Test
-    @Order(19)
+    @Test @Order(20)
     public void testTrackCustomMetricWrongComponentThrows() {
-        logger.info("Testing trackCustomMetric() rejects non-CUSTOM component ...");
         assertThrows(IllegalArgumentException.class,
                 () -> monitoringInterface.trackCustomMetric(
                         new WldtCounter(NS, "events", WldtMetricComponent.DT_MODEL, 1L)));
     }
 
-    /**
-     * trackCustomMetric() with null must throw IllegalArgumentException.
-     */
-    @Test
-    @Order(20)
+    @Test @Order(21)
     public void testTrackCustomMetricNullThrows() {
-        logger.info("Testing trackCustomMetric(null) throws IllegalArgumentException ...");
         assertThrows(IllegalArgumentException.class,
                 () -> monitoringInterface.trackCustomMetric(null));
     }
@@ -349,87 +345,35 @@ public class MonitoringInterfaceTest {
     // Test doubles
     // =========================================================================
 
-    /**
-     * Concrete WldtMonitoringHandler that captures received metrics in
-     * per-component lists. Used by all tests to assert on dispatched metrics.
-     */
-    static class TestMonitoringHandler extends MonitoringInterfaceHandler {
-
-        final List<WldtMetric> dtModelMetrics        = new ArrayList<WldtMetric>();
-        final List<WldtMetric> eventBusMetrics        = new ArrayList<WldtMetric>();
-        final List<WldtMetric> physicalAdapterMetrics = new ArrayList<WldtMetric>();
-        final List<WldtMetric> digitalAdapterMetrics  = new ArrayList<WldtMetric>();
-        final List<WldtMetric> augmentationMetrics    = new ArrayList<WldtMetric>();
-        final List<WldtMetric> storageMetrics         = new ArrayList<WldtMetric>();
-        final List<WldtMetric> customMetrics          = new ArrayList<WldtMetric>();
-
-        @Override
-        public synchronized void onDigitalTwinModelMetric(WldtMetric metric) {
-            dtModelMetrics.add(metric);
-        }
-
-        @Override
-        public synchronized void onPhysicalAdapterMetric(WldtMetric metric) {
-            physicalAdapterMetrics.add(metric);
-        }
-
-        @Override
-        public synchronized void onDigitalAdapterMetric(WldtMetric metric) {
-            digitalAdapterMetrics.add(metric);
-        }
-
-        @Override
-        public synchronized void onAugmentationMetric(WldtMetric metric) {
-            augmentationMetrics.add(metric);
-        }
-
-        @Override
-        public synchronized void onStorageMetric(WldtMetric metric) {
-            storageMetrics.add(metric);
-        }
-
-        @Override
-        public synchronized void onCustomMetric(WldtMetric metric) {
-            customMetrics.add(metric);
+    /** Snapshot of a metric's delta value captured at callback time. */
+    static class DeltaSnapshot {
+        final Long delta;
+        DeltaSnapshot(WldtMetric m) {
+            this.delta = (m instanceof WldtCounter) ? ((WldtCounter) m).getDelta() : null;
         }
     }
 
-    /**
-     * Minimal no-op implementation of {@link WldtLogger}.
-     * Satisfies the MonitoringInterface constructor without any real logging output.
-     * Used only in tests where a real logger instance is not needed.
-     */
-    static class NoOpLogger implements WldtLogger {
-        public String getName()                                            { return "noop"; }
-        public void trace(String msg)                                      {}
-        public void trace(String f, Object a)                             {}
-        public void trace(String f, Object a, Object b)                   {}
-        public void trace(String f, Object... args)                       {}
-        public void trace(String msg, Throwable t)                        {}
-        public boolean isTraceEnabled()                                    { return false; }
-        public void debug(String msg)                                      {}
-        public void debug(String f, Object a)                             {}
-        public void debug(String f, Object a, Object b)                   {}
-        public void debug(String f, Object... args)                       {}
-        public void debug(String msg, Throwable t)                        {}
-        public boolean isDebugEnabled()                                    { return false; }
-        public void info(String msg)                                       {}
-        public void info(String f, Object a)                              {}
-        public void info(String f, Object a, Object b)                    {}
-        public void info(String f, Object... args)                        {}
-        public void info(String msg, Throwable t)                         {}
-        public boolean isInfoEnabled()                                     { return false; }
-        public void warn(String msg)                                       {}
-        public void warn(String f, Object a)                              {}
-        public void warn(String f, Object a, Object b)                    {}
-        public void warn(String f, Object... args)                        {}
-        public void warn(String msg, Throwable t)                         {}
-        public boolean isWarnEnabled()                                     { return false; }
-        public void error(String msg)                                      {}
-        public void error(String f, Object a)                             {}
-        public void error(String f, Object a, Object b)                   {}
-        public void error(String f, Object... args)                       {}
-        public void error(String msg, Throwable t)                        {}
-        public boolean isErrorEnabled()                                    { return false; }
+    static class TestMonitoringHandler extends MonitoringInterfaceHandler {
+
+        final List<WldtMetric>          registeredMetrics    = new ArrayList<>();
+        final List<WldtMetricComponent> registeredComponents = new ArrayList<>();
+        final List<DeltaSnapshot>       registeredDeltas     = new ArrayList<>();
+        final List<WldtMetric>          updatedMetrics       = new ArrayList<>();
+        final List<WldtMetricComponent> updatedComponents    = new ArrayList<>();
+        final List<DeltaSnapshot>       updatedDeltas        = new ArrayList<>();
+
+        @Override
+        public synchronized void onMetricRegistered(WldtMetricComponent component, WldtMetric metric) {
+            registeredMetrics.add(metric);
+            registeredComponents.add(component);
+            registeredDeltas.add(new DeltaSnapshot(metric));
+        }
+
+        @Override
+        public synchronized void onMetricUpdated(WldtMetricComponent component, WldtMetric metric) {
+            updatedMetrics.add(metric);
+            updatedComponents.add(component);
+            updatedDeltas.add(new DeltaSnapshot(metric));
+        }
     }
 }

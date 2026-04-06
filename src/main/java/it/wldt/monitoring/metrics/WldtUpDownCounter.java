@@ -1,173 +1,163 @@
 package it.wldt.monitoring.metrics;
 
 /**
- * A WLDT metric representing a counter for discrete countable entities
- * that can both increase and decrease.
+ * A WLDT metric representing a counter for discrete entities that can increase or decrease.
  *
- * <p>{@code WldtUpDownCounter} is semantically distinct from both
- * {@link WldtCounter} and {@link WldtGauge}:</p>
- * <ul>
- *   <li>Unlike {@link WldtCounter}, it can decrease — it is not monotonic.</li>
- *   <li>Unlike {@link WldtGauge}, it models discrete countable entities
- *       (e.g. "how many adapters are connected right now") rather than
- *       a continuously observed physical or computed value
- *       (e.g. "current CPU usage percentage").</li>
- * </ul>
+ * <p>Unlike {@link WldtCounter} (monotonically increasing), this counter accepts both positive
+ * and negative deltas. Unlike {@link WldtGauge}, it models discrete entity counts rather than
+ * continuously observed physical values.</p>
  *
- * <p>Typical WLDT use cases:</p>
- * <ul>
- *   <li>{@code wldt.physical_adapter.connected_count} — number of Physical
- *       Adapters currently connected to the DT.</li>
- *   <li>{@code wldt.digital_adapter.active_count} — number of Digital Adapters
- *       currently active.</li>
- *   <li>{@code wldt.augmentation.registered_functions} — number of Augmentation
- *       Functions currently registered on the DT.</li>
- * </ul>
+ * <p>Instances are mutable. Use {@link #update(long)} to set an absolute value,
+ * or {@link #increment()} / {@link #decrement()} to adjust by a step. The metric also tracks
+ * {@link #getPeakValue()} and {@link #getTroughValue()} across all mutations.</p>
  *
- * <p><strong>Delta field:</strong> the {@code delta} field is computed and injected
- * by the {@code MonitoringInterface} registry before dispatching this metric to the
- * developer's {@code WldtMonitoringHandler}. It represents the signed difference
- * between the current absolute value and the previously registered value for this
- * metric — positive when entities were added, negative when removed.
- * It is {@code null} on the first push for a given metric name (no previous value
- * available yet). Developers can use {@code getDelta()} directly to feed Prometheus
- * {@code Gauge.inc()} / {@code Gauge.dec()} without maintaining their own state.</p>
- *
- * <p><strong>OpenTelemetry mapping:</strong> {@code LongUpDownCounter} — exact
- * semantic match, dedicated type in the OTel API.</p>
- *
- * <p><strong>Prometheus mapping:</strong> {@code Gauge} — no dedicated
- * UpDownCounter type in Prometheus; use {@code getDelta()} to drive
- * {@code Gauge.inc(delta)} or {@code Gauge.dec(Math.abs(delta))} based
- * on the sign of the delta.</p>
+ * <p><strong>OpenTelemetry mapping:</strong> {@code LongUpDownCounter}.</p>
+ * <p><strong>Prometheus mapping:</strong> {@code Gauge} — use {@link #getDelta()} to drive
+ * {@code Gauge.inc(delta)} or {@code Gauge.dec(Math.abs(delta))} based on sign.</p>
  */
 public class WldtUpDownCounter extends WldtMetric {
 
-    /**
-     * The current absolute value of this up-down counter at the time this
-     * metric was recorded. May be zero, positive, or negative.
-     */
-    private final long value;
+    private long value;
+    private Long delta;
+    private long peakValue;
+    private long troughValue;
+    private long totalUpdates;
 
     /**
-     * The signed difference between this value and the previously registered
-     * value for this metric, as computed by the {@code MonitoringInterface} registry.
+     * Constructs a new {@code WldtUpDownCounter} with the given initial value.
+     * {@code peakValue} and {@code troughValue} are both initialized to {@code initialValue}.
      *
-     * <p>Positive when the count increased, negative when it decreased.
-     * Is {@code null} on the first push for a given metric name because no
-     * previous value is available yet.</p>
+     * @param namespace    the logical namespace grouping this metric
+     * @param name         the metric name within its namespace
+     * @param component    the DT component that emitted this metric
+     * @param initialValue the starting value; may be zero, positive, or negative
+     * @throws IllegalArgumentException if namespace, name, or component is null/blank
      */
-    private final Long delta;
-
     /**
-     * Constructs a new {@code WldtUpDownCounter} metric without a delta value.
-     * Used by library components when recording a raw counter value before
-     * the {@code MonitoringInterface} registry enriches it with the delta.
-     *
-     * @param namespace the logical namespace grouping this metric
-     *                  (e.g. {@code "wldt.internal"} or {@code "custom.myapp"})
-     * @param name      the metric name within its namespace
-     *                  (e.g. {@code "physical_adapter.connected_count"})
-     * @param component the DT component that emitted this metric
-     * @param value     the current absolute counter value at recording time;
-     *                  may be zero, positive, or negative
-     * @throws IllegalArgumentException if namespace, name, or component is null
+     * Constructs an uninitialized {@code WldtUpDownCounter} for pre-registration.
+     * {@link #isInitialized()} returns {@code false} until the first mutation.
      */
-    public WldtUpDownCounter(String namespace, String name,
-                             WldtMetricComponent component, long value) {
-        this(namespace, name, component, value, null);
-    }
-
-    /**
-     * Constructs a new {@code WldtUpDownCounter} metric with a pre-computed delta.
-     * Used internally by the {@code MonitoringInterface} registry to produce
-     * the enriched metric that is dispatched to the developer's handler.
-     *
-     * @param namespace the logical namespace grouping this metric
-     * @param name      the metric name within its namespace
-     * @param component the DT component that emitted this metric
-     * @param value     the current absolute counter value; may be any long
-     * @param delta     the signed difference from the previous recorded value,
-     *                  or {@code null} if this is the first push for this metric name
-     * @throws IllegalArgumentException if namespace, name, or component is null
-     */
-    public WldtUpDownCounter(String namespace, String name, WldtMetricComponent component,
-                             long value, Long delta) {
+    public WldtUpDownCounter(String namespace, String name, WldtMetricComponent component) {
         super(namespace, name, component);
-        this.value = value;
-        this.delta = delta;
+        this.value        = 0;
+        this.delta        = null;
+        this.peakValue    = 0;
+        this.troughValue  = 0;
+        this.totalUpdates = 0;
+        this.initialized  = false;
+    }
+
+    public WldtUpDownCounter(String namespace, String name, WldtMetricComponent component, long initialValue) {
+        super(namespace, name, component);
+        this.value        = initialValue;
+        this.delta        = null;
+        this.peakValue    = initialValue;
+        this.troughValue  = initialValue;
+        this.totalUpdates = 0;
+        this.initialized  = true;
     }
 
     /**
-     * Returns the current absolute value of this up-down counter at the time
-     * of recording. The value may be zero, positive, or negative.
+     * Sets the counter to a new absolute value and computes the signed delta.
      *
-     * @return the current absolute counter value
+     * @param newAbsoluteValue new absolute value; may be any long
      */
-    public long getValue() {
-        return value;
+    public synchronized WldtUpDownCounter update(long newAbsoluteValue) {
+        if (!initialized) {
+            this.value        = newAbsoluteValue;
+            this.delta        = null;
+            this.peakValue    = newAbsoluteValue;
+            this.troughValue  = newAbsoluteValue;
+            this.initialized  = true;
+            this.lastUpdatedMs = System.currentTimeMillis();
+            return this;
+        }
+        this.delta        = newAbsoluteValue - this.value;
+        this.value        = newAbsoluteValue;
+        this.peakValue    = Math.max(this.peakValue, newAbsoluteValue);
+        this.troughValue  = Math.min(this.troughValue, newAbsoluteValue);
+        this.totalUpdates++;
+        this.lastUpdatedMs = System.currentTimeMillis();
+        return this;
     }
 
-    /**
-     * Returns the signed delta between this value and the previously registered
-     * value for this metric, as computed by the {@code MonitoringInterface} registry.
-     *
-     * <p>Returns {@code null} on the first push for a given metric name.
-     * On subsequent pushes returns a {@code Long} that is positive when the
-     * count increased and negative when it decreased.</p>
-     *
-     * <p>Typical Prometheus usage in a {@code WldtMonitoringHandler}:</p>
-     * <pre>{@code
-     * if (metric instanceof WldtUpDownCounter && ((WldtUpDownCounter) metric).getDelta() != null) {
-     *     if (c.getDelta() > 0) prometheusGauge.inc(c.getDelta());
-     *     else                  prometheusGauge.dec(Math.abs(c.getDelta()));
-     * }
-     * }</pre>
-     *
-     * @return the signed delta from the previous value, or {@code null} if unavailable
-     */
-    public Long getDelta() {
-        return delta;
-    }
+    /** Increments the counter by 1. */
+    public synchronized WldtUpDownCounter increment() { return increment(1L); }
 
     /**
-     * Returns {@code true} if the delta value is available for this metric instance.
-     * Equivalent to {@code getDelta() != null}.
+     * Increments the counter by {@code amount}.
      *
-     * @return {@code true} if delta is present, {@code false} on first push
+     * @param amount positive step; must be &gt; 0
+     * @throws IllegalArgumentException if amount &le; 0
      */
-    public boolean isDeltaAvailable() {
-        return delta != null;
+    public synchronized WldtUpDownCounter increment(long amount) {
+        if (amount <= 0)
+            throw new IllegalArgumentException("increment amount must be > 0, got: " + amount);
+        return update(this.value + amount);
     }
 
-    /**
-     * Returns a new {@code WldtUpDownCounter} instance identical to this one
-     * but with the given delta value injected.
-     * Used internally by the {@code MonitoringInterface} registry to enrich
-     * the metric before dispatching it to the handler.
-     *
-     * @param computedDelta the signed delta to inject
-     * @return enriched copy of this counter with the delta set
-     */
-    public WldtUpDownCounter withDelta(long computedDelta) {
-        return new WldtUpDownCounter(getNamespace(), getName(), getComponent(),
-                value, computedDelta);
-    }
+    /** Decrements the counter by 1. */
+    public synchronized WldtUpDownCounter decrement() { return decrement(1L); }
 
     /**
-     * Returns a string representation including the counter value and delta.
+     * Decrements the counter by {@code amount}.
      *
-     * @return string representation
+     * @param amount positive step to subtract; must be &gt; 0
+     * @throws IllegalArgumentException if amount &le; 0
      */
+    public synchronized WldtUpDownCounter decrement(long amount) {
+        if (amount <= 0)
+            throw new IllegalArgumentException("decrement amount must be > 0, got: " + amount);
+        return update(this.value - amount);
+    }
+
+    private WldtUpDownCounter(WldtUpDownCounter source) {
+        super(source.getNamespace(), source.getName(), source.getComponent());
+        this.value        = source.value;
+        this.delta        = source.delta;
+        this.peakValue    = source.peakValue;
+        this.troughValue  = source.troughValue;
+        this.totalUpdates = source.totalUpdates;
+        this.initialized  = source.initialized;
+        this.lastUpdatedMs = source.lastUpdatedMs;
+    }
+
+    @Override
+    public synchronized WldtUpDownCounter copy() { return new WldtUpDownCounter(this); }
+
+    @Override
+    public WldtUpDownCounter emptySnapshot() { return new WldtUpDownCounter(getNamespace(), getName(), getComponent()); }
+
+    /** @return current absolute counter value */
+    public synchronized long getValue()          { return value; }
+
+    /** @return signed delta from the previous value, or {@code null} before first mutation */
+    public synchronized Long getDelta()          { return delta; }
+
+    /** @return {@code true} if at least one mutation has occurred */
+    public synchronized boolean isDeltaAvailable() { return delta != null; }
+
+    /** @return highest value ever set (initialized to initialValue) */
+    public synchronized long getPeakValue()      { return peakValue; }
+
+    /** @return lowest value ever set (initialized to initialValue) */
+    public synchronized long getTroughValue()    { return troughValue; }
+
+    /** @return total number of times this metric has been mutated */
+    public synchronized long getTotalUpdates()   { return totalUpdates; }
+
     @Override
     public String toString() {
         return "WldtUpDownCounter{" +
                 "namespace='" + getNamespace() + '\'' +
                 ", name='" + getName() + '\'' +
                 ", component=" + getComponent() +
-                ", timestampMs=" + getTimestampMs() +
                 ", value=" + value +
                 ", delta=" + (delta != null ? delta : "n/a") +
+                ", peakValue=" + peakValue +
+                ", troughValue=" + troughValue +
+                ", totalUpdates=" + totalUpdates +
+                ", lastUpdatedMs=" + lastUpdatedMs +
                 '}';
     }
 }
