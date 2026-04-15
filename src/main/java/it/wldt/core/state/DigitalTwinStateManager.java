@@ -25,6 +25,11 @@ import it.wldt.core.event.WldtEventBus;
 import it.wldt.exception.*;
 import it.wldt.log.WldtLogger;
 import it.wldt.log.WldtLoggerProvider;
+import it.wldt.monitoring.CoreMonitoringUtils;
+import it.wldt.monitoring.MonitoringInterface;
+import it.wldt.monitoring.metrics.WldtCounter;
+import it.wldt.monitoring.metrics.WldtMetricComponent;
+import it.wldt.monitoring.metrics.WldtTimer;
 
 import java.util.*;
 
@@ -65,6 +70,17 @@ public class DigitalTwinStateManager {
     private boolean isEditing = false;
 
     private String digitalTwinId = null;
+
+    /**
+     * Reference to the Monitoring Interface in order to add metrics
+     * related to computation of the Digital Twin State
+     */
+    private MonitoringInterface monitoringInterface;
+
+    /**
+     * State Manager Metrics Namespace
+     */
+    private String metricsNamespace;
 
     private DigitalTwinStateManager(){
 
@@ -108,7 +124,7 @@ public class DigitalTwinStateManager {
      * about the state's variation
      * @throws WldtDigitalTwinStateException
      */
-    public void commitStateTransaction() throws WldtDigitalTwinStateException {
+    private void handleCommitStateTransaction() throws WldtDigitalTwinStateException {
 
         if(digitalTwinStateTransaction == null)
             throw new WldtDigitalTwinStateException("Trying to commit Digital Twin State Transaction without properly starting it ! Call start() and then commit() to apply changes");
@@ -129,6 +145,45 @@ public class DigitalTwinStateManager {
         //Reset Transaction Status & Flag
         this.isEditing = false;
         this.digitalTwinStateTransaction = null;
+    }
+
+    /**
+     * Apply added changes to the Digital Twin State, update the DT'State accordingly and then notify Digital Adapters
+     * about the state's variation. This version of the method add also metrics computation if
+     * the Monitoring Interface is correctly configured on the DT State Manager.
+     * @throws WldtDigitalTwinStateException
+     */
+    public void commitStateTransaction() throws WldtDigitalTwinStateException {
+
+        // Check if the Monitoring Interface is configured and has the handler configured
+        if(this.monitoringInterface == null || !this.monitoringInterface.isActive()){
+            handleCommitStateTransaction();
+        }
+        else {
+            long startMs = System.currentTimeMillis();
+            try {
+
+                // Call the actual function to handle the event (implemented by the developer)
+                handleCommitStateTransaction();
+
+                // Increase Success Counter
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.DT_STATE_COMPUTATION_SUCCESS_COUNT);
+            }
+            catch (Exception e){
+                String errorMessage = String.format("commitStateTransaction Function Error: %s", e.getLocalizedMessage());
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.DT_STATE_COMPUTATION_ERROR_COUNT);
+
+                // Propagate the Exception after updating the error counter metric
+                throw new WldtDigitalTwinStateException(errorMessage);
+            }
+            finally {
+                // Update new Timer Value for the execution of the Physical Property Variation
+                this.monitoringInterface.updateTimerSince(
+                        this.metricsNamespace,
+                        CoreMonitoringUtils.DT_STATE_COMPUTATION_EXEC_TIME,
+                        startMs);
+            }
+        }
 
     }
 
@@ -597,4 +652,53 @@ public class DigitalTwinStateManager {
         return digitalTwinId;
     }
 
+    /**
+     * TODO ...
+     */
+    private void handleMetricsRegistration() {
+
+        // Check if the Monitoring Interface is configured and has the handler configured
+        if(this.monitoringInterface != null && this.monitoringInterface.isActive()){
+
+            // Build metric namespace
+            this.metricsNamespace = CoreMonitoringUtils.buildNamespace(
+                    this.digitalTwinId,
+                    CoreMonitoringUtils.DT_COMPONENT_MODEL_KEY);
+
+            // Register Counter Metric(s) - DT State Computation
+            this.monitoringInterface.registerMetric(new WldtCounter(this.metricsNamespace,
+                    CoreMonitoringUtils.DT_STATE_COMPUTATION_SUCCESS_COUNT,
+                    WldtMetricComponent.DT_MODEL));
+
+            this.monitoringInterface.registerMetric(new WldtCounter(this.metricsNamespace,
+                    CoreMonitoringUtils.DT_STATE_COMPUTATION_ERROR_COUNT,
+                    WldtMetricComponent.DT_MODEL));
+
+            // Register Execution Time Metrics - DT State Computation
+            this.monitoringInterface.registerMetric(new WldtTimer(
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.DT_STATE_COMPUTATION_EXEC_TIME,
+                    WldtMetricComponent.DT_MODEL));
+        }
+
+    }
+
+    public MonitoringInterface getMonitoringInterface() {
+        return monitoringInterface;
+    }
+
+    public void setMonitoringInterface(MonitoringInterface monitoringInterface) {
+
+        // Check if the monitoring interface is not null
+        if(monitoringInterface != null) {
+
+            // Set the Monitoring Interface Reference to the DT Model
+            this.monitoringInterface = monitoringInterface;
+
+            // Handle Metrics Registration
+            this.handleMetricsRegistration();
+        }
+        else
+            logger.error("Cannot set Monitoring Interface to null for Digital Twin State Manager (DT Id: {}) !", this.digitalTwinId);
+    }
 }

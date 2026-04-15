@@ -18,6 +18,10 @@ public class DemoPhysicalAdapter extends ConfigurablePhysicalAdapter<DemoPhysica
 
     public static final int DEFAULT_TARGET_PHYSICAL_ASSET_EVENT_UPDATES = 2;
 
+    public static final int DEFAULT_TARGET_PHYSICAL_ASSET_REL_INSTANCE_CREATE = 2;
+
+    public static final int DEFAULT_TARGET_PHYSICAL_ASSET_REL_INSTANCE_DELETE = 2;
+
     public static long DEFAULT_MESSAGE_SLEEP_PERIOD_MS = 1000;
 
     public static final String ENERGY_PROPERTY_KEY = "energy";
