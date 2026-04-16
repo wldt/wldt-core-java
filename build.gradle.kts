@@ -25,6 +25,10 @@ dependencies {
     //testImplementation("org.junit.jupiter:junit-jupiter:5.10.1")
     // Comment before publishing to avoid double signing of the same dependency
     testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.10.1")
+    // Prometheus Java client 1.x — test-scoped (handler lives under src/test)
+    testImplementation("io.prometheus:prometheus-metrics-core:1.3.1")
+    testImplementation("io.prometheus:prometheus-metrics-exporter-httpserver:1.3.1")
+    testImplementation("io.prometheus:prometheus-metrics-exporter-pushgateway:1.3.1")
 }
 
 tasks.named<Test>("test") {
