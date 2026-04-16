@@ -29,8 +29,19 @@ public final class MonitoringInterface {
 
     private static final WldtLogger logger = WldtLoggerProvider.getLogger(MonitoringInterface.class);
 
+    /**
+     * Configuration of the Monitoring Interface
+     */
     private MonitoringInterfaceConfiguration configuration;
+
+    /**
+     * Handler for the Monitoring Interface to process received metrics and fire appropriate callbacks
+     */
     private MonitoringInterfaceHandler handler;
+
+    /**
+     * Metrics Registry to track and manage metrics registration across the different Digital Twin components
+     */
     private final WldtMetricRegistry registry;
 
     public MonitoringInterface() {

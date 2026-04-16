@@ -156,7 +156,7 @@ public class DigitalTwinStateManager {
     public void commitStateTransaction() throws WldtDigitalTwinStateException {
 
         // Check if the Monitoring Interface is configured and has the handler configured
-        if(this.monitoringInterface == null || !this.monitoringInterface.isActive()){
+        if(this.monitoringInterface == null || !this.monitoringInterface.isActive(WldtMetricComponent.DT_MODEL)){
             handleCommitStateTransaction();
         }
         else {
@@ -658,12 +658,12 @@ public class DigitalTwinStateManager {
     private void handleMetricsRegistration() {
 
         // Check if the Monitoring Interface is configured and has the handler configured
-        if(this.monitoringInterface != null && this.monitoringInterface.isActive()){
+        if(this.monitoringInterface != null && this.monitoringInterface.isActive(WldtMetricComponent.DT_MODEL)){
 
             // Build metric namespace
             this.metricsNamespace = CoreMonitoringUtils.buildNamespace(
                     this.digitalTwinId,
-                    CoreMonitoringUtils.DT_COMPONENT_MODEL_KEY);
+                    CoreMonitoringUtils.DT_COMPONENT_STATE_KEY);
 
             // Register Counter Metric(s) - DT State Computation
             this.monitoringInterface.registerMetric(new WldtCounter(this.metricsNamespace,

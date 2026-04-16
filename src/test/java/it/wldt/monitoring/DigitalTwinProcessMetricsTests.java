@@ -99,7 +99,7 @@ public class DigitalTwinProcessMetricsTests {
 
     @Test
     @Order(1)
-    public void testPhysicalPropertyVariationEventsProcessing() throws InterruptedException {
+    public void testModelPhysicalPropertyVariationEventsProcessing() throws InterruptedException {
 
         //Set EventBus Logger
         WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
@@ -119,7 +119,7 @@ public class DigitalTwinProcessMetricsTests {
 
         // Filter Metrics Update for Their Type and create a List of resulting metrics updates
         List<WldtMetric> paEventExecutionTime = registeredUpdateMetricsList.stream()
-                .filter(m -> m.getComponent().equals(WldtMetricComponent.DT_MODEL) && m.getName().equals(CoreMonitoringUtils.PA_PROPERTY_VARIATION_EXEC_TIME))
+                .filter(m -> m.getComponent().equals(WldtMetricComponent.DT_MODEL) && m.getName().equals(CoreMonitoringUtils.PT_PROPERTY_VARIATION_EXEC_TIME))
                 .collect(Collectors.toList());
 
         //Check the number of execution is equals to the number of generated PA Property Variation Events
@@ -127,7 +127,7 @@ public class DigitalTwinProcessMetricsTests {
 
         // Filter PA Event Processing Success Count
         List<WldtMetric> paEventSuccessCount = registeredUpdateMetricsList.stream()
-                .filter(m -> m.getComponent().equals(WldtMetricComponent.DT_MODEL) && m.getName().equals(CoreMonitoringUtils.PA_PROPERTY_VARIATION_EXEC_SUCCESS_COUNT))
+                .filter(m -> m.getComponent().equals(WldtMetricComponent.DT_MODEL) && m.getName().equals(CoreMonitoringUtils.PT_PROPERTY_VARIATION_EXEC_SUCCESS_COUNT))
                 .collect(Collectors.toList());
 
         // Check the number of execution is equals to the number of generated PA Property Variation Events
@@ -135,7 +135,7 @@ public class DigitalTwinProcessMetricsTests {
 
         // Filter PA Event Processing Error Count
         List<WldtMetric> paEventErrorCount = registeredUpdateMetricsList.stream()
-                .filter(m -> m.getComponent().equals(WldtMetricComponent.DT_MODEL) && m.getName().equals(CoreMonitoringUtils.PA_PROPERTY_VARIATION_EXEC_ERROR_COUNT))
+                .filter(m -> m.getComponent().equals(WldtMetricComponent.DT_MODEL) && m.getName().equals(CoreMonitoringUtils.PT_PROPERTY_VARIATION_EXEC_ERROR_COUNT))
                 .collect(Collectors.toList());
 
         // Check the number of execution is equals to the number of generated PA Property Variation Events
@@ -152,7 +152,7 @@ public class DigitalTwinProcessMetricsTests {
 
     @Test
     @Order(2)
-    public void testPhysicalEventNotificationProcessing() throws InterruptedException {
+    public void testModelPhysicalEventNotificationProcessing() throws InterruptedException {
 
         //Set EventBus Logger
         WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
@@ -172,7 +172,7 @@ public class DigitalTwinProcessMetricsTests {
 
         // Filter Metrics Update for Their Type and create a List of resulting metrics updates
         List<WldtMetric> metricExecutionTime = registeredUpdateMetricsList.stream()
-                .filter(m -> m.getComponent().equals(WldtMetricComponent.DT_MODEL) && m.getName().equals(CoreMonitoringUtils.PA_EVENT_NOTIFICATION_EXEC_TIME))
+                .filter(m -> m.getComponent().equals(WldtMetricComponent.DT_MODEL) && m.getName().equals(CoreMonitoringUtils.PT_EVENT_NOTIFICATION_EXEC_TIME))
                 .collect(Collectors.toList());
 
         //Check the number of execution is equals to the number of generated PA Property Variation Events
@@ -180,7 +180,7 @@ public class DigitalTwinProcessMetricsTests {
 
         // Filter Processing Success Count
         List<WldtMetric> successCount = registeredUpdateMetricsList.stream()
-                .filter(m -> m.getComponent().equals(WldtMetricComponent.DT_MODEL) && m.getName().equals(CoreMonitoringUtils.PA_EVENT_NOTIFICATION_EXEC_SUCCESS_COUNT))
+                .filter(m -> m.getComponent().equals(WldtMetricComponent.DT_MODEL) && m.getName().equals(CoreMonitoringUtils.PT_EVENT_NOTIFICATION_EXEC_SUCCESS_COUNT))
                 .collect(Collectors.toList());
 
         // Check the number of execution is equals to the number of generated PA Property Variation Events
@@ -188,7 +188,7 @@ public class DigitalTwinProcessMetricsTests {
 
         // Filter Processing Error Count
         List<WldtMetric> errorCount = registeredUpdateMetricsList.stream()
-                .filter(m -> m.getComponent().equals(WldtMetricComponent.DT_MODEL) && m.getName().equals(CoreMonitoringUtils.PA_EVENT_NOTIFICATION_EXEC_ERROR_COUNT))
+                .filter(m -> m.getComponent().equals(WldtMetricComponent.DT_MODEL) && m.getName().equals(CoreMonitoringUtils.PT_EVENT_NOTIFICATION_EXEC_ERROR_COUNT))
                 .collect(Collectors.toList());
 
         // Check the number of execution is equals to the number of generated PA Property Variation Events
@@ -199,7 +199,7 @@ public class DigitalTwinProcessMetricsTests {
 
     @Test
     @Order(3)
-    public void testPhysicalRelationshipCreationProcessing() throws InterruptedException {
+    public void testModelPhysicalRelationshipCreationProcessing() throws InterruptedException {
 
         //Set EventBus Logger
         WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
@@ -219,7 +219,7 @@ public class DigitalTwinProcessMetricsTests {
 
         // Filter Metrics Update for Their Type and create a List of resulting metrics updates
         List<WldtMetric> metricExecutionTime = registeredUpdateMetricsList.stream()
-                .filter(m -> m.getComponent().equals(WldtMetricComponent.DT_MODEL) && m.getName().equals(CoreMonitoringUtils.PA_RELATIONSHIP_INSTANCE_CREATED_EXEC_TIME))
+                .filter(m -> m.getComponent().equals(WldtMetricComponent.DT_MODEL) && m.getName().equals(CoreMonitoringUtils.PT_RELATIONSHIP_INSTANCE_CREATED_EXEC_TIME))
                 .collect(Collectors.toList());
 
         //Check the number of execution is equals to the number of generated PA Property Variation Events
@@ -227,7 +227,7 @@ public class DigitalTwinProcessMetricsTests {
 
         // Filter Processing Success Count
         List<WldtMetric> successCount = registeredUpdateMetricsList.stream()
-                .filter(m -> m.getComponent().equals(WldtMetricComponent.DT_MODEL) && m.getName().equals(CoreMonitoringUtils.PA_RELATIONSHIP_INSTANCE_CREATED_SUCCESS_COUNT))
+                .filter(m -> m.getComponent().equals(WldtMetricComponent.DT_MODEL) && m.getName().equals(CoreMonitoringUtils.PT_RELATIONSHIP_INSTANCE_CREATED_SUCCESS_COUNT))
                 .collect(Collectors.toList());
 
         // Check the number of execution is equals to the number of generated PA Property Variation Events
@@ -235,7 +235,7 @@ public class DigitalTwinProcessMetricsTests {
 
         // Filter Processing Error Count
         List<WldtMetric> errorCount = registeredUpdateMetricsList.stream()
-                .filter(m -> m.getComponent().equals(WldtMetricComponent.DT_MODEL) && m.getName().equals(CoreMonitoringUtils.PA_RELATIONSHIP_INSTANCE_CREATED_ERROR_COUNT))
+                .filter(m -> m.getComponent().equals(WldtMetricComponent.DT_MODEL) && m.getName().equals(CoreMonitoringUtils.PT_RELATIONSHIP_INSTANCE_CREATED_ERROR_COUNT))
                 .collect(Collectors.toList());
 
         // Check the number of execution is equals to the number of generated PA Property Variation Events
@@ -247,7 +247,7 @@ public class DigitalTwinProcessMetricsTests {
 
     @Test
     @Order(4)
-    public void testPhysicalRelationshipDeletionProcessing() throws InterruptedException {
+    public void testModelPhysicalRelationshipDeletionProcessing() throws InterruptedException {
 
         //Set EventBus Logger
         WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
@@ -267,7 +267,7 @@ public class DigitalTwinProcessMetricsTests {
 
         // Filter Metrics Update for Their Type and create a List of resulting metrics updates
         List<WldtMetric> metricExecutionTime = registeredUpdateMetricsList.stream()
-                .filter(m -> m.getComponent().equals(WldtMetricComponent.DT_MODEL) && m.getName().equals(CoreMonitoringUtils.PA_RELATIONSHIP_INSTANCE_DELETED_EXEC_TIME))
+                .filter(m -> m.getComponent().equals(WldtMetricComponent.DT_MODEL) && m.getName().equals(CoreMonitoringUtils.PT_RELATIONSHIP_INSTANCE_DELETED_EXEC_TIME))
                 .collect(Collectors.toList());
 
         //Check the number of execution is equals to the number of generated PA Property Variation Events
@@ -275,7 +275,7 @@ public class DigitalTwinProcessMetricsTests {
 
         // Filter Processing Success Count
         List<WldtMetric> successCount = registeredUpdateMetricsList.stream()
-                .filter(m -> m.getComponent().equals(WldtMetricComponent.DT_MODEL) && m.getName().equals(CoreMonitoringUtils.PA_RELATIONSHIP_INSTANCE_DELETED_SUCCESS_COUNT))
+                .filter(m -> m.getComponent().equals(WldtMetricComponent.DT_MODEL) && m.getName().equals(CoreMonitoringUtils.PT_RELATIONSHIP_INSTANCE_DELETED_SUCCESS_COUNT))
                 .collect(Collectors.toList());
 
         // Check the number of execution is equals to the number of generated PA Property Variation Events
@@ -283,7 +283,7 @@ public class DigitalTwinProcessMetricsTests {
 
         // Filter Processing Error Count
         List<WldtMetric> errorCount = registeredUpdateMetricsList.stream()
-                .filter(m -> m.getComponent().equals(WldtMetricComponent.DT_MODEL) && m.getName().equals(CoreMonitoringUtils.PA_RELATIONSHIP_INSTANCE_DELETED_ERROR_COUNT))
+                .filter(m -> m.getComponent().equals(WldtMetricComponent.DT_MODEL) && m.getName().equals(CoreMonitoringUtils.PT_RELATIONSHIP_INSTANCE_DELETED_ERROR_COUNT))
                 .collect(Collectors.toList());
 
         // Check the number of execution is equals to the number of generated PA Property Variation Events
@@ -294,7 +294,7 @@ public class DigitalTwinProcessMetricsTests {
 
     @Test
     @Order(5)
-    public void testDigitalActionProcessing() throws InterruptedException {
+    public void testModelDigitalActionProcessing() throws InterruptedException {
 
         //Set EventBus Logger
         WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
@@ -351,7 +351,7 @@ public class DigitalTwinProcessMetricsTests {
 
     @Test
     @Order(6)
-    public void testDigitalTwinStateProcessing() throws InterruptedException {
+    public void testModelDigitalTwinStateProcessing() throws InterruptedException {
 
         //Set EventBus Logger
         WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
@@ -396,6 +396,226 @@ public class DigitalTwinProcessMetricsTests {
         // Filter Processing Error Count
         List<WldtMetric> errorCount = registeredUpdateMetricsList.stream()
                 .filter(m -> m.getComponent().equals(WldtMetricComponent.DT_MODEL) && m.getName().equals(CoreMonitoringUtils.DT_STATE_COMPUTATION_ERROR_COUNT))
+                .collect(Collectors.toList());
+
+        // Check the number of execution is equals to the number of generated PA Property Variation Events
+        assertEquals(0, errorCount.size());
+
+        Thread.sleep(2000);
+    }
+
+    @Test
+    @Order(7)
+    public void testPhysicalAdapterPropertyVariationEventsProcessing() throws InterruptedException {
+
+        //Set EventBus Logger
+        WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
+
+        //Wait until all the messages have been received
+        Thread.sleep((DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS + ((DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES + DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_EVENT_UPDATES) * DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS)));
+
+        // Retrieve Shared Stats Components
+        List<WldtMetricComponent> registeredComponentList = SharedTestMetrics.getInstance().getMonitoringRegisteredComponentList(TEST_DIGITAL_TWIN_ID);
+        List<WldtMetric> registeredMetricList = SharedTestMetrics.getInstance().getMonitoringRegisteredMetricList(TEST_DIGITAL_TWIN_ID);
+        List<WldtMetric> registeredUpdateMetricsList = SharedTestMetrics.getInstance().getMonitoringUpdatedMetricList(TEST_DIGITAL_TWIN_ID);
+
+        // Check Registered Stats are not null
+        assertNotNull(registeredComponentList);
+        assertNotNull(registeredMetricList);
+        assertNotNull(registeredUpdateMetricsList);
+
+        // Filter PA Event Processing Success Count
+        List<WldtMetric> paEventSuccessCount = registeredUpdateMetricsList.stream()
+                .filter(m -> m.getComponent().equals(WldtMetricComponent.PHYSICAL_ADAPTER) && m.getName().equals(CoreMonitoringUtils.PHYSICAL_ADAPTER_PROPERTY_EVENT_PUB_SUCCESS_COUNT))
+                .collect(Collectors.toList());
+
+        // Check the number of execution is equals to the number of generated PA Property Variation Events
+        assertEquals(DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES, paEventSuccessCount.size());
+
+        // Filter PA Event Processing Error Count
+        List<WldtMetric> paEventErrorCount = registeredUpdateMetricsList.stream()
+                .filter(m -> m.getComponent().equals(WldtMetricComponent.PHYSICAL_ADAPTER) && m.getName().equals(CoreMonitoringUtils.PHYSICAL_ADAPTER_PROPERTY_EVENT_PUB_ERROR_COUNT))
+                .collect(Collectors.toList());
+
+        // Check the number of execution is equals to the number of generated PA Property Variation Events
+        assertEquals(0, paEventErrorCount.size());
+
+        //Check Received Physical Events on the Shadowing Function Not Null
+        //assertNotNull(SharedTestMetrics.getInstance().getShadowingFunctionPropertyEventList(TEST_DIGITAL_TWIN_ID));
+
+        //Check Received Physical Asset Events Availability correctly received by the Shadowing Function
+        //assertEquals(TestPhysicalAdapter.TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES, SharedTestMetrics.getInstance().getShadowingFunctionPropertyEventList(TEST_DIGITAL_TWIN_ID).size());
+
+        Thread.sleep(2000);
+    }
+
+    @Test
+    @Order(8)
+    public void testPhysicalAdapterEventNotificationProcessing() throws InterruptedException {
+
+        //Set EventBus Logger
+        WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
+
+        //Wait until all the messages have been received
+        Thread.sleep((DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS + ((DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES + DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_EVENT_UPDATES) * DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS)));
+
+        // Retrieve Shared Stats Components
+        List<WldtMetricComponent> registeredComponentList = SharedTestMetrics.getInstance().getMonitoringRegisteredComponentList(TEST_DIGITAL_TWIN_ID);
+        List<WldtMetric> registeredMetricList = SharedTestMetrics.getInstance().getMonitoringRegisteredMetricList(TEST_DIGITAL_TWIN_ID);
+        List<WldtMetric> registeredUpdateMetricsList = SharedTestMetrics.getInstance().getMonitoringUpdatedMetricList(TEST_DIGITAL_TWIN_ID);
+
+        // Check Registered Stats are not null
+        assertNotNull(registeredComponentList);
+        assertNotNull(registeredMetricList);
+        assertNotNull(registeredUpdateMetricsList);
+
+        // Filter Processing Success Count
+        List<WldtMetric> successCount = registeredUpdateMetricsList.stream()
+                .filter(m -> m.getComponent().equals(WldtMetricComponent.PHYSICAL_ADAPTER) && m.getName().equals(CoreMonitoringUtils.PHYSICAL_ADAPTER_EVENT_NOTIFICATION_EVENT_PUB_SUCCESS_COUNT))
+                .collect(Collectors.toList());
+
+        // Check the number of execution is equals to the number of generated PA Property Variation Events
+        assertEquals(DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_EVENT_UPDATES, successCount.size());
+
+        // Filter Processing Error Count
+        List<WldtMetric> errorCount = registeredUpdateMetricsList.stream()
+                .filter(m -> m.getComponent().equals(WldtMetricComponent.PHYSICAL_ADAPTER) && m.getName().equals(CoreMonitoringUtils.PHYSICAL_ADAPTER_EVENT_NOTIFICATION_EVENT_PUB_ERROR_COUNT))
+                .collect(Collectors.toList());
+
+        // Check the number of execution is equals to the number of generated PA Property Variation Events
+        assertEquals(0, errorCount.size());
+
+        Thread.sleep(2000);
+    }
+
+    @Test
+    @Order(9)
+    public void testPhysicalAdapterRelationshipCreationProcessing() throws InterruptedException {
+
+        //Set EventBus Logger
+        WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
+
+        //Wait until all the messages have been received
+        Thread.sleep((DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS + ((DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES + DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_EVENT_UPDATES) * DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS)));
+
+        // Retrieve Shared Stats Components
+        List<WldtMetricComponent> registeredComponentList = SharedTestMetrics.getInstance().getMonitoringRegisteredComponentList(TEST_DIGITAL_TWIN_ID);
+        List<WldtMetric> registeredMetricList = SharedTestMetrics.getInstance().getMonitoringRegisteredMetricList(TEST_DIGITAL_TWIN_ID);
+        List<WldtMetric> registeredUpdateMetricsList = SharedTestMetrics.getInstance().getMonitoringUpdatedMetricList(TEST_DIGITAL_TWIN_ID);
+
+        // Check Registered Stats are not null
+        assertNotNull(registeredComponentList);
+        assertNotNull(registeredMetricList);
+        assertNotNull(registeredUpdateMetricsList);
+
+        // Filter Processing Success Count
+        List<WldtMetric> successCount = registeredUpdateMetricsList.stream()
+                .filter(m -> m.getComponent().equals(WldtMetricComponent.PHYSICAL_ADAPTER) && m.getName().equals(CoreMonitoringUtils.PHYSICAL_ADAPTER_REL_CREATED_EVENT_PUB_SUCCESS_COUNT))
+                .collect(Collectors.toList());
+
+        // Check the number of execution is equals to the number of generated PA Property Variation Events
+        assertEquals(DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_REL_INSTANCE_CREATE, successCount.size());
+
+        // Filter Processing Error Count
+        List<WldtMetric> errorCount = registeredUpdateMetricsList.stream()
+                .filter(m -> m.getComponent().equals(WldtMetricComponent.PHYSICAL_ADAPTER) && m.getName().equals(CoreMonitoringUtils.PHYSICAL_ADAPTER_REL_CREATED_EVENT_PUB_ERROR_COUNT))
+                .collect(Collectors.toList());
+
+        // Check the number of execution is equals to the number of generated PA Property Variation Events
+        assertEquals(0, errorCount.size());
+
+        Thread.sleep(2000);
+    }
+
+
+    @Test
+    @Order(10)
+    public void testModelPhysicalAdapterRelationshipDeletionProcessing() throws InterruptedException {
+
+        //Set EventBus Logger
+        WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
+
+        //Wait until all the messages have been received
+        Thread.sleep((DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS + ((DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES + DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_EVENT_UPDATES) * DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS)));
+
+        // Retrieve Shared Stats Components
+        List<WldtMetricComponent> registeredComponentList = SharedTestMetrics.getInstance().getMonitoringRegisteredComponentList(TEST_DIGITAL_TWIN_ID);
+        List<WldtMetric> registeredMetricList = SharedTestMetrics.getInstance().getMonitoringRegisteredMetricList(TEST_DIGITAL_TWIN_ID);
+        List<WldtMetric> registeredUpdateMetricsList = SharedTestMetrics.getInstance().getMonitoringUpdatedMetricList(TEST_DIGITAL_TWIN_ID);
+
+        // Check Registered Stats are not null
+        assertNotNull(registeredComponentList);
+        assertNotNull(registeredMetricList);
+        assertNotNull(registeredUpdateMetricsList);
+
+        // Filter Processing Success Count
+        List<WldtMetric> successCount = registeredUpdateMetricsList.stream()
+                .filter(m -> m.getComponent().equals(WldtMetricComponent.PHYSICAL_ADAPTER) && m.getName().equals(CoreMonitoringUtils.PHYSICAL_ADAPTER_REL_DELETED_EVENT_PUB_SUCCESS_COUNT))
+                .collect(Collectors.toList());
+
+        // Check the number of execution is equals to the number of generated PA Property Variation Events
+        assertEquals(DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_REL_INSTANCE_CREATE, successCount.size());
+
+        // Filter Processing Error Count
+        List<WldtMetric> errorCount = registeredUpdateMetricsList.stream()
+                .filter(m -> m.getComponent().equals(WldtMetricComponent.PHYSICAL_ADAPTER) && m.getName().equals(CoreMonitoringUtils.PHYSICAL_ADAPTER_REL_DELETED_EVENT_PUB_ERROR_COUNT))
+                .collect(Collectors.toList());
+
+        // Check the number of execution is equals to the number of generated PA Property Variation Events
+        assertEquals(0, errorCount.size());
+
+        Thread.sleep(2000);
+    }
+
+    @Test
+    @Order(11)
+    public void testPhysicalAdapterActionProcessing() throws InterruptedException {
+
+        //Set EventBus Logger
+        WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
+
+        //Wait until all the messages have been received
+        Thread.sleep((DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS + ((DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES + DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_EVENT_UPDATES) * DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS)));
+
+        //Emulate Digital Action on the Digital Adapter
+        demoDigitalAdapter.invokeAction(DemoPhysicalAdapter.SWITCH_ON_ACTION_KEY, "ON");
+
+        Thread.sleep(2000);
+
+        //Emulate Digital Action on the Digital Adapter
+        demoDigitalAdapter.invokeAction(DemoPhysicalAdapter.SWITCH_OFF_ACTION_KEY, "OFF");
+
+        Thread.sleep(2000);
+
+        // Retrieve Shared Stats Components
+        List<WldtMetricComponent> registeredComponentList = SharedTestMetrics.getInstance().getMonitoringRegisteredComponentList(TEST_DIGITAL_TWIN_ID);
+        List<WldtMetric> registeredMetricList = SharedTestMetrics.getInstance().getMonitoringRegisteredMetricList(TEST_DIGITAL_TWIN_ID);
+        List<WldtMetric> registeredUpdateMetricsList = SharedTestMetrics.getInstance().getMonitoringUpdatedMetricList(TEST_DIGITAL_TWIN_ID);
+
+        // Check Registered Stats are not null
+        assertNotNull(registeredComponentList);
+        assertNotNull(registeredMetricList);
+        assertNotNull(registeredUpdateMetricsList);
+
+        // Filter Metrics Update for Their Type and create a List of resulting metrics updates
+        List<WldtMetric> metricExecutionTime = registeredUpdateMetricsList.stream()
+                .filter(m -> m.getComponent().equals(WldtMetricComponent.PHYSICAL_ADAPTER) && m.getName().equals(CoreMonitoringUtils.PHYSICAL_ADAPTER_ACTION_COMPUTATION_EXEC_TIME))
+                .collect(Collectors.toList());
+
+        //Check the number of execution is equals to the number of generated PA Property Variation Events
+        assertEquals(2, metricExecutionTime.size());
+
+        // Filter Processing Success Count
+        List<WldtMetric> successCount = registeredUpdateMetricsList.stream()
+                .filter(m -> m.getComponent().equals(WldtMetricComponent.PHYSICAL_ADAPTER) && m.getName().equals(CoreMonitoringUtils.PHYSICAL_ADAPTER_ACTION_COMPUTATION_SUCCESS_COUNT))
+                .collect(Collectors.toList());
+
+        // Check the number of execution is equals to the number of generated PA Property Variation Events
+        assertEquals(2, successCount.size());
+
+        // Filter Processing Error Count
+        List<WldtMetric> errorCount = registeredUpdateMetricsList.stream()
+                .filter(m -> m.getComponent().equals(WldtMetricComponent.PHYSICAL_ADAPTER) && m.getName().equals(CoreMonitoringUtils.PHYSICAL_ADAPTER_ACTION_COMPUTATION_ERROR_COUNT))
                 .collect(Collectors.toList());
 
         // Check the number of execution is equals to the number of generated PA Property Variation Events
