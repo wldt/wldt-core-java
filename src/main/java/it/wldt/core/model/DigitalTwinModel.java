@@ -36,6 +36,7 @@ import it.wldt.augmentation.handler.AugmentationFunctionHandler;
 import it.wldt.augmentation.request.AugmentationFunctionRequest;
 import it.wldt.augmentation.request.AugmentationFunctionRequestType;
 import it.wldt.augmentation.result.AugmentationFunctionResult;
+import it.wldt.augmentation.result.AugmentationFunctionResultList;
 import it.wldt.core.event.*;
 import it.wldt.core.state.DigitalTwinStateManager;
 import it.wldt.exception.AugmentationFunctionException;
@@ -741,18 +742,16 @@ public abstract class DigitalTwinModel implements WldtEventListener {
      * @param augmentationFunctionId Id of the Augmentation Function to execute
      */
     protected void executeAugmentationFunction(String augmentationFunctionId) throws EventBusException, AugmentationFunctionException {
-
-        logger.info("DigitalTwinModel -> Starting Augmentation Function with id {} ...", augmentationFunctionId);
-
         // Iterate over all the registered Augmentation Function Handlers Map to find the Augmentation Function with the specified id
         for(AugmentationFunctionHandler augmentationFunctionHandler : this.augmentationManager.getAllAugmentationFunctionHandlers()){
             // Check if the current Augmentation Function Handler has the Augmentation Function with the specified id, if yes execute it
             if(augmentationFunctionHandler.getAugmentationFunction(augmentationFunctionId).isPresent()){
-                logger.info("Starting Augmentation Function with id {} from Augmentation Function Handler with id {} ...", augmentationFunctionId, augmentationFunctionHandler.getId());
                 executeAugmentationFunction(augmentationFunctionHandler.getId(), augmentationFunctionId, UUID.randomUUID().toString());
                 return;
             }
         }
+
+        logger.warn("Augmentation Function with id {} is not registered in any of the Augmentation Function Handlers registered in the Augmentation Manager of the Digital Twin Engine ! Cannot execute the Augmentation Function ...", augmentationFunctionId);
     }
 
     /**
@@ -765,18 +764,15 @@ public abstract class DigitalTwinModel implements WldtEventListener {
      * @param augmentationFunctionRequestId Id of the Augmentation Function Request to use for the execution of the Augmentation Function
      */
     protected void executeAugmentationFunction(String augmentationFunctionId, String augmentationFunctionRequestId) throws EventBusException, AugmentationFunctionException {
-
-        logger.info("DigitalTwinModel -> Starting Augmentation Function with id {} ...", augmentationFunctionId);
-
         // Iterate over all the registered Augmentation Function Handlers Map to find the Augmentation Function with the specified id
         for(AugmentationFunctionHandler augmentationFunctionHandler : this.augmentationManager.getAllAugmentationFunctionHandlers()){
             // Check if the current Augmentation Function Handler has the Augmentation Function with the specified id, if yes execute it
             if(augmentationFunctionHandler.getAugmentationFunction(augmentationFunctionId).isPresent()){
-                logger.info("Starting Augmentation Function with id {} from Augmentation Function Handler with id {} ...", augmentationFunctionId, augmentationFunctionHandler.getId());
                 executeAugmentationFunction(augmentationFunctionHandler.getId(), augmentationFunctionId, augmentationFunctionRequestId);
                 return;
             }
         }
+        logger.warn("Augmentation Function with id {} is not registered in any of the Augmentation Function Handlers registered in the Augmentation Manager of the Digital Twin Engine ! Cannot execute the Augmentation Function ...", augmentationFunctionId);
     }
 
     /**
@@ -817,6 +813,9 @@ public abstract class DigitalTwinModel implements WldtEventListener {
             return;
         }
 
+
+        logger.info("Executing Augmentation Function with id {} from Augmentation Function Handler with id {} ...", augmentationFunctionId, augmentationFunctionHandler.getId());
+
         // If the Augmentation Function is present, retrieve it
         AugmentationFunction augmentationFunction = augmentationFunctionOptional.get();
 
@@ -853,18 +852,16 @@ public abstract class DigitalTwinModel implements WldtEventListener {
      * @param augmentationFunctionId Id of the Augmentation Function to execute
      */
     protected void startAugmentationFunction(String augmentationFunctionId) throws EventBusException, AugmentationFunctionException {
-
-        logger.info("DigitalTwinModel -> Executing Augmentation Function with id {} ...", augmentationFunctionId);
-
         // Iterate over all the registered Augmentation Function Handlers Map to find the Augmentation Function with the specified id
         for(AugmentationFunctionHandler augmentationFunctionHandler : this.augmentationManager.getAllAugmentationFunctionHandlers()){
             // Check if the current Augmentation Function Handler has the Augmentation Function with the specified id, if yes execute it
             if(augmentationFunctionHandler.getAugmentationFunction(augmentationFunctionId).isPresent()){
-                logger.info("Executing Augmentation Function with id {} from Augmentation Function Handler with id {} ...", augmentationFunctionId, augmentationFunctionHandler.getId());
                 startAugmentationFunction(augmentationFunctionHandler.getId(), augmentationFunctionId, UUID.randomUUID().toString());
                 return;
             }
         }
+
+        logger.warn("Augmentation Function with id {} is not registered in any of the Augmentation Function Handlers registered in the Augmentation Manager of the Digital Twin Engine ! Cannot start the Augmentation Function ...", augmentationFunctionId);
     }
 
     /**
@@ -877,18 +874,16 @@ public abstract class DigitalTwinModel implements WldtEventListener {
      * @param augmentationFunctionRequestId Id of the Augmentation Function Request to use for the execution of the Augmentation Function
      */
     protected void startAugmentationFunction(String augmentationFunctionId, String augmentationFunctionRequestId) throws EventBusException, AugmentationFunctionException {
-
-        logger.info("DigitalTwinModel -> Executing Augmentation Function with id {} ...", augmentationFunctionId);
-
         // Iterate over all the registered Augmentation Function Handlers Map to find the Augmentation Function with the specified id
         for(AugmentationFunctionHandler augmentationFunctionHandler : this.augmentationManager.getAllAugmentationFunctionHandlers()){
             // Check if the current Augmentation Function Handler has the Augmentation Function with the specified id, if yes execute it
             if(augmentationFunctionHandler.getAugmentationFunction(augmentationFunctionId).isPresent()){
-                logger.info("Executing Augmentation Function with id {} from Augmentation Function Handler with id {} ...", augmentationFunctionId, augmentationFunctionHandler.getId());
                 startAugmentationFunction(augmentationFunctionHandler.getId(), augmentationFunctionId, augmentationFunctionRequestId);
                 return;
             }
         }
+
+        logger.warn("Augmentation Function with id {} is not registered in any of the Augmentation Function Handlers registered in the Augmentation Manager of the Digital Twin Engine ! Cannot start the Augmentation Function ...", augmentationFunctionId);
     }
 
     /**
@@ -927,6 +922,7 @@ public abstract class DigitalTwinModel implements WldtEventListener {
             logger.warn("Augmentation Function with id {} is not registered in the Augmentation Function Handler with id {} ! Cannot execute the Augmentation Function ...", augmentationFunctionId, augmentationFunctionHandlerId);
             return;
         }
+        logger.info("Starting Augmentation Function with id {} from Augmentation Function Handler with id {} ...", augmentationFunctionId, augmentationFunctionHandler.getId());
 
         // If the Augmentation Function is present, retrieve it
         AugmentationFunction augmentationFunction = augmentationFunctionOptional.get();
@@ -964,17 +960,16 @@ public abstract class DigitalTwinModel implements WldtEventListener {
      * @param augmentationFunctionId Id of the Augmentation Function to stop
      */
     protected void stopAugmentationFunction(String augmentationFunctionId) throws AugmentationFunctionException, EventBusException {
-        logger.info("DigitalTwinModel -> Stopping Augmentation Function with id {} ...", augmentationFunctionId);
-
         // Iterate over all the registered Augmentation Function Handlers Map to find the Augmentation Function with the specified id
         for(AugmentationFunctionHandler augmentationFunctionHandler : this.augmentationManager.getAllAugmentationFunctionHandlers()){
             // Check if the current Augmentation Function Handler has the Augmentation Function with the specified id, if yes execute it
             if(augmentationFunctionHandler.getAugmentationFunction(augmentationFunctionId).isPresent()){
-                logger.info("Stopping Augmentation Function with id {} from Augmentation Function Handler with id {} ...", augmentationFunctionId, augmentationFunctionHandler.getId());
                 stopAugmentationFunction(augmentationFunctionHandler.getId(), augmentationFunctionId, UUID.randomUUID().toString());
                 return;
             }
         }
+
+        logger.warn("Augmentation Function with id {} is not registered in any of the Augmentation Function Handlers registered in the Augmentation Manager of the Digital Twin Engine ! Cannot stop the Augmentation Function ...", augmentationFunctionId);
     }
 
     /**
@@ -987,17 +982,16 @@ public abstract class DigitalTwinModel implements WldtEventListener {
      * @param augmentationFunctionRequestId Id of the Augmentation Function Request to use for stopping the Augmentation Function
      */
     protected void stopAugmentationFunction(String augmentationFunctionId, String augmentationFunctionRequestId) throws AugmentationFunctionException, EventBusException {
-        logger.info("DigitalTwinModel -> Stopping Augmentation Function with id {} ...", augmentationFunctionId);
-
         // Iterate over all the registered Augmentation Function Handlers Map to find the Augmentation Function with the specified id
         for(AugmentationFunctionHandler augmentationFunctionHandler : this.augmentationManager.getAllAugmentationFunctionHandlers()){
             // Check if the current Augmentation Function Handler has the Augmentation Function with the specified id, if yes execute it
             if(augmentationFunctionHandler.getAugmentationFunction(augmentationFunctionId).isPresent()){
-                logger.info("Stopping Augmentation Function with id {} from Augmentation Function Handler with id {} ...", augmentationFunctionId, augmentationFunctionHandler.getId());
                 stopAugmentationFunction(augmentationFunctionHandler.getId(), augmentationFunctionId, augmentationFunctionRequestId);
                 return;
             }
         }
+
+        logger.warn("Augmentation Function with id {} is not registered in any of the Augmentation Function Handlers registered in the Augmentation Manager of the Digital Twin Engine ! Cannot stop the Augmentation Function ...", augmentationFunctionId);
     }
 
     /**
@@ -1035,6 +1029,7 @@ public abstract class DigitalTwinModel implements WldtEventListener {
             logger.warn("Augmentation Function with id {} is not registered in the Augmentation Function Handler with id {} ! Cannot stop the Augmentation Function ...", augmentationFunctionId, augmentationFunctionHandlerId);
             return;
         }
+        logger.info("Stopping Augmentation Function with id {} from Augmentation Function Handler with id {} ...", augmentationFunctionId, augmentationFunctionHandler.getId());
 
         // If the Augmentation Function is present, retrieve it
         AugmentationFunction augmentationFunction = augmentationFunctionOptional.get();
@@ -1114,7 +1109,7 @@ public abstract class DigitalTwinModel implements WldtEventListener {
             String augmentationFunctionId = eventTypeParts[5];
 
             // Call the callback to handle the Augmentation Function Result Event with the correct body type
-            onAugmentationFunctionResultEvent(augmentationFunctionHandlerId, augmentationFunctionId, (List<AugmentationFunctionResult<?>>) wldtEvent.getBody());
+            onAugmentationFunctionResultEvent(augmentationFunctionHandlerId, augmentationFunctionId, (AugmentationFunctionResultList) wldtEvent.getBody());
         }
 
         // Handle Augmentation Function Registration Events with the correct callback and body type
@@ -1293,7 +1288,7 @@ public abstract class DigitalTwinModel implements WldtEventListener {
      * @param augmentationFunctionId the id of the executed Augmentation Function
      * @param augmentationFunctionResult    the list of results from executed Augmentation Functions
      */
-    protected void onAugmentationFunctionResultEvent(String augmentationFunctionHandlerId, String augmentationFunctionId, List<AugmentationFunctionResult<?>> augmentationFunctionResult){
+    protected void onAugmentationFunctionResultEvent(String augmentationFunctionHandlerId, String augmentationFunctionId, AugmentationFunctionResultList augmentationFunctionResult){
         // Default implementation does nothing, can be overridden by specific
         // Digital Twin Models to handle Augmentation Function results
 

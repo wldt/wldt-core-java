@@ -9,6 +9,7 @@ import it.wldt.adapter.physical.event.PhysicalAssetRelationshipInstanceDeletedWl
 import it.wldt.augmentation.error.AugmentationFunctionError;
 import it.wldt.augmentation.function.AugmentationFunction;
 import it.wldt.augmentation.result.AugmentationFunctionResult;
+import it.wldt.augmentation.result.AugmentationFunctionResultList;
 import it.wldt.augmentation.stateless.function.RandomNumberAugmentationFunction;
 import it.wldt.core.model.DigitalTwinModel;
 import it.wldt.core.state.*;
@@ -303,7 +304,7 @@ public class GenericResultAugmentationDigitalTwinModel extends DigitalTwinModel 
     @Override
     protected void onAugmentationFunctionResultEvent(String augmentationFunctionHandlerId,
                                                      String augmentationFunctionId,
-                                                     List<AugmentationFunctionResult<?>> augmentationFunctionResult) {
+                                                     AugmentationFunctionResultList augmentationFunctionResult) {
 
         // Save the augmentation function result in the shared test metrics for later verification
         SharedTestMetrics.getInstance().addAugmentationFunctionResultNotification(this.digitalTwinStateManager.getDigitalTwinId(),

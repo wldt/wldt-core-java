@@ -4,6 +4,7 @@ import it.wldt.augmentation.context.AugmentationFunctionContext;
 import it.wldt.augmentation.function.StatelessAugmentationFunction;
 import it.wldt.augmentation.request.AugmentationFunctionRequest;
 import it.wldt.augmentation.result.AugmentationFunctionResult;
+import it.wldt.augmentation.result.AugmentationFunctionResultList;
 import it.wldt.augmentation.result.AugmentationFunctionResultMetrics;
 import it.wldt.augmentation.result.AugmentationFunctionResultType;
 import it.wldt.exception.AugmentationFunctionException;
@@ -54,10 +55,10 @@ public class RandomStateResultAugmentationFunction extends StatelessAugmentation
     }
 
     @Override
-    public List<AugmentationFunctionResult<?>> run(AugmentationFunctionRequest request) throws AugmentationFunctionException {
+    public AugmentationFunctionResultList run(AugmentationFunctionRequest request) throws AugmentationFunctionException {
 
         // Empty List for Augmentation Function Result
-        List<AugmentationFunctionResult<?>> results = new ArrayList<>();
+        AugmentationFunctionResultList results = new AugmentationFunctionResultList();
 
         long startTimestamp = System.currentTimeMillis();
         String randomString = generateRandomString(RANDOM_STRING_LENGTH);

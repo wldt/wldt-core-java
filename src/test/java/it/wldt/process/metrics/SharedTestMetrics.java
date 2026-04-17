@@ -5,6 +5,7 @@ import it.wldt.adapter.physical.event.PhysicalAssetPropertyWldtEvent;
 import it.wldt.augmentation.error.AugmentationFunctionError;
 import it.wldt.augmentation.function.AugmentationFunction;
 import it.wldt.augmentation.result.AugmentationFunctionResult;
+import it.wldt.augmentation.result.AugmentationFunctionResultList;
 import it.wldt.core.state.DigitalTwinState;
 import it.wldt.core.state.DigitalTwinStateEventNotification;
 import it.wldt.log.WldtLogger;
@@ -52,7 +53,7 @@ public class SharedTestMetrics {
     private Map<String, Map<String, String>> managedResourceNotificationMap;
 
     // DT Augmentation Function Result Notification Map
-    private Map<String, Map<String, List<List<AugmentationFunctionResult<?>>>>> augmentationFunctionResultNotificationMap;
+    private Map<String, Map<String, List<AugmentationFunctionResultList>>> augmentationFunctionResultNotificationMap;
 
     // Registration Augmentation Function Callbacks for each Handler
     private Map<String, Map<String, List<AugmentationFunction>>> augmentationFunctionRegistrationCallbackMap;
@@ -202,7 +203,7 @@ public class SharedTestMetrics {
     public void addAugmentationFunctionResultNotification(String digitalTwinId,
                                                           String augmentationFunctionHandlerId,
                                                           String augmentationFunctionId,
-                                                          List<AugmentationFunctionResult<?>> augmentationFunctionResult){
+                                                          AugmentationFunctionResultList augmentationFunctionResult){
 
         // Concatenate the augmentation function handler id and the augmentation function id to create a
         // unique key for the augmentation function result notification map
@@ -235,7 +236,7 @@ public class SharedTestMetrics {
         this.augmentationFunctionErrorNotificationMap.get(digitalTwinId).get(augmentationInternalId).add(augmentationFunctionError);
     }
 
-    public List<List<AugmentationFunctionResult<?>>> getAugmentationFunctionResultNotification(String digitalTwinId,
+    public List<AugmentationFunctionResultList> getAugmentationFunctionResultNotification(String digitalTwinId,
                                                                                          String augmentationFunctionHandlerId,
                                                                                          String augmentationFunctionId){
 
@@ -305,7 +306,7 @@ public class SharedTestMetrics {
         return digitalAdapterStateUpdateMap.get(digitalTwinId);
     }
 
-    public Map<String, Map<String, List<List<AugmentationFunctionResult<?>>>>> getAugmentationFunctionResultNotificationMap() {
+    public Map<String, Map<String, List<AugmentationFunctionResultList>>> getAugmentationFunctionResultNotificationMap() {
         return augmentationFunctionResultNotificationMap;
     }
 

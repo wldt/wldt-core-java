@@ -4,6 +4,7 @@ import it.wldt.augmentation.error.AugmentationFunctionError;
 import it.wldt.augmentation.function.StatefulAugmentationFunction;
 import it.wldt.augmentation.request.AugmentationFunctionRequest;
 import it.wldt.augmentation.result.AugmentationFunctionResult;
+import it.wldt.augmentation.result.AugmentationFunctionResultList;
 import it.wldt.augmentation.result.AugmentationFunctionResultMetrics;
 import it.wldt.augmentation.result.AugmentationFunctionResultType;
 import it.wldt.core.state.DigitalTwinState;
@@ -94,7 +95,7 @@ public class StatefulPeriodicRandomNumberAugmentationFunction extends StatefulAu
             public void run() {
                 try {
                     AugmentationFunctionResult<Double> result = generateNewAugmentationFunctionResult();
-                    notifyResult(Collections.singletonList(result));
+                    notifyResult(new AugmentationFunctionResultList(result));
                 } catch (AugmentationFunctionException e) {
                     logger.error("Error generating new augmentation function result: {}", e.getMessage());
                 }

@@ -2,6 +2,7 @@ package it.wldt.augmentation.stateless.state;
 
 import it.wldt.augmentation.handler.AugmentationFunctionHandler;
 import it.wldt.augmentation.result.AugmentationFunctionResult;
+import it.wldt.augmentation.result.AugmentationFunctionResultList;
 import it.wldt.augmentation.result.AugmentationFunctionResultType;
 import it.wldt.augmentation.handler.DefaultAugmentationFunctionHandler;
 import it.wldt.augmentation.stateless.function.RandomStateResultAugmentationFunction;
@@ -119,20 +120,20 @@ public class StateResultAugmentationProcessTest {
         Thread.sleep((DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS + ((DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES + DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_EVENT_UPDATES) * DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS)));
 
         // Retrieve from the Shared Metrics the received Augmentation Function Result Events
-        List<List<AugmentationFunctionResult<?>>> augmentationFunctionResultList = SharedTestMetrics.getInstance().getAugmentationFunctionResultNotification(
+        List<AugmentationFunctionResultList> augmentationFunctionResultLists = SharedTestMetrics.getInstance().getAugmentationFunctionResultNotification(
                 TEST_DIGITAL_TWIN_ID,
                 TEST_AUGMENTATION_HANDLER_ID,
                 RandomStateResultAugmentationFunction.FUNCTION_ID);
 
         //Check Received Augmentation Function Result is Not Null
-        assertNotNull(augmentationFunctionResultList);
+        assertNotNull(augmentationFunctionResultLists);
 
         //Check the number of received Augmentation Function Result Events is equal to the number of Physical Asset Property Update Events
         //since the Stateless Augmentation Function is executed every time a new Physical Asset Property Update Event is received by the Digital Twin Model
-        assertEquals(TestPhysicalAdapter.TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES, augmentationFunctionResultList.size());
+        assertEquals(TestPhysicalAdapter.TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES, augmentationFunctionResultLists.size());
 
         // For each received Augmentation Function Result Event
-        for(List<AugmentationFunctionResult<?>> resultList : augmentationFunctionResultList){
+        for(AugmentationFunctionResultList resultList : augmentationFunctionResultLists){
 
             // Get Position 0 for Property Result, Position 1 for Event Result, Position 2 for Relationship Result, and Position 3 for Relationship Instance Result
             AugmentationFunctionResult<?> propertyResult = resultList.get(0);

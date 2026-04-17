@@ -4,6 +4,7 @@ import it.wldt.augmentation.context.AugmentationFunctionContext;
 import it.wldt.augmentation.function.StatefulAugmentationFunction;
 import it.wldt.augmentation.request.AugmentationFunctionRequest;
 import it.wldt.augmentation.result.AugmentationFunctionResult;
+import it.wldt.augmentation.result.AugmentationFunctionResultList;
 import it.wldt.augmentation.result.AugmentationFunctionResultMetrics;
 import it.wldt.augmentation.result.AugmentationFunctionResultType;
 import it.wldt.core.state.DigitalTwinState;
@@ -22,7 +23,7 @@ public class StatefulStateDrivenRandomNumberAugmentationFunction extends Statefu
 
     public static final String FUNCTION_ID = "state-driven-random-number-augmentation-function";
 
-    private List<AugmentationFunctionResult<?>> lastResultList;
+    private AugmentationFunctionResultList lastResultList;
 
     /**
      * * Constructor of the AugmentationFunction class with minimum parameters.
@@ -39,7 +40,7 @@ public class StatefulStateDrivenRandomNumberAugmentationFunction extends Statefu
                 "1.0.0");
 
         // Init result list
-        this.lastResultList = new ArrayList<>();
+        this.lastResultList = new AugmentationFunctionResultList();
     }
 
     private AugmentationFunctionResult<Double> generateNewAugmentationFunctionResult() throws AugmentationFunctionException {
@@ -121,8 +122,10 @@ public class StatefulStateDrivenRandomNumberAugmentationFunction extends Statefu
                     null
             );
 
+            this.lastResultList.add(averageResult);
+
             // Notify the result to the handler with the two new results
-            this.notifyResult(Arrays.asList(result, averageResult));
+            this.notifyResult(lastResultList);
 
         }
         catch (Exception e) {

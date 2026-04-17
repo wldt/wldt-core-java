@@ -4,6 +4,7 @@ import it.wldt.augmentation.context.AugmentationFunctionContext;
 import it.wldt.augmentation.function.StatelessAugmentationFunction;
 import it.wldt.augmentation.request.AugmentationFunctionRequest;
 import it.wldt.augmentation.result.AugmentationFunctionResult;
+import it.wldt.augmentation.result.AugmentationFunctionResultList;
 import it.wldt.augmentation.result.AugmentationFunctionResultMetrics;
 import it.wldt.augmentation.result.AugmentationFunctionResultType;
 import it.wldt.exception.AugmentationFunctionException;
@@ -47,7 +48,7 @@ public class RandomStringAugmentationFunction extends StatelessAugmentationFunct
     }
 
     @Override
-    public List<AugmentationFunctionResult<?>> run(AugmentationFunctionRequest request) throws AugmentationFunctionException {
+    public AugmentationFunctionResultList run(AugmentationFunctionRequest request) throws AugmentationFunctionException {
         // Generate a random string of fixed length (e.g., 10 characters)
 
         Long startTimestamp = System.currentTimeMillis();
@@ -68,6 +69,6 @@ public class RandomStringAugmentationFunction extends StatelessAugmentationFunct
                 null
         );
 
-        return Collections.singletonList(result);
+        return new AugmentationFunctionResultList(result);
     }
 }

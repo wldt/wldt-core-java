@@ -21,6 +21,7 @@
 package it.wldt.augmentation.event;
 
 import it.wldt.augmentation.result.AugmentationFunctionResult;
+import it.wldt.augmentation.result.AugmentationFunctionResultList;
 import it.wldt.core.event.WldtEvent;
 import it.wldt.core.event.WldtEventTypes;
 import it.wldt.exception.EventBusException;
@@ -34,7 +35,7 @@ import java.util.List;
  * executing the function. This allows for better tracking and management of augmentation function results, providing
  * insights into which functions are producing results and enabling more effective handling of the results processing and management.
  */
-public class AugmentationFunctionResultWldtEvent extends WldtEvent<List<AugmentationFunctionResult<?>>> {
+public class AugmentationFunctionResultWldtEvent extends WldtEvent<AugmentationFunctionResultList> {
 
     /**
      * Identifier of the augmentation function that was executed and produced the results.
@@ -53,7 +54,7 @@ public class AugmentationFunctionResultWldtEvent extends WldtEvent<List<Augmenta
      * @param results The results of the execution of the augmentation function, encapsulated in a list of instances of {@link AugmentationFunctionResult}.
      * @throws EventBusException if there is an issue with creating the event, such as invalid parameters or issues with the event bus system.
      */
-    public AugmentationFunctionResultWldtEvent(String augmentationHandlerId, String augmentationFunctionId, List<AugmentationFunctionResult<?>> results) throws EventBusException {
+    public AugmentationFunctionResultWldtEvent(String augmentationHandlerId, String augmentationFunctionId, AugmentationFunctionResultList results) throws EventBusException {
         super(String.format("%s.%s.%s", WldtEventTypes.AUGMENTATION_FUNCTION_RESULT_BASE_TYPE, augmentationHandlerId, augmentationFunctionId), results, null);
         this.augmentationHandlerId = augmentationHandlerId;
         this.augmentationFunctionId = augmentationFunctionId;

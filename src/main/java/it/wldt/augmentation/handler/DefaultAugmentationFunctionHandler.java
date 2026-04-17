@@ -23,6 +23,7 @@ package it.wldt.augmentation.handler;
 import it.wldt.augmentation.function.*;
 import it.wldt.augmentation.request.AugmentationFunctionRequest;
 import it.wldt.augmentation.result.AugmentationFunctionResult;
+import it.wldt.augmentation.result.AugmentationFunctionResultList;
 import it.wldt.core.state.DigitalTwinState;
 import it.wldt.core.state.DigitalTwinStateChange;
 import it.wldt.core.state.DigitalTwinStateEventNotification;
@@ -127,7 +128,7 @@ public class DefaultAugmentationFunctionHandler extends AugmentationFunctionHand
      * @throws AugmentationFunctionException Thrown if an error occurs while executing the augmentation function
      */
     @Override
-    protected List<AugmentationFunctionResult<?>> handleAugmentationFunctionExecution(StatelessAugmentationFunction statelessAugmentationFunction, AugmentationFunctionRequest augmentationFunctionRequest) throws AugmentationFunctionException {
+    protected AugmentationFunctionResultList handleAugmentationFunctionExecution(StatelessAugmentationFunction statelessAugmentationFunction, AugmentationFunctionRequest augmentationFunctionRequest) throws AugmentationFunctionException {
         try {
             // Execute the augmentation function
             return statelessAugmentationFunction.handleRun(augmentationFunctionRequest);

@@ -29,6 +29,7 @@ import it.wldt.augmentation.event.*;
 import it.wldt.augmentation.function.AugmentationFunction;
 import it.wldt.augmentation.request.AugmentationFunctionRequest;
 import it.wldt.augmentation.result.AugmentationFunctionResult;
+import it.wldt.augmentation.result.AugmentationFunctionResultList;
 import it.wldt.core.engine.DigitalTwinWorker;
 import it.wldt.core.engine.LifeCycleState;
 import it.wldt.core.engine.LifeCycleStateVariation;
@@ -461,7 +462,7 @@ public class StorageManager extends DigitalTwinWorker implements IWldtEventObser
                     // Check if the event is a AugmentationFunctionResultEvent
                     if(wldtEvent != null && wldtEvent.getBody() != null && wldtEvent.getType().startsWith(WldtEventTypes.AUGMENTATION_FUNCTION_RESULT_BASE_TYPE) && wldtEvent.getBody() instanceof List<?>) {
                         AugmentationFunctionResultWldtEvent augmentationFunctionResultWldtEvent = (AugmentationFunctionResultWldtEvent) wldtEvent;
-                        List<AugmentationFunctionResult<?>> results = augmentationFunctionResultWldtEvent.getBody();
+                        AugmentationFunctionResultList results = augmentationFunctionResultWldtEvent.getBody();
                         for(AugmentationFunctionResult<?> result : results) {
                             storage.saveAugmentationFunctionResult(augmentationFunctionResultWldtEvent.getAugmentationFunctionId(),
                                     augmentationFunctionResultWldtEvent.getAugmentationHandlerId(),

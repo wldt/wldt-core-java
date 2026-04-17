@@ -3,6 +3,7 @@ package it.wldt.storage.augmentation.function;
 import it.wldt.augmentation.function.StatefulAugmentationFunction;
 import it.wldt.augmentation.request.AugmentationFunctionRequest;
 import it.wldt.augmentation.result.AugmentationFunctionResult;
+import it.wldt.augmentation.result.AugmentationFunctionResultList;
 import it.wldt.augmentation.result.AugmentationFunctionResultMetrics;
 import it.wldt.augmentation.result.AugmentationFunctionResultType;
 import it.wldt.core.state.DigitalTwinState;
@@ -88,7 +89,7 @@ public class StorageTestStatefulAugmentationFunction extends StatefulAugmentatio
                     try {
                         if (executionCounter < EXECUTION_COUNT) {
                             AugmentationFunctionResult<String> result = generateResult(executionCounter);
-                            notifyResult(Collections.singletonList(result));
+                            notifyResult(new AugmentationFunctionResultList(result));
                             executionCounter++;
                             logger.debug("StorageTestStatefulAugmentationFunction -> Produced result {}/{}", executionCounter, EXECUTION_COUNT);
                         } else {

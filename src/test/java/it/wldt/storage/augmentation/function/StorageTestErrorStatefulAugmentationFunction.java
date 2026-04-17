@@ -4,6 +4,7 @@ import it.wldt.augmentation.error.AugmentationFunctionError;
 import it.wldt.augmentation.error.AugmentationFunctionErrorType;
 import it.wldt.augmentation.function.StatefulAugmentationFunction;
 import it.wldt.augmentation.request.AugmentationFunctionRequest;
+import it.wldt.augmentation.result.AugmentationFunctionResultList;
 import it.wldt.core.state.DigitalTwinState;
 import it.wldt.core.state.DigitalTwinStateEventNotification;
 import it.wldt.exception.AugmentationFunctionException;
@@ -68,7 +69,7 @@ public class StorageTestErrorStatefulAugmentationFunction extends StatefulAugmen
                 public void run() {
                     if (errorCounter < ERROR_COUNT) {
                         AugmentationFunctionError error = new AugmentationFunctionError(ERROR_TYPE, ERROR_MESSAGE);
-                        notifyError(error);
+                        notifyResult(new AugmentationFunctionResultList(error));
                         errorCounter++;
                         logger.debug("StorageTestErrorStatefulAugmentationFunction -> Notified error {}/{}", errorCounter, ERROR_COUNT);
                     } else {

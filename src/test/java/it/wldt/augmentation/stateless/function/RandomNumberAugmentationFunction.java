@@ -4,6 +4,7 @@ import it.wldt.augmentation.context.AugmentationFunctionContext;
 import it.wldt.augmentation.function.StatelessAugmentationFunction;
 import it.wldt.augmentation.request.AugmentationFunctionRequest;
 import it.wldt.augmentation.result.AugmentationFunctionResult;
+import it.wldt.augmentation.result.AugmentationFunctionResultList;
 import it.wldt.augmentation.result.AugmentationFunctionResultMetrics;
 import it.wldt.augmentation.result.AugmentationFunctionResultType;
 import it.wldt.exception.AugmentationFunctionException;
@@ -35,7 +36,7 @@ public class RandomNumberAugmentationFunction extends StatelessAugmentationFunct
     }
 
     @Override
-    public List<AugmentationFunctionResult<?>> run(AugmentationFunctionRequest request) throws AugmentationFunctionException {
+    public AugmentationFunctionResultList run(AugmentationFunctionRequest request) throws AugmentationFunctionException {
 
         Long startTimestamp = System.currentTimeMillis();
         // Generate a random number between 0 and 1
@@ -58,6 +59,6 @@ public class RandomNumberAugmentationFunction extends StatelessAugmentationFunct
 
         logger.debug("RandomNumberAugmentationFunction -> Generated random number: {}", result);
 
-        return Collections.singletonList(result);
+        return new AugmentationFunctionResultList(result);
     }
 }

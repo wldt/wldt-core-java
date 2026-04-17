@@ -3,6 +3,7 @@ package it.wldt.storage.augmentation.function;
 import it.wldt.augmentation.function.StatelessAugmentationFunction;
 import it.wldt.augmentation.request.AugmentationFunctionRequest;
 import it.wldt.augmentation.result.AugmentationFunctionResult;
+import it.wldt.augmentation.result.AugmentationFunctionResultList;
 import it.wldt.augmentation.result.AugmentationFunctionResultMetrics;
 import it.wldt.augmentation.result.AugmentationFunctionResultType;
 import it.wldt.exception.AugmentationFunctionException;
@@ -30,7 +31,7 @@ public class StorageTestStatelessAugmentationFunction extends StatelessAugmentat
     }
 
     @Override
-    protected List<AugmentationFunctionResult<?>> run(AugmentationFunctionRequest request) throws AugmentationFunctionException {
+    protected AugmentationFunctionResultList run(AugmentationFunctionRequest request) throws AugmentationFunctionException {
 
         Long startTimestamp = System.currentTimeMillis();
         Long endTimestamp = System.currentTimeMillis();
@@ -50,7 +51,7 @@ public class StorageTestStatelessAugmentationFunction extends StatelessAugmentat
 
         logger.debug("StorageTestStatelessAugmentationFunction -> Produced result with key: {} value: {}", RESULT_KEY, RESULT_VALUE);
 
-        return Collections.singletonList(result);
+        return new AugmentationFunctionResultList(result);
     }
 }
 

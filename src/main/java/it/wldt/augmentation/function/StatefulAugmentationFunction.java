@@ -25,6 +25,7 @@ import it.wldt.augmentation.error.AugmentationFunctionError;
 import it.wldt.augmentation.listener.StatefulAugmentationListener;
 import it.wldt.augmentation.request.AugmentationFunctionRequest;
 import it.wldt.augmentation.result.AugmentationFunctionResult;
+import it.wldt.augmentation.result.AugmentationFunctionResultList;
 import it.wldt.core.state.DigitalTwinState;
 import it.wldt.core.state.DigitalTwinStateEventNotification;
 import it.wldt.exception.AugmentationFunctionException;
@@ -202,7 +203,7 @@ public abstract class StatefulAugmentationFunction extends AugmentationFunction{
      * an error message is logged indicating that the notification cannot be sent.
      * @param resultList the list of results produced by the execution of the stateful augmentation function to notify to the listener
      */
-    protected void notifyResult(List<AugmentationFunctionResult<?>> resultList) {
+    protected void notifyResult(AugmentationFunctionResultList resultList) {
         if (statefulAugmentationListener != null && resultList != null) {
             for(AugmentationFunctionResult<?> result : resultList) {
                 result.setRequest(this.request);
@@ -211,23 +212,6 @@ public abstract class StatefulAugmentationFunction extends AugmentationFunction{
         }
         else
             logger.error("Cannot notify result of the Stateful Augmentation Function with id {}: result listener or result list is null.", this.getId());
-    }
-
-    /**
-     * Notifies the listener of an error that occurred during the execution of the stateful augmentation function.
-     * This method should be called by specific implementations of the function to provide updates on any errors
-     * encountered during the function's execution. The method takes an instance of {@link AugmentationFunctionError}
-     * as a parameter, which contains the details of the error that occurred. If the listener is not set or if the
-     * error object is null, an error message is logged indicating that the notification cannot be sent.
-     * @param augmentationFunctionError the error that occurred during the execution of the stateful augmentation function to notify to the listener
-     */
-    protected void notifyError(AugmentationFunctionError augmentationFunctionError) {
-        if (statefulAugmentationListener != null) {
-            augmentationFunctionError.setAugmentationFunctionRequestId(this.request != null ? this.request.getRequestId() : null);
-            statefulAugmentationListener.onStatefulAugmentationFunctionError(this.getId(), augmentationFunctionError);
-        }
-        else
-            logger.error("Cannot notify error of the Stateful Augmentation Function with id {}: result listener is null.", this.getId());
     }
 
     /**

@@ -5,6 +5,7 @@ import it.wldt.augmentation.error.AugmentationFunctionErrorType;
 import it.wldt.augmentation.function.StatelessAugmentationFunction;
 import it.wldt.augmentation.request.AugmentationFunctionRequest;
 import it.wldt.augmentation.result.AugmentationFunctionResult;
+import it.wldt.augmentation.result.AugmentationFunctionResultList;
 import it.wldt.exception.AugmentationFunctionException;
 import it.wldt.log.WldtLogger;
 import it.wldt.log.WldtLoggerProvider;
@@ -30,14 +31,13 @@ public class StorageTestErrorStatelessAugmentationFunction extends StatelessAugm
     }
 
     @Override
-    protected List<AugmentationFunctionResult<?>> run(AugmentationFunctionRequest request) throws AugmentationFunctionException {
+    protected AugmentationFunctionResultList run(AugmentationFunctionRequest request) throws AugmentationFunctionException {
 
         AugmentationFunctionError error = new AugmentationFunctionError(ERROR_TYPE, ERROR_MESSAGE);
-        notifyError(error);
 
         logger.debug("StorageTestErrorStatelessAugmentationFunction -> Notified error: type={}, message={}", ERROR_TYPE, ERROR_MESSAGE);
 
-        return new ArrayList<>();
+        return new AugmentationFunctionResultList(error);
     }
 }
 
