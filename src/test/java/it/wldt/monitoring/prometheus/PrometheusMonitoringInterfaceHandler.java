@@ -110,8 +110,10 @@ public class PrometheusMonitoringInterfaceHandler extends MonitoringInterfaceHan
         }
     }
 
-    /** Shuts down the HTTP server or stops the push scheduler gracefully. */
+    /** Shuts down the HTTP server or stops the push scheduler gracefully.
+     *  In PUSH_GATEWAY mode, issues a DELETE to remove this DT's metrics before stopping. */
     public void stop() {
+        deletePushGatewayMetrics();
         if (httpServer != null) {
             httpServer.close();
             httpServer = null;
@@ -128,6 +130,38 @@ public class PrometheusMonitoringInterfaceHandler extends MonitoringInterfaceHan
             }
             pushScheduler = null;
             System.out.println("[PrometheusHandler] Push Gateway scheduler stopped.");
+        }
+    }
+
+    /**
+     * Issues a {@code DELETE /metrics/job/<job>/dt_id/<dtId>} to the PushGateway,
+     * removing all metrics published by this DT instance.
+     * No-op if not in PUSH_GATEWAY mode or if {@code dtId} is not configured.
+     */
+    private void deletePushGatewayMetrics() {
+        if (config.getWorkingMode() != PrometheusHandlerConfiguration.WorkingMode.PUSH_GATEWAY) return;
+        String dtId = config.getDtId();
+        // dt_id is a metric label, not a PushGateway grouping label — deletion must target the job path only.
+        // If per-DT isolation is needed, give each DT a unique job name via withJobName().
+        try {
+            String url = "http://" + config.getPushGatewayAddress()
+                    + "/metrics/job/" + java.net.URLEncoder.encode(config.getJobName(), "UTF-8");
+            java.net.HttpURLConnection conn =
+                    (java.net.HttpURLConnection) new java.net.URL(url).openConnection();
+            conn.setRequestMethod("DELETE");
+            conn.setConnectTimeout(5_000);
+            conn.setReadTimeout(5_000);
+            int code = conn.getResponseCode();
+            if (code >= 200 && code < 300)
+                System.out.println("[PrometheusHandler] PushGateway metrics deleted for job="
+                        + config.getJobName() + (dtId != null ? " dt_id=" + dtId : ""));
+            else
+                System.err.println("[PrometheusHandler] PushGateway DELETE returned HTTP " + code
+                        + " for job=" + config.getJobName());
+            conn.disconnect();
+        } catch (Exception e) {
+            System.err.println("[PrometheusHandler] Failed to delete PushGateway metrics for job="
+                    + config.getJobName() + ": " + e.getMessage());
         }
     }
 
@@ -186,21 +220,21 @@ public class PrometheusMonitoringInterfaceHandler extends MonitoringInterfaceHan
                 return Counter.builder()
                         .name(promName)
                         .help(help)
-                        .labelNames("component")
+                        .labelNames("component", "dt_id")
                         .register(registry);
 
             } else if (metric instanceof WldtUpDownCounter) {
                 return Gauge.builder()
                         .name(promName)
                         .help(help)
-                        .labelNames("component")
+                        .labelNames("component", "dt_id")
                         .register(registry);
 
             } else if (metric instanceof WldtGauge) {
                 return Gauge.builder()
                         .name(promName)
                         .help(help)
-                        .labelNames("component")
+                        .labelNames("component", "dt_id")
                         .register(registry);
 
             } else if (metric instanceof WldtTimer) {
@@ -223,7 +257,7 @@ public class PrometheusMonitoringInterfaceHandler extends MonitoringInterfaceHan
             gauges.put(suffix, Gauge.builder()
                     .name(baseName + "_" + suffix)
                     .help(baseHelp + " [" + suffix + "]")
-                    .labelNames("component")
+                    .labelNames("component", "dt_id")
                     .register(registry));
         }
         return gauges;
@@ -235,39 +269,40 @@ public class PrometheusMonitoringInterfaceHandler extends MonitoringInterfaceHan
 
     @SuppressWarnings("unchecked")
     private void applyUpdate(WldtMetricComponent component, WldtMetric metric, Object registered) {
-        String label = component.name();
+        String componentName = component.name();
+        String dtId  = metric.getDigitalTwinId();
 
         if (metric instanceof WldtCounter && registered instanceof Counter) {
             WldtCounter wc = (WldtCounter) metric;
             if (wc.isDeltaAvailable() && wc.getDelta() > 0) {
-                ((Counter) registered).labelValues(label).inc((double) wc.getDelta());
+                ((Counter) registered).labelValues(componentName, dtId).inc((double) wc.getDelta());
             }
 
         } else if (metric instanceof WldtUpDownCounter && registered instanceof Gauge) {
-            ((Gauge) registered).labelValues(label).set((double) ((WldtUpDownCounter) metric).getValue());
+            ((Gauge) registered).labelValues(componentName, dtId).set((double) ((WldtUpDownCounter) metric).getValue());
 
         } else if (metric instanceof WldtGauge && registered instanceof Gauge) {
-            ((Gauge) registered).labelValues(label).set(((WldtGauge) metric).getValue());
+            ((Gauge) registered).labelValues(componentName, dtId).set(((WldtGauge) metric).getValue());
 
         } else if (metric instanceof WldtTimer && registered instanceof Map) {
             WldtTimer wt = (WldtTimer) metric;
             Map<String, Gauge> g = (Map<String, Gauge>) registered;
-            g.get("duration_ms") .labelValues(label).set((double) wt.getDurationMs());
-            g.get("min_ms")      .labelValues(label).set((double) wt.getMinDurationMs());
-            g.get("max_ms")      .labelValues(label).set((double) wt.getMaxDurationMs());
-            g.get("mean_ms")     .labelValues(label).set(wt.getMeanDurationMs());
-            g.get("total_ms")    .labelValues(label).set((double) wt.getTotalDurationMs());
-            g.get("count")       .labelValues(label).set((double) wt.getObservationCount());
+            g.get("duration_ms") .labelValues(componentName, dtId).set((double) wt.getDurationMs());
+            g.get("min_ms")      .labelValues(componentName, dtId).set((double) wt.getMinDurationMs());
+            g.get("max_ms")      .labelValues(componentName, dtId).set((double) wt.getMaxDurationMs());
+            g.get("mean_ms")     .labelValues(componentName, dtId).set(wt.getMeanDurationMs());
+            g.get("total_ms")    .labelValues(componentName, dtId).set((double) wt.getTotalDurationMs());
+            g.get("count")       .labelValues(componentName, dtId).set((double) wt.getObservationCount());
 
         } else if (metric instanceof WldtHistogram && registered instanceof Map) {
             WldtHistogram wh = (WldtHistogram) metric;
             Map<String, Gauge> g = (Map<String, Gauge>) registered;
-            g.get("window_count").labelValues(label).set((double) wh.getCount());
-            g.get("window_sum")  .labelValues(label).set(wh.getSum());
-            g.get("window_min")  .labelValues(label).set(wh.getMin());
-            g.get("window_max")  .labelValues(label).set(wh.getMax());
-            g.get("total_count") .labelValues(label).set((double) wh.getTotalCount());
-            g.get("total_sum")   .labelValues(label).set(wh.getTotalSum());
+            g.get("window_count").labelValues(componentName, dtId).set((double) wh.getCount());
+            g.get("window_sum")  .labelValues(componentName, dtId).set(wh.getSum());
+            g.get("window_min")  .labelValues(componentName, dtId).set(wh.getMin());
+            g.get("window_max")  .labelValues(componentName, dtId).set(wh.getMax());
+            g.get("total_count") .labelValues(componentName, dtId).set((double) wh.getTotalCount());
+            g.get("total_sum")   .labelValues(componentName, dtId).set(wh.getTotalSum());
         }
     }
 

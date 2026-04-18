@@ -44,6 +44,7 @@ public class MonitoringInterfaceTest {
 
     private static final WldtLogger logger = WldtLoggerProvider.getLogger(MonitoringInterfaceTest.class);
 
+    private static final String TEST_DT_ID = "test_dt_id";
     private static final String NS   = "wldt.internal";
     private static final String CUST = "custom.myapp";
 
@@ -77,7 +78,7 @@ public class MonitoringInterfaceTest {
     @Test @Order(1)
     public void testEnabledComponentWithValueFiresBothCallbacks() {
         monitoringInterface.notifyMetric(
-                new WldtCounter(NS, "events", WldtMetricComponent.DT_MODEL, 1L));
+                new WldtCounter(TEST_DT_ID, NS, "events", WldtMetricComponent.DT_MODEL, 1L));
         assertEquals(1, handler.registeredMetrics.size());
         assertEquals(1, handler.updatedMetrics.size(),
                 "Push with initial value must also fire onMetricUpdated");
@@ -86,7 +87,7 @@ public class MonitoringInterfaceTest {
     @Test @Order(2)
     public void testDisabledComponentIsDiscarded() {
         monitoringInterface.notifyMetric(
-                new WldtCounter(NS, "pa.messages", WldtMetricComponent.PHYSICAL_ADAPTER, 1L));
+                new WldtCounter(TEST_DT_ID, NS, "pa.messages", WldtMetricComponent.PHYSICAL_ADAPTER, 1L));
         assertTrue(handler.registeredMetrics.isEmpty());
         assertTrue(handler.updatedMetrics.isEmpty());
     }
@@ -94,7 +95,7 @@ public class MonitoringInterfaceTest {
     @Test @Order(3)
     public void testDisabledStorageIsDiscarded() {
         monitoringInterface.notifyMetric(
-                new WldtTimer(NS, "write.latency", WldtMetricComponent.STORAGE, 50L));
+                new WldtTimer(TEST_DT_ID, NS, "write.latency", WldtMetricComponent.STORAGE, 50L));
         assertTrue(handler.registeredMetrics.isEmpty());
         assertTrue(handler.updatedMetrics.isEmpty());
     }
@@ -106,7 +107,7 @@ public class MonitoringInterfaceTest {
     @Test @Order(4)
     public void testNoValuePushFiresOnlyRegisteredCallback() {
         monitoringInterface.notifyMetric(
-                new WldtCounter(NS, "events", WldtMetricComponent.DT_MODEL));
+                new WldtCounter(TEST_DT_ID, NS, "events", WldtMetricComponent.DT_MODEL));
         assertEquals(1, handler.registeredMetrics.size());
         assertTrue(handler.updatedMetrics.isEmpty(),
                 "No-value push must not fire onMetricUpdated");
@@ -118,10 +119,10 @@ public class MonitoringInterfaceTest {
     public void testNoValueThenValuePushFiresUpdatedWithNullDelta() {
         // Register without value
         monitoringInterface.notifyMetric(
-                new WldtCounter(NS, "events", WldtMetricComponent.DT_MODEL));
+                new WldtCounter(TEST_DT_ID, NS, "events", WldtMetricComponent.DT_MODEL));
         // First push with actual value
         monitoringInterface.notifyMetric(
-                new WldtCounter(NS, "events", WldtMetricComponent.DT_MODEL, 5L));
+                new WldtCounter(TEST_DT_ID, NS, "events", WldtMetricComponent.DT_MODEL, 5L));
 
         assertEquals(1, handler.registeredMetrics.size());
         assertEquals(1, handler.updatedMetrics.size());
@@ -137,7 +138,7 @@ public class MonitoringInterfaceTest {
     @Test @Order(6)
     public void testFirstPushWithValueFiresRegisteredWithEmptySnapshot() {
         monitoringInterface.notifyMetric(
-                new WldtCounter(NS, "events", WldtMetricComponent.DT_MODEL, 1L));
+                new WldtCounter(TEST_DT_ID, NS, "events", WldtMetricComponent.DT_MODEL, 1L));
         assertEquals(1, handler.registeredMetrics.size());
         assertEquals(WldtMetricComponent.DT_MODEL, handler.registeredComponents.get(0));
         assertFalse(handler.registeredMetrics.get(0).isInitialized(),
@@ -147,7 +148,7 @@ public class MonitoringInterfaceTest {
     @Test @Order(7)
     public void testFirstPushWithValueImmediatelyFiresUpdated() {
         monitoringInterface.notifyMetric(
-                new WldtCounter(NS, "events", WldtMetricComponent.DT_MODEL, 1L));
+                new WldtCounter(TEST_DT_ID, NS, "events", WldtMetricComponent.DT_MODEL, 1L));
         assertEquals(1, handler.updatedMetrics.size());
         assertTrue(handler.updatedMetrics.get(0).isInitialized());
         assertNull(handler.updatedDeltas.get(0).delta,
@@ -158,9 +159,9 @@ public class MonitoringInterfaceTest {
     @Test @Order(8)
     public void testSecondPushFiresUpdatedWithDelta() {
         monitoringInterface.notifyMetric(
-                new WldtCounter(NS, "events", WldtMetricComponent.DT_MODEL, 1L));
+                new WldtCounter(TEST_DT_ID, NS, "events", WldtMetricComponent.DT_MODEL, 1L));
         monitoringInterface.notifyMetric(
-                new WldtCounter(NS, "events", WldtMetricComponent.DT_MODEL, 4L));
+                new WldtCounter(TEST_DT_ID, NS, "events", WldtMetricComponent.DT_MODEL, 4L));
 
         // 1 registered + 2 updated (initial value + incremental update)
         assertEquals(1, handler.registeredMetrics.size());
@@ -172,9 +173,9 @@ public class MonitoringInterfaceTest {
     @Test @Order(9)
     public void testDeltaSemanticsThroughFullLifecycle() {
         monitoringInterface.notifyMetric(
-                new WldtCounter(NS, "events", WldtMetricComponent.DT_MODEL, 5L));
+                new WldtCounter(TEST_DT_ID, NS, "events", WldtMetricComponent.DT_MODEL, 5L));
         monitoringInterface.notifyMetric(
-                new WldtCounter(NS, "events", WldtMetricComponent.DT_MODEL, 8L));
+                new WldtCounter(TEST_DT_ID, NS, "events", WldtMetricComponent.DT_MODEL, 8L));
 
         // Registered snapshot: empty, no delta
         assertFalse(handler.registeredMetrics.get(0).isInitialized());
@@ -198,7 +199,7 @@ public class MonitoringInterfaceTest {
     @Test @Order(10)
     public void testCustomMetricBypassesFlagGatingAndFiresBothCallbacks() {
         monitoringInterface.trackCustomMetric(
-                new WldtGauge(CUST, "room.temp", WldtMetricComponent.CUSTOM, 21.5));
+                new WldtGauge(TEST_DT_ID, CUST, "room.temp", WldtMetricComponent.CUSTOM, 21.5));
         assertEquals(1, handler.registeredMetrics.size());
         assertEquals(1, handler.updatedMetrics.size());
         assertEquals(WldtMetricComponent.CUSTOM, handler.registeredComponents.get(0));
@@ -208,9 +209,9 @@ public class MonitoringInterfaceTest {
     @Test @Order(11)
     public void testCustomMetricSecondPushFiresUpdatedWithDelta() {
         monitoringInterface.trackCustomMetric(
-                new WldtCounter(CUST, "c", WldtMetricComponent.CUSTOM, 10L));
+                new WldtCounter(TEST_DT_ID, CUST, "c", WldtMetricComponent.CUSTOM, 10L));
         monitoringInterface.trackCustomMetric(
-                new WldtCounter(CUST, "c", WldtMetricComponent.CUSTOM, 14L));
+                new WldtCounter(TEST_DT_ID, CUST, "c", WldtMetricComponent.CUSTOM, 14L));
 
         // registered=1, updated=2 (init + increment)
         assertEquals(1, handler.registeredMetrics.size());
@@ -226,7 +227,7 @@ public class MonitoringInterfaceTest {
     @Test @Order(12)
     public void testGetMetricReturnsLiveInstance() {
         monitoringInterface.notifyMetric(
-                new WldtCounter(NS, "events", WldtMetricComponent.DT_MODEL, 7L));
+                new WldtCounter(TEST_DT_ID, NS, "events", WldtMetricComponent.DT_MODEL, 7L));
         Optional<WldtMetric> result = monitoringInterface.getMetric(NS + ".events");
         assertTrue(result.isPresent());
         assertEquals(7L, ((WldtCounter) result.get()).getValue());
@@ -240,9 +241,9 @@ public class MonitoringInterfaceTest {
     @Test @Order(14)
     public void testGetAllMetricsSize() {
         monitoringInterface.notifyMetric(
-                new WldtCounter(NS, "events", WldtMetricComponent.DT_MODEL, 1L));
+                new WldtCounter(TEST_DT_ID, NS, "events", WldtMetricComponent.DT_MODEL, 1L));
         monitoringInterface.notifyMetric(
-                new WldtGauge(NS, "model.cpu", WldtMetricComponent.DT_MODEL, 2.0));
+                new WldtGauge(TEST_DT_ID, NS, "model.cpu", WldtMetricComponent.DT_MODEL, 2.0));
         assertEquals(2, monitoringInterface.getAllMetrics().size());
     }
 
@@ -250,14 +251,14 @@ public class MonitoringInterfaceTest {
     public void testIsMetricRegisteredLifecycle() {
         assertFalse(monitoringInterface.isMetricRegistered(NS + ".events"));
         monitoringInterface.notifyMetric(
-                new WldtCounter(NS, "events", WldtMetricComponent.DT_MODEL, 1L));
+                new WldtCounter(TEST_DT_ID, NS, "events", WldtMetricComponent.DT_MODEL, 1L));
         assertTrue(monitoringInterface.isMetricRegistered(NS + ".events"));
     }
 
     @Test @Order(16)
     public void testExplicitRegisterMetricWithValueFiresBothCallbacksThenUpdate() {
         monitoringInterface.registerMetric(
-                new WldtCounter(NS, "events", WldtMetricComponent.DT_MODEL, 10L));
+                new WldtCounter(TEST_DT_ID, NS, "events", WldtMetricComponent.DT_MODEL, 10L));
         // registerMetric with a value fires both registered (empty) and updated (initial value)
         assertEquals(1, handler.registeredMetrics.size(),
                 "registerMetric() must fire onMetricRegistered");
@@ -268,7 +269,7 @@ public class MonitoringInterfaceTest {
 
         // Subsequent notifyMetric goes into update path; delta = 13 - 10 = 3
         monitoringInterface.notifyMetric(
-                new WldtCounter(NS, "events", WldtMetricComponent.DT_MODEL, 13L));
+                new WldtCounter(TEST_DT_ID, NS, "events", WldtMetricComponent.DT_MODEL, 13L));
         assertEquals(2, handler.updatedMetrics.size());
         assertEquals(Long.valueOf(3L), handler.updatedDeltas.get(1).delta);
     }
@@ -276,7 +277,7 @@ public class MonitoringInterfaceTest {
     @Test @Order(17)
     public void testExplicitRegisterMetricWithoutValueFiresOnlyRegistered() {
         monitoringInterface.registerMetric(
-                new WldtCounter(NS, "events", WldtMetricComponent.DT_MODEL));
+                new WldtCounter(TEST_DT_ID, NS, "events", WldtMetricComponent.DT_MODEL));
         assertEquals(1, handler.registeredMetrics.size());
         assertTrue(handler.updatedMetrics.isEmpty(),
                 "registerMetric() without value must not fire onMetricUpdated");
@@ -299,7 +300,7 @@ public class MonitoringInterfaceTest {
                 try {
                     startSignal.await();
                     monitoringInterface.notifyMetric(
-                            new WldtGauge(NS, "concurrent.gauge",
+                            new WldtGauge(TEST_DT_ID, NS, "concurrent.gauge",
                                     WldtMetricComponent.DT_MODEL, value));
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
@@ -332,7 +333,7 @@ public class MonitoringInterfaceTest {
     public void testTrackCustomMetricWrongComponentThrows() {
         assertThrows(IllegalArgumentException.class,
                 () -> monitoringInterface.trackCustomMetric(
-                        new WldtCounter(NS, "events", WldtMetricComponent.DT_MODEL, 1L)));
+                        new WldtCounter(TEST_DT_ID, NS, "events", WldtMetricComponent.DT_MODEL, 1L)));
     }
 
     @Test @Order(21)

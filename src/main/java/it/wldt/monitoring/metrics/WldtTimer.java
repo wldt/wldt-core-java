@@ -35,8 +35,8 @@ public class WldtTimer extends WldtMetric {
      * {@link #isInitialized()} returns {@code false} until the first {@link #update(long)}.
      * All duration and count fields are 0 and must not be used before initialization.
      */
-    public WldtTimer(String namespace, String name, WldtMetricComponent component) {
-        super(namespace, name, component);
+    public WldtTimer(String digitalTwinId, String namespace, String name, WldtMetricComponent component) {
+        super(digitalTwinId, namespace, name, component);
         this.durationMs       = 0;
         this.minDurationMs    = 0;
         this.maxDurationMs    = 0;
@@ -45,8 +45,8 @@ public class WldtTimer extends WldtMetric {
         this.initialized      = false;
     }
 
-    public WldtTimer(String namespace, String name, WldtMetricComponent component, long initialDurationMs) {
-        super(namespace, name, component);
+    public WldtTimer(String digitalTwinId, String namespace, String name, WldtMetricComponent component, long initialDurationMs) {
+        super(digitalTwinId, namespace, name, component);
         if (initialDurationMs < 0)
             throw new IllegalArgumentException("WldtTimer durationMs must be non-negative, got: " + initialDurationMs);
         this.durationMs       = initialDurationMs;
@@ -97,7 +97,7 @@ public class WldtTimer extends WldtMetric {
     }
 
     private WldtTimer(WldtTimer source) {
-        super(source.getNamespace(), source.getName(), source.getComponent());
+        super(source.getDigitalTwinId(), source.getNamespace(), source.getName(), source.getComponent());
         this.durationMs       = source.durationMs;
         this.minDurationMs    = source.minDurationMs;
         this.maxDurationMs    = source.maxDurationMs;
@@ -111,7 +111,7 @@ public class WldtTimer extends WldtMetric {
     public synchronized WldtTimer copy() { return new WldtTimer(this); }
 
     @Override
-    public WldtTimer emptySnapshot() { return new WldtTimer(getNamespace(), getName(), getComponent()); }
+    public WldtTimer emptySnapshot() { return new WldtTimer(getDigitalTwinId(), getNamespace(), getName(), getComponent()); }
 
     /** @return the most recent recorded duration in milliseconds */
     public synchronized long getDurationMs()        { return durationMs; }

@@ -22,7 +22,7 @@ import it.wldt.utils.SharedTestMetrics;
  */
 public class PrometheusMonitoringInterfaceExample {
 
-    private static final String DT_ID = "prometheus-dt-example-1";
+    private static final String DT_ID = "dt-example-1";
 
     public static void main(String[] args) throws Exception {
 
@@ -74,7 +74,6 @@ public class PrometheusMonitoringInterfaceExample {
         PrometheusHandlerConfiguration config = new PrometheusHandlerConfiguration.Builder()
                 .withHttpServer()
                 .withHttpPort(port)
-                .withMetricPrefix("wldt")
                 .build();
 
         PrometheusMonitoringInterfaceHandler handler =
@@ -129,7 +128,7 @@ public class PrometheusMonitoringInterfaceExample {
                         .withPushGateway(address)
                         .withJobName(job)
                         .withPushIntervalMs(pushIntervalMs)
-                        .withMetricPrefix("wldt");
+                        .withDtId(DT_ID);
 
         if (username != null) cfgBuilder.withPushGatewayAuth(username, password);
 

@@ -27,6 +27,8 @@ public class WldtMetricRegistryTest {
 
     private static final WldtLogger logger = WldtLoggerProvider.getLogger(WldtMetricRegistryTest.class);
 
+    private static final String TEST_DT_ID = "test_dt_id";
+
     private static final String NS   = "wldt.internal";
     private static final String NAME = "dt_model.events_processed";
 
@@ -50,7 +52,7 @@ public class WldtMetricRegistryTest {
 
     @Test @Order(1)
     public void testRegisterStoresMetric() {
-        WldtCounter c = new WldtCounter(NS, NAME, WldtMetricComponent.DT_MODEL, 5L);
+        WldtCounter c = new WldtCounter(TEST_DT_ID, NS, NAME, WldtMetricComponent.DT_MODEL, 5L);
         registry.register(c);
         assertTrue(registry.isRegistered(c.getFullName()));
     }
@@ -66,10 +68,10 @@ public class WldtMetricRegistryTest {
 
     @Test @Order(3)
     public void testCounterUpdateComputesDelta() {
-        WldtCounter live = new WldtCounter(NS, NAME, WldtMetricComponent.DT_MODEL, 5L);
+        WldtCounter live = new WldtCounter(TEST_DT_ID, NS, NAME, WldtMetricComponent.DT_MODEL, 5L);
         registry.register(live);
 
-        WldtMetric returned = registry.update(new WldtCounter(NS, NAME, WldtMetricComponent.DT_MODEL, 8L));
+        WldtMetric returned = registry.update(new WldtCounter(TEST_DT_ID, NS, NAME, WldtMetricComponent.DT_MODEL, 8L));
 
         assertSame(live, returned, "registry.update() must return the stored live instance");
         assertEquals(8L, live.getValue());
@@ -79,12 +81,12 @@ public class WldtMetricRegistryTest {
 
     @Test @Order(4)
     public void testCounterMultipleUpdatesDeltaAccumulates() {
-        WldtCounter live = new WldtCounter(NS, NAME, WldtMetricComponent.DT_MODEL, 0L);
+        WldtCounter live = new WldtCounter(TEST_DT_ID, NS, NAME, WldtMetricComponent.DT_MODEL, 0L);
         registry.register(live);
 
-        registry.update(new WldtCounter(NS, NAME, WldtMetricComponent.DT_MODEL, 5L));
-        registry.update(new WldtCounter(NS, NAME, WldtMetricComponent.DT_MODEL, 12L));
-        registry.update(new WldtCounter(NS, NAME, WldtMetricComponent.DT_MODEL, 20L));
+        registry.update(new WldtCounter(TEST_DT_ID, NS, NAME, WldtMetricComponent.DT_MODEL, 5L));
+        registry.update(new WldtCounter(TEST_DT_ID, NS, NAME, WldtMetricComponent.DT_MODEL, 12L));
+        registry.update(new WldtCounter(TEST_DT_ID, NS, NAME, WldtMetricComponent.DT_MODEL, 20L));
 
         assertEquals(20L, live.getValue());
         assertEquals(Long.valueOf(8L), live.getDelta());
@@ -97,17 +99,17 @@ public class WldtMetricRegistryTest {
 
     @Test @Order(5)
     public void testUpDownCounterPositiveDelta() {
-        WldtUpDownCounter live = new WldtUpDownCounter(NS, "pa.connected", WldtMetricComponent.PHYSICAL_ADAPTER, 2L);
+        WldtUpDownCounter live = new WldtUpDownCounter(TEST_DT_ID, NS, "pa.connected", WldtMetricComponent.PHYSICAL_ADAPTER, 2L);
         registry.register(live);
-        registry.update(new WldtUpDownCounter(NS, "pa.connected", WldtMetricComponent.PHYSICAL_ADAPTER, 5L));
+        registry.update(new WldtUpDownCounter(TEST_DT_ID, NS, "pa.connected", WldtMetricComponent.PHYSICAL_ADAPTER, 5L));
         assertEquals(Long.valueOf(3L), live.getDelta());
     }
 
     @Test @Order(6)
     public void testUpDownCounterNegativeDelta() {
-        WldtUpDownCounter live = new WldtUpDownCounter(NS, "pa.connected", WldtMetricComponent.PHYSICAL_ADAPTER, 5L);
+        WldtUpDownCounter live = new WldtUpDownCounter(TEST_DT_ID, NS, "pa.connected", WldtMetricComponent.PHYSICAL_ADAPTER, 5L);
         registry.register(live);
-        registry.update(new WldtUpDownCounter(NS, "pa.connected", WldtMetricComponent.PHYSICAL_ADAPTER, 3L));
+        registry.update(new WldtUpDownCounter(TEST_DT_ID, NS, "pa.connected", WldtMetricComponent.PHYSICAL_ADAPTER, 3L));
         assertEquals(Long.valueOf(-2L), live.getDelta());
         assertEquals(3L, live.getTroughValue());
     }
@@ -118,10 +120,10 @@ public class WldtMetricRegistryTest {
 
     @Test @Order(7)
     public void testGaugeUpdateAccumulatesMinMax() {
-        WldtGauge live = new WldtGauge(NS, "queue.depth", WldtMetricComponent.CUSTOM, 10.0);
+        WldtGauge live = new WldtGauge(TEST_DT_ID, NS, "queue.depth", WldtMetricComponent.CUSTOM, 10.0);
         registry.register(live);
-        registry.update(new WldtGauge(NS, "queue.depth", WldtMetricComponent.CUSTOM, 15.0));
-        registry.update(new WldtGauge(NS, "queue.depth", WldtMetricComponent.CUSTOM, 3.0));
+        registry.update(new WldtGauge(TEST_DT_ID, NS, "queue.depth", WldtMetricComponent.CUSTOM, 15.0));
+        registry.update(new WldtGauge(TEST_DT_ID, NS, "queue.depth", WldtMetricComponent.CUSTOM, 3.0));
         assertEquals(3.0,  live.getValue(),      0.0001);
         assertEquals(3.0,  live.getMinObserved(), 0.0001);
         assertEquals(15.0, live.getMaxObserved(), 0.0001);
@@ -134,10 +136,10 @@ public class WldtMetricRegistryTest {
 
     @Test @Order(8)
     public void testTimerUpdateAccumulates() {
-        WldtTimer live = new WldtTimer(NS, "latency", WldtMetricComponent.DT_MODEL, 100L);
+        WldtTimer live = new WldtTimer(TEST_DT_ID, NS, "latency", WldtMetricComponent.DT_MODEL, 100L);
         registry.register(live);
-        registry.update(new WldtTimer(NS, "latency", WldtMetricComponent.DT_MODEL, 200L));
-        registry.update(new WldtTimer(NS, "latency", WldtMetricComponent.DT_MODEL, 50L));
+        registry.update(new WldtTimer(TEST_DT_ID, NS, "latency", WldtMetricComponent.DT_MODEL, 200L));
+        registry.update(new WldtTimer(TEST_DT_ID, NS, "latency", WldtMetricComponent.DT_MODEL, 50L));
         assertEquals(50L,  live.getDurationMs());
         assertEquals(50L,  live.getMinDurationMs());
         assertEquals(200L, live.getMaxDurationMs());
@@ -151,10 +153,10 @@ public class WldtMetricRegistryTest {
 
     @Test @Order(9)
     public void testHistogramUpdateMergesWindows() {
-        WldtHistogram live = new WldtHistogram(NS, "msg_size", WldtMetricComponent.PHYSICAL_ADAPTER,
+        WldtHistogram live = new WldtHistogram(TEST_DT_ID, NS, "msg_size", WldtMetricComponent.PHYSICAL_ADAPTER,
                 2L, 20.0, 8.0, 12.0);
         registry.register(live);
-        registry.update(new WldtHistogram(NS, "msg_size", WldtMetricComponent.PHYSICAL_ADAPTER,
+        registry.update(new WldtHistogram(TEST_DT_ID, NS, "msg_size", WldtMetricComponent.PHYSICAL_ADAPTER,
                 3L, 60.0, 5.0, 25.0));
         assertEquals(5L,    live.getTotalCount());
         assertEquals(80.0,  live.getTotalSum(),  0.0001);
@@ -170,7 +172,7 @@ public class WldtMetricRegistryTest {
     @Test @Order(10)
     public void testUpdateUnregisteredMetricThrows() {
         assertThrows(IllegalStateException.class,
-                () -> registry.update(new WldtCounter(NS, NAME, WldtMetricComponent.DT_MODEL, 5L)));
+                () -> registry.update(new WldtCounter(TEST_DT_ID, NS, NAME, WldtMetricComponent.DT_MODEL, 5L)));
     }
 
     @Test @Order(11)
@@ -180,9 +182,9 @@ public class WldtMetricRegistryTest {
 
     @Test @Order(12)
     public void testUpdateTypeMismatchThrows() {
-        registry.register(new WldtCounter(NS, NAME, WldtMetricComponent.DT_MODEL, 0L));
+        registry.register(new WldtCounter(TEST_DT_ID, NS, NAME, WldtMetricComponent.DT_MODEL, 0L));
         assertThrows(IllegalArgumentException.class,
-                () -> registry.update(new WldtGauge(NS, NAME, WldtMetricComponent.DT_MODEL, 5.0)));
+                () -> registry.update(new WldtGauge(TEST_DT_ID, NS, NAME, WldtMetricComponent.DT_MODEL, 5.0)));
     }
 
     // -------------------------------------------------------------------------
@@ -191,7 +193,7 @@ public class WldtMetricRegistryTest {
 
     @Test @Order(13)
     public void testDeregisterRemovesMetric() {
-        WldtCounter c = new WldtCounter(NS, NAME, WldtMetricComponent.DT_MODEL, 10L);
+        WldtCounter c = new WldtCounter(TEST_DT_ID, NS, NAME, WldtMetricComponent.DT_MODEL, 10L);
         registry.register(c);
         registry.deregister(NS + "." + NAME);
         assertFalse(registry.isRegistered(NS + "." + NAME));
@@ -199,12 +201,12 @@ public class WldtMetricRegistryTest {
 
     @Test @Order(14)
     public void testDeregisterThenReregisterStartsFresh() {
-        WldtCounter live1 = new WldtCounter(NS, NAME, WldtMetricComponent.DT_MODEL, 10L);
+        WldtCounter live1 = new WldtCounter(TEST_DT_ID, NS, NAME, WldtMetricComponent.DT_MODEL, 10L);
         registry.register(live1);
-        registry.update(new WldtCounter(NS, NAME, WldtMetricComponent.DT_MODEL, 15L));
+        registry.update(new WldtCounter(TEST_DT_ID, NS, NAME, WldtMetricComponent.DT_MODEL, 15L));
         registry.deregister(NS + "." + NAME);
 
-        WldtCounter live2 = new WldtCounter(NS, NAME, WldtMetricComponent.DT_MODEL, 0L);
+        WldtCounter live2 = new WldtCounter(TEST_DT_ID, NS, NAME, WldtMetricComponent.DT_MODEL, 0L);
         registry.register(live2);
         assertNull(live2.getDelta(), "Delta must be null for freshly registered metric");
     }
@@ -220,9 +222,9 @@ public class WldtMetricRegistryTest {
 
     @Test @Order(16)
     public void testGetMetricReturnsLiveInstance() {
-        WldtCounter live = new WldtCounter(NS, NAME, WldtMetricComponent.DT_MODEL, 5L);
+        WldtCounter live = new WldtCounter(TEST_DT_ID, NS, NAME, WldtMetricComponent.DT_MODEL, 5L);
         registry.register(live);
-        registry.update(new WldtCounter(NS, NAME, WldtMetricComponent.DT_MODEL, 9L));
+        registry.update(new WldtCounter(TEST_DT_ID, NS, NAME, WldtMetricComponent.DT_MODEL, 9L));
 
         assertTrue(registry.getMetric(NS + "." + NAME).isPresent());
         assertSame(live, registry.getMetric(NS + "." + NAME).get());
@@ -236,16 +238,16 @@ public class WldtMetricRegistryTest {
 
     @Test @Order(18)
     public void testGetAllMetricsSize() {
-        registry.register(new WldtCounter(NS, "m1", WldtMetricComponent.DT_MODEL, 0L));
-        registry.register(new WldtGauge(NS, "m2", WldtMetricComponent.CUSTOM, 1.0));
-        registry.register(new WldtTimer(NS, "m3", WldtMetricComponent.STORAGE, 10L));
+        registry.register(new WldtCounter(TEST_DT_ID, NS, "m1", WldtMetricComponent.DT_MODEL, 0L));
+        registry.register(new WldtGauge(TEST_DT_ID, NS, "m2", WldtMetricComponent.CUSTOM, 1.0));
+        registry.register(new WldtTimer(TEST_DT_ID, NS, "m3", WldtMetricComponent.STORAGE, 10L));
         assertEquals(3, registry.getAllMetrics().size());
     }
 
     @Test @Order(19)
     public void testClearEmptiesRegistry() {
-        registry.register(new WldtCounter(NS, NAME, WldtMetricComponent.DT_MODEL, 5L));
-        registry.register(new WldtGauge(NS, "g", WldtMetricComponent.CUSTOM, 1.0));
+        registry.register(new WldtCounter(TEST_DT_ID, NS, NAME, WldtMetricComponent.DT_MODEL, 5L));
+        registry.register(new WldtGauge(TEST_DT_ID, NS, "g", WldtMetricComponent.CUSTOM, 1.0));
         assertEquals(2, registry.size());
         registry.clear();
         assertEquals(0, registry.size());

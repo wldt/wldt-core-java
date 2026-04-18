@@ -36,16 +36,16 @@ public class WldtCounter extends WldtMetric {
      * No value is recorded; {@link #isInitialized()} returns {@code false} until the
      * first mutation. Stats (delta, totalIncrements) are meaningless until initialized.
      */
-    public WldtCounter(String namespace, String name, WldtMetricComponent component) {
-        super(namespace, name, component);
+    public WldtCounter(String digitalTwinId, String namespace, String name, WldtMetricComponent component) {
+        super(digitalTwinId, namespace, name, component);
         this.value           = 0;
         this.delta           = null;
         this.totalIncrements = 0;
         this.initialized     = false;
     }
 
-    public WldtCounter(String namespace, String name, WldtMetricComponent component, long initialValue) {
-        super(namespace, name, component);
+    public WldtCounter(String digitalTwinId, String namespace, String name, WldtMetricComponent component, long initialValue) {
+        super(digitalTwinId, namespace, name, component);
         if (initialValue < 0)
             throw new IllegalArgumentException("WldtCounter initialValue must be non-negative, got: " + initialValue);
         this.value           = initialValue;
@@ -106,7 +106,7 @@ public class WldtCounter extends WldtMetric {
     }
 
     private WldtCounter(WldtCounter source) {
-        super(source.getNamespace(), source.getName(), source.getComponent());
+        super(source.getDigitalTwinId(), source.getNamespace(), source.getName(), source.getComponent());
         this.value           = source.value;
         this.delta           = source.delta;
         this.totalIncrements = source.totalIncrements;
@@ -118,7 +118,7 @@ public class WldtCounter extends WldtMetric {
     public synchronized WldtCounter copy() { return new WldtCounter(this); }
 
     @Override
-    public WldtCounter emptySnapshot() { return new WldtCounter(getNamespace(), getName(), getComponent()); }
+    public WldtCounter emptySnapshot() { return new WldtCounter(getDigitalTwinId(), getNamespace(), getName(), getComponent()); }
 
     /** @return current cumulative counter value */
     public synchronized long getValue() { return value; }

@@ -47,8 +47,8 @@ public class WldtHistogram extends WldtMetric {
      * or {@link #update(long, double, double, double)} call. All stats are 0 and must not
      * be used before initialization.
      */
-    public WldtHistogram(String namespace, String name, WldtMetricComponent component) {
-        super(namespace, name, component);
+    public WldtHistogram(String digitalTwinId, String namespace, String name, WldtMetricComponent component) {
+        super(digitalTwinId, namespace, name, component);
         this.count       = 0;
         this.sum         = 0;
         this.min         = 0;
@@ -61,9 +61,9 @@ public class WldtHistogram extends WldtMetric {
         this.initialized = false;
     }
 
-    public WldtHistogram(String namespace, String name, WldtMetricComponent component,
+    public WldtHistogram(String digitalTwinId, String namespace, String name, WldtMetricComponent component,
                          long count, double sum, double min, double max) {
-        super(namespace, name, component);
+        super(digitalTwinId, namespace, name, component);
         validateWindow(count, sum, min, max);
         this.count       = count;
         this.sum         = sum;
@@ -153,7 +153,7 @@ public class WldtHistogram extends WldtMetric {
     }
 
     private WldtHistogram(WldtHistogram source) {
-        super(source.getNamespace(), source.getName(), source.getComponent());
+        super(source.getDigitalTwinId(), source.getNamespace(), source.getName(), source.getComponent());
         this.count       = source.count;
         this.sum         = source.sum;
         this.min         = source.min;
@@ -171,7 +171,7 @@ public class WldtHistogram extends WldtMetric {
     public synchronized WldtHistogram copy() { return new WldtHistogram(this); }
 
     @Override
-    public WldtHistogram emptySnapshot() { return new WldtHistogram(getNamespace(), getName(), getComponent()); }
+    public WldtHistogram emptySnapshot() { return new WldtHistogram(getDigitalTwinId(), getNamespace(), getName(), getComponent()); }
 
     // --- Current-window accessors ---
 

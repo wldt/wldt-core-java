@@ -181,81 +181,102 @@ public abstract class DigitalTwinModel implements WldtEventListener {
         if(this.monitoringInterface != null && this.monitoringInterface.isActive(WldtMetricComponent.DT_MODEL)){
 
             // Build metric namespace
-            this.metricsNamespace = CoreMonitoringUtils.buildNamespace(
-                    this.digitalTwinStateManager.getDigitalTwinId(),
-                    CoreMonitoringUtils.DT_COMPONENT_MODEL_KEY);
+            this.metricsNamespace = CoreMonitoringUtils.buildCoreNamespace();
 
             // Register Counter Metric(s) - PA Property Variation
-            this.monitoringInterface.registerMetric(new WldtCounter(this.metricsNamespace,
+            this.monitoringInterface.registerMetric(new WldtCounter(this.digitalTwinStateManager.getDigitalTwinId(),
+                    this.metricsNamespace,
                     CoreMonitoringUtils.PT_PROPERTY_VARIATION_EXEC_SUCCESS_COUNT,
                     WldtMetricComponent.DT_MODEL));
 
-            this.monitoringInterface.registerMetric(new WldtCounter(this.metricsNamespace,
+            this.monitoringInterface.registerMetric(new WldtCounter(this.digitalTwinStateManager.getDigitalTwinId(),
+                    this.metricsNamespace,
                     CoreMonitoringUtils.PT_PROPERTY_VARIATION_EXEC_ERROR_COUNT,
                     WldtMetricComponent.DT_MODEL));
 
             // Register Execution Time Metrics - PA Property Variation
             this.monitoringInterface.registerMetric(new WldtTimer(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
                     this.metricsNamespace,
                     CoreMonitoringUtils.PT_PROPERTY_VARIATION_EXEC_TIME,
                     WldtMetricComponent.DT_MODEL));
 
             // Register Counter Metric(s) - PA Event Notification
-            this.monitoringInterface.registerMetric(new WldtCounter(this.metricsNamespace,
+            this.monitoringInterface.registerMetric(new WldtCounter(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
+                    this.metricsNamespace,
                     CoreMonitoringUtils.PT_EVENT_NOTIFICATION_EXEC_SUCCESS_COUNT,
                     WldtMetricComponent.DT_MODEL));
 
-            this.monitoringInterface.registerMetric(new WldtCounter(this.metricsNamespace,
+            this.monitoringInterface.registerMetric(new WldtCounter(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
+                    this.metricsNamespace,
                     CoreMonitoringUtils.PT_EVENT_NOTIFICATION_EXEC_ERROR_COUNT,
                     WldtMetricComponent.DT_MODEL));
 
             // Register Execution Time Metrics - PA Event Notification
             this.monitoringInterface.registerMetric(new WldtTimer(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
                     this.metricsNamespace,
                     CoreMonitoringUtils.PT_EVENT_NOTIFICATION_EXEC_TIME,
                     WldtMetricComponent.DT_MODEL));
 
             // Register Counter Metric(s) - PA Relationship Created
-            this.monitoringInterface.registerMetric(new WldtCounter(this.metricsNamespace,
+            this.monitoringInterface.registerMetric(new WldtCounter(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
+                    this.metricsNamespace,
                     CoreMonitoringUtils.PT_RELATIONSHIP_INSTANCE_CREATED_SUCCESS_COUNT,
                     WldtMetricComponent.DT_MODEL));
 
-            this.monitoringInterface.registerMetric(new WldtCounter(this.metricsNamespace,
+            this.monitoringInterface.registerMetric(new WldtCounter(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
+                    this.metricsNamespace,
                     CoreMonitoringUtils.PT_RELATIONSHIP_INSTANCE_CREATED_ERROR_COUNT,
                     WldtMetricComponent.DT_MODEL));
 
             // Register Execution Time Metrics - PA Relationship Created
             this.monitoringInterface.registerMetric(new WldtTimer(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
                     this.metricsNamespace,
                     CoreMonitoringUtils.PT_RELATIONSHIP_INSTANCE_CREATED_EXEC_TIME,
                     WldtMetricComponent.DT_MODEL));
 
             // Register Counter Metric(s) - PA Relationship DELETED
-            this.monitoringInterface.registerMetric(new WldtCounter(this.metricsNamespace,
+            this.monitoringInterface.registerMetric(new WldtCounter(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
+                    this.metricsNamespace,
                     CoreMonitoringUtils.PT_RELATIONSHIP_INSTANCE_DELETED_SUCCESS_COUNT,
                     WldtMetricComponent.DT_MODEL));
 
-            this.monitoringInterface.registerMetric(new WldtCounter(this.metricsNamespace,
+            this.monitoringInterface.registerMetric(new WldtCounter(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
+                    this.metricsNamespace,
                     CoreMonitoringUtils.PT_RELATIONSHIP_INSTANCE_DELETED_ERROR_COUNT,
                     WldtMetricComponent.DT_MODEL));
 
             // Register Execution Time Metrics - PA Relationship Created
             this.monitoringInterface.registerMetric(new WldtTimer(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
                     this.metricsNamespace,
                     CoreMonitoringUtils.PT_RELATIONSHIP_INSTANCE_DELETED_EXEC_TIME,
                     WldtMetricComponent.DT_MODEL));
 
             // Register Counter Metric(s) - Digital Action Request
-            this.monitoringInterface.registerMetric(new WldtCounter(this.metricsNamespace,
+            this.monitoringInterface.registerMetric(new WldtCounter(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
+                    this.metricsNamespace,
                     CoreMonitoringUtils.DIGITAL_ACTION_REQUEST_SUCCESS_COUNT,
                     WldtMetricComponent.DT_MODEL));
 
-            this.monitoringInterface.registerMetric(new WldtCounter(this.metricsNamespace,
+            this.monitoringInterface.registerMetric(new WldtCounter(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
+                    this.metricsNamespace,
                     CoreMonitoringUtils.DIGITAL_ACTION_REQUEST_ERROR_COUNT,
                     WldtMetricComponent.DT_MODEL));
 
             // Register Execution Time Metrics - Digital Action Request
             this.monitoringInterface.registerMetric(new WldtTimer(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
                     this.metricsNamespace,
                     CoreMonitoringUtils.DIGITAL_ACTION_REQUEST_EXEC_TIME,
                     WldtMetricComponent.DT_MODEL));

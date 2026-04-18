@@ -37,8 +37,8 @@ public class WldtUpDownCounter extends WldtMetric {
      * Constructs an uninitialized {@code WldtUpDownCounter} for pre-registration.
      * {@link #isInitialized()} returns {@code false} until the first mutation.
      */
-    public WldtUpDownCounter(String namespace, String name, WldtMetricComponent component) {
-        super(namespace, name, component);
+    public WldtUpDownCounter(String digitalTwinId, String namespace, String name, WldtMetricComponent component) {
+        super(digitalTwinId, namespace, name, component);
         this.value        = 0;
         this.delta        = null;
         this.peakValue    = 0;
@@ -47,8 +47,8 @@ public class WldtUpDownCounter extends WldtMetric {
         this.initialized  = false;
     }
 
-    public WldtUpDownCounter(String namespace, String name, WldtMetricComponent component, long initialValue) {
-        super(namespace, name, component);
+    public WldtUpDownCounter(String digitalTwinId, String namespace, String name, WldtMetricComponent component, long initialValue) {
+        super(digitalTwinId, namespace, name, component);
         this.value        = initialValue;
         this.delta        = null;
         this.peakValue    = initialValue;
@@ -112,7 +112,7 @@ public class WldtUpDownCounter extends WldtMetric {
     }
 
     private WldtUpDownCounter(WldtUpDownCounter source) {
-        super(source.getNamespace(), source.getName(), source.getComponent());
+        super(source.getDigitalTwinId(), source.getNamespace(), source.getName(), source.getComponent());
         this.value        = source.value;
         this.delta        = source.delta;
         this.peakValue    = source.peakValue;
@@ -126,7 +126,7 @@ public class WldtUpDownCounter extends WldtMetric {
     public synchronized WldtUpDownCounter copy() { return new WldtUpDownCounter(this); }
 
     @Override
-    public WldtUpDownCounter emptySnapshot() { return new WldtUpDownCounter(getNamespace(), getName(), getComponent()); }
+    public WldtUpDownCounter emptySnapshot() { return new WldtUpDownCounter(getDigitalTwinId(), getNamespace(), getName(), getComponent()); }
 
     /** @return current absolute counter value */
     public synchronized long getValue()          { return value; }

@@ -40,9 +40,9 @@ public final class PrometheusHandlerConfiguration {
     }
 
     public static final int    DEFAULT_HTTP_PORT        = 9090;
-    public static final long   DEFAULT_PUSH_INTERVAL_MS = 15_000L;
-    public static final String DEFAULT_METRIC_PREFIX    = "wldt";
-    public static final String DEFAULT_JOB_NAME         = "wldt";
+    public static final long   DEFAULT_PUSH_INTERVAL_MS = 1_000L;
+    public static final String DEFAULT_METRIC_PREFIX    = "dw";
+    public static final String DEFAULT_JOB_NAME         = "dw";
 
     private final WorkingMode workingMode;
     private final int         httpPort;
@@ -52,16 +52,18 @@ public final class PrometheusHandlerConfiguration {
     private final String      pushGatewayPassword;  // nullable
     private final long        pushIntervalMs;
     private final String      metricPrefix;
+    private final String      dtId;                 // nullable — used for per-DT PushGateway deletion
 
     private PrometheusHandlerConfiguration(Builder b) {
-        this.workingMode        = b.workingMode;
-        this.httpPort           = b.httpPort;
-        this.pushGatewayAddress = b.pushGatewayAddress;
-        this.jobName            = b.jobName;
+        this.workingMode         = b.workingMode;
+        this.httpPort            = b.httpPort;
+        this.pushGatewayAddress  = b.pushGatewayAddress;
+        this.jobName             = b.jobName;
         this.pushGatewayUsername = b.pushGatewayUsername;
         this.pushGatewayPassword = b.pushGatewayPassword;
-        this.pushIntervalMs     = b.pushIntervalMs;
-        this.metricPrefix       = b.metricPrefix;
+        this.pushIntervalMs      = b.pushIntervalMs;
+        this.metricPrefix        = b.metricPrefix;
+        this.dtId                = b.dtId;
     }
 
     public WorkingMode getWorkingMode()        { return workingMode; }
@@ -75,19 +77,22 @@ public final class PrometheusHandlerConfiguration {
     public String      getPushGatewayPassword(){ return pushGatewayPassword; }
     public long        getPushIntervalMs()     { return pushIntervalMs; }
     public String      getMetricPrefix()       { return metricPrefix; }
+    /** @return DT instance ID used to scope PushGateway deletion, or {@code null} if not set */
+    public String      getDtId()               { return dtId; }
 
     // -------------------------------------------------------------------------
 
     public static final class Builder {
 
-        private WorkingMode workingMode        = WorkingMode.HTTP_SERVER;
-        private int         httpPort           = DEFAULT_HTTP_PORT;
-        private String      pushGatewayAddress = null;
-        private String      jobName            = DEFAULT_JOB_NAME;
+        private WorkingMode workingMode         = WorkingMode.HTTP_SERVER;
+        private int         httpPort            = DEFAULT_HTTP_PORT;
+        private String      pushGatewayAddress  = null;
+        private String      jobName             = DEFAULT_JOB_NAME;
         private String      pushGatewayUsername = null;
         private String      pushGatewayPassword = null;
-        private long        pushIntervalMs     = DEFAULT_PUSH_INTERVAL_MS;
-        private String      metricPrefix       = DEFAULT_METRIC_PREFIX;
+        private long        pushIntervalMs      = DEFAULT_PUSH_INTERVAL_MS;
+        private String      metricPrefix        = DEFAULT_METRIC_PREFIX;
+        private String      dtId                = null;
 
         /** Select HTTP server scrape mode (default). */
         public Builder withHttpServer() {
@@ -131,6 +136,16 @@ public final class PrometheusHandlerConfiguration {
         /** Prefix prepended to every Prometheus metric name (default {@value DEFAULT_METRIC_PREFIX}). */
         public Builder withMetricPrefix(String prefix) {
             this.metricPrefix = prefix;
+            return this;
+        }
+
+        /**
+         * Sets the Digital Twin ID used to scope PushGateway metric deletion on {@code stop()}.
+         * When set, {@code stop()} issues a {@code DELETE /metrics/job/<job>/dt_id/<dtId>}
+         * to remove only this DT's metrics from the PushGateway.
+         */
+        public Builder withDtId(String dtId) {
+            this.dtId = dtId;
             return this;
         }
 

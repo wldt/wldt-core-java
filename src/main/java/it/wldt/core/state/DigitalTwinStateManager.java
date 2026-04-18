@@ -661,21 +661,24 @@ public class DigitalTwinStateManager {
         if(this.monitoringInterface != null && this.monitoringInterface.isActive(WldtMetricComponent.DT_MODEL)){
 
             // Build metric namespace
-            this.metricsNamespace = CoreMonitoringUtils.buildNamespace(
-                    this.digitalTwinId,
-                    CoreMonitoringUtils.DT_COMPONENT_STATE_KEY);
+            this.metricsNamespace = CoreMonitoringUtils.buildCoreNamespace();
 
             // Register Counter Metric(s) - DT State Computation
-            this.monitoringInterface.registerMetric(new WldtCounter(this.metricsNamespace,
+            this.monitoringInterface.registerMetric(new WldtCounter(
+                    this.digitalTwinId,
+                    this.metricsNamespace,
                     CoreMonitoringUtils.DT_STATE_COMPUTATION_SUCCESS_COUNT,
                     WldtMetricComponent.DT_MODEL));
 
-            this.monitoringInterface.registerMetric(new WldtCounter(this.metricsNamespace,
+            this.monitoringInterface.registerMetric(new WldtCounter(
+                    this.digitalTwinId,
+                    this.metricsNamespace,
                     CoreMonitoringUtils.DT_STATE_COMPUTATION_ERROR_COUNT,
                     WldtMetricComponent.DT_MODEL));
 
             // Register Execution Time Metrics - DT State Computation
             this.monitoringInterface.registerMetric(new WldtTimer(
+                    this.digitalTwinId,
                     this.metricsNamespace,
                     CoreMonitoringUtils.DT_STATE_COMPUTATION_EXEC_TIME,
                     WldtMetricComponent.DT_MODEL));

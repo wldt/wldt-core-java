@@ -2,13 +2,10 @@ package it.wldt.monitoring;
 
 public class CoreMonitoringUtils {
 
-    public static final String NAMESPACE_PREFIX = "dt";
-
-    public static final String DT_COMPONENT_MODEL_KEY = "dt_model";
-
-    public static final String DT_COMPONENT_STATE_KEY = "dt_state";
-
-    public static final String DT_COMPONENT_PHYSICAL_ADAPTER_KEY = "physical_adapter";
+    //public static final String NAMESPACE_PREFIX = "dt";
+    //public static final String DT_COMPONENT_MODEL_KEY = "dt_model";
+    //public static final String DT_COMPONENT_STATE_KEY = "dt_state";
+    //public static final String DT_COMPONENT_PHYSICAL_ADAPTER_KEY = "physical_adapter";
 
     // Physical Asset - Property Variation
     public static final String PT_PROPERTY_VARIATION_EXEC_TIME = "pt_property_variation_exec_time";
@@ -75,9 +72,9 @@ public class CoreMonitoringUtils {
 
     public static final String PHYSICAL_ADAPTER_ACTION_COMPUTATION_ERROR_COUNT = "pa_action_computation_exec_error_count";
 
-    public static String buildNamespace(String digitalTwinId, String dtModule){
+    public static String buildCoreNamespace(){
         // Lowercase both DT id and dt module
-        return String.format("%s.%s.%s", NAMESPACE_PREFIX, digitalTwinId.toLowerCase(), dtModule.toLowerCase().replace(" ", "_"));
+        return "core";
     }
 
 }

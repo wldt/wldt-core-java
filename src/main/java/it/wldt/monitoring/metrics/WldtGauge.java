@@ -35,8 +35,8 @@ public class WldtGauge extends WldtMetric {
      * Constructs an uninitialized {@code WldtGauge} for pre-registration.
      * {@link #isInitialized()} returns {@code false} until the first {@link #update(double)}.
      */
-    public WldtGauge(String namespace, String name, WldtMetricComponent component) {
-        super(namespace, name, component);
+    public WldtGauge(String digitalTwinId, String namespace, String name, WldtMetricComponent component) {
+        super(digitalTwinId, namespace, name, component);
         this.value         = 0.0;
         this.previousValue = null;
         this.delta         = null;
@@ -46,8 +46,8 @@ public class WldtGauge extends WldtMetric {
         this.initialized   = false;
     }
 
-    public WldtGauge(String namespace, String name, WldtMetricComponent component, double initialValue) {
-        super(namespace, name, component);
+    public WldtGauge(String digitalTwinId, String namespace, String name, WldtMetricComponent component, double initialValue) {
+        super(digitalTwinId, namespace, name, component);
         if (Double.isNaN(initialValue) || Double.isInfinite(initialValue))
             throw new IllegalArgumentException("WldtGauge value must be finite, got: " + initialValue);
         this.value         = initialValue;
@@ -89,7 +89,7 @@ public class WldtGauge extends WldtMetric {
     }
 
     private WldtGauge(WldtGauge source) {
-        super(source.getNamespace(), source.getName(), source.getComponent());
+        super(source.getDigitalTwinId(), source.getNamespace(), source.getName(), source.getComponent());
         this.value         = source.value;
         this.previousValue = source.previousValue;
         this.delta         = source.delta;
@@ -104,7 +104,7 @@ public class WldtGauge extends WldtMetric {
     public synchronized WldtGauge copy() { return new WldtGauge(this); }
 
     @Override
-    public WldtGauge emptySnapshot() { return new WldtGauge(getNamespace(), getName(), getComponent()); }
+    public WldtGauge emptySnapshot() { return new WldtGauge(getDigitalTwinId(), getNamespace(), getName(), getComponent()); }
 
     /** @return current observed value */
     public synchronized double getValue()          { return value; }

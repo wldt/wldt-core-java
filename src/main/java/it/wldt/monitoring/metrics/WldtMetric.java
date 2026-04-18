@@ -25,6 +25,7 @@ package it.wldt.monitoring.metrics;
  */
 public abstract class WldtMetric {
 
+    private final String digitalTwinId;
     private final String namespace;
     private final String name;
     private final WldtMetricComponent component;
@@ -49,7 +50,10 @@ public abstract class WldtMetric {
      * @param component the DT component that emitted this metric
      * @throws IllegalArgumentException if namespace, name, or component is null or blank
      */
-    protected WldtMetric(String namespace, String name, WldtMetricComponent component) {
+    protected WldtMetric(String digitalTwinId, String namespace, String name, WldtMetricComponent component) {
+
+        if (digitalTwinId == null || digitalTwinId.trim().isEmpty())
+            throw new IllegalArgumentException("Digital Twin ID must not be null or blank");
         if (namespace == null || namespace.trim().isEmpty())
             throw new IllegalArgumentException("Metric namespace must not be null or blank");
         if (name == null || name.trim().isEmpty())
@@ -57,6 +61,7 @@ public abstract class WldtMetric {
         if (component == null)
             throw new IllegalArgumentException("Metric component must not be null");
 
+        this.digitalTwinId = digitalTwinId;
         this.namespace     = namespace;
         this.name          = name;
         this.component     = component;
@@ -93,6 +98,10 @@ public abstract class WldtMetric {
     public WldtMetricComponent getComponent() { return component; }
     public long getTimestampMs()    { return timestampMs; }
     public long getLastUpdatedMs()  { return lastUpdatedMs; }
+
+    public String getDigitalTwinId() {
+        return digitalTwinId;
+    }
 
     @Override
     public String toString() {
