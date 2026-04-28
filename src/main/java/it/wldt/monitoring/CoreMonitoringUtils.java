@@ -72,6 +72,25 @@ public class CoreMonitoringUtils {
 
     public static final String PHYSICAL_ADAPTER_ACTION_COMPUTATION_ERROR_COUNT = "pa_action_computation_exec_error_count";
 
+    // Digital Adapter
+
+    public static final String DIGITAL_ADAPTER_ACTION_EVENT_PUB_SUCCESS_COUNT = "da_action_event_pub_success_count";
+
+    public static final String DIGITAL_ADAPTER_ACTION_EVENT_PUB_ERROR_COUNT = "da_action_event_pub_error_count";
+
+    public static final String DIGITAL_ADAPTER_STATE_UPDATE_EXEC_TIME = "da_state_update_processing_exec_time";
+
+    public static final String DIGITAL_ADAPTER_STATE_UPDATE_SUCCESS_COUNT = "da_state_update_processing_exec_success_count";
+
+    public static final String DIGITAL_ADAPTER_STATE_UPDATE_ERROR_COUNT = "da_state_update_processing_exec_error_count";
+
+    public static final String DIGITAL_EVENT_NOTIFICATION_EXEC_TIME = "da_event_notification_processing_exec_time";
+
+    public static final String DIGITAL_EVENT_NOTIFICATION_SUCCESS_COUNT = "da_event_notification_processing_exec_success_count";
+
+    public static final String DIGITAL_EVENT_NOTIFICATION_ERROR_COUNT = "da_event_notification_processing_exec_error_count";
+
+
     public static String buildCoreNamespace(){
         // Lowercase both DT id and dt module
         return "core";

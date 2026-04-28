@@ -743,6 +743,13 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
 
         this.getDigitalAdapterList().forEach(digitalAdapter -> {
             logger.info("Executing DigitalAdapter: {}", digitalAdapter.getClass());
+
+            // Before Executing the Digital Adapter set the reference to the Monitoring Interface
+            if(this.monitoringInterface != null)
+                digitalAdapter.setMonitoringInterface(this.monitoringInterface);
+            else
+                logger.warn("Monitoring Interface is not properly configured and it is not set to the Digital Adapter ...");
+
             digitalAdapterExecutor.execute(digitalAdapter);
         });
 
