@@ -25,7 +25,7 @@ The documentation is structured in the following subsections:
 
 - [Architecture & Components](#augmentation-function---architecture--components): Overview of the hierarchical augmentation architecture, including DT Kernel, Augmentation Manager, Function Handlers, and data flow patterns
 - [Function Types](#augmentation-function-types): Detailed comparison of Stateless and Stateful augmentation functions, their characteristics, execution models, and use cases
-- [Handler & Manager](#augmentation-function-handler): `AugmentationFunctionHandler` abstract class, `DefaultAugmentationFunctionHandler`, listener interfaces (`AugmentationLifeCycleListener`, `StatelessAugmentationListener`, `StatefulAugmentationListener`), and `AugmentationManager`
+- [Handler & Manager](#augmentation-function-handler): `AugmentationFunctionHandler` abstract class, `DefaultAugmentationFunctionHandler`, listener interfaces (`AugmentationLifeCycleListener`, `StatefulAugmentationListener`), and `AugmentationManager`
 - [Lifecycle & Registration Flow](#registering-and-unregistering-augmentation-functions): Event-driven registration and unregistration lifecycle, synchronization phases, and DTM discovery callbacks
 - [Registration API](#augmentation-function-registration-api): Programmatic API for obtaining the `AugmentationManager`, unregistering functions and handlers, and querying registered components
 - [Context & Context Request](#augmentation-function-context--context-request): Description of `AugmentationFunctionContext`, `AugmentationFunctionContextRequest`, `AugmentationFunctionRequest`, and `AugmentationFunctionRequestType`
@@ -186,8 +186,8 @@ offering a uniform interface to the Digital Twin Model.
 ### AugmentationFunctionHandler
 
 `AugmentationFunctionHandler` is the **abstract base class** for all augmentation function handlers.
-It extends `DigitalTwinWorker` and implements `StatelessAugmentationListener`,
-`StatefulAugmentationListener`, `WldtEventListener`, and `AugmentationLifeCycleListener`,
+It extends `DigitalTwinWorker` and implements `StatefulAugmentationListener`,
+`WldtEventListener`, and `AugmentationLifeCycleListener`,
 providing the common infrastructure for function registration, event subscription, and result publication.
 
 #### Public Registration Methods
@@ -233,7 +233,7 @@ protected abstract void handleAugmentationFunctionStop(StatefulAugmentationFunct
     throws AugmentationFunctionException;
 
 // Called to execute a stateless function — should invoke function.run(request) and return results
-protected abstract List<AugmentationFunctionResult<?>> handleAugmentationFunctionExecution(
+protected abstract AugmentationFunctionResultList handleAugmentationFunctionExecution(
     StatelessAugmentationFunction function, AugmentationFunctionRequest request)
     throws AugmentationFunctionException;
 
@@ -314,37 +314,18 @@ public interface AugmentationLifeCycleListener {
 
 ---
 
-#### StatelessAugmentationListener
-
-`StatelessAugmentationListener` is implemented by `AugmentationFunctionHandler` and is automatically
-set on each registered stateless function. It receives **error notifications** from stateless functions.
-
-```java
-public interface StatelessAugmentationListener {
-
-    void onStatelessAugmentationFunctionError(String augmentationFunctionId,
-                                              AugmentationFunctionError augmentationFunctionError);
-}
-```
-
----
-
 #### StatefulAugmentationListener
 
 `StatefulAugmentationListener` is implemented by `AugmentationFunctionHandler` and is automatically
-set on each registered stateful function. It receives **results**, **errors**, and **query refresh
-requests** from stateful functions.
+set on each registered stateful function. It receives **results** (including embedded errors) and
+**query refresh requests** from stateful functions.
 
 ```java
 public interface StatefulAugmentationListener {
 
-    // Called when the stateful function produces new results
+    // Called when the stateful function produces new results (or reports an error)
     void onStatefulAugmentationFunctionResult(String augmentationFunctionId,
-                                              List<AugmentationFunctionResult<?>> resultList);
-
-    // Called when the stateful function encounters an error
-    void onStatefulAugmentationFunctionError(String augmentationFunctionId,
-                                             AugmentationFunctionError augmentationFunctionError);
+                                              AugmentationFunctionResultList augmentationFunctionResultList);
 
     // Called when the stateful function requests a query result refresh from DT storage
     void onStatefulAugmentationFunctionQueryResultRefresh(String augmentationFunctionId,
@@ -352,9 +333,11 @@ public interface StatefulAugmentationListener {
 }
 ```
 
-> **Note**: These interfaces are part of the internal communication channel between functions and
-> their handlers. They are implemented by the framework's `AugmentationFunctionHandler` and set
-> automatically—developers do not typically implement them directly.
+> **Note**: Since v0.7.1, errors are embedded directly in `AugmentationFunctionResultList` rather than
+> delivered through a separate error callback. After receiving results, check `resultList.hasError()`
+> to detect error conditions. This interface is part of the internal communication channel between
+> functions and their handlers — implemented by `AugmentationFunctionHandler` and set
+> automatically; developers do not typically implement it directly.
 
 ---
 
@@ -639,11 +622,11 @@ public class HistoryAwareStatelessFunction extends StatelessAugmentationFunction
     }
 
     @Override
-    protected List<AugmentationFunctionResult<?>> run(AugmentationFunctionRequest request)
+    protected AugmentationFunctionResultList run(AugmentationFunctionRequest request)
             throws AugmentationFunctionException {
         QueryResult<?> history = request.getContext().getQueryResult();
         // use history ...
-        return Collections.emptyList();
+        return new AugmentationFunctionResultList();
     }
 }
 
@@ -703,7 +686,7 @@ public AugmentationFunctionRequest(String requestId,
 
 ```java
 @Override
-public List<AugmentationFunctionResult<?>> run(AugmentationFunctionRequest request)
+public AugmentationFunctionResultList run(AugmentationFunctionRequest request)
         throws AugmentationFunctionException {
 
     // Retrieve the request type
@@ -765,7 +748,7 @@ For **stateless functions**, the context and context request are used **only onc
 public class StatelessPredictionFunction extends StatelessAugmentationFunction {
     
     @Override
-    public List<AugmentationFunctionResult<?>> run(AugmentationFunctionRequest request) 
+    public AugmentationFunctionResultList run(AugmentationFunctionRequest request)
             throws AugmentationFunctionException {
         // Context used once per execution
         DigitalTwinState currentState = request.getContext().getDigitalTwinState();
@@ -773,6 +756,7 @@ public class StatelessPredictionFunction extends StatelessAugmentationFunction {
         
         // Perform prediction using current state and history
         // Return results
+        return new AugmentationFunctionResultList();
     }
 }
 ```
@@ -897,7 +881,7 @@ public class StatefulPollingAugmentationFunction extends StatefulAugmentationFun
                 Map.of("query_timestamp", System.currentTimeMillis())
         );
 
-        notifyResult(Collections.singletonList(result));
+        notifyResult(new AugmentationFunctionResultList(result));
     }
 
     @Override
@@ -1103,6 +1087,29 @@ operation. The function begins processing and producing results asynchronously.
 
 ---
 
+### Query Running State (Stateful)
+
+```java
+// Search across all handlers for the function and return its running state
+protected boolean isStatefulAugmentationFunctionRunning(String augmentationFunctionId)
+    throws AugmentationFunctionException
+
+// Target a specific handler explicitly
+protected boolean isStatefulAugmentationFunctionRunning(String augmentationFunctionHandlerId,
+                                                        String augmentationFunctionId)
+    throws AugmentationFunctionException
+```
+
+Returns `true` if the specified stateful function has been started and not yet stopped.
+Throws `AugmentationFunctionException` if the function is not found or is not of type `STATEFUL`.
+
+> **Note**: `startAugmentationFunction()` is a no-op if the target function is already running,
+> and `stopAugmentationFunction()` is a no-op if the target function is already stopped.
+> Guard checks happen automatically — you do not need to call `isStatefulAugmentationFunctionRunning()`
+> before start/stop unless your application logic requires it.
+
+---
+
 ### Stop Augmentation Function (Stateful)
 
 ```java
@@ -1226,6 +1233,83 @@ public class AugmentationFunctionResult<T> {
 
 ---
 
+### AugmentationFunctionResultList
+
+`AugmentationFunctionResultList` extends `ArrayList<AugmentationFunctionResult<?>>` and is the
+standard container returned by augmentation functions and received by the Digital Twin Model.
+It can carry either a list of results **or** an `AugmentationFunctionError` — not both.
+When an error is set the list becomes immutable: all mutating operations (`add`, `set`, `remove`, `clear`)
+throw `IllegalStateException`, while read operations remain available.
+
+#### Structure
+
+```java
+public class AugmentationFunctionResultList extends ArrayList<AugmentationFunctionResult<?>> {
+    private AugmentationFunctionError augmentationFunctionError;
+}
+```
+
+#### Constructors
+
+```java
+// Empty list — add results with the standard List API
+public AugmentationFunctionResultList()
+
+// Single-result convenience constructor
+public AugmentationFunctionResultList(AugmentationFunctionResult<?> result)
+
+// Error-state constructor — list starts immutable with the given error
+public AugmentationFunctionResultList(AugmentationFunctionError augmentationFunctionError)
+```
+
+#### Key Methods
+
+| Method | Description |
+|--------|-------------|
+| `hasError()` | Returns `true` if the list is in error state |
+| `getAugmentationFunctionError()` | Returns the `AugmentationFunctionError`, or `null` if none |
+| `setAugmentationFunctionError(AugmentationFunctionError)` | Sets the error and locks all mutations |
+
+#### Usage
+
+```java
+// Return a single result from a stateless function
+@Override
+protected AugmentationFunctionResultList run(AugmentationFunctionRequest request)
+        throws AugmentationFunctionException {
+    AugmentationFunctionResult<Double> result = new AugmentationFunctionResult<>(
+            AugmentationFunctionResultType.GENERIC_RESULT, "value", 42.0, null, null);
+    return new AugmentationFunctionResultList(result);
+}
+
+// Return multiple results
+AugmentationFunctionResultList results = new AugmentationFunctionResultList();
+results.add(result1);
+results.add(result2);
+return results;
+
+// Return an error instead of results
+return new AugmentationFunctionResultList(
+    new AugmentationFunctionError(AugmentationFunctionErrorType.ERROR, "computation failed")
+);
+
+// Checking for errors in the DTM callback
+@Override
+protected void onAugmentationFunctionResultEvent(String handlerId, String functionId,
+                                                 AugmentationFunctionResultList resultList) {
+    if (resultList.hasError()) {
+        logger.warn("Function {} reported error: {}", functionId,
+                    resultList.getAugmentationFunctionError().getMessage());
+        return;
+    }
+    for (AugmentationFunctionResult<?> result : resultList) {
+        // process result ...
+    }
+}
+```
+
+---
+
 ### AugmentationFunctionResultType Enum
 
 The result type enum defines the categories of outputs that augmentation functions can produce:
@@ -1336,12 +1420,12 @@ Creates a new augmentation function result. `augmentationFunctionResultMetrics` 
 
 ### Result Production in Augmentation Functions
 
-Augmentation functions can produce **multiple results** in a single execution, returned as a `List<AugmentationFunctionResult<?>>`. This allows a function to suggest multiple property updates, events, or relationships simultaneously.
+Augmentation functions can produce **multiple results** in a single execution, returned as an `AugmentationFunctionResultList`. This allows a function to suggest multiple property updates, events, or relationships simultaneously.
 
 #### Example: Multi-Result
 
 ```java
-  List<AugmentationFunctionResult<?>> results = new ArrayList<>();
+  AugmentationFunctionResultList results = new AugmentationFunctionResultList();
   
   // Result 1: Predicted failure probability as property
   results.add(new AugmentationFunctionResult<>(
@@ -1384,13 +1468,13 @@ which provides a **list of results** from a single function (both for `Stateful`
 ```java
 protected void onAugmentationFunctionResultEvent(String augmentationFunctionHandlerId,
                                                  String augmentationFunctionId,
-                                                 List<AugmentationFunctionResult<?>> augmentationFunctionResult)
+                                                 AugmentationFunctionResultList augmentationFunctionResult)
 ```
 
 **Parameters**:
 - `augmentationFunctionHandlerId`: The ID of the handler managing the function
 - `augmentationFunctionId`: The ID of the function that produced the results
-- `augmentationFunctionResult`: List of results produced by the function execution
+- `augmentationFunctionResult`: `AugmentationFunctionResultList` produced by the function — call `hasError()` before iterating to check for embedded errors
 
 ---
 
@@ -1400,8 +1484,17 @@ protected void onAugmentationFunctionResultEvent(String augmentationFunctionHand
 @Override
 protected void onAugmentationFunctionResultEvent(String augmentationFunctionHandlerId,
                                                  String augmentationFunctionId,
-                                                 List<AugmentationFunctionResult<?>> augmentationFunctionResult) {
-    
+                                                 AugmentationFunctionResultList augmentationFunctionResult) {
+
+    // Check for embedded errors before processing results
+    if (augmentationFunctionResult.hasError()) {
+        logger.warn("Function {} (handler: {}) reported error: {}",
+                    augmentationFunctionId,
+                    augmentationFunctionHandlerId,
+                    augmentationFunctionResult.getAugmentationFunctionError().getMessage());
+        return;
+    }
+
     logger.info("Received {} results from function: {} (handler: {})",
                 augmentationFunctionResult.size(),
                 augmentationFunctionId,
@@ -1535,7 +1628,7 @@ AugmentationFunctionResult<Map<String, Object>> result = new AugmentationFunctio
 
 ### Key Features
 
-- **Multi-Result Support**: Functions can return multiple results in a single execution via `List<AugmentationFunctionResult<?>>`
+- **Multi-Result Support**: Functions can return multiple results in a single execution via `AugmentationFunctionResultList`
 - **Type Safety**: Generic `<T>` allows strongly-typed values while maintaining flexibility
 - **Categorization**: Five distinct result types enable structured processing based on DT component
 - **Batch Processing**: The callback provides all results at once, enabling efficient batch operations (e.g., single state transaction)
@@ -1625,27 +1718,30 @@ public AugmentationFunctionError(AugmentationFunctionErrorType errorType,
 
 ### Reporting Errors from Stateless Functions
 
-Inside a `StatelessAugmentationFunction`, call `notifyError()` to forward an error to the handler.
-The current request ID is attached automatically.
+Inside a `StatelessAugmentationFunction`, return an `AugmentationFunctionResultList` initialized with
+an `AugmentationFunctionError`. The `notifyError()` method is not available for stateless functions —
+errors are embedded in the result list and propagated to the DTM's `onAugmentationFunctionResultEvent`
+callback, where `hasError()` can be checked.
 
 ```java
 public class MyStatelessFunction extends StatelessAugmentationFunction {
 
     @Override
-    protected List<AugmentationFunctionResult<?>> run(AugmentationFunctionRequest request)
+    protected AugmentationFunctionResultList run(AugmentationFunctionRequest request)
             throws AugmentationFunctionException {
 
         try {
             // ... computation ...
+            AugmentationFunctionResult<Double> result = new AugmentationFunctionResult<>(
+                AugmentationFunctionResultType.GENERIC_RESULT, "value", 42.0, null, null);
+            return new AugmentationFunctionResultList(result);
         } catch (Exception e) {
-            // Report a non-fatal warning — execution continues
-            notifyError(new AugmentationFunctionError(
+            // Report a non-fatal error via the result list
+            return new AugmentationFunctionResultList(new AugmentationFunctionError(
                 AugmentationFunctionErrorType.WARNING,
                 "Failed to retrieve sensor data: " + e.getMessage()
             ));
         }
-
-        return Collections.emptyList();
     }
 }
 ```
@@ -1788,12 +1884,12 @@ public abstract class StatelessAugmentationFunction extends AugmentationFunction
     /**
      * Main execution method that must be implemented by concrete functions.
      * Called each time the function is invoked.
-     * 
+     *
      * @param request The augmentation function request containing context (DT state, query results) and metadata
-     * @return List of augmentation function results
-     * @throws AugmentationFunctionException if execution fails
+     * @return AugmentationFunctionResultList — a list of results, or a list in error state if execution failed
+     * @throws AugmentationFunctionException if execution fails with an unrecoverable exception
      */
-    protected abstract List<AugmentationFunctionResult<?>> run(AugmentationFunctionRequest request) 
+    protected abstract AugmentationFunctionResultList run(AugmentationFunctionRequest request)
         throws AugmentationFunctionException;
 }
 ```
@@ -1803,7 +1899,8 @@ public abstract class StatelessAugmentationFunction extends AugmentationFunction
 - **Single Method**: Only `run()` needs to be implemented
 - **No Lifecycle**: No `start()` or `stop()` methods required
 - **Request Provided**: Receives `AugmentationFunctionRequest` containing the `AugmentationFunctionContext` (current DT state + optional query results) on each invocation
-- **Immediate Results**: Returns results synchronously via `List<AugmentationFunctionResult<?>>`
+- **Immediate Results**: Returns results synchronously via `AugmentationFunctionResultList`
+- **Error Reporting**: Return a `new AugmentationFunctionResultList(error)` to signal errors — `notifyError()` is not available for stateless functions
 - **Custom Context**: Use the 5-arg constructor (passing an `AugmentationFunctionContextRequest`) when the function needs a storage query or must disable state/event observation
 
 ---
@@ -1904,13 +2001,22 @@ public abstract class StatefulAugmentationFunction extends AugmentationFunction 
     protected final void refreshQueryResult(QueryRequest queryRequest) { /* provided by the framework */ }
 
     /**
+     * Returns whether this stateful function is currently running.
+     * Automatically updated by the framework when handleStart() / handleStop() are called.
+     * Provided by the framework — call this method from your implementation, do not override it.
+     *
+     * @return true if the function has been started and not yet stopped
+     */
+    public final boolean isRunning() { /* provided by the framework */ return false; }
+
+    /**
      * Notify results asynchronously to the Augmentation Manager.
      * Call this method whenever the function produces results.
      * Provided by the framework — call this method from your implementation, do not override it.
      *
-     * @param results List of augmentation function results to publish
+     * @param results AugmentationFunctionResultList to publish
      */
-    protected final void notifyResult(List<AugmentationFunctionResult<?>> results) { /* provided by the framework */ }
+    protected final void notifyResult(AugmentationFunctionResultList results) { /* provided by the framework */ }
 
     /**
      * Notify an error to the Augmentation Manager.
@@ -1926,11 +2032,13 @@ public abstract class StatefulAugmentationFunction extends AugmentationFunction 
 #### Key Characteristics
 
 - **Lifecycle Management**: Implements `start()` and `stop()` for initialization and cleanup
+- **Running State**: `isRunning()` reflects whether the function has been started. `startAugmentationFunction()` is a no-op if already running; `stopAugmentationFunction()` is a no-op if already stopped
 - **Push Notifications**: Receives automatic callbacks via `onStateUpdate()` and `onEventNotificationReceived()`
 - **Polling Support**: Override `onQueryResultRefresh()` only when using the polling pattern; it has a default no-op implementation and does **not** need to be overridden in push-mode or timer-based functions
-- **Asynchronous Results**: Produces results by calling `notifyResult()` at any time, not necessarily synchronized with notifications
+- **Asynchronous Results**: Produces results by calling `notifyResult(AugmentationFunctionResultList)` at any time, not necessarily synchronized with notifications
+- **Error Reporting**: Call `notifyError()` to report errors asynchronously; errors in stateful functions are separate from `notifyResult()`
 - **Internal State**: Can maintain history, timers, or any internal data structures
-- **Framework-provided methods**: `notifyResult()`, `notifyError()`, `refreshQueryResult()` are concrete methods provided by the framework — **call** them from your implementation, do not override them
+- **Framework-provided methods**: `notifyResult()`, `notifyError()`, `refreshQueryResult()`, `isRunning()` are concrete methods provided by the framework — **call** them from your implementation, do not override them
 
 ---
 
@@ -1953,7 +2061,7 @@ public class RandomNumberAugmentationFunction extends StatelessAugmentationFunct
     }
 
     @Override
-    public List<AugmentationFunctionResult<?>> run(AugmentationFunctionRequest request) 
+    public AugmentationFunctionResultList run(AugmentationFunctionRequest request)
             throws AugmentationFunctionException {
         
         // Generate a random number between 0 and 1
@@ -1968,7 +2076,7 @@ public class RandomNumberAugmentationFunction extends StatelessAugmentationFunct
                 null
         );
 
-        return Collections.singletonList(result);
+        return new AugmentationFunctionResultList(result);
     }
 }
 ```
@@ -1995,10 +2103,10 @@ public class RandomStateResultAugmentationFunction extends StatelessAugmentation
     }
 
     @Override
-    public List<AugmentationFunctionResult<?>> run(AugmentationFunctionRequest request) 
+    public AugmentationFunctionResultList run(AugmentationFunctionRequest request)
             throws AugmentationFunctionException {
 
-        List<AugmentationFunctionResult<?>> results = new ArrayList<>();
+        AugmentationFunctionResultList results = new AugmentationFunctionResultList();
 
         // Property Result: Random string property
         results.add(new AugmentationFunctionResult<>(
@@ -2113,7 +2221,7 @@ public class StatefulPeriodicRandomNumberAugmentationFunction extends StatefulAu
                 );
                 
                 // Notify result asynchronously
-                notifyResult(Collections.singletonList(result));
+                notifyResult(new AugmentationFunctionResultList(result));
             }
         };
 
@@ -2229,7 +2337,10 @@ public class StatefulStateDrivenRandomNumberAugmentationFunction extends Statefu
             );
 
             // Notify both results asynchronously
-            this.notifyResult(Arrays.asList(result, averageResult));
+            AugmentationFunctionResultList resultList = new AugmentationFunctionResultList();
+            resultList.add(result);
+            resultList.add(averageResult);
+            this.notifyResult(resultList);
 
         } catch (Exception e) {
             throw new AugmentationFunctionException("Error processing state update: " + e.getMessage());
@@ -2291,7 +2402,7 @@ All augmentation events extend the generic `WldtEvent<T>` class.
 | `AugmentationFunctionExecuteWldtEvent` | `AugmentationFunctionRequest` | DTM → Handler | Triggers the execution of a stateless function |
 | `AugmentationFunctionStartWldtEvent` | `AugmentationFunctionRequest` | DTM → Handler | Triggers the start of a stateful function |
 | `AugmentationFunctionStopWldtEvent` | `AugmentationFunctionRequest` | DTM → Handler | Triggers the stop of a stateful function |
-| `AugmentationFunctionResultWldtEvent` | `List<AugmentationFunctionResult<?>>` | Handler → DTM | Carries results produced by a function execution |
+| `AugmentationFunctionResultWldtEvent` | `AugmentationFunctionResultList` | Handler → DTM | Carries results produced by a function execution (may embed an error) |
 | `AugmentationFunctionErrorWldtEvent` | `AugmentationFunctionError` | Handler → DTM | Carries error notifications from a function execution |
 
 ---
@@ -2353,11 +2464,12 @@ public class AugmentationFunctionStopWldtEvent extends WldtEvent<AugmentationFun
 
 Published by a handler when an augmentation function (stateless or stateful) produces results.
 The Digital Twin Model subscribes to this event to receive and process augmentation outputs
-via the `onAugmentationFunctionResultEvent()` callback.
+via the `onAugmentationFunctionResultEvent()` callback. The payload is an `AugmentationFunctionResultList`
+which may carry either results or an embedded error — check `hasError()` before iterating.
 
 ```java
 public class AugmentationFunctionResultWldtEvent
-        extends WldtEvent<List<AugmentationFunctionResult<?>>> {
+        extends WldtEvent<AugmentationFunctionResultList> {
     private String augmentationFunctionId;
     private String augmentationHandlerId;
 }
