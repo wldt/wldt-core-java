@@ -32,6 +32,7 @@ import it.wldt.augmentation.function.AugmentationFunction;
 import it.wldt.augmentation.context.AugmentationFunctionContext;
 import it.wldt.augmentation.context.AugmentationFunctionContextRequest;
 import it.wldt.augmentation.function.AugmentationFunctionType;
+import it.wldt.augmentation.function.StatefulAugmentationFunction;
 import it.wldt.augmentation.handler.AugmentationFunctionHandler;
 import it.wldt.augmentation.request.AugmentationFunctionRequest;
 import it.wldt.augmentation.request.AugmentationFunctionRequestType;
@@ -931,6 +932,11 @@ public abstract class DigitalTwinModel implements WldtEventListener {
         if(augmentationFunction.getType() != AugmentationFunctionType.STATEFUL)
             throw new AugmentationFunctionException(String.format("Error ! Invalid Augmentation Function Type provided for execution ! Expected: %s, Provided: %s", AugmentationFunctionType.STATEFUL, augmentationFunction.getType()));
 
+        if(((StatefulAugmentationFunction) augmentationFunction).isRunning()) {
+            logger.info("Augmentation Function with id {} from Augmentation Function Handler with id {} is already running ! Nothing to do ...", augmentationFunctionId, augmentationFunctionHandlerId);
+            return;
+        }
+
         // Retrieve the Context Request for the augmentation function
         AugmentationFunctionContextRequest contextRequest = augmentationFunction.getContextRequest();
 
@@ -1038,6 +1044,11 @@ public abstract class DigitalTwinModel implements WldtEventListener {
         if(augmentationFunction.getType() != AugmentationFunctionType.STATEFUL)
             throw new AugmentationFunctionException(String.format("Error ! Invalid Augmentation Function Type provided for execution ! Expected: %s, Provided: %s", AugmentationFunctionType.STATEFUL, augmentationFunction.getType()));
 
+        if(!((StatefulAugmentationFunction) augmentationFunction).isRunning()) {
+            logger.info("Augmentation Function with id {} from Augmentation Function Handler with id {} is not running ! Nothing to do ...", augmentationFunctionId, augmentationFunctionHandlerId);
+            return;
+        }
+
         // Retrieve the Context Request for the augmentation function
         AugmentationFunctionContextRequest contextRequest = augmentationFunction.getContextRequest();
 
@@ -1058,6 +1069,61 @@ public abstract class DigitalTwinModel implements WldtEventListener {
 
         WldtEventBus.getInstance().publishEvent(this.digitalTwinStateManager.getDigitalTwinId(), this.id, augmentationFunctionStopWldtEvent);
     }
+
+    public boolean isStatefulAugmentationFunctionRunning(String augmentationFunctionId) {
+            // Iterate over all the registered Augmentation Function Handlers Map to find the Augmentation Function with the specified id
+            for(AugmentationFunctionHandler augmentationFunctionHandler : this.augmentationManager.getAllAugmentationFunctionHandlers()){
+                // Check if the current Augmentation Function Handler has the Augmentation Function with the specified id, if yes check if it is running
+                if(augmentationFunctionHandler.getAugmentationFunction(augmentationFunctionId).isPresent()){
+                    return isStatefulAugmentationFunctionRunning(augmentationFunctionHandler.getId(), augmentationFunctionId);
+                }
+            }
+
+            logger.warn("Augmentation Function with id {} is not registered in any of the Augmentation Function Handlers registered in the Augmentation Manager of the Digital Twin Engine ! Cannot check if the Augmentation Function is running ...", augmentationFunctionId);
+            return false;
+    }
+
+    public boolean isStatefulAugmentationFunctionRunning(String augmentationFunctionHandlerId, String augmentationFunctionId) {
+        // Retrieve the Augmentation Function Handler with the specified id from the Augmentation Manager
+        Optional<AugmentationFunctionHandler> augmentationFunctionHandlerOptional = this.augmentationManager.getAugmentationFunctionHandler(augmentationFunctionHandlerId);
+
+        // Check if the Augmentation Function Handler is present, if not log a warning and return false
+        if(!augmentationFunctionHandlerOptional.isPresent()){
+            logger.warn("Augmentation Function Handler with id {} is not registered in the Augmentation Manager of the Digital Twin Engine ! Cannot check if the Augmentation Function with id {} is running ...", augmentationFunctionHandlerId, augmentationFunctionId);
+            return false;
+        }
+
+        // If the Augmentation Function Handler is present, retrieve it
+        AugmentationFunctionHandler augmentationFunctionHandler = augmentationFunctionHandlerOptional.get();
+
+        // Check if the Augmentation Function Handler has the Augmentation Function with the specified id, if not log a warning and return false
+        if(!augmentationFunctionHandler.getAugmentationFunction(augmentationFunctionId).isPresent()) {
+            logger.warn("Augmentation Function with id {} is not registered in the Augmentation Function Handler with id {} ! Cannot check if the Augmentation Function is running ...", augmentationFunctionId, augmentationFunctionHandlerId);
+            return false;
+        }
+
+        // Retrieve the Augmentation Function with the specified id from the Augmentation Function Handler
+        Optional<AugmentationFunction> augmentationFunctionOptional = augmentationFunctionHandler.getAugmentationFunction(augmentationFunctionId);
+
+        // Check if the Augmentation Function is present, if not log a warning and return false
+        if(!augmentationFunctionOptional.isPresent()) {
+            logger.warn("Augmentation Function with id {} is not registered in the Augmentation Function Handler with id {} ! Cannot check if the Augmentation Function is running ...", augmentationFunctionId, augmentationFunctionHandlerId);
+            return false;
+        }
+
+        // If the Augmentation Function is present, retrieve it
+        AugmentationFunction augmentationFunction = augmentationFunctionOptional.get();
+
+        // Check the type of the augmentation function
+        if(augmentationFunction.getType() != AugmentationFunctionType.STATEFUL) {
+            logger.warn("Augmentation Function with id {} from Augmentation Function Handler with id {} is not a stateful augmentation function ! Cannot check if it is running ...", augmentationFunctionId, augmentationFunctionHandlerId);
+            return false;
+        }
+
+        return ((StatefulAugmentationFunction) augmentationFunction).isRunning();
+    }
+
+
 
     @Override
     public void onEventSubscribed(String eventType) {

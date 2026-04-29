@@ -264,7 +264,7 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
 
         //Define EventFilter and add the target topic
         WldtEventFilter wldtEventFilter = new WldtEventFilter();
-        wldtEventFilter.add(buildHandlerWildCardEventType(WldtEventTypes.ALL_DT_STATE_EVENT_NOTIFICATION_EVENT_TYPE));
+        wldtEventFilter.add(WldtEventTypes.ALL_DT_STATE_EVENT_NOTIFICATION_EVENT_TYPE);
 
         //Save the adopted EventFilter
         this.augmentationFunctionWldtEventFilter = wldtEventFilter;
@@ -282,7 +282,7 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
 
         //Define EventFilter and add the target topic
         WldtEventFilter wldtEventFilter = new WldtEventFilter();
-        wldtEventFilter.add(buildHandlerWildCardEventType(WldtEventTypes.ALL_DT_STATE_EVENT_NOTIFICATION_EVENT_TYPE));
+        wldtEventFilter.add(WldtEventTypes.ALL_DT_STATE_EVENT_NOTIFICATION_EVENT_TYPE);
 
         //Save the adopted EventFilter
         this.augmentationFunctionWldtEventFilter = wldtEventFilter;
@@ -1050,7 +1050,7 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
             if(digitalTwinStateChangeListOptional.isPresent())
                 digitalTwinStateChangeList = (ArrayList<DigitalTwinStateChange>) digitalTwinStateChangeListOptional.get();
 
-            ArrayList<StatefulAugmentationFunction> statefulAugmentationFunctions = this.augmentationFunctionHashMap.values().stream().filter(augmentationFunction -> augmentationFunction.getType() == AugmentationFunctionType.STATEFUL && augmentationFunction instanceof StatefulAugmentationFunction)
+            ArrayList<StatefulAugmentationFunction> statefulAugmentationFunctions = this.augmentationFunctionHashMap.values().stream().filter(augmentationFunction -> augmentationFunction.getType() == AugmentationFunctionType.STATEFUL && augmentationFunction instanceof StatefulAugmentationFunction && ((StatefulAugmentationFunction) augmentationFunction).isRunning())
                     .map(augmentationFunction -> (StatefulAugmentationFunction) augmentationFunction)
                     .collect(Collectors.toCollection(ArrayList::new));
 
@@ -1058,11 +1058,15 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
         }
 
         ///////// DT STATE EVENTS NOTIFICATION MANAGEMENT ///////////
-        if(wldtEvent != null && wldtEvent.getBody() != null && (wldtEvent.getBody() instanceof DigitalTwinStateEventNotification)) {
+        if(wldtEvent != null
+                && wldtEvent.getBody() != null
+                && wldtEvent.getType().startsWith(WldtEventTypes.DT_STATE_EVENT_NOTIFICATION_EVENT_BASE_TYPE)
+                && (wldtEvent.getBody() instanceof DigitalTwinStateEventNotification)) {
+
             DigitalTwinStateEventNotification<?> digitalTwinStateEventNotification = (DigitalTwinStateEventNotification<?>) wldtEvent.getBody();
             logger.debug("Received Event Notification: {}", digitalTwinStateEventNotification);
 
-            ArrayList<StatefulAugmentationFunction> statefulAugmentationFunctions = this.augmentationFunctionHashMap.values().stream().filter(augmentationFunction -> augmentationFunction.getType() == AugmentationFunctionType.STATEFUL && augmentationFunction instanceof StatefulAugmentationFunction)
+            ArrayList<StatefulAugmentationFunction> statefulAugmentationFunctions = this.augmentationFunctionHashMap.values().stream().filter(augmentationFunction -> augmentationFunction.getType() == AugmentationFunctionType.STATEFUL && augmentationFunction instanceof StatefulAugmentationFunction && ((StatefulAugmentationFunction) augmentationFunction).isRunning())
                     .map(augmentationFunction -> (StatefulAugmentationFunction) augmentationFunction)
                     .collect(Collectors.toCollection(ArrayList::new));
 

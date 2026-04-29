@@ -1,5 +1,5 @@
 group = "io.github.wldt"
-version = "0.7.0"
+version = "0.7.1"
 description = "The core library to build White Label Digital Twins"
 java.sourceCompatibility = JavaVersion.VERSION_1_8
 

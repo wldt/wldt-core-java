@@ -120,8 +120,11 @@ public class WldtEventBus {
         if(this.subscriberMap.containsKey(digitalTwinId) &&
                 digitalTwinSubscriptionOptional.isPresent()) {
 
+            // Retrieve a copy of the list of subscription event types for the target digital twin (needed because of thread safe problem with QueryExecutor)
+            ArrayList<String> subscriptionEventTypeList = new ArrayList<>(digitalTwinSubscriptionOptional.get().keySet());
+
             // Retrieve the list of Subscribers
-            for(String subscriptionEventType : digitalTwinSubscriptionOptional.get().keySet()){
+            for(String subscriptionEventType : subscriptionEventTypeList){
                    if(matchWildCardType(wldtEvent.getType(), subscriptionEventType))
                        digitalTwinSubscriptionOptional.get().get(subscriptionEventType).forEach(wldtSubscriberInfo -> {
                            wldtSubscriberInfo.getEventListener().onEvent(wldtEvent);

@@ -72,6 +72,16 @@ public abstract class StatefulAugmentationFunction extends AugmentationFunction{
     private AugmentationFunctionRequest request;
 
     /**
+     * Flag indicating whether the stateful augmentation function is currently running. This flag can be used to manage
+     * the lifecycle of the function, ensuring that it is not started multiple times concurrently and allowing specific
+     * logic to be executed based on the function's running state. For example, certain operations may only be allowed
+     * when the function is running, while others may be restricted to when the function is not running.
+     * By maintaining this flag, the function can implement appropriate behavior based on its execution state and
+     * prevent potential issues that may arise from concurrent executions or invalid state transitions.
+     */
+    private boolean isRunning = false;
+
+    /**
      * Constructor of the AugmentationFunction class with all the parameters.
      *
      * @param id the unique id of the augmentation function
@@ -121,6 +131,7 @@ public abstract class StatefulAugmentationFunction extends AugmentationFunction{
     public void handleStart(AugmentationFunctionRequest augmentationFunctionRequest) throws AugmentationFunctionException {
         this.request = augmentationFunctionRequest;
         this.start(augmentationFunctionRequest);
+        this.isRunning = true;
     }
 
     /**
@@ -137,6 +148,7 @@ public abstract class StatefulAugmentationFunction extends AugmentationFunction{
     public void handleStop(AugmentationFunctionRequest augmentationFunctionRequest) throws AugmentationFunctionException {
         this.request = augmentationFunctionRequest;
         this.stop(augmentationFunctionRequest);
+        this.isRunning = false;
     }
 
     /**
@@ -238,6 +250,10 @@ public abstract class StatefulAugmentationFunction extends AugmentationFunction{
         }
         else
             logger.error("Cannot refresh query result of the Stateful Augmentation Function with id {}: result listener is null.", this.getId());
+    }
+
+    public boolean isRunning() {
+        return isRunning;
     }
 
     @Override
