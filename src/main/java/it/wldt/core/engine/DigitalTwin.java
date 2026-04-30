@@ -39,7 +39,12 @@ import it.wldt.log.WldtLogger;
 import it.wldt.log.WldtLoggerProvider;
 import it.wldt.management.ManagementInterface;
 import it.wldt.management.ResourceManager;
+import it.wldt.monitoring.CoreMonitoringUtils;
 import it.wldt.monitoring.MonitoringInterface;
+import it.wldt.monitoring.metrics.WldtCounter;
+import it.wldt.monitoring.metrics.WldtGauge;
+import it.wldt.monitoring.metrics.WldtMetricComponent;
+import it.wldt.monitoring.metrics.WldtTimer;
 import it.wldt.storage.StorageManager;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
@@ -190,6 +195,11 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
      * Monitoring Interface for the Digital Twin
      */
     private MonitoringInterface monitoringInterface = null;
+
+    /**
+     * DT Core Metrics Namespace
+     */
+    private String metricsNamespace;
 
     /**
      * Constructor for creating a DigitalTwin instance.
@@ -383,6 +393,13 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
                     this.currentLifeCycleState);
         }
 
+        // Update Life Cycle Gauge Metric
+        if(this.monitoringInterface != null && this.monitoringInterface.isActive(WldtMetricComponent.DT_MODEL))
+            this.monitoringInterface.updateGauge(
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.LIFE_CYCLE_VALUE,
+                    LifeCycleState.fromValueToInt(this.currentLifeCycleState));
+
         // Notify all Listeners
         for(LifeCycleListener listener : this.lifeCycleListenerList)
             listener.onCreate();
@@ -404,6 +421,13 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
                     this.currentLifeCycleState);
         }
 
+        // Update Life Cycle Gauge Metric
+        if(this.monitoringInterface != null && this.monitoringInterface.isActive(WldtMetricComponent.DT_MODEL))
+            this.monitoringInterface.updateGauge(
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.LIFE_CYCLE_VALUE,
+                    LifeCycleState.fromValueToInt(this.currentLifeCycleState));
+
         // Notify all Listeners
         for(LifeCycleListener listener : this.lifeCycleListenerList)
             listener.onStart();
@@ -423,6 +447,13 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
                     EVENT_PUBLISHER_ID,
                     this.currentLifeCycleState);
         }
+
+        // Update Life Cycle Gauge Metric
+        if(this.monitoringInterface != null && this.monitoringInterface.isActive(WldtMetricComponent.DT_MODEL))
+            this.monitoringInterface.updateGauge(
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.LIFE_CYCLE_VALUE,
+                    LifeCycleState.fromValueToInt(this.currentLifeCycleState));
 
         // Notify all Listeners
         for(LifeCycleListener listener : this.lifeCycleListenerList)
@@ -444,6 +475,13 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
                     EVENT_PUBLISHER_ID,
                     this.currentLifeCycleState);
         }
+
+        // Update Life Cycle Gauge Metric
+        if(this.monitoringInterface != null && this.monitoringInterface.isActive(WldtMetricComponent.DT_MODEL))
+            this.monitoringInterface.updateGauge(
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.LIFE_CYCLE_VALUE,
+                    LifeCycleState.fromValueToInt(this.currentLifeCycleState));
 
         // Notify all Listeners
         for(LifeCycleListener listener : this.lifeCycleListenerList)
@@ -527,6 +565,13 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
                     this.currentLifeCycleState);
         }
 
+        // Update Life Cycle Gauge Metric
+        if(this.monitoringInterface != null && this.monitoringInterface.isActive(WldtMetricComponent.DT_MODEL))
+            this.monitoringInterface.updateGauge(
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.LIFE_CYCLE_VALUE,
+                    LifeCycleState.fromValueToInt(this.currentLifeCycleState));
+
         // Notify all Listeners
         for(LifeCycleListener listener : this.lifeCycleListenerList)
             listener.onSync(digitalTwinState);
@@ -548,6 +593,13 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
                     this.currentLifeCycleState);
         }
 
+        // Update Life Cycle Gauge Metric
+        if(this.monitoringInterface != null && this.monitoringInterface.isActive(WldtMetricComponent.DT_MODEL))
+            this.monitoringInterface.updateGauge(
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.LIFE_CYCLE_VALUE,
+                    LifeCycleState.fromValueToInt(this.currentLifeCycleState));
+
         // Notify all Listeners
         for(LifeCycleListener listener : this.lifeCycleListenerList)
             listener.onUnSync(digitalTwinState);
@@ -567,6 +619,13 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
                     this.currentLifeCycleState);
         }
 
+        // Update Life Cycle Gauge Metric
+        if(this.monitoringInterface != null && this.monitoringInterface.isActive(WldtMetricComponent.DT_MODEL))
+            this.monitoringInterface.updateGauge(
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.LIFE_CYCLE_VALUE,
+                    LifeCycleState.fromValueToInt(this.currentLifeCycleState));
+
         // Notify all Listeners
         for(LifeCycleListener listener : this.lifeCycleListenerList)
             listener.onStop();
@@ -585,6 +644,13 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
                     EVENT_PUBLISHER_ID,
                     this.currentLifeCycleState);
         }
+
+        // Update Life Cycle Gauge Metric
+        if(this.monitoringInterface != null && this.monitoringInterface.isActive(WldtMetricComponent.DT_MODEL))
+            this.monitoringInterface.updateGauge(
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.LIFE_CYCLE_VALUE,
+                    LifeCycleState.fromValueToInt(this.currentLifeCycleState));
 
         // Notify all Listeners
         for(LifeCycleListener listener : this.lifeCycleListenerList)
@@ -691,6 +757,38 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
     }
 
     /**
+     * TODO ...
+     */
+    private void handleMetricsRegistration() {
+
+        // Check if the Monitoring Interface is configured and has the handler configured
+        if(this.monitoringInterface != null && this.monitoringInterface.isActive(WldtMetricComponent.DT_MODEL)){
+
+            // Build metric namespace
+            this.metricsNamespace = CoreMonitoringUtils.buildCoreNamespace();
+
+            // Register Counter Metric(s) - Life Cycle Variation Pub Events
+            //this.monitoringInterface.registerMetric(new WldtCounter(this.digitalTwinStateManager.getDigitalTwinId(),
+            //        metricsNamespace,
+            //        CoreMonitoringUtils.LIFE_CYCLE_VALUE_PUB_SUCCESS_COUNT,
+            //        WldtMetricComponent.DT_MODEL));
+
+            //this.monitoringInterface.registerMetric(new WldtCounter(this.digitalTwinStateManager.getDigitalTwinId(),
+            //        metricsNamespace,
+            //        CoreMonitoringUtils.LIFE_CYCLE_VALUE_PUB_ERROR_COUNT,
+            //        WldtMetricComponent.DT_MODEL));
+
+            // Register Gauge Metric - LifeCycle Value Variation
+            this.monitoringInterface.registerMetric(new WldtGauge(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
+                    metricsNamespace,
+                    CoreMonitoringUtils.LIFE_CYCLE_VALUE,
+                    WldtMetricComponent.DT_MODEL));
+        }
+
+    }
+
+    /**
      * Starts the life cycle of the digital twin. This method initiates the execution of the model engine and physical/digital adapters.
      * It ensures that both physical and digital adapters are available before starting the life cycle.
      * This method is used by the Digital Twin Engine to coordinate the execution of its configured DTs.
@@ -714,6 +812,9 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
 
         // Execute Management Interface if it is set
         executeManagementInterface();
+
+        // Register Metrics if the Monitoring Interface is properly configured
+        handleMetricsRegistration();
 
         //In order to start its LifeCycle the Digital Twin need at least one Physical and one Digital Adapter in order
         //to properly bridge the physical and the digital world

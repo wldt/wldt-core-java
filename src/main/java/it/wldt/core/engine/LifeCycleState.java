@@ -22,6 +22,7 @@ package it.wldt.core.engine;
 
 public enum LifeCycleState {
 
+
         NONE("dt_none"),
         CREATED("dt_created"),
         STARTED("dt_started"),
@@ -53,5 +54,45 @@ public enum LifeCycleState {
                 }
             }
             return null;
+        }
+
+        public static int fromValueToInt(LifeCycleState state) {
+
+            int result = -1;
+
+            if (state == null)
+                return result;
+
+            switch (state) {
+                case NONE:
+                    result = 0;
+                    break;
+                case CREATED:
+                    result = 3;
+                    break;
+                case STARTED:
+                    result = 4;
+                    break;
+                case BOUND:
+                    result = 7;
+                    break;
+                case UN_BOUND:
+                    result = 5;
+                    break;
+                case SYNCHRONIZED:
+                    result = 8;
+                    break;
+                case NOT_SYNCHRONIZED:
+                    result = 6;
+                    break;
+                case STOPPED:
+                    result = 2;
+                    break;
+                case DESTROYED:
+                    result = 1;
+                    break;
+            }
+
+            return result;
         }
     }

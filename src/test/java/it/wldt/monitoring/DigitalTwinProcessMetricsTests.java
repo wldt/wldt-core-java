@@ -9,6 +9,7 @@ import it.wldt.log.WldtLoggerProvider;
 import it.wldt.monitoring.handler.TestMonitoringInterfaceHandler;
 import it.wldt.monitoring.metrics.WldtMetric;
 import it.wldt.monitoring.metrics.WldtMetricComponent;
+import it.wldt.monitoring.metrics.WldtGauge;
 import it.wldt.process.DemoProcessTester;
 import it.wldt.process.digital.DemoDigitalAdapter;
 import it.wldt.process.digital.DemoDigitalAdapterConfiguration;
@@ -20,6 +21,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -771,6 +773,62 @@ public class DigitalTwinProcessMetricsTests {
 
         // Check the number of execution is equals to the number of generated PA Property Variation Events
         assertEquals(0, errorCount.size());
+
+        Thread.sleep(2000);
+    }
+
+    @Test
+    @Order(15)
+    public void testLifeCycleMetrics() throws InterruptedException, WldtEngineException {
+
+        //Set EventBus Logger
+        WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
+
+        //Wait until all the messages have been received
+        Thread.sleep((DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS + ((DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES + DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_EVENT_UPDATES) * DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS)));
+
+        Thread.sleep(2000);
+
+        // Retrieve Shared Stats Components
+        List<WldtMetricComponent> registeredComponentList = SharedTestMetrics.getInstance().getMonitoringRegisteredComponentList(TEST_DIGITAL_TWIN_ID);
+        List<WldtMetric> registeredMetricList = SharedTestMetrics.getInstance().getMonitoringRegisteredMetricList(TEST_DIGITAL_TWIN_ID);
+        List<WldtMetric> registeredUpdateMetricsList = SharedTestMetrics.getInstance().getMonitoringUpdatedMetricList(TEST_DIGITAL_TWIN_ID);
+
+        // Check Registered Stats are not null
+        assertNotNull(registeredComponentList);
+        assertNotNull(registeredMetricList);
+        assertNotNull(registeredUpdateMetricsList);
+
+        // Stop the Digital Twin
+        digitalTwinEngine.stopDigitalTwin(TEST_DIGITAL_TWIN_ID);
+
+        Thread.sleep(5000);
+
+        // Filter Gauge Metric
+        List<WldtMetric> lifecycleVariationMetricList = registeredUpdateMetricsList.stream()
+                .filter(m -> m.getComponent().equals(WldtMetricComponent.DT_MODEL) && m.getName().equals(CoreMonitoringUtils.LIFE_CYCLE_VALUE))
+                .collect(Collectors.toList());
+
+        // Check the number of execution is equals to the number of generated PA Property Variation Events
+        assertEquals(7, lifecycleVariationMetricList.size());
+
+        // Verify the order of Life Cycle Values received in the experiment
+        // Target Order
+        // 3 CREATED
+        // 4 STARTED
+        // 7 BOUND
+        // 8 SYNC
+        // 5 UNBOUND
+        // 2 STOPPED
+        // 1 DESTROYED
+        List<Integer> expectedLifeCycleSequence = Arrays.asList(3, 4, 7, 8, 5, 2, 1);
+
+        // Check the received metric value list with the target expected values
+        List<Integer> actualLifeCycleSequence = lifecycleVariationMetricList.stream()
+                .map(metric -> ((Number) ((WldtGauge) metric).getValue()).intValue())
+                .collect(Collectors.toList());
+
+        assertEquals(expectedLifeCycleSequence, actualLifeCycleSequence);
 
         Thread.sleep(2000);
     }

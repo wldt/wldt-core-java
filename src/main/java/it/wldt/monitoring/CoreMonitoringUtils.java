@@ -90,6 +90,13 @@ public class CoreMonitoringUtils {
 
     public static final String DIGITAL_EVENT_NOTIFICATION_ERROR_COUNT = "da_event_notification_processing_exec_error_count";
 
+    // Life Cycle
+
+    public static final String LIFE_CYCLE_VALUE = "dt_lifecycle_value";
+
+    //public static final String LIFE_CYCLE_VALUE_PUB_SUCCESS_COUNT = "dt_lifecycle_value_pub_success_count";
+
+    //public static final String LIFE_CYCLE_VALUE_PUB_ERROR_COUNT = "dt_lifecycle_value_pub_error_count";
 
     public static String buildCoreNamespace(){
         // Lowercase both DT id and dt module
