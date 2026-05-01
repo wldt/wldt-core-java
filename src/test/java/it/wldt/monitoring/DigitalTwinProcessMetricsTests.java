@@ -7,9 +7,7 @@ import it.wldt.exception.*;
 import it.wldt.log.WldtLogger;
 import it.wldt.log.WldtLoggerProvider;
 import it.wldt.monitoring.handler.TestMonitoringInterfaceHandler;
-import it.wldt.monitoring.metrics.WldtMetric;
-import it.wldt.monitoring.metrics.WldtMetricComponent;
-import it.wldt.monitoring.metrics.WldtGauge;
+import it.wldt.monitoring.metrics.*;
 import it.wldt.process.DemoProcessTester;
 import it.wldt.process.digital.DemoDigitalAdapter;
 import it.wldt.process.digital.DemoDigitalAdapterConfiguration;
@@ -824,8 +822,12 @@ public class DigitalTwinProcessMetricsTests {
         List<Integer> expectedLifeCycleSequence = Arrays.asList(3, 4, 7, 8, 5, 2, 1);
 
         // Check the received metric value list with the target expected values
+        //List<Integer> actualLifeCycleSequence = lifecycleVariationMetricList.stream()
+        //        .map(metric -> ((Number) ((WldtGauge) metric).getValue()).intValue())
+        //        .collect(Collectors.toList());
+
         List<Integer> actualLifeCycleSequence = lifecycleVariationMetricList.stream()
-                .map(metric -> ((Number) ((WldtGauge) metric).getValue()).intValue())
+                .map(metric -> ((Number) ((WldtUpDownCounter) metric).getValue()).intValue())
                 .collect(Collectors.toList());
 
         assertEquals(expectedLifeCycleSequence, actualLifeCycleSequence);

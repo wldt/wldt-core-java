@@ -3,6 +3,7 @@ package it.wldt.monitoring.prometheus;
 import it.wldt.core.engine.DigitalTwin;
 import it.wldt.core.engine.DigitalTwinEngine;
 import it.wldt.monitoring.MonitoringInterfaceConfiguration;
+import it.wldt.monitoring.metrics.WldtMetricComponent;
 import it.wldt.process.digital.DemoDigitalAdapter;
 import it.wldt.process.digital.DemoDigitalAdapterConfiguration;
 import it.wldt.process.physical.DemoPhysicalAdapter;
@@ -32,7 +33,7 @@ public class PrometheusMultiDtExample {
 
     // ── Configuration ─────────────────────────────────────────────────────────
     static final int     DEFAULT_DT_COUNT  = 10;
-    static final String  PG_ADDRESS        = "192.168.0.115:9091"; // host:port, no scheme
+    static final String  PG_ADDRESS        = "192.168.0.152:9091"; // host:port, no scheme
     static final long    PUSH_INTERVAL_MS  = 1_000L;
     static final boolean USE_AUTH          = false;
     static final String  PG_USERNAME       = "admin";   // ignored when USE_AUTH = false
@@ -105,7 +106,13 @@ public class PrometheusMultiDtExample {
                                 .withPushGateway(pgAddress)
                                 .withJobName("wldt-" + dtId)
                                 .withPushIntervalMs(pushIntervalMs)
-                                .withDtId(dtId);
+                                .withDtId(dtId)
+                                .withImmediatePushForComponents(
+                                        WldtMetricComponent.DT_MODEL,
+                                        WldtMetricComponent.PHYSICAL_ADAPTER,
+                                        WldtMetricComponent.DIGITAL_ADAPTER,
+                                        WldtMetricComponent.AUGMENTATION,
+                                        WldtMetricComponent.STORAGE);
 
                 if (pgUsername != null)
                     cfgBuilder.withPushGatewayAuth(pgUsername, pgPassword);

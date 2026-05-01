@@ -5,6 +5,7 @@ import io.prometheus.metrics.core.metrics.Gauge;
 import io.prometheus.metrics.exporter.httpserver.HTTPServer;
 import io.prometheus.metrics.exporter.pushgateway.PushGateway;
 import io.prometheus.metrics.model.registry.PrometheusRegistry;
+import it.wldt.monitoring.CoreMonitoringUtils;
 import it.wldt.monitoring.MonitoringInterfaceHandler;
 import it.wldt.monitoring.metrics.*;
 
@@ -202,7 +203,26 @@ public class PrometheusMonitoringInterfaceHandler extends MonitoringInterfaceHan
             return;
         }
 
+        //if(metric.getName().equals(CoreMonitoringUtils.LIFE_CYCLE_VALUE))
+        //    System.out.println(metric.getFullName() + " is set to " + promName);
+
         applyUpdate(component, metric, registered);
+
+        if (config.getImmediatePushComponents().contains(component))
+            pushNow();
+    }
+
+    /**
+     * Immediately pushes all metrics to the PushGateway, bypassing the scheduled interval.
+     * No-op in HTTP_SERVER mode or before {@link #start()} is called.
+     */
+    public void pushNow() {
+        if (pushGateway == null) return;
+        try {
+            pushGateway.push();
+        } catch (Exception e) {
+            System.err.println("[PrometheusHandler] Immediate push failed: " + e.getMessage());
+        }
     }
 
     // -------------------------------------------------------------------------

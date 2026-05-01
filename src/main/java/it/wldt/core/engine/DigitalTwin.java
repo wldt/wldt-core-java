@@ -41,10 +41,7 @@ import it.wldt.management.ManagementInterface;
 import it.wldt.management.ResourceManager;
 import it.wldt.monitoring.CoreMonitoringUtils;
 import it.wldt.monitoring.MonitoringInterface;
-import it.wldt.monitoring.metrics.WldtCounter;
-import it.wldt.monitoring.metrics.WldtGauge;
-import it.wldt.monitoring.metrics.WldtMetricComponent;
-import it.wldt.monitoring.metrics.WldtTimer;
+import it.wldt.monitoring.metrics.*;
 import it.wldt.storage.StorageManager;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
@@ -395,7 +392,7 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
 
         // Update Life Cycle Gauge Metric
         if(this.monitoringInterface != null && this.monitoringInterface.isActive(WldtMetricComponent.DT_MODEL))
-            this.monitoringInterface.updateGauge(
+            this.monitoringInterface.updateCounter(
                     this.metricsNamespace,
                     CoreMonitoringUtils.LIFE_CYCLE_VALUE,
                     LifeCycleState.fromValueToInt(this.currentLifeCycleState));
@@ -423,7 +420,7 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
 
         // Update Life Cycle Gauge Metric
         if(this.monitoringInterface != null && this.monitoringInterface.isActive(WldtMetricComponent.DT_MODEL))
-            this.monitoringInterface.updateGauge(
+            this.monitoringInterface.updateCounter(
                     this.metricsNamespace,
                     CoreMonitoringUtils.LIFE_CYCLE_VALUE,
                     LifeCycleState.fromValueToInt(this.currentLifeCycleState));
@@ -450,7 +447,7 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
 
         // Update Life Cycle Gauge Metric
         if(this.monitoringInterface != null && this.monitoringInterface.isActive(WldtMetricComponent.DT_MODEL))
-            this.monitoringInterface.updateGauge(
+            this.monitoringInterface.updateCounter(
                     this.metricsNamespace,
                     CoreMonitoringUtils.LIFE_CYCLE_VALUE,
                     LifeCycleState.fromValueToInt(this.currentLifeCycleState));
@@ -478,7 +475,7 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
 
         // Update Life Cycle Gauge Metric
         if(this.monitoringInterface != null && this.monitoringInterface.isActive(WldtMetricComponent.DT_MODEL))
-            this.monitoringInterface.updateGauge(
+            this.monitoringInterface.updateCounter(
                     this.metricsNamespace,
                     CoreMonitoringUtils.LIFE_CYCLE_VALUE,
                     LifeCycleState.fromValueToInt(this.currentLifeCycleState));
@@ -567,7 +564,7 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
 
         // Update Life Cycle Gauge Metric
         if(this.monitoringInterface != null && this.monitoringInterface.isActive(WldtMetricComponent.DT_MODEL))
-            this.monitoringInterface.updateGauge(
+            this.monitoringInterface.updateCounter(
                     this.metricsNamespace,
                     CoreMonitoringUtils.LIFE_CYCLE_VALUE,
                     LifeCycleState.fromValueToInt(this.currentLifeCycleState));
@@ -595,7 +592,7 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
 
         // Update Life Cycle Gauge Metric
         if(this.monitoringInterface != null && this.monitoringInterface.isActive(WldtMetricComponent.DT_MODEL))
-            this.monitoringInterface.updateGauge(
+            this.monitoringInterface.updateCounter(
                     this.metricsNamespace,
                     CoreMonitoringUtils.LIFE_CYCLE_VALUE,
                     LifeCycleState.fromValueToInt(this.currentLifeCycleState));
@@ -621,7 +618,7 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
 
         // Update Life Cycle Gauge Metric
         if(this.monitoringInterface != null && this.monitoringInterface.isActive(WldtMetricComponent.DT_MODEL))
-            this.monitoringInterface.updateGauge(
+            this.monitoringInterface.updateCounter(
                     this.metricsNamespace,
                     CoreMonitoringUtils.LIFE_CYCLE_VALUE,
                     LifeCycleState.fromValueToInt(this.currentLifeCycleState));
@@ -647,7 +644,7 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
 
         // Update Life Cycle Gauge Metric
         if(this.monitoringInterface != null && this.monitoringInterface.isActive(WldtMetricComponent.DT_MODEL))
-            this.monitoringInterface.updateGauge(
+            this.monitoringInterface.updateCounter(
                     this.metricsNamespace,
                     CoreMonitoringUtils.LIFE_CYCLE_VALUE,
                     LifeCycleState.fromValueToInt(this.currentLifeCycleState));
@@ -779,7 +776,13 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
             //        WldtMetricComponent.DT_MODEL));
 
             // Register Gauge Metric - LifeCycle Value Variation
-            this.monitoringInterface.registerMetric(new WldtGauge(
+            //this.monitoringInterface.registerMetric(new WldtGauge(
+            //        this.digitalTwinStateManager.getDigitalTwinId(),
+            //        metricsNamespace,
+            //        CoreMonitoringUtils.LIFE_CYCLE_VALUE,
+            //        WldtMetricComponent.DT_MODEL));
+
+            this.monitoringInterface.registerMetric(new WldtUpDownCounter(
                     this.digitalTwinStateManager.getDigitalTwinId(),
                     metricsNamespace,
                     CoreMonitoringUtils.LIFE_CYCLE_VALUE,

@@ -1,5 +1,11 @@
 package it.wldt.monitoring.prometheus;
 
+import it.wldt.monitoring.metrics.WldtMetricComponent;
+
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.Set;
+
 /**
  * Immutable configuration for {@link PrometheusMonitoringInterfaceHandler}.
  *
@@ -50,20 +56,25 @@ public final class PrometheusHandlerConfiguration {
     private final String      jobName;
     private final String      pushGatewayUsername;  // nullable
     private final String      pushGatewayPassword;  // nullable
-    private final long        pushIntervalMs;
-    private final String      metricPrefix;
-    private final String      dtId;                 // nullable — used for per-DT PushGateway deletion
+    private final long                      pushIntervalMs;
+    private final String                    metricPrefix;
+    private final String                    dtId;                    // nullable — used for per-DT PushGateway deletion
+    private final Set<WldtMetricComponent>  immediatePushComponents; // components that trigger an immediate push on update
 
     private PrometheusHandlerConfiguration(Builder b) {
-        this.workingMode         = b.workingMode;
-        this.httpPort            = b.httpPort;
-        this.pushGatewayAddress  = b.pushGatewayAddress;
-        this.jobName             = b.jobName;
-        this.pushGatewayUsername = b.pushGatewayUsername;
-        this.pushGatewayPassword = b.pushGatewayPassword;
-        this.pushIntervalMs      = b.pushIntervalMs;
-        this.metricPrefix        = b.metricPrefix;
-        this.dtId                = b.dtId;
+        this.workingMode             = b.workingMode;
+        this.httpPort                = b.httpPort;
+        this.pushGatewayAddress      = b.pushGatewayAddress;
+        this.jobName                 = b.jobName;
+        this.pushGatewayUsername     = b.pushGatewayUsername;
+        this.pushGatewayPassword     = b.pushGatewayPassword;
+        this.pushIntervalMs          = b.pushIntervalMs;
+        this.metricPrefix            = b.metricPrefix;
+        this.dtId                    = b.dtId;
+        this.immediatePushComponents = Collections.unmodifiableSet(
+                b.immediatePushComponents.isEmpty()
+                        ? EnumSet.noneOf(WldtMetricComponent.class)
+                        : EnumSet.copyOf(b.immediatePushComponents));
     }
 
     public WorkingMode getWorkingMode()        { return workingMode; }
@@ -79,6 +90,8 @@ public final class PrometheusHandlerConfiguration {
     public String      getMetricPrefix()       { return metricPrefix; }
     /** @return DT instance ID used to scope PushGateway deletion, or {@code null} if not set */
     public String      getDtId()               { return dtId; }
+    /** @return components for which every metric update triggers an immediate PushGateway push */
+    public Set<WldtMetricComponent> getImmediatePushComponents() { return immediatePushComponents; }
 
     // -------------------------------------------------------------------------
 
@@ -91,8 +104,9 @@ public final class PrometheusHandlerConfiguration {
         private String      pushGatewayUsername = null;
         private String      pushGatewayPassword = null;
         private long        pushIntervalMs      = DEFAULT_PUSH_INTERVAL_MS;
-        private String      metricPrefix        = DEFAULT_METRIC_PREFIX;
-        private String      dtId                = null;
+        private String                    metricPrefix             = DEFAULT_METRIC_PREFIX;
+        private String                    dtId                     = null;
+        private Set<WldtMetricComponent>  immediatePushComponents  = EnumSet.noneOf(WldtMetricComponent.class);
 
         /** Select HTTP server scrape mode (default). */
         public Builder withHttpServer() {
@@ -146,6 +160,16 @@ public final class PrometheusHandlerConfiguration {
          */
         public Builder withDtId(String dtId) {
             this.dtId = dtId;
+            return this;
+        }
+
+        /**
+         * Enables immediate PushGateway push on every metric update for the given components.
+         * Has no effect in HTTP_SERVER mode.
+         */
+        public Builder withImmediatePushForComponents(WldtMetricComponent... components) {
+            for (WldtMetricComponent c : components)
+                this.immediatePushComponents.add(c);
             return this;
         }
 

@@ -209,6 +209,29 @@ public final class MonitoringInterface {
     }
 
     /**
+     * Sets a {@link WldtCounter} or {@link WldtUpDownCounter} to a new absolute value.
+     * For {@link WldtCounter} the value must be &ge; the current value (monotonically increasing).
+     *
+     * @param namespace the metric namespace
+     * @param name      the metric name within the namespace
+     * @param value     new absolute counter value; must be non-negative
+     */
+    public void updateCounter(String namespace, String name, long value) {
+        try {
+            WldtMetric metric = resolveMetric(namespace, name);
+            if (metric instanceof WldtCounter)
+                notifyUpdated(((WldtCounter) metric).update(value));
+            else if (metric instanceof WldtUpDownCounter)
+                notifyUpdated(((WldtUpDownCounter) metric).update(value));
+            else
+                logger.error("updateCounter: metric '{}.{}' is not a counter type (found {})",
+                        namespace, name, metric.getClass().getSimpleName());
+        } catch (Exception e) {
+            logger.error("updateCounter: error updating '{}.{}': {}", namespace, name, e.getMessage());
+        }
+    }
+
+    /**
      * Decrements a {@link WldtUpDownCounter} by 1.
      * {@link WldtCounter} does not support decrease — an error is logged if the wrong type is used.
      *

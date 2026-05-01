@@ -3,6 +3,7 @@ package it.wldt.monitoring.prometheus;
 import it.wldt.core.engine.DigitalTwin;
 import it.wldt.core.engine.DigitalTwinEngine;
 import it.wldt.monitoring.MonitoringInterfaceConfiguration;
+import it.wldt.monitoring.metrics.WldtMetricComponent;
 import it.wldt.process.digital.DemoDigitalAdapter;
 import it.wldt.process.digital.DemoDigitalAdapterConfiguration;
 import it.wldt.process.physical.DemoPhysicalAdapter;
@@ -42,7 +43,7 @@ public class PrometheusMonitoringInterfaceExample {
         // ── HTTP server settings ──────────────────────────────────────────────
         final int    HTTP_PORT        = 9090;
         // ── Push Gateway settings ─────────────────────────────────────────────
-        final String PG_ADDRESS       = "192.168.0.115:9091"; // host:port, no scheme
+        final String PG_ADDRESS       = "192.168.0.152:9091"; // host:port, no scheme
         final String PG_JOB           = "wldt-dt-example";
         final long   PUSH_INTERVAL_MS = 1_000L;
         // ── Push Gateway Basic Auth (only used when RUN_PUSH_GATEWAY_AUTH=true) ─
@@ -74,6 +75,12 @@ public class PrometheusMonitoringInterfaceExample {
         PrometheusHandlerConfiguration config = new PrometheusHandlerConfiguration.Builder()
                 .withHttpServer()
                 .withHttpPort(port)
+                .withImmediatePushForComponents(
+                        WldtMetricComponent.DT_MODEL,
+                        WldtMetricComponent.PHYSICAL_ADAPTER,
+                        WldtMetricComponent.DIGITAL_ADAPTER,
+                        WldtMetricComponent.AUGMENTATION,
+                        WldtMetricComponent.STORAGE)
                 .build();
 
         PrometheusMonitoringInterfaceHandler handler =
@@ -128,7 +135,13 @@ public class PrometheusMonitoringInterfaceExample {
                         .withPushGateway(address)
                         .withJobName(job)
                         .withPushIntervalMs(pushIntervalMs)
-                        .withDtId(DT_ID);
+                        .withDtId(DT_ID)
+                        .withImmediatePushForComponents(
+                                WldtMetricComponent.DT_MODEL,
+                                WldtMetricComponent.PHYSICAL_ADAPTER,
+                                WldtMetricComponent.DIGITAL_ADAPTER,
+                                WldtMetricComponent.AUGMENTATION,
+                                WldtMetricComponent.STORAGE);
 
         if (username != null) cfgBuilder.withPushGatewayAuth(username, password);
 
