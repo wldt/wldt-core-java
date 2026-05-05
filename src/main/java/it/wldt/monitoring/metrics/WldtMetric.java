@@ -1,5 +1,8 @@
 package it.wldt.monitoring.metrics;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Abstract base class for all WLDT metric types.
  *
@@ -30,6 +33,7 @@ public abstract class WldtMetric {
     private final String name;
     private final WldtMetricComponent component;
     private final long timestampMs;
+    private Map<String, Object> metadata;
 
     /** Epoch milliseconds of the most recent in-place mutation; equals timestampMs before any mutation. */
     protected volatile long lastUpdatedMs;
@@ -67,6 +71,37 @@ public abstract class WldtMetric {
         this.component     = component;
         this.timestampMs   = System.currentTimeMillis();
         this.lastUpdatedMs = this.timestampMs;
+        this.metadata      = new HashMap<>();
+    }
+
+    /**
+     * Constructs a new {@code WldtMetric}.
+     * Both {@code timestampMs} and {@code lastUpdatedMs} are set to {@link System#currentTimeMillis()}.
+     *
+     * @param namespace the logical namespace grouping this metric
+     * @param name      the metric name within its namespace
+     * @param component the DT component that emitted this metric
+     * @param metadata  Additional Metadata Associated to the metric
+     * @throws IllegalArgumentException if namespace, name, or component is null or blank
+     */
+    protected WldtMetric(String digitalTwinId, String namespace, String name, WldtMetricComponent component, Map<String, Object> metadata) {
+
+        if (digitalTwinId == null || digitalTwinId.trim().isEmpty())
+            throw new IllegalArgumentException("Digital Twin ID must not be null or blank");
+        if (namespace == null || namespace.trim().isEmpty())
+            throw new IllegalArgumentException("Metric namespace must not be null or blank");
+        if (name == null || name.trim().isEmpty())
+            throw new IllegalArgumentException("Metric name must not be null or blank");
+        if (component == null)
+            throw new IllegalArgumentException("Metric component must not be null");
+
+        this.digitalTwinId = digitalTwinId;
+        this.namespace     = namespace;
+        this.name          = name;
+        this.component     = component;
+        this.timestampMs   = System.currentTimeMillis();
+        this.lastUpdatedMs = this.timestampMs;
+        this.metadata      = metadata;
     }
 
     /** @return {@code true} if this metric has received at least one measured value */
@@ -92,11 +127,43 @@ public abstract class WldtMetric {
      */
     public abstract WldtMetric copy();
 
+    /**
+     * TODO ...
+     * @param key
+     * @param value
+     */
+    public void addMetadata(String key, Object value) {
+        if(key != null && value != null && this.metadata != null)
+            this.metadata.put(key, value);
+    }
+
+    /**
+     * TODO ...
+     * @param key
+     */
+    public void removeMetadata(String key) {
+        if(key != null && this.metadata != null)
+            this.metadata.remove(key);
+    }
+
+    public void setMetadata(Map<String, Object> metadata) {
+        this.metadata = metadata;
+    }
+
+    public Map<String, Object> getMetadata() {
+        return this.metadata;
+    }
+
     public String getNamespace() { return namespace; }
+
     public String getName()      { return name; }
+
     public String getFullName()  { return namespace + "." + name; }
+
     public WldtMetricComponent getComponent() { return component; }
+
     public long getTimestampMs()    { return timestampMs; }
+
     public long getLastUpdatedMs()  { return lastUpdatedMs; }
 
     public String getDigitalTwinId() {

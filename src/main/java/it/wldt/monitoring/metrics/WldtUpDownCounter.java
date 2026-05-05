@@ -1,5 +1,7 @@
 package it.wldt.monitoring.metrics;
 
+import java.util.Map;
+
 /**
  * A WLDT metric representing a counter for discrete entities that can increase or decrease.
  *
@@ -47,8 +49,28 @@ public class WldtUpDownCounter extends WldtMetric {
         this.initialized  = false;
     }
 
+    public WldtUpDownCounter(String digitalTwinId, String namespace, String name, WldtMetricComponent component, Map<String, Object> metadata) {
+        super(digitalTwinId, namespace, name, component, metadata);
+        this.value        = 0;
+        this.delta        = null;
+        this.peakValue    = 0;
+        this.troughValue  = 0;
+        this.totalUpdates = 0;
+        this.initialized  = false;
+    }
+
     public WldtUpDownCounter(String digitalTwinId, String namespace, String name, WldtMetricComponent component, long initialValue) {
         super(digitalTwinId, namespace, name, component);
+        this.value        = initialValue;
+        this.delta        = null;
+        this.peakValue    = initialValue;
+        this.troughValue  = initialValue;
+        this.totalUpdates = 0;
+        this.initialized  = true;
+    }
+
+    public WldtUpDownCounter(String digitalTwinId, String namespace, String name, WldtMetricComponent component, long initialValue, Map<String, Object> metadata) {
+        super(digitalTwinId, namespace, name, component, metadata);
         this.value        = initialValue;
         this.delta        = null;
         this.peakValue    = initialValue;
@@ -112,7 +134,7 @@ public class WldtUpDownCounter extends WldtMetric {
     }
 
     private WldtUpDownCounter(WldtUpDownCounter source) {
-        super(source.getDigitalTwinId(), source.getNamespace(), source.getName(), source.getComponent());
+        super(source.getDigitalTwinId(), source.getNamespace(), source.getName(), source.getComponent(),  source.getMetadata());
         this.value        = source.value;
         this.delta        = source.delta;
         this.peakValue    = source.peakValue;
@@ -126,7 +148,7 @@ public class WldtUpDownCounter extends WldtMetric {
     public synchronized WldtUpDownCounter copy() { return new WldtUpDownCounter(this); }
 
     @Override
-    public WldtUpDownCounter emptySnapshot() { return new WldtUpDownCounter(getDigitalTwinId(), getNamespace(), getName(), getComponent()); }
+    public WldtUpDownCounter emptySnapshot() { return new WldtUpDownCounter(getDigitalTwinId(), getNamespace(), getName(), getComponent(), getMetadata()); }
 
     /** @return current absolute counter value */
     public synchronized long getValue()          { return value; }

@@ -1,5 +1,7 @@
 package it.wldt.monitoring.metrics;
 
+import java.util.Map;
+
 /**
  * A WLDT metric representing a continuously observed numeric value that can freely rise and fall.
  *
@@ -46,8 +48,32 @@ public class WldtGauge extends WldtMetric {
         this.initialized   = false;
     }
 
+    public WldtGauge(String digitalTwinId, String namespace, String name, WldtMetricComponent component, Map<String, Object> metadata) {
+        super(digitalTwinId, namespace, name, component, metadata);
+        this.value         = 0.0;
+        this.previousValue = null;
+        this.delta         = null;
+        this.minObserved   = 0.0;
+        this.maxObserved   = 0.0;
+        this.updateCount   = 0;
+        this.initialized   = false;
+    }
+
     public WldtGauge(String digitalTwinId, String namespace, String name, WldtMetricComponent component, double initialValue) {
         super(digitalTwinId, namespace, name, component);
+        if (Double.isNaN(initialValue) || Double.isInfinite(initialValue))
+            throw new IllegalArgumentException("WldtGauge value must be finite, got: " + initialValue);
+        this.value         = initialValue;
+        this.previousValue = null;
+        this.delta         = null;
+        this.minObserved   = initialValue;
+        this.maxObserved   = initialValue;
+        this.updateCount   = 0;
+        this.initialized   = true;
+    }
+
+    public WldtGauge(String digitalTwinId, String namespace, String name, WldtMetricComponent component, double initialValue,  Map<String, Object> metadata) {
+        super(digitalTwinId, namespace, name, component, metadata);
         if (Double.isNaN(initialValue) || Double.isInfinite(initialValue))
             throw new IllegalArgumentException("WldtGauge value must be finite, got: " + initialValue);
         this.value         = initialValue;
@@ -89,7 +115,7 @@ public class WldtGauge extends WldtMetric {
     }
 
     private WldtGauge(WldtGauge source) {
-        super(source.getDigitalTwinId(), source.getNamespace(), source.getName(), source.getComponent());
+        super(source.getDigitalTwinId(), source.getNamespace(), source.getName(), source.getComponent(),  source.getMetadata());
         this.value         = source.value;
         this.previousValue = source.previousValue;
         this.delta         = source.delta;
@@ -104,7 +130,7 @@ public class WldtGauge extends WldtMetric {
     public synchronized WldtGauge copy() { return new WldtGauge(this); }
 
     @Override
-    public WldtGauge emptySnapshot() { return new WldtGauge(getDigitalTwinId(), getNamespace(), getName(), getComponent()); }
+    public WldtGauge emptySnapshot() { return new WldtGauge(getDigitalTwinId(), getNamespace(), getName(), getComponent(), getMetadata()); }
 
     /** @return current observed value */
     public synchronized double getValue()          { return value; }

@@ -235,33 +235,35 @@ public class PrometheusMonitoringInterfaceHandler extends MonitoringInterfaceHan
      */
     private Object createPrometheusObject(WldtMetric metric, String promName) {
         String help = "WLDT " + metric.getClass().getSimpleName() + ": " + metric.getFullName();
+        String[] labelNames = buildLabelNames(metric);
+
         try {
             if (metric instanceof WldtCounter) {
                 return Counter.builder()
                         .name(promName)
                         .help(help)
-                        .labelNames("component", "dt_id")
+                        .labelNames(labelNames)
                         .register(registry);
 
             } else if (metric instanceof WldtUpDownCounter) {
                 return Gauge.builder()
                         .name(promName)
                         .help(help)
-                        .labelNames("component", "dt_id")
+                        .labelNames(labelNames)
                         .register(registry);
 
             } else if (metric instanceof WldtGauge) {
                 return Gauge.builder()
                         .name(promName)
                         .help(help)
-                        .labelNames("component", "dt_id")
+                        .labelNames(labelNames)
                         .register(registry);
 
             } else if (metric instanceof WldtTimer) {
-                return buildMultiGauge(promName, help, TIMER_SUFFIXES);
+                return buildMultiGauge(promName, help, TIMER_SUFFIXES, labelNames);
 
             } else if (metric instanceof WldtHistogram) {
-                return buildMultiGauge(promName, help, HISTOGRAM_SUFFIXES);
+                return buildMultiGauge(promName, help, HISTOGRAM_SUFFIXES, labelNames);
             }
         } catch (Exception e) {
             System.err.println("[PrometheusHandler] Failed to register '" + promName +
@@ -271,16 +273,52 @@ public class PrometheusMonitoringInterfaceHandler extends MonitoringInterfaceHan
     }
 
     /** Builds a suffix → Gauge map and registers each gauge in the registry. */
-    private Map<String, Gauge> buildMultiGauge(String baseName, String baseHelp, String[] suffixes) {
+    private Map<String, Gauge> buildMultiGauge(String baseName, String baseHelp, String[] suffixes, String[] labelNames) {
         Map<String, Gauge> gauges = new LinkedHashMap<String, Gauge>();
         for (String suffix : suffixes) {
             gauges.put(suffix, Gauge.builder()
                     .name(baseName + "_" + suffix)
                     .help(baseHelp + " [" + suffix + "]")
-                    .labelNames("component", "dt_id")
+                    .labelNames(labelNames)
                     .register(registry));
         }
         return gauges;
+    }
+
+    /**
+     * Builds the Prometheus label names array for a WLDT metric.
+     * Always starts with "component" and "dt_id", then appends any metadata keys.
+     */
+    private String[] buildLabelNames(WldtMetric metric) {
+        java.util.List<String> labels = new java.util.ArrayList<String>();
+        labels.add("component");
+        labels.add("dt_id");
+
+        Map<String, Object> metadata = metric.getMetadata();
+        if (metadata != null && !metadata.isEmpty()) {
+            labels.addAll(metadata.keySet());
+        }
+
+        return labels.toArray(new String[0]);
+    }
+
+    /**
+     * Builds the Prometheus label values array for a WLDT metric.
+     * Matches the order from buildLabelNames: component, dt_id, then metadata values.
+     */
+    private String[] buildLabelValues(WldtMetricComponent component, WldtMetric metric) {
+        java.util.List<String> values = new java.util.ArrayList<String>();
+        values.add(component.name());
+        values.add(metric.getDigitalTwinId());
+
+        Map<String, Object> metadata = metric.getMetadata();
+        if (metadata != null && !metadata.isEmpty()) {
+            for (Object value : metadata.values()) {
+                values.add(value != null ? value.toString() : "");
+            }
+        }
+
+        return values.toArray(new String[0]);
     }
 
     // -------------------------------------------------------------------------
@@ -289,40 +327,39 @@ public class PrometheusMonitoringInterfaceHandler extends MonitoringInterfaceHan
 
     @SuppressWarnings("unchecked")
     private void applyUpdate(WldtMetricComponent component, WldtMetric metric, Object registered) {
-        String componentName = component.name();
-        String dtId  = metric.getDigitalTwinId();
+        String[] labelValues = buildLabelValues(component, metric);
 
         if (metric instanceof WldtCounter && registered instanceof Counter) {
             WldtCounter wc = (WldtCounter) metric;
             if (wc.isDeltaAvailable() && wc.getDelta() > 0) {
-                ((Counter) registered).labelValues(componentName, dtId).inc((double) wc.getDelta());
+                ((Counter) registered).labelValues(labelValues).inc((double) wc.getDelta());
             }
 
         } else if (metric instanceof WldtUpDownCounter && registered instanceof Gauge) {
-            ((Gauge) registered).labelValues(componentName, dtId).set((double) ((WldtUpDownCounter) metric).getValue());
+            ((Gauge) registered).labelValues(labelValues).set((double) ((WldtUpDownCounter) metric).getValue());
 
         } else if (metric instanceof WldtGauge && registered instanceof Gauge) {
-            ((Gauge) registered).labelValues(componentName, dtId).set(((WldtGauge) metric).getValue());
+            ((Gauge) registered).labelValues(labelValues).set(((WldtGauge) metric).getValue());
 
         } else if (metric instanceof WldtTimer && registered instanceof Map) {
             WldtTimer wt = (WldtTimer) metric;
             Map<String, Gauge> g = (Map<String, Gauge>) registered;
-            g.get("duration_ms") .labelValues(componentName, dtId).set((double) wt.getDurationMs());
-            g.get("min_ms")      .labelValues(componentName, dtId).set((double) wt.getMinDurationMs());
-            g.get("max_ms")      .labelValues(componentName, dtId).set((double) wt.getMaxDurationMs());
-            g.get("mean_ms")     .labelValues(componentName, dtId).set(wt.getMeanDurationMs());
-            g.get("total_ms")    .labelValues(componentName, dtId).set((double) wt.getTotalDurationMs());
-            g.get("count")       .labelValues(componentName, dtId).set((double) wt.getObservationCount());
+            g.get("duration_ms") .labelValues(labelValues).set((double) wt.getDurationMs());
+            g.get("min_ms")      .labelValues(labelValues).set((double) wt.getMinDurationMs());
+            g.get("max_ms")      .labelValues(labelValues).set((double) wt.getMaxDurationMs());
+            g.get("mean_ms")     .labelValues(labelValues).set(wt.getMeanDurationMs());
+            g.get("total_ms")    .labelValues(labelValues).set((double) wt.getTotalDurationMs());
+            g.get("count")       .labelValues(labelValues).set((double) wt.getObservationCount());
 
         } else if (metric instanceof WldtHistogram && registered instanceof Map) {
             WldtHistogram wh = (WldtHistogram) metric;
             Map<String, Gauge> g = (Map<String, Gauge>) registered;
-            g.get("window_count").labelValues(componentName, dtId).set((double) wh.getCount());
-            g.get("window_sum")  .labelValues(componentName, dtId).set(wh.getSum());
-            g.get("window_min")  .labelValues(componentName, dtId).set(wh.getMin());
-            g.get("window_max")  .labelValues(componentName, dtId).set(wh.getMax());
-            g.get("total_count") .labelValues(componentName, dtId).set((double) wh.getTotalCount());
-            g.get("total_sum")   .labelValues(componentName, dtId).set(wh.getTotalSum());
+            g.get("window_count").labelValues(labelValues).set((double) wh.getCount());
+            g.get("window_sum")  .labelValues(labelValues).set(wh.getSum());
+            g.get("window_min")  .labelValues(labelValues).set(wh.getMin());
+            g.get("window_max")  .labelValues(labelValues).set(wh.getMax());
+            g.get("total_count") .labelValues(labelValues).set((double) wh.getTotalCount());
+            g.get("total_sum")   .labelValues(labelValues).set(wh.getTotalSum());
         }
     }
 

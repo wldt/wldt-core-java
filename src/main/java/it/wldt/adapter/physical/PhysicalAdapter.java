@@ -36,6 +36,7 @@ import it.wldt.monitoring.metrics.WldtCounter;
 import it.wldt.monitoring.metrics.WldtMetricComponent;
 import it.wldt.monitoring.metrics.WldtTimer;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
@@ -59,6 +60,8 @@ public abstract class PhysicalAdapter extends DigitalTwinWorker implements WldtE
 
     /** Logger */
     private static final WldtLogger logger = WldtLoggerProvider.getLogger(ConfigurablePhysicalAdapter.class);
+
+    public static final String METRIC_METADATA_PHYSICAL_ADAPTER_ID_KEY = "pa_id";
 
     /** Physical Adapter Identifier */
     private String id;
@@ -110,77 +113,82 @@ public abstract class PhysicalAdapter extends DigitalTwinWorker implements WldtE
             // Build metric namespace
             this.metricsNamespace = CoreMonitoringUtils.buildCoreNamespace();
 
+            // Create Additional Metric Metadata to keep track of the adapter Id
+            Map<String, Object> metricMetadata = new HashMap<String, Object>() {{
+                put(METRIC_METADATA_PHYSICAL_ADAPTER_ID_KEY, getId());
+            }};
+
             // Register Counter Metric(s) - Physical Property Event Pub
             this.monitoringInterface.registerMetric(new WldtCounter(
                     this.digitalTwinId,
                     this.metricsNamespace,
                     CoreMonitoringUtils.PHYSICAL_ADAPTER_PROPERTY_EVENT_PUB_SUCCESS_COUNT,
-                    WldtMetricComponent.PHYSICAL_ADAPTER));
+                    WldtMetricComponent.PHYSICAL_ADAPTER, metricMetadata));
 
             this.monitoringInterface.registerMetric(new WldtCounter(
                     this.digitalTwinId,
                     this.metricsNamespace,
                     CoreMonitoringUtils.PHYSICAL_ADAPTER_PROPERTY_EVENT_PUB_ERROR_COUNT,
-                    WldtMetricComponent.PHYSICAL_ADAPTER));
+                    WldtMetricComponent.PHYSICAL_ADAPTER, metricMetadata));
 
             // Register Counter Metric(s) - Physical Property Event Pub
             this.monitoringInterface.registerMetric(new WldtCounter(
                     this.digitalTwinId,
                     this.metricsNamespace,
                     CoreMonitoringUtils.PHYSICAL_ADAPTER_EVENT_NOTIFICATION_EVENT_PUB_SUCCESS_COUNT,
-                    WldtMetricComponent.PHYSICAL_ADAPTER));
+                    WldtMetricComponent.PHYSICAL_ADAPTER, metricMetadata));
 
             this.monitoringInterface.registerMetric(new WldtCounter(
                     this.digitalTwinId,
                     this.metricsNamespace,
                     CoreMonitoringUtils.PHYSICAL_ADAPTER_EVENT_NOTIFICATION_EVENT_PUB_ERROR_COUNT,
-                    WldtMetricComponent.PHYSICAL_ADAPTER));
+                    WldtMetricComponent.PHYSICAL_ADAPTER, metricMetadata));
 
             // Register Counter Metric(s) - Physical Relationship Created Pub
             this.monitoringInterface.registerMetric(new WldtCounter(
                     this.digitalTwinId,
                     this.metricsNamespace,
                     CoreMonitoringUtils.PHYSICAL_ADAPTER_REL_CREATED_EVENT_PUB_SUCCESS_COUNT,
-                    WldtMetricComponent.PHYSICAL_ADAPTER));
+                    WldtMetricComponent.PHYSICAL_ADAPTER, metricMetadata));
 
             this.monitoringInterface.registerMetric(new WldtCounter(
                     this.digitalTwinId,
                     this.metricsNamespace,
                     CoreMonitoringUtils.PHYSICAL_ADAPTER_REL_CREATED_EVENT_PUB_ERROR_COUNT,
-                    WldtMetricComponent.PHYSICAL_ADAPTER));
+                    WldtMetricComponent.PHYSICAL_ADAPTER, metricMetadata));
 
             // Register Counter Metric(s) - Physical Relationship Deleted Pub
             this.monitoringInterface.registerMetric(new WldtCounter(
                     this.digitalTwinId,
                     this.metricsNamespace,
                     CoreMonitoringUtils.PHYSICAL_ADAPTER_REL_DELETED_EVENT_PUB_SUCCESS_COUNT,
-                    WldtMetricComponent.PHYSICAL_ADAPTER));
+                    WldtMetricComponent.PHYSICAL_ADAPTER, metricMetadata));
 
             this.monitoringInterface.registerMetric(new WldtCounter(
                     this.digitalTwinId,
                     this.metricsNamespace,
                     CoreMonitoringUtils.PHYSICAL_ADAPTER_REL_DELETED_EVENT_PUB_ERROR_COUNT,
-                    WldtMetricComponent.PHYSICAL_ADAPTER));
+                    WldtMetricComponent.PHYSICAL_ADAPTER, metricMetadata));
 
             // Register Counter Metric(s) - Action Request
             this.monitoringInterface.registerMetric(new WldtCounter(
                     this.digitalTwinId,
                     this.metricsNamespace,
                     CoreMonitoringUtils.PHYSICAL_ADAPTER_ACTION_COMPUTATION_SUCCESS_COUNT,
-                    WldtMetricComponent.PHYSICAL_ADAPTER));
+                    WldtMetricComponent.PHYSICAL_ADAPTER, metricMetadata));
 
             this.monitoringInterface.registerMetric(new WldtCounter(
                     this.digitalTwinId,
                     this.metricsNamespace,
                     CoreMonitoringUtils.PHYSICAL_ADAPTER_ACTION_COMPUTATION_ERROR_COUNT,
-                    WldtMetricComponent.PHYSICAL_ADAPTER));
+                    WldtMetricComponent.PHYSICAL_ADAPTER, metricMetadata));
 
             // Register Execution Time Metrics - Action Request
             this.monitoringInterface.registerMetric(new WldtTimer(
                     this.digitalTwinId,
                     this.metricsNamespace,
                     CoreMonitoringUtils.PHYSICAL_ADAPTER_ACTION_COMPUTATION_EXEC_TIME,
-                    WldtMetricComponent.PHYSICAL_ADAPTER));
+                    WldtMetricComponent.PHYSICAL_ADAPTER, metricMetadata));
         }
 
     }

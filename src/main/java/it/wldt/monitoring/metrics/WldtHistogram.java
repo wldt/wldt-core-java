@@ -1,5 +1,7 @@
 package it.wldt.monitoring.metrics;
 
+import java.util.Map;
+
 /**
  * A WLDT metric representing the statistical distribution of a set of observed samples.
  *
@@ -61,9 +63,39 @@ public class WldtHistogram extends WldtMetric {
         this.initialized = false;
     }
 
+    public WldtHistogram(String digitalTwinId, String namespace, String name, WldtMetricComponent component, Map<String, Object> metadata) {
+        super(digitalTwinId, namespace, name, component,  metadata);
+        this.count       = 0;
+        this.sum         = 0;
+        this.min         = 0;
+        this.max         = 0;
+        this.totalCount  = 0;
+        this.totalSum    = 0;
+        this.globalMin   = 0;
+        this.globalMax   = 0;
+        this.windowCount = 0;
+        this.initialized = false;
+    }
+
     public WldtHistogram(String digitalTwinId, String namespace, String name, WldtMetricComponent component,
                          long count, double sum, double min, double max) {
         super(digitalTwinId, namespace, name, component);
+        validateWindow(count, sum, min, max);
+        this.count       = count;
+        this.sum         = sum;
+        this.min         = min;
+        this.max         = max;
+        this.totalCount  = count;
+        this.totalSum    = sum;
+        this.globalMin   = min;
+        this.globalMax   = max;
+        this.windowCount = 1;
+        this.initialized = true;
+    }
+
+    public WldtHistogram(String digitalTwinId, String namespace, String name, WldtMetricComponent component,
+                         long count, double sum, double min, double max, Map<String, Object> metadata) {
+        super(digitalTwinId, namespace, name, component, metadata);
         validateWindow(count, sum, min, max);
         this.count       = count;
         this.sum         = sum;
@@ -153,7 +185,7 @@ public class WldtHistogram extends WldtMetric {
     }
 
     private WldtHistogram(WldtHistogram source) {
-        super(source.getDigitalTwinId(), source.getNamespace(), source.getName(), source.getComponent());
+        super(source.getDigitalTwinId(), source.getNamespace(), source.getName(), source.getComponent(), source.getMetadata());
         this.count       = source.count;
         this.sum         = source.sum;
         this.min         = source.min;
@@ -171,7 +203,7 @@ public class WldtHistogram extends WldtMetric {
     public synchronized WldtHistogram copy() { return new WldtHistogram(this); }
 
     @Override
-    public WldtHistogram emptySnapshot() { return new WldtHistogram(getDigitalTwinId(), getNamespace(), getName(), getComponent()); }
+    public WldtHistogram emptySnapshot() { return new WldtHistogram(getDigitalTwinId(), getNamespace(), getName(), getComponent(), getMetadata()); }
 
     // --- Current-window accessors ---
 

@@ -1,5 +1,7 @@
 package it.wldt.monitoring.metrics;
 
+import java.util.Map;
+
 /**
  * A WLDT metric representing a monotonically increasing counter.
  *
@@ -44,8 +46,26 @@ public class WldtCounter extends WldtMetric {
         this.initialized     = false;
     }
 
+    public WldtCounter(String digitalTwinId, String namespace, String name, WldtMetricComponent component, Map<String, Object> metadata) {
+        super(digitalTwinId, namespace, name, component,  metadata);
+        this.value           = 0;
+        this.delta           = null;
+        this.totalIncrements = 0;
+        this.initialized     = false;
+    }
+
     public WldtCounter(String digitalTwinId, String namespace, String name, WldtMetricComponent component, long initialValue) {
         super(digitalTwinId, namespace, name, component);
+        if (initialValue < 0)
+            throw new IllegalArgumentException("WldtCounter initialValue must be non-negative, got: " + initialValue);
+        this.value           = initialValue;
+        this.delta           = null;
+        this.totalIncrements = 0;
+        this.initialized     = true;
+    }
+
+    public WldtCounter(String digitalTwinId, String namespace, String name, WldtMetricComponent component, long initialValue, Map<String, Object> metadata) {
+        super(digitalTwinId, namespace, name, component,  metadata);
         if (initialValue < 0)
             throw new IllegalArgumentException("WldtCounter initialValue must be non-negative, got: " + initialValue);
         this.value           = initialValue;
@@ -106,7 +126,7 @@ public class WldtCounter extends WldtMetric {
     }
 
     private WldtCounter(WldtCounter source) {
-        super(source.getDigitalTwinId(), source.getNamespace(), source.getName(), source.getComponent());
+        super(source.getDigitalTwinId(), source.getNamespace(), source.getName(), source.getComponent(), source.getMetadata());
         this.value           = source.value;
         this.delta           = source.delta;
         this.totalIncrements = source.totalIncrements;
@@ -118,7 +138,7 @@ public class WldtCounter extends WldtMetric {
     public synchronized WldtCounter copy() { return new WldtCounter(this); }
 
     @Override
-    public WldtCounter emptySnapshot() { return new WldtCounter(getDigitalTwinId(), getNamespace(), getName(), getComponent()); }
+    public WldtCounter emptySnapshot() { return new WldtCounter(getDigitalTwinId(), getNamespace(), getName(), getComponent(), getMetadata()); }
 
     /** @return current cumulative counter value */
     public synchronized long getValue() { return value; }

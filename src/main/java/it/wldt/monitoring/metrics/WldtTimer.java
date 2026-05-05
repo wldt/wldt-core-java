@@ -1,5 +1,7 @@
 package it.wldt.monitoring.metrics;
 
+import java.util.Map;
+
 /**
  * A WLDT metric representing the duration of a measured operation in milliseconds.
  *
@@ -45,8 +47,30 @@ public class WldtTimer extends WldtMetric {
         this.initialized      = false;
     }
 
+    public WldtTimer(String digitalTwinId, String namespace, String name, WldtMetricComponent component, Map<String, Object> metadata) {
+        super(digitalTwinId, namespace, name, component,  metadata);
+        this.durationMs       = 0;
+        this.minDurationMs    = 0;
+        this.maxDurationMs    = 0;
+        this.totalDurationMs  = 0;
+        this.observationCount = 0;
+        this.initialized      = false;
+    }
+
     public WldtTimer(String digitalTwinId, String namespace, String name, WldtMetricComponent component, long initialDurationMs) {
         super(digitalTwinId, namespace, name, component);
+        if (initialDurationMs < 0)
+            throw new IllegalArgumentException("WldtTimer durationMs must be non-negative, got: " + initialDurationMs);
+        this.durationMs       = initialDurationMs;
+        this.minDurationMs    = initialDurationMs;
+        this.maxDurationMs    = initialDurationMs;
+        this.totalDurationMs  = initialDurationMs;
+        this.observationCount = 1;
+        this.initialized      = true;
+    }
+
+    public WldtTimer(String digitalTwinId, String namespace, String name, WldtMetricComponent component, long initialDurationMs, Map<String, Object> metadata) {
+        super(digitalTwinId, namespace, name, component,  metadata);
         if (initialDurationMs < 0)
             throw new IllegalArgumentException("WldtTimer durationMs must be non-negative, got: " + initialDurationMs);
         this.durationMs       = initialDurationMs;
@@ -97,7 +121,7 @@ public class WldtTimer extends WldtMetric {
     }
 
     private WldtTimer(WldtTimer source) {
-        super(source.getDigitalTwinId(), source.getNamespace(), source.getName(), source.getComponent());
+        super(source.getDigitalTwinId(), source.getNamespace(), source.getName(), source.getComponent(), source.getMetadata());
         this.durationMs       = source.durationMs;
         this.minDurationMs    = source.minDurationMs;
         this.maxDurationMs    = source.maxDurationMs;
@@ -111,7 +135,7 @@ public class WldtTimer extends WldtMetric {
     public synchronized WldtTimer copy() { return new WldtTimer(this); }
 
     @Override
-    public WldtTimer emptySnapshot() { return new WldtTimer(getDigitalTwinId(), getNamespace(), getName(), getComponent()); }
+    public WldtTimer emptySnapshot() { return new WldtTimer(getDigitalTwinId(), getNamespace(), getName(), getComponent(), getMetadata()); }
 
     /** @return the most recent recorded duration in milliseconds */
     public synchronized long getDurationMs()        { return durationMs; }

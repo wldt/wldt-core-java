@@ -65,6 +65,8 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
 
     private static final WldtLogger logger = WldtLoggerProvider.getLogger(DigitalAdapter.class);
 
+    public static final String METRIC_METADATA_DIGITAL_ADAPTER_ID_KEY = "da_id";
+
     private String id = null;
 
     private C configuration;
@@ -130,58 +132,63 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
             // Build metric namespace
             this.metricsNamespace = CoreMonitoringUtils.buildCoreNamespace();
 
+            // Create Additional Metric Metadata to keep track of the adapter Id
+            Map<String, Object> metricMetadata = new HashMap<String, Object>() {{
+                put(METRIC_METADATA_DIGITAL_ADAPTER_ID_KEY, getId());
+            }};
+
             // Register Counter Metric(s) - Digital Action
             this.monitoringInterface.registerMetric(new WldtCounter(
                     this.digitalTwinId,
                     this.metricsNamespace,
                     CoreMonitoringUtils.DIGITAL_ADAPTER_ACTION_EVENT_PUB_SUCCESS_COUNT,
-                    WldtMetricComponent.DIGITAL_ADAPTER));
+                    WldtMetricComponent.DIGITAL_ADAPTER, metricMetadata));
 
             this.monitoringInterface.registerMetric(new WldtCounter(
                     this.digitalTwinId,
                     this.metricsNamespace,
                     CoreMonitoringUtils.DIGITAL_ADAPTER_ACTION_EVENT_PUB_ERROR_COUNT,
-                    WldtMetricComponent.DIGITAL_ADAPTER));
+                    WldtMetricComponent.DIGITAL_ADAPTER, metricMetadata));
 
             // Register Counter Metric(s) - Digital Twin State Processing
             this.monitoringInterface.registerMetric(new WldtCounter(
                     this.digitalTwinId,
                     this.metricsNamespace,
                     CoreMonitoringUtils.DIGITAL_ADAPTER_STATE_UPDATE_SUCCESS_COUNT,
-                    WldtMetricComponent.DIGITAL_ADAPTER));
+                    WldtMetricComponent.DIGITAL_ADAPTER, metricMetadata));
 
             this.monitoringInterface.registerMetric(new WldtCounter(
                     this.digitalTwinId,
                     this.metricsNamespace,
                     CoreMonitoringUtils.DIGITAL_ADAPTER_STATE_UPDATE_ERROR_COUNT,
-                    WldtMetricComponent.DIGITAL_ADAPTER));
+                    WldtMetricComponent.DIGITAL_ADAPTER, metricMetadata));
 
             // Register Execution Time Metrics - Digital Twin State Processing
             this.monitoringInterface.registerMetric(new WldtTimer(
                     this.digitalTwinId,
                     this.metricsNamespace,
                     CoreMonitoringUtils.DIGITAL_ADAPTER_STATE_UPDATE_EXEC_TIME,
-                    WldtMetricComponent.DIGITAL_ADAPTER));
+                    WldtMetricComponent.DIGITAL_ADAPTER, metricMetadata));
 
             // Register Counter Metric(s) - Digital Twin Event Processing
             this.monitoringInterface.registerMetric(new WldtCounter(
                     this.digitalTwinId,
                     this.metricsNamespace,
                     CoreMonitoringUtils.DIGITAL_EVENT_NOTIFICATION_SUCCESS_COUNT,
-                    WldtMetricComponent.DIGITAL_ADAPTER));
+                    WldtMetricComponent.DIGITAL_ADAPTER, metricMetadata));
 
             this.monitoringInterface.registerMetric(new WldtCounter(
                     this.digitalTwinId,
                     this.metricsNamespace,
                     CoreMonitoringUtils.DIGITAL_EVENT_NOTIFICATION_ERROR_COUNT,
-                    WldtMetricComponent.DIGITAL_ADAPTER));
+                    WldtMetricComponent.DIGITAL_ADAPTER, metricMetadata));
 
             // Register Execution Time Metrics - Digital Twin Event Processing
             this.monitoringInterface.registerMetric(new WldtTimer(
                     this.digitalTwinId,
                     this.metricsNamespace,
                     CoreMonitoringUtils.DIGITAL_EVENT_NOTIFICATION_EXEC_TIME,
-                    WldtMetricComponent.DIGITAL_ADAPTER));
+                    WldtMetricComponent.DIGITAL_ADAPTER, metricMetadata));
 
         }
 
