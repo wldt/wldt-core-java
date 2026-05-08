@@ -209,3 +209,8 @@ gradle-app.setting
 .idea
 
 .claude
+
+CLAUDE.md
+
+# EventBus benchmark run data (timestamped folders only; scripts are committed)
+metrics/event-bus/[0-9]*/

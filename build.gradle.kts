@@ -24,14 +24,16 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-engine:5.10.1")
     //testImplementation("org.junit.jupiter:junit-jupiter:5.10.1")
     // Comment before publishing to avoid double signing of the same dependency
-    //testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.10.1")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.10.1")
 }
 
 tasks.named<Test>("test") {
-    // Comment before publishing
-    //useJUnitPlatform()
-    // Uncomment before publishing
-    enabled = false
+    useJUnitPlatform()
+    enabled = true
+    // Forward configurable metrics output directory to the test JVM
+    // Override at runtime: ./gradlew test -Devent.bus.metrics.dir=/path/to/output
+    systemProperty("event.bus.metrics.dir",
+        System.getProperty("event.bus.metrics.dir", "metrics/event-bus"))
 }
 
 java {
