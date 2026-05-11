@@ -130,6 +130,9 @@ public abstract class StatelessAugmentationFunction extends AugmentationFunction
         for(AugmentationFunctionResult<?> result : results) {
             result.setRequest(augmentationFunctionRequest);
         }
+        if(results.hasError() && results.getAugmentationFunctionError() != null) {
+            results.getAugmentationFunctionError().setAugmentationFunctionRequestId(request.getRequestId());
+        }
         return results;
     }
 

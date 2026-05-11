@@ -220,6 +220,9 @@ public abstract class StatefulAugmentationFunction extends AugmentationFunction{
             for(AugmentationFunctionResult<?> result : resultList) {
                 result.setRequest(this.request);
             }
+            if(resultList.hasError() && resultList.getAugmentationFunctionError() != null) {
+                resultList.getAugmentationFunctionError().setAugmentationFunctionRequestId(request.getRequestId());
+            }
             statefulAugmentationListener.onStatefulAugmentationFunctionResult(this.getId(), resultList);
         }
         else
