@@ -47,6 +47,11 @@ import it.wldt.adapter.physical.event.*;
 import it.wldt.log.WldtLogger;
 import it.wldt.log.WldtLoggerProvider;
 import it.wldt.management.ResourceManager;
+import it.wldt.monitoring.CoreMonitoringUtils;
+import it.wldt.monitoring.MonitoringInterface;
+import it.wldt.monitoring.metrics.WldtCounter;
+import it.wldt.monitoring.metrics.WldtMetricComponent;
+import it.wldt.monitoring.metrics.WldtTimer;
 import it.wldt.storage.StorageManager;
 
 import java.util.*;
@@ -133,6 +138,17 @@ public abstract class DigitalTwinModel implements WldtEventListener {
     private AugmentationManager augmentationManager;
 
     /**
+     * Reference to the Monitoring Interface in order to add metrics
+     * related to the Models and its behavior
+     */
+    private MonitoringInterface monitoringInterface;
+
+    /**
+     * DT Model Metrics Namespace
+     */
+    private String metricsNamespace;
+
+    /**
      * Default Constructor
      * @param id Unique Identifier of the Digital Twin Model
      */
@@ -159,10 +175,126 @@ public abstract class DigitalTwinModel implements WldtEventListener {
     }
 
     /**
+     * TODO ...
+     */
+    private void handleMetricsRegistration() {
+
+        // Check if the Monitoring Interface is configured and has the handler configured
+        if(this.monitoringInterface != null && this.monitoringInterface.isActive(WldtMetricComponent.DT_MODEL)){
+
+            // Build metric namespace
+            this.metricsNamespace = CoreMonitoringUtils.buildCoreNamespace();
+
+            // Register Counter Metric(s) - PA Property Variation
+            this.monitoringInterface.registerMetric(new WldtCounter(this.digitalTwinStateManager.getDigitalTwinId(),
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.PT_PROPERTY_VARIATION_EXEC_SUCCESS_COUNT,
+                    WldtMetricComponent.DT_MODEL));
+
+            this.monitoringInterface.registerMetric(new WldtCounter(this.digitalTwinStateManager.getDigitalTwinId(),
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.PT_PROPERTY_VARIATION_EXEC_ERROR_COUNT,
+                    WldtMetricComponent.DT_MODEL));
+
+            // Register Execution Time Metrics - PA Property Variation
+            this.monitoringInterface.registerMetric(new WldtTimer(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.PT_PROPERTY_VARIATION_EXEC_TIME,
+                    WldtMetricComponent.DT_MODEL));
+
+            // Register Counter Metric(s) - PA Event Notification
+            this.monitoringInterface.registerMetric(new WldtCounter(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.PT_EVENT_NOTIFICATION_EXEC_SUCCESS_COUNT,
+                    WldtMetricComponent.DT_MODEL));
+
+            this.monitoringInterface.registerMetric(new WldtCounter(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.PT_EVENT_NOTIFICATION_EXEC_ERROR_COUNT,
+                    WldtMetricComponent.DT_MODEL));
+
+            // Register Execution Time Metrics - PA Event Notification
+            this.monitoringInterface.registerMetric(new WldtTimer(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.PT_EVENT_NOTIFICATION_EXEC_TIME,
+                    WldtMetricComponent.DT_MODEL));
+
+            // Register Counter Metric(s) - PA Relationship Created
+            this.monitoringInterface.registerMetric(new WldtCounter(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.PT_RELATIONSHIP_INSTANCE_CREATED_SUCCESS_COUNT,
+                    WldtMetricComponent.DT_MODEL));
+
+            this.monitoringInterface.registerMetric(new WldtCounter(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.PT_RELATIONSHIP_INSTANCE_CREATED_ERROR_COUNT,
+                    WldtMetricComponent.DT_MODEL));
+
+            // Register Execution Time Metrics - PA Relationship Created
+            this.monitoringInterface.registerMetric(new WldtTimer(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.PT_RELATIONSHIP_INSTANCE_CREATED_EXEC_TIME,
+                    WldtMetricComponent.DT_MODEL));
+
+            // Register Counter Metric(s) - PA Relationship DELETED
+            this.monitoringInterface.registerMetric(new WldtCounter(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.PT_RELATIONSHIP_INSTANCE_DELETED_SUCCESS_COUNT,
+                    WldtMetricComponent.DT_MODEL));
+
+            this.monitoringInterface.registerMetric(new WldtCounter(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.PT_RELATIONSHIP_INSTANCE_DELETED_ERROR_COUNT,
+                    WldtMetricComponent.DT_MODEL));
+
+            // Register Execution Time Metrics - PA Relationship Created
+            this.monitoringInterface.registerMetric(new WldtTimer(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.PT_RELATIONSHIP_INSTANCE_DELETED_EXEC_TIME,
+                    WldtMetricComponent.DT_MODEL));
+
+            // Register Counter Metric(s) - Digital Action Request
+            this.monitoringInterface.registerMetric(new WldtCounter(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.DIGITAL_ACTION_REQUEST_SUCCESS_COUNT,
+                    WldtMetricComponent.DT_MODEL));
+
+            this.monitoringInterface.registerMetric(new WldtCounter(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.DIGITAL_ACTION_REQUEST_ERROR_COUNT,
+                    WldtMetricComponent.DT_MODEL));
+
+            // Register Execution Time Metrics - Digital Action Request
+            this.monitoringInterface.registerMetric(new WldtTimer(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.DIGITAL_ACTION_REQUEST_EXEC_TIME,
+                    WldtMetricComponent.DT_MODEL));
+        }
+
+    }
+
+    /**
      * Method called by the Kernel to trigger specific logic to be executed at the
      * start of the Model
      */
     protected void start(){
+
+        // Handle Metrics Registration for the DT Model
+        handleMetricsRegistration();
+
         // Start handling Augmentation Functions (e.g., observe Augmentation Function Registration Events, etc.)
         this.startHandlingAugmentationFunction();
 
@@ -1135,6 +1267,216 @@ public abstract class DigitalTwinModel implements WldtEventListener {
         logger.info("Digital Twin Model -> Unsubscribed from: {}", eventType);
     }
 
+    /**
+     * TODO ...
+     * @param wldtEvent
+     */
+    private void handlePhysicalAssetPropertyVariation(PhysicalAssetPropertyWldtEvent<?> wldtEvent){
+
+        // Check if the Monitoring Interface is configured and has the handler configured
+        if(this.monitoringInterface == null || !this.monitoringInterface.isActive(WldtMetricComponent.DT_MODEL)){
+            try {
+                onPhysicalAssetPropertyVariation(wldtEvent);
+            }
+            catch (Exception e){
+                String errorMessage = String.format("onPhysicalAssetPropertyVariation Function Error Observing Physical Asset Property Variation Event: %s", e.getLocalizedMessage());
+                logger.error(errorMessage);
+            }
+        }
+        else {
+
+            long startMs = System.currentTimeMillis();
+            try {
+
+                // Call the actual function to handle the Physical Asset Property Variation Event (implemented by the developer)
+                onPhysicalAssetPropertyVariation(wldtEvent);
+
+                // Increase Success Counter
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.PT_PROPERTY_VARIATION_EXEC_SUCCESS_COUNT);
+            }
+            catch (Exception e){
+                String errorMessage = String.format("onPhysicalAssetPropertyVariation Function Error Observing Physical Asset Property Variation Event: %s", e.getLocalizedMessage());
+                logger.error(errorMessage);
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.PT_PROPERTY_VARIATION_EXEC_ERROR_COUNT);
+            }
+            finally {
+                // Update new Timer Value for the execution of the Physical Property Variation
+                this.monitoringInterface.updateTimerSince(
+                        this.metricsNamespace,
+                        CoreMonitoringUtils.PT_PROPERTY_VARIATION_EXEC_TIME,
+                        startMs);
+            }
+        }
+    }
+
+    /**
+     * TODO ...
+     * @param wldtEvent
+     */
+    private void handlePhysicalAssetEventNotification(PhysicalAssetEventWldtEvent<?> wldtEvent){
+
+        // Check if the Monitoring Interface is configured and has the handler configured
+        if(this.monitoringInterface == null || !this.monitoringInterface.isActive(WldtMetricComponent.DT_MODEL)){
+            try {
+                onPhysicalAssetEventNotification(wldtEvent);
+            }
+            catch (Exception e){
+                String errorMessage = String.format("onPhysicalAssetPropertyVariation Function Error Observing Physical Asset Property Variation Event: %s", e.getLocalizedMessage());
+                logger.error(errorMessage);
+            }
+        }
+        else {
+
+            long startMs = System.currentTimeMillis();
+            try {
+
+                // Call the actual function to handle the Physical Asset Event Notitication (implemented by the developer)
+                onPhysicalAssetEventNotification(wldtEvent);
+
+                // Increase Success Counter
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.PT_EVENT_NOTIFICATION_EXEC_SUCCESS_COUNT);
+            }
+            catch (Exception e){
+                String errorMessage = String.format("onPhysicalAssetEventNotification Function Error: %s", e.getLocalizedMessage());
+                logger.error(errorMessage);
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.PT_EVENT_NOTIFICATION_EXEC_ERROR_COUNT);
+            }
+            finally {
+                // Update new Timer Value for the execution of the Physical Property Variation
+                this.monitoringInterface.updateTimerSince(
+                        this.metricsNamespace,
+                        CoreMonitoringUtils.PT_EVENT_NOTIFICATION_EXEC_TIME,
+                        startMs);
+            }
+        }
+    }
+
+    /**
+     * TODO ...
+     * @param wldtEvent
+     */
+    private void handlePhysicalAssetRelationshipInstanceCreatedEvent(PhysicalAssetRelationshipInstanceCreatedWldtEvent<?> wldtEvent){
+
+        // Check if the Monitoring Interface is configured and has the handler configured
+        if(this.monitoringInterface == null || !this.monitoringInterface.isActive(WldtMetricComponent.DT_MODEL)){
+            try {
+                onPhysicalAssetRelationshipEstablished(wldtEvent);
+            }
+            catch (Exception e){
+                String errorMessage = String.format("onPhysicalAssetPropertyVariation Function Error Observing Physical Asset Property Variation Event: %s", e.getLocalizedMessage());
+                logger.error(errorMessage);
+            }
+        }
+        else {
+
+            long startMs = System.currentTimeMillis();
+            try {
+
+                // Call the actual function to handle the event (implemented by the developer)
+                onPhysicalAssetRelationshipEstablished(wldtEvent);
+
+                // Increase Success Counter
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.PT_RELATIONSHIP_INSTANCE_CREATED_SUCCESS_COUNT);
+            }
+            catch (Exception e){
+                String errorMessage = String.format("onPhysicalAssetRelationshipEstablished Function Error: %s", e.getLocalizedMessage());
+                logger.error(errorMessage);
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.PT_RELATIONSHIP_INSTANCE_CREATED_ERROR_COUNT);
+            }
+            finally {
+                // Update new Timer Value for the execution of the Physical Property Variation
+                this.monitoringInterface.updateTimerSince(
+                        this.metricsNamespace,
+                        CoreMonitoringUtils.PT_RELATIONSHIP_INSTANCE_CREATED_EXEC_TIME,
+                        startMs);
+            }
+        }
+    }
+
+    /**
+     * TODO ...
+     * @param wldtEvent
+     */
+    private void handlePhysicalAssetRelationshipInstanceDeletedEvent(PhysicalAssetRelationshipInstanceDeletedWldtEvent<?> wldtEvent){
+
+        // Check if the Monitoring Interface is configured and has the handler configured
+        if(this.monitoringInterface == null || !this.monitoringInterface.isActive(WldtMetricComponent.DT_MODEL)){
+            try {
+                onPhysicalAssetRelationshipDeleted(wldtEvent);
+            }
+            catch (Exception e){
+                String errorMessage = String.format("onPhysicalAssetPropertyVariation Function Error Observing Physical Asset Property Variation Event: %s", e.getLocalizedMessage());
+                logger.error(errorMessage);
+            }
+        }
+        else {
+
+            long startMs = System.currentTimeMillis();
+            try {
+
+                // Call the actual function to handle the event (implemented by the developer)
+                onPhysicalAssetRelationshipDeleted(wldtEvent);
+
+                // Increase Success Counter
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.PT_RELATIONSHIP_INSTANCE_DELETED_SUCCESS_COUNT);
+            }
+            catch (Exception e){
+                String errorMessage = String.format("onPhysicalAssetRelationshipDeleted Function Error: %s", e.getLocalizedMessage());
+                logger.error(errorMessage);
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.PT_RELATIONSHIP_INSTANCE_DELETED_ERROR_COUNT);
+            }
+            finally {
+                // Update new Timer Value for the execution of the Physical Property Variation
+                this.monitoringInterface.updateTimerSince(
+                        this.metricsNamespace,
+                        CoreMonitoringUtils.PT_RELATIONSHIP_INSTANCE_DELETED_EXEC_TIME,
+                        startMs);
+            }
+        }
+    }
+
+    /**
+     * TODO ...
+     * @param wldtEvent
+     */
+    private void handleDigitalActionEvent(DigitalActionWldtEvent<?> wldtEvent){
+
+        // Check if the Monitoring Interface is configured and has the handler configured
+        if(this.monitoringInterface == null || !this.monitoringInterface.isActive(WldtMetricComponent.DT_MODEL)){
+            try {
+                onDigitalActionEvent(wldtEvent);
+            }
+            catch (Exception e){
+                String errorMessage = String.format("onPhysicalAssetPropertyVariation Function Error Observing Physical Asset Property Variation Event: %s", e.getLocalizedMessage());
+                logger.error(errorMessage);
+            }
+        }
+        else {
+
+            long startMs = System.currentTimeMillis();
+            try {
+
+                // Call the actual function to handle the event (implemented by the developer)
+                onDigitalActionEvent(wldtEvent);
+
+                // Increase Success Counter
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.DIGITAL_ACTION_REQUEST_SUCCESS_COUNT);
+            }
+            catch (Exception e){
+                String errorMessage = String.format("onDigitalActionEvent Function Error: %s", e.getLocalizedMessage());
+                logger.error(errorMessage);
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.DIGITAL_ACTION_REQUEST_ERROR_COUNT);
+            }
+            finally {
+                // Update new Timer Value for the execution of the Physical Property Variation
+                this.monitoringInterface.updateTimerSince(
+                        this.metricsNamespace,
+                        CoreMonitoringUtils.DIGITAL_ACTION_REQUEST_EXEC_TIME,
+                        startMs);
+            }
+        }
+    }
+
     @Override
     public void onEvent(WldtEvent<?> wldtEvent) {
 
@@ -1143,19 +1485,22 @@ public abstract class DigitalTwinModel implements WldtEventListener {
         // TODO Re-write all the following checks with Event Filters & Wildcard instead of Class Instances
 
         if(wldtEvent instanceof PhysicalAssetPropertyWldtEvent)
-            onPhysicalAssetPropertyVariation((PhysicalAssetPropertyWldtEvent<?>) wldtEvent);
+            handlePhysicalAssetPropertyVariation((PhysicalAssetPropertyWldtEvent<?>) wldtEvent);
 
         if(wldtEvent instanceof PhysicalAssetEventWldtEvent)
-            onPhysicalAssetEventNotification((PhysicalAssetEventWldtEvent<?>) wldtEvent);
+            handlePhysicalAssetEventNotification((PhysicalAssetEventWldtEvent<?>) wldtEvent);
 
         if(wldtEvent instanceof PhysicalAssetRelationshipInstanceCreatedWldtEvent)
-            onPhysicalAssetRelationshipEstablished((PhysicalAssetRelationshipInstanceCreatedWldtEvent<?>) wldtEvent);
+            //onPhysicalAssetRelationshipEstablished((PhysicalAssetRelationshipInstanceCreatedWldtEvent<?>) wldtEvent);
+            handlePhysicalAssetRelationshipInstanceCreatedEvent((PhysicalAssetRelationshipInstanceCreatedWldtEvent<?>) wldtEvent);
 
         if(wldtEvent instanceof PhysicalAssetRelationshipInstanceDeletedWldtEvent)
-            onPhysicalAssetRelationshipDeleted((PhysicalAssetRelationshipInstanceDeletedWldtEvent<?>) wldtEvent);
+            //onPhysicalAssetRelationshipDeleted((PhysicalAssetRelationshipInstanceDeletedWldtEvent<?>) wldtEvent);
+            handlePhysicalAssetRelationshipInstanceDeletedEvent((PhysicalAssetRelationshipInstanceDeletedWldtEvent<?>) wldtEvent);
 
         if(wldtEvent instanceof DigitalActionWldtEvent<?>)
-            onDigitalActionEvent((DigitalActionWldtEvent<?>) wldtEvent);
+            //onDigitalActionEvent((DigitalActionWldtEvent<?>) wldtEvent);
+            handleDigitalActionEvent((DigitalActionWldtEvent<?>) wldtEvent);
 
         //if(wldtEvent.getType().equals(DigitalAdapter.DIGITAL_ACTION_EVENT))
         //    onDigitalActionEvent((DigitalActionWldtEvent<?>) wldtEvent.getBody());
@@ -1478,6 +1823,34 @@ public abstract class DigitalTwinModel implements WldtEventListener {
         // Notify the Shadowing Model Listener that the Shadowing Model is out of sync with the Physical Asset
         if(getShadowingModelListener() != null)
             getShadowingModelListener().onShadowingOutOfSync(digitalTwinStateManager.getDigitalTwinState());
+    }
+
+    /**
+     * TODO ...
+     * @return
+     */
+    public MonitoringInterface getMonitoringInterface() {
+        return monitoringInterface;
+    }
+
+    /**
+     * TODO ...
+     */
+    public void setMonitoringInterface(MonitoringInterface monitoringInterface) {
+
+        // Check if the monitoring interface is not null
+        if(monitoringInterface != null) {
+
+            // Set the Monitoring Interface Reference to the DT Model
+            this.monitoringInterface = monitoringInterface;
+
+            // If the Digital Twin State Manager is not null set the reference to the Monitoring Interface
+            if (this.digitalTwinStateManager != null)
+                this.digitalTwinStateManager.setMonitoringInterface(monitoringInterface);
+        }
+        else
+            logger.error("Cannot set Monitoring Interface to null for Digital Twin Model with id: {}", this.id);
+
     }
 
     @Override

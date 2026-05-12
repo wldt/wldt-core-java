@@ -6,7 +6,7 @@ import it.wldt.core.event.WldtEventBus;
 import it.wldt.exception.EventBusException;
 import it.wldt.log.WldtLogger;
 import it.wldt.log.WldtLoggerProvider;
-import it.wldt.process.metrics.SharedTestMetrics;
+import it.wldt.utils.SharedTestMetrics;
 import java.util.ArrayList;
 import java.util.Random;
 
@@ -17,6 +17,10 @@ public class DemoPhysicalAdapter extends ConfigurablePhysicalAdapter<DemoPhysica
     public static final int DEFAULT_TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES = 10;
 
     public static final int DEFAULT_TARGET_PHYSICAL_ASSET_EVENT_UPDATES = 2;
+
+    public static final int DEFAULT_TARGET_PHYSICAL_ASSET_REL_INSTANCE_CREATE = 2;
+
+    public static final int DEFAULT_TARGET_PHYSICAL_ASSET_REL_INSTANCE_DELETE = 2;
 
     public static long DEFAULT_MESSAGE_SLEEP_PERIOD_MS = 1000;
 

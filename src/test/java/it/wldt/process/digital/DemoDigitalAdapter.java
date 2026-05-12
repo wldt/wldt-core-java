@@ -8,7 +8,7 @@ import it.wldt.core.state.DigitalTwinStateEventNotification;
 import it.wldt.exception.EventBusException;
 import it.wldt.log.WldtLogger;
 import it.wldt.log.WldtLoggerProvider;
-import it.wldt.process.metrics.SharedTestMetrics;
+import it.wldt.utils.SharedTestMetrics;
 import it.wldt.storage.query.*;
 import java.util.ArrayList;
 import java.util.stream.Collectors;

@@ -30,7 +30,13 @@ import it.wldt.exception.WldtRuntimeException;
 import it.wldt.adapter.physical.event.*;
 import it.wldt.log.WldtLogger;
 import it.wldt.log.WldtLoggerProvider;
+import it.wldt.monitoring.CoreMonitoringUtils;
+import it.wldt.monitoring.MonitoringInterface;
+import it.wldt.monitoring.metrics.WldtCounter;
+import it.wldt.monitoring.metrics.WldtMetricComponent;
+import it.wldt.monitoring.metrics.WldtTimer;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
@@ -55,6 +61,8 @@ public abstract class PhysicalAdapter extends DigitalTwinWorker implements WldtE
     /** Logger */
     private static final WldtLogger logger = WldtLoggerProvider.getLogger(ConfigurablePhysicalAdapter.class);
 
+    public static final String METRIC_METADATA_PHYSICAL_ADAPTER_ID_KEY = "pa_id";
+
     /** Physical Adapter Identifier */
     private String id;
 
@@ -66,6 +74,17 @@ public abstract class PhysicalAdapter extends DigitalTwinWorker implements WldtE
 
     /** Physical Asset Description handled by the Physical Adapter */
     private PhysicalAssetDescription adapterPhysicalAssetDescription;
+
+    /**
+     * Reference to the Monitoring Interface in order to add metrics
+     * related to computation of the Digital Twin State
+     */
+    private MonitoringInterface monitoringInterface;
+
+    /**
+     * State Manager Metrics Namespace
+     */
+    private String metricsNamespace;
 
     /**
      * Default private constructor.
@@ -81,6 +100,97 @@ public abstract class PhysicalAdapter extends DigitalTwinWorker implements WldtE
     public PhysicalAdapter(String id) {
         super();
         this.id = id;
+    }
+
+    /**
+     * TODO ...
+     */
+    private void handleMetricsRegistration() {
+
+        // Check if the Monitoring Interface is configured and has the handler configured
+        if(this.monitoringInterface != null && this.monitoringInterface.isActive(WldtMetricComponent.PHYSICAL_ADAPTER)) {
+
+            // Build metric namespace
+            this.metricsNamespace = CoreMonitoringUtils.buildCoreNamespace();
+
+            // Create Additional Metric Metadata to keep track of the adapter Id
+            Map<String, Object> metricMetadata = new HashMap<String, Object>() {{
+                put(METRIC_METADATA_PHYSICAL_ADAPTER_ID_KEY, getId());
+            }};
+
+            // Register Counter Metric(s) - Physical Property Event Pub
+            this.monitoringInterface.registerMetric(new WldtCounter(
+                    this.digitalTwinId,
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.PHYSICAL_ADAPTER_PROPERTY_EVENT_PUB_SUCCESS_COUNT,
+                    WldtMetricComponent.PHYSICAL_ADAPTER, metricMetadata));
+
+            this.monitoringInterface.registerMetric(new WldtCounter(
+                    this.digitalTwinId,
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.PHYSICAL_ADAPTER_PROPERTY_EVENT_PUB_ERROR_COUNT,
+                    WldtMetricComponent.PHYSICAL_ADAPTER, metricMetadata));
+
+            // Register Counter Metric(s) - Physical Property Event Pub
+            this.monitoringInterface.registerMetric(new WldtCounter(
+                    this.digitalTwinId,
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.PHYSICAL_ADAPTER_EVENT_NOTIFICATION_EVENT_PUB_SUCCESS_COUNT,
+                    WldtMetricComponent.PHYSICAL_ADAPTER, metricMetadata));
+
+            this.monitoringInterface.registerMetric(new WldtCounter(
+                    this.digitalTwinId,
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.PHYSICAL_ADAPTER_EVENT_NOTIFICATION_EVENT_PUB_ERROR_COUNT,
+                    WldtMetricComponent.PHYSICAL_ADAPTER, metricMetadata));
+
+            // Register Counter Metric(s) - Physical Relationship Created Pub
+            this.monitoringInterface.registerMetric(new WldtCounter(
+                    this.digitalTwinId,
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.PHYSICAL_ADAPTER_REL_CREATED_EVENT_PUB_SUCCESS_COUNT,
+                    WldtMetricComponent.PHYSICAL_ADAPTER, metricMetadata));
+
+            this.monitoringInterface.registerMetric(new WldtCounter(
+                    this.digitalTwinId,
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.PHYSICAL_ADAPTER_REL_CREATED_EVENT_PUB_ERROR_COUNT,
+                    WldtMetricComponent.PHYSICAL_ADAPTER, metricMetadata));
+
+            // Register Counter Metric(s) - Physical Relationship Deleted Pub
+            this.monitoringInterface.registerMetric(new WldtCounter(
+                    this.digitalTwinId,
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.PHYSICAL_ADAPTER_REL_DELETED_EVENT_PUB_SUCCESS_COUNT,
+                    WldtMetricComponent.PHYSICAL_ADAPTER, metricMetadata));
+
+            this.monitoringInterface.registerMetric(new WldtCounter(
+                    this.digitalTwinId,
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.PHYSICAL_ADAPTER_REL_DELETED_EVENT_PUB_ERROR_COUNT,
+                    WldtMetricComponent.PHYSICAL_ADAPTER, metricMetadata));
+
+            // Register Counter Metric(s) - Action Request
+            this.monitoringInterface.registerMetric(new WldtCounter(
+                    this.digitalTwinId,
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.PHYSICAL_ADAPTER_ACTION_COMPUTATION_SUCCESS_COUNT,
+                    WldtMetricComponent.PHYSICAL_ADAPTER, metricMetadata));
+
+            this.monitoringInterface.registerMetric(new WldtCounter(
+                    this.digitalTwinId,
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.PHYSICAL_ADAPTER_ACTION_COMPUTATION_ERROR_COUNT,
+                    WldtMetricComponent.PHYSICAL_ADAPTER, metricMetadata));
+
+            // Register Execution Time Metrics - Action Request
+            this.monitoringInterface.registerMetric(new WldtTimer(
+                    this.digitalTwinId,
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.PHYSICAL_ADAPTER_ACTION_COMPUTATION_EXEC_TIME,
+                    WldtMetricComponent.PHYSICAL_ADAPTER, metricMetadata));
+        }
+
     }
 
     @Override
@@ -135,27 +245,104 @@ public abstract class PhysicalAdapter extends DigitalTwinWorker implements WldtE
     public abstract void onAdapterStop();
 
     protected void publishPhysicalAssetPropertyWldtEvent(PhysicalAssetPropertyWldtEvent<?> targetPhysicalPropertyEventMessage) throws EventBusException {
-        // Before publishing the event, set the physical adapter id
-        targetPhysicalPropertyEventMessage.setPhysicalAdapterId(this.id);
-        WldtEventBus.getInstance().publishEvent(this.digitalTwinId, getId(), targetPhysicalPropertyEventMessage);
+        try{
+            // Before publishing the event, set the physical adapter id
+            targetPhysicalPropertyEventMessage.setPhysicalAdapterId(this.id);
+            WldtEventBus.getInstance().publishEvent(this.digitalTwinId, getId(), targetPhysicalPropertyEventMessage);
+
+            // Increase Success Counter
+            if(this.monitoringInterface != null && this.monitoringInterface.isActive(WldtMetricComponent.PHYSICAL_ADAPTER))
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.PHYSICAL_ADAPTER_PROPERTY_EVENT_PUB_SUCCESS_COUNT);
+        } catch (Exception e){
+
+            // Build the error message
+            String errorMessage = String.format("onDigitalActionEvent Function Error: %s", e.getLocalizedMessage());
+            logger.error(errorMessage);
+
+            // Increate Metrics Count
+            if(this.monitoringInterface != null && this.monitoringInterface.isActive(WldtMetricComponent.PHYSICAL_ADAPTER))
+               this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.PHYSICAL_ADAPTER_PROPERTY_EVENT_PUB_ERROR_COUNT);
+
+            // Propagate the Exception
+            throw new EventBusException(errorMessage);
+        }
     }
 
     protected void publishPhysicalAssetEventWldtEvent(PhysicalAssetEventWldtEvent<?> targetPhysicalAssetEventWldtEvent) throws EventBusException {
-        // Before publishing the event, set the physical adapter id
-        targetPhysicalAssetEventWldtEvent.setPhysicalAdapterId(this.id);
-        WldtEventBus.getInstance().publishEvent(this.digitalTwinId, getId(), targetPhysicalAssetEventWldtEvent);
+
+        try{
+            // Before publishing the event, set the physical adapter id
+            targetPhysicalAssetEventWldtEvent.setPhysicalAdapterId(this.id);
+            WldtEventBus.getInstance().publishEvent(this.digitalTwinId, getId(), targetPhysicalAssetEventWldtEvent);
+
+            // Increase Success Counter
+            if(this.monitoringInterface != null && this.monitoringInterface.isActive(WldtMetricComponent.PHYSICAL_ADAPTER))
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.PHYSICAL_ADAPTER_EVENT_NOTIFICATION_EVENT_PUB_SUCCESS_COUNT);
+        } catch (Exception e){
+
+            // Build the error message
+            String errorMessage = String.format("onDigitalActionEvent Function Error: %s", e.getLocalizedMessage());
+            logger.error(errorMessage);
+
+            // Increate Metrics Count
+            if(this.monitoringInterface != null && this.monitoringInterface.isActive(WldtMetricComponent.PHYSICAL_ADAPTER))
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.PHYSICAL_ADAPTER_EVENT_NOTIFICATION_EVENT_PUB_ERROR_COUNT);
+
+            // Propagate the Exception
+            throw new EventBusException(errorMessage);
+        }
     }
 
     protected void publishPhysicalAssetRelationshipCreatedWldtEvent(PhysicalAssetRelationshipInstanceCreatedWldtEvent<?> targetPhysicalAssetRelationshipWldtEvent) throws EventBusException {
-        // Before publishing the event, set the physical adapter id
-        targetPhysicalAssetRelationshipWldtEvent.setPhysicalAdapterId(this.id);
-        WldtEventBus.getInstance().publishEvent(this.digitalTwinId, getId(), targetPhysicalAssetRelationshipWldtEvent);
+
+        try{
+
+            // Before publishing the event, set the physical adapter id
+            targetPhysicalAssetRelationshipWldtEvent.setPhysicalAdapterId(this.id);
+            WldtEventBus.getInstance().publishEvent(this.digitalTwinId, getId(), targetPhysicalAssetRelationshipWldtEvent);
+
+            // Increase Success Counter
+            if(this.monitoringInterface != null && this.monitoringInterface.isActive(WldtMetricComponent.PHYSICAL_ADAPTER))
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.PHYSICAL_ADAPTER_REL_CREATED_EVENT_PUB_SUCCESS_COUNT);
+        } catch (Exception e){
+
+            // Build the error message
+            String errorMessage = String.format("onDigitalActionEvent Function Error: %s", e.getLocalizedMessage());
+            logger.error(errorMessage);
+
+            // Increate Metrics Count
+            if(this.monitoringInterface != null && this.monitoringInterface.isActive(WldtMetricComponent.PHYSICAL_ADAPTER))
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.PHYSICAL_ADAPTER_REL_CREATED_EVENT_PUB_ERROR_COUNT);
+
+            // Propagate the Exception
+            throw new EventBusException(errorMessage);
+        }
     }
 
     protected void publishPhysicalAssetRelationshipDeletedWldtEvent(PhysicalAssetRelationshipInstanceDeletedWldtEvent<?> targetPhysicalAssetRelationshipWldtEvent) throws EventBusException {
-        // Before publishing the event, set the physical adapter id
-        targetPhysicalAssetRelationshipWldtEvent.setPhysicalAdapterId(this.id);
-        WldtEventBus.getInstance().publishEvent(this.digitalTwinId, getId(), targetPhysicalAssetRelationshipWldtEvent);
+
+        try{
+
+            // Before publishing the event, set the physical adapter id
+            targetPhysicalAssetRelationshipWldtEvent.setPhysicalAdapterId(this.id);
+            WldtEventBus.getInstance().publishEvent(this.digitalTwinId, getId(), targetPhysicalAssetRelationshipWldtEvent);
+
+            // Increase Success Counter
+            if(this.monitoringInterface != null && this.monitoringInterface.isActive(WldtMetricComponent.PHYSICAL_ADAPTER))
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.PHYSICAL_ADAPTER_REL_DELETED_EVENT_PUB_SUCCESS_COUNT);
+        } catch (Exception e){
+
+            // Build the error message
+            String errorMessage = String.format("onDigitalActionEvent Function Error: %s", e.getLocalizedMessage());
+            logger.error(errorMessage);
+
+            // Increate Metrics Count
+            if(this.monitoringInterface != null && this.monitoringInterface.isActive(WldtMetricComponent.PHYSICAL_ADAPTER))
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.PHYSICAL_ADAPTER_REL_DELETED_EVENT_PUB_ERROR_COUNT);
+
+            // Propagate the Exception
+            throw new EventBusException(errorMessage);
+        }
     }
 
     public PhysicalAssetDescription getPhysicalAssetDescription() {
@@ -299,11 +486,54 @@ public abstract class PhysicalAdapter extends DigitalTwinWorker implements WldtE
         logger.debug("{} -> Unsubscribed from: {}", id, eventType);
     }
 
+    /**
+     * TODO ...
+     * @param wldtEvent
+     */
+    private void handleIncomingPhysicalAction(PhysicalAssetActionWldtEvent<?> wldtEvent){
+
+        // Check if the Monitoring Interface is configured and has the handler configured
+        if(this.monitoringInterface == null || !this.monitoringInterface.isActive(WldtMetricComponent.PHYSICAL_ADAPTER)){
+            try {
+                onIncomingPhysicalAction(wldtEvent);
+            }
+            catch (Exception e){
+                String errorMessage = String.format("onPhysicalAssetPropertyVariation Function Error Observing Physical Asset Property Variation Event: %s", e.getLocalizedMessage());
+                logger.error(errorMessage);
+            }
+        }
+        else {
+
+            long startMs = System.currentTimeMillis();
+            try {
+
+                // Call the actual function to handle the event (implemented by the developer)
+                onIncomingPhysicalAction(wldtEvent);
+
+                // Increase Success Counter
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.PHYSICAL_ADAPTER_ACTION_COMPUTATION_SUCCESS_COUNT);
+            }
+            catch (Exception e){
+                String errorMessage = String.format("onDigitalActionEvent Function Error: %s", e.getLocalizedMessage());
+                logger.error(errorMessage);
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.PHYSICAL_ADAPTER_ACTION_COMPUTATION_ERROR_COUNT);
+            }
+            finally {
+                // Update new Timer Value for the execution of the Physical Property Variation
+                this.monitoringInterface.updateTimerSince(
+                        this.metricsNamespace,
+                        CoreMonitoringUtils.PHYSICAL_ADAPTER_ACTION_COMPUTATION_EXEC_TIME,
+                        startMs);
+            }
+        }
+    }
+
     @Override
     public void onEvent(WldtEvent<?> wldtEvent) {
         logger.debug("{} -> Received Event: {}", id, wldtEvent);
         if (wldtEvent != null && wldtEvent instanceof PhysicalAssetActionWldtEvent) {
-            onIncomingPhysicalAction((PhysicalAssetActionWldtEvent<?>) wldtEvent);
+            //onIncomingPhysicalAction((PhysicalAssetActionWldtEvent<?>) wldtEvent);
+            handleIncomingPhysicalAction((PhysicalAssetActionWldtEvent<?>) wldtEvent);
         }
     }
 
@@ -411,5 +641,23 @@ public abstract class PhysicalAdapter extends DigitalTwinWorker implements WldtE
     @Override
     public void onDestroy() {
         // Nothing to do in a Physical Adapter
+    }
+
+    public MonitoringInterface getMonitoringInterface() {
+        return monitoringInterface;
+    }
+
+    public void setMonitoringInterface(MonitoringInterface monitoringInterface) {
+        // Check if the monitoring interface is not null
+        if(monitoringInterface != null) {
+
+            // Set the Monitoring Interface Reference to the DT Model
+            this.monitoringInterface = monitoringInterface;
+
+            // Handle Metrics Registration
+            this.handleMetricsRegistration();
+        }
+        else
+            logger.error("Cannot set Monitoring Interface to null for Digital Twin State Manager (DT Id: {}) !", this.digitalTwinId);
     }
 }

@@ -18,7 +18,7 @@ import it.wldt.log.WldtLogger;
 import it.wldt.log.WldtLoggerProvider;
 import it.wldt.process.digital.DemoDigitalAdapter;
 import it.wldt.process.digital.DemoDigitalAdapterConfiguration;
-import it.wldt.process.metrics.SharedTestMetrics;
+import it.wldt.utils.SharedTestMetrics;
 import it.wldt.process.physical.DemoPhysicalAdapter;
 import it.wldt.process.physical.DemoPhysicalAdapterConfiguration;
 import org.junit.jupiter.api.*;

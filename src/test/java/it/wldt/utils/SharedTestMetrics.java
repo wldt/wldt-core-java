@@ -1,4 +1,4 @@
-package it.wldt.process.metrics;
+package it.wldt.utils;
 
 import it.wldt.adapter.physical.event.PhysicalAssetEventWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetPropertyWldtEvent;
@@ -10,7 +10,8 @@ import it.wldt.core.state.DigitalTwinState;
 import it.wldt.core.state.DigitalTwinStateEventNotification;
 import it.wldt.log.WldtLogger;
 import it.wldt.log.WldtLoggerProvider;
-
+import it.wldt.monitoring.metrics.WldtMetric;
+import it.wldt.monitoring.metrics.WldtMetricComponent;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -63,6 +64,12 @@ public class SharedTestMetrics {
 
     private Map<String, Map<String, List<AugmentationFunctionError>>> augmentationFunctionErrorNotificationMap;
 
+    // Monitoring: registered and updated metrics per DT
+    private Map<String, List<WldtMetric>>          monitoringRegisteredMetricMap;
+    private Map<String, List<WldtMetricComponent>> monitoringRegisteredComponentMap;
+    private Map<String, List<WldtMetric>>          monitoringUpdatedMetricMap;
+    private Map<String, List<WldtMetricComponent>> monitoringUpdatedComponentMap;
+
     private SharedTestMetrics(){
         logger.info("SharedTestMetrics Constructor Called !");
         init();
@@ -90,6 +97,10 @@ public class SharedTestMetrics {
         this.augmentationFunctionRegistrationCallbackMap = new HashMap<>();
         this.augmentationFunctionUnRegistrationCallbackMap = new HashMap<>();
         this.augmentationFunctionErrorNotificationMap = new HashMap<>();
+        this.monitoringRegisteredMetricMap    = new HashMap<>();
+        this.monitoringRegisteredComponentMap = new HashMap<>();
+        this.monitoringUpdatedMetricMap       = new HashMap<>();
+        this.monitoringUpdatedComponentMap    = new HashMap<>();
     }
 
     public void registerDigitalTwin(String digitalTwinId){
@@ -106,6 +117,10 @@ public class SharedTestMetrics {
         this.augmentationFunctionRegistrationCallbackMap.put(digitalTwinId, new HashMap<>());
         this.augmentationFunctionUnRegistrationCallbackMap.put(digitalTwinId, new HashMap<>());
         this.augmentationFunctionErrorNotificationMap.put(digitalTwinId, new HashMap<>());
+        this.monitoringRegisteredMetricMap.put(digitalTwinId,    new ArrayList<>());
+        this.monitoringRegisteredComponentMap.put(digitalTwinId, new ArrayList<>());
+        this.monitoringUpdatedMetricMap.put(digitalTwinId,       new ArrayList<>());
+        this.monitoringUpdatedComponentMap.put(digitalTwinId,    new ArrayList<>());
     }
 
     public void unRegisterDigitalTwin(String digitalTwinId){
@@ -122,6 +137,10 @@ public class SharedTestMetrics {
         this.augmentationFunctionRegistrationCallbackMap.remove(digitalTwinId);
         this.augmentationFunctionUnRegistrationCallbackMap.remove(digitalTwinId);
         this.augmentationFunctionErrorNotificationMap.remove(digitalTwinId);
+        this.monitoringRegisteredMetricMap.remove(digitalTwinId);
+        this.monitoringRegisteredComponentMap.remove(digitalTwinId);
+        this.monitoringUpdatedMetricMap.remove(digitalTwinId);
+        this.monitoringUpdatedComponentMap.remove(digitalTwinId);
     }
 
     public void resetMetrics(){
@@ -320,6 +339,46 @@ public class SharedTestMetrics {
 
     public Map<String, Map<String, List<AugmentationFunctionError>>> getAugmentationFunctionErrorNotificationMap() {
         return augmentationFunctionErrorNotificationMap;
+    }
+
+    // -------------------------------------------------------------------------
+    // Monitoring support
+    // -------------------------------------------------------------------------
+
+    public void addMonitoringRegisteredMetric(String digitalTwinId, WldtMetricComponent component, WldtMetric metric) {
+        this.monitoringRegisteredMetricMap.get(digitalTwinId).add(metric);
+        if(!this.monitoringRegisteredComponentMap.get(digitalTwinId).contains(component))
+            this.monitoringRegisteredComponentMap.get(digitalTwinId).add(component);
+    }
+
+    public void addMonitoringUpdatedMetric(String digitalTwinId, WldtMetricComponent component, WldtMetric metric) {
+        this.monitoringUpdatedMetricMap.get(digitalTwinId).add(metric);
+        if(!this.monitoringUpdatedComponentMap.get(digitalTwinId).contains(component))
+            this.monitoringUpdatedComponentMap.get(digitalTwinId).add(component);
+    }
+
+    public List<WldtMetric> getMonitoringRegisteredMetricList(String digitalTwinId) {
+        return monitoringRegisteredMetricMap.get(digitalTwinId);
+    }
+
+    public List<WldtMetricComponent> getMonitoringRegisteredComponentList(String digitalTwinId) {
+        return monitoringRegisteredComponentMap.get(digitalTwinId);
+    }
+
+    public List<WldtMetric> getMonitoringUpdatedMetricList(String digitalTwinId) {
+        return monitoringUpdatedMetricMap.get(digitalTwinId);
+    }
+
+    public List<WldtMetricComponent> getMonitoringUpdatedComponentList(String digitalTwinId) {
+        return monitoringUpdatedComponentMap.get(digitalTwinId);
+    }
+
+    public Map<String, List<WldtMetric>> getMonitoringRegisteredMetricMap() {
+        return monitoringRegisteredMetricMap;
+    }
+
+    public Map<String, List<WldtMetric>> getMonitoringUpdatedMetricMap() {
+        return monitoringUpdatedMetricMap;
     }
 
     @Override
