@@ -98,6 +98,60 @@ public class CoreMonitoringUtils {
 
     //public static final String LIFE_CYCLE_VALUE_PUB_ERROR_COUNT = "dt_lifecycle_value_pub_error_count";
 
+    // Augmentation Function Handler
+
+    public static final String AUGMENTATION_FUNCTION_HANDLER_COUNT = "af_handler_count";
+
+    public static final String AUGMENTATION_FUNCTION_STATELESS_COUNT = "af_stateless_count";
+
+    public static final String AUGMENTATION_FUNCTION_STATEFUL_COUNT = "af_stateful_count";
+
+    public static final String AUGMENTATION_FUNCTION_STATEFUL_RUNNING_COUNT = "af_stateful_running_count";
+
+    public static final String AUGMENTATION_FUNCTION_ERROR_COUNT = "af_error_count";
+
+    public static final String AUGMENTATION_FUNCTION_REGISTRATION_COUNT = "af_registration_count";
+
+    public static final String AUGMENTATION_FUNCTION_UNREGISTRATION_COUNT = "af_unregistration_count";
+
+    // Augmentation Function
+
+    public static final String AF_RESULT_SUCCESS_COUNT = "af_result_success_count";
+
+    public static final String AF_RESULT_ERROR_COUNT = "af_result_error_count";
+
+    public static final String AF_RESULT_EXEC_TIME = "af_exec_time";
+
+    public static final String AF_ERROR_SUCCESS_COUNT = "af_error_success_count";
+
+    public static final String AF_ERROR_ERROR_COUNT = "af_error_error_count";
+
+    public static final String AF_ERROR_EXEC_TIME = "af_error_exec_time";
+
+    public static final String AF_REGISTERED_SUCCESS_COUNT = "af_registered_success_count";
+
+    public static final String AF_REGISTERED_ERROR_COUNT = "af_registered_error_count";
+
+    public static final String AF_REGISTERED_EXEC_TIME = "af_registered_exec_time";
+
+    public static final String AF_UNREGISTERED_SUCCESS_COUNT = "af_unregistered_success_count";
+
+    public static final String AF_UNREGISTERED_ERROR_COUNT = "af_unregistered_error_count";
+
+    public static final String AF_UNREGISTERED_EXEC_TIME = "af_unregistered_exec_time";
+
+    public static final String AF_REQUEST_SUCCESS_COUNT = "af_request_success_count";
+
+    public static final String AF_REQUEST_ERROR_COUNT = "af_request_error_count";
+
+    public static final String AF_REQUEST_EXEC_TIME = "af_request_exec_time";
+
+    public static final String AF_LIST_REGISTERED_SUCCESS_COUNT = "af_list_registered_success_count";
+
+    public static final String AF_LIST_REGISTERED_ERROR_COUNT = "af_list_registered_error_count";
+
+    public static final String AF_LIST_REGISTERED_EXEC_TIME = "af_list_registered_exec_time";
+
     public static String buildCoreNamespace(){
         // Lowercase both DT id and dt module
         return "core";

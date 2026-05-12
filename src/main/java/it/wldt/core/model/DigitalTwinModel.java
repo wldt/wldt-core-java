@@ -282,6 +282,127 @@ public abstract class DigitalTwinModel implements WldtEventListener {
                     this.metricsNamespace,
                     CoreMonitoringUtils.DIGITAL_ACTION_REQUEST_EXEC_TIME,
                     WldtMetricComponent.DT_MODEL));
+
+            // Register Counter Metrics(s) - Augmentation Function Result
+            this.monitoringInterface.registerMetric(new WldtCounter(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.AF_RESULT_SUCCESS_COUNT,
+                    WldtMetricComponent.AUGMENTATION));
+
+            this.monitoringInterface.registerMetric(new WldtCounter(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.AF_RESULT_ERROR_COUNT,
+                    WldtMetricComponent.AUGMENTATION));
+
+            // Register Execution Time Metrics - Augmentation Function Result
+            this.monitoringInterface.registerMetric(new WldtTimer(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.AF_RESULT_EXEC_TIME,
+                    WldtMetricComponent.AUGMENTATION));
+
+            // Register Counter Metric(s) - Augmentation Function Registration
+            this.monitoringInterface.registerMetric(new WldtCounter(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.AF_REGISTERED_SUCCESS_COUNT,
+                    WldtMetricComponent.AUGMENTATION));
+
+            this.monitoringInterface.registerMetric(new WldtCounter(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.AF_REGISTERED_ERROR_COUNT,
+                    WldtMetricComponent.AUGMENTATION));
+
+            // Register Execution Time Metrics - Augmentation Function Registration
+            this.monitoringInterface.registerMetric(new WldtTimer(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.AF_REGISTERED_EXEC_TIME,
+                    WldtMetricComponent.AUGMENTATION));
+
+            // Register Counter Metric(s) - Augmentation Function Un-Registration
+            this.monitoringInterface.registerMetric(new WldtTimer(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.AF_UNREGISTERED_SUCCESS_COUNT,
+                    WldtMetricComponent.AUGMENTATION));
+
+            this.monitoringInterface.registerMetric(new WldtCounter(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.AF_UNREGISTERED_ERROR_COUNT,
+                    WldtMetricComponent.AUGMENTATION));
+
+            // Register Execution Time Metrics - Augmentation Function Un-Registration
+            this.monitoringInterface.registerMetric(new WldtTimer(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.AF_UNREGISTERED_EXEC_TIME,
+                    WldtMetricComponent.AUGMENTATION));
+
+            // Register Counter Metric(s) - Augmentation Function Request
+            this.monitoringInterface.registerMetric(new WldtCounter(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.AF_REQUEST_SUCCESS_COUNT,
+                    WldtMetricComponent.AUGMENTATION));
+
+            this.monitoringInterface.registerMetric(new WldtCounter(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.AF_REQUEST_ERROR_COUNT,
+                    WldtMetricComponent.AUGMENTATION));
+
+            // Register Execution Time Metrics - Augmentation Function Request
+            this.monitoringInterface.registerMetric(new WldtTimer(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.AF_REQUEST_EXEC_TIME,
+                    WldtMetricComponent.AUGMENTATION));
+
+            // Register Counter Metric(s) - Augmentation Function Error
+            this.monitoringInterface.registerMetric(new WldtCounter(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.AF_ERROR_SUCCESS_COUNT,
+                    WldtMetricComponent.AUGMENTATION));
+
+            this.monitoringInterface.registerMetric(new WldtCounter(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.AF_ERROR_ERROR_COUNT,
+                    WldtMetricComponent.AUGMENTATION));
+
+            // Register Execution Time Metrics - Augmentation Function Error
+            this.monitoringInterface.registerMetric(new WldtTimer(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.AF_ERROR_EXEC_TIME,
+                    WldtMetricComponent.AUGMENTATION));
+
+            // Register Counter Metric(s) - Augmentation Function List Available
+            this.monitoringInterface.registerMetric(new WldtCounter(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.AF_LIST_REGISTERED_SUCCESS_COUNT,
+                    WldtMetricComponent.AUGMENTATION));
+
+            this.monitoringInterface.registerMetric(new WldtCounter(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.AF_LIST_REGISTERED_ERROR_COUNT,
+                    WldtMetricComponent.AUGMENTATION));
+
+            // Register Execution Time Metrics - Augmentation Function List Available
+
+            this.monitoringInterface.registerMetric(new WldtTimer(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.AF_LIST_REGISTERED_EXEC_TIME,
+                    WldtMetricComponent.AUGMENTATION));
         }
 
     }
@@ -305,7 +426,7 @@ public abstract class DigitalTwinModel implements WldtEventListener {
         // Notify the Model about already registered Augmentation Functions to let it execute
         // custom logic (e.g., execute specific Augmentation Functions, etc.)
         for(AugmentationFunctionHandler augmentationFunctionHandler : this.augmentationManager.getAllAugmentationFunctionHandlers())
-            this.onAugmentationFunctionListAvailable(augmentationFunctionHandler.getId(), augmentationFunctionHandler.getAllAugmentationFunctions());
+            this.handleAugmentationFunctionListAvailable(augmentationFunctionHandler.getId(), augmentationFunctionHandler.getAllAugmentationFunctions());
     }
 
     /**
@@ -974,8 +1095,39 @@ public abstract class DigitalTwinModel implements WldtEventListener {
 
         AugmentationFunctionExecuteWldtEvent augmentationFunctionExecuteWldtEvent = new AugmentationFunctionExecuteWldtEvent(augmentationFunctionHandlerId, augmentationFunctionId, augmentationFunctionRequest);
 
-        WldtEventBus.getInstance().publishEvent(this.digitalTwinStateManager.getDigitalTwinId(), this.id, augmentationFunctionExecuteWldtEvent);
+        // Check if the Monitoring Interface is configured and has the handler configured
+        if(this.monitoringInterface == null || !this.monitoringInterface.isActive(WldtMetricComponent.DT_MODEL)){
+            try {
+                WldtEventBus.getInstance().publishEvent(this.digitalTwinStateManager.getDigitalTwinId(), this.id, augmentationFunctionExecuteWldtEvent);
+            }
+            catch (Exception e){
+                String errorMessage = String.format("Publish Event Function Error Publishing Augmentation Function Request: %s", e.getLocalizedMessage());
+                logger.error(errorMessage);
+            }
+        }
+        else {
+            long startMs = System.currentTimeMillis();
+            try {
 
+                // Call the actual function to handle the Publish of Augmentation Function Request
+                WldtEventBus.getInstance().publishEvent(this.digitalTwinStateManager.getDigitalTwinId(), this.id, augmentationFunctionExecuteWldtEvent);
+
+                // Increase Success Counter
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.AF_REQUEST_SUCCESS_COUNT);
+            }
+            catch (Exception e){
+                String errorMessage = String.format("Publish Event Function Error Publishing Augmentation Function Request: %s", e.getLocalizedMessage());
+                logger.error(errorMessage);
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.AF_REQUEST_ERROR_COUNT);
+            }
+            finally {
+                // Update new Timer Value for the execution of the Augmentation Function Request
+                this.monitoringInterface.updateTimerSince(
+                        this.metricsNamespace,
+                        CoreMonitoringUtils.AF_REQUEST_EXEC_TIME,
+                        startMs);
+            }
+        }
     }
 
     /**
@@ -1087,7 +1239,39 @@ public abstract class DigitalTwinModel implements WldtEventListener {
 
         AugmentationFunctionStartWldtEvent augmentationFunctionStartWldtEvent = new AugmentationFunctionStartWldtEvent(augmentationFunctionHandlerId, augmentationFunctionId, augmentationFunctionRequest);
 
-        WldtEventBus.getInstance().publishEvent(this.digitalTwinStateManager.getDigitalTwinId(), this.id, augmentationFunctionStartWldtEvent);
+        // Check if the Monitoring Interface is configured and has the handler configured
+        if(this.monitoringInterface == null || !this.monitoringInterface.isActive(WldtMetricComponent.DT_MODEL)){
+            try {
+                WldtEventBus.getInstance().publishEvent(this.digitalTwinStateManager.getDigitalTwinId(), this.id, augmentationFunctionStartWldtEvent);
+            }
+            catch (Exception e){
+                String errorMessage = String.format("Publish Event Function Error Publishing Augmentation Function Request: %s", e.getLocalizedMessage());
+                logger.error(errorMessage);
+            }
+        }
+        else {
+            long startMs = System.currentTimeMillis();
+            try {
+
+                // Call the actual function to handle the Publish of Augmentation Function Request
+                WldtEventBus.getInstance().publishEvent(this.digitalTwinStateManager.getDigitalTwinId(), this.id, augmentationFunctionStartWldtEvent);
+
+                // Increase Success Counter
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.AF_REQUEST_SUCCESS_COUNT);
+            }
+            catch (Exception e){
+                String errorMessage = String.format("Publish Event Function Error Publishing Augmentation Function Request: %s", e.getLocalizedMessage());
+                logger.error(errorMessage);
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.AF_REQUEST_ERROR_COUNT);
+            }
+            finally {
+                // Update new Timer Value for the execution of the Augmentation Function Request
+                this.monitoringInterface.updateTimerSince(
+                        this.metricsNamespace,
+                        CoreMonitoringUtils.AF_REQUEST_EXEC_TIME,
+                        startMs);
+            }
+        }
 
     }
 
@@ -1199,7 +1383,39 @@ public abstract class DigitalTwinModel implements WldtEventListener {
 
         AugmentationFunctionStopWldtEvent augmentationFunctionStopWldtEvent = new AugmentationFunctionStopWldtEvent(augmentationFunctionHandlerId, augmentationFunctionId, augmentationFunctionRequest);
 
-        WldtEventBus.getInstance().publishEvent(this.digitalTwinStateManager.getDigitalTwinId(), this.id, augmentationFunctionStopWldtEvent);
+        // Check if the Monitoring Interface is configured and has the handler configured
+        if(this.monitoringInterface == null || !this.monitoringInterface.isActive(WldtMetricComponent.DT_MODEL)){
+            try {
+                WldtEventBus.getInstance().publishEvent(this.digitalTwinStateManager.getDigitalTwinId(), this.id, augmentationFunctionStopWldtEvent);
+            }
+            catch (Exception e){
+                String errorMessage = String.format("Publish Event Function Error Publishing Augmentation Function Request: %s", e.getLocalizedMessage());
+                logger.error(errorMessage);
+            }
+        }
+        else {
+            long startMs = System.currentTimeMillis();
+            try {
+
+                // Call the actual function to handle the Publish of Augmentation Function Request
+                WldtEventBus.getInstance().publishEvent(this.digitalTwinStateManager.getDigitalTwinId(), this.id, augmentationFunctionStopWldtEvent);
+
+                // Increase Success Counter
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.AF_REQUEST_SUCCESS_COUNT);
+            }
+            catch (Exception e){
+                String errorMessage = String.format("Publish Event Function Error Publishing Augmentation Function Request: %s", e.getLocalizedMessage());
+                logger.error(errorMessage);
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.AF_REQUEST_ERROR_COUNT);
+            }
+            finally {
+                // Update new Timer Value for the execution of the Augmentation Function Request
+                this.monitoringInterface.updateTimerSince(
+                        this.metricsNamespace,
+                        CoreMonitoringUtils.AF_REQUEST_EXEC_TIME,
+                        startMs);
+            }
+        }
     }
 
     public boolean isStatefulAugmentationFunctionRunning(String augmentationFunctionId) {
@@ -1394,6 +1610,262 @@ public abstract class DigitalTwinModel implements WldtEventListener {
     }
 
     /**
+     * Callback method invoked when results from Augmentation Functions are received.
+     * In this case the default implementation does nothing, but specific Digital Twin Models can override this method
+     * to handle the results of Augmentation Functions executions.
+     * <p>
+     * This method is not abstract because not all Digital Twin Models may need to handle Augmentation Function results,
+     * so it provides a default implementation that can be optionally overridden
+     * by specific Digital Twin Models that need to process Augmentation Function results.
+     * <p>
+     * This is different compared with method associated to the Shadowing Functions since they are
+     * mandatory for all the Digital Twin Models and they define the core behavior of the shadowing process,
+     * so they are defined as abstract methods without default implementation
+     * to force all the Digital Twin Models to provide their own implementation of the shadowing behavior.
+     *
+     * @param augmentationFunctionHandlerId the id of the Augmentation Function Handler that executed the Augmentation Function
+     * @param augmentationFunctionId the id of the executed Augmentation Function
+     * @param augmentationFunctionResults the list of results from executed Augmentation Functions
+     */
+    private void handleAugmentationFunctionResultEvent(String augmentationFunctionHandlerId, String augmentationFunctionId, AugmentationFunctionResultList augmentationFunctionResults) {
+        // Check if the Monitoring Interface is configured and has the handler configured
+        if(this.monitoringInterface == null || !this.monitoringInterface.isActive(WldtMetricComponent.DT_MODEL)){
+            try {
+                this.onAugmentationFunctionResultEvent(augmentationFunctionHandlerId, augmentationFunctionId, augmentationFunctionResults);
+            }
+            catch (Exception e){
+                String errorMessage = String.format("onAugmentationFunctionResultEvent Function Error Observing Augmentation Function Result: %s", e.getLocalizedMessage());
+                logger.error(errorMessage);
+            }
+        }
+        else {
+
+            long startMs = System.currentTimeMillis();
+            try {
+
+                // Call the actual function to handle the Physical Asset Property Variation Event (implemented by the developer)
+                this.onAugmentationFunctionResultEvent(augmentationFunctionHandlerId, augmentationFunctionId, augmentationFunctionResults);
+
+                // Increase Success Counter
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.AF_RESULT_SUCCESS_COUNT);
+            }
+            catch (Exception e){
+                String errorMessage = String.format("onAugmentationFunctionResultEvent Function Error Observing Augmentation Function Result: %s", e.getLocalizedMessage());
+                logger.error(errorMessage);
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.AF_RESULT_ERROR_COUNT);
+            }
+            finally {
+                // Update new Timer Value for the execution of the Physical Property Variation
+                this.monitoringInterface.updateTimerSince(
+                        this.metricsNamespace,
+                        CoreMonitoringUtils.AF_RESULT_EXEC_TIME,
+                        startMs);
+            }
+        }
+    }
+
+    /**
+     * TODO Check ...
+     * Callback method invoked when a new Augmentation Function has been registered, and it is available to be used.
+     * <b>IMPORTANT NOTE 1</b>: Notification of the availability of augmentation functions are possible only if the Digital Twin is
+     * on the Sync state through its lifecycle. If the DT is not sync it means that its state is not consistent and so
+     * the execution of Augmentation function is not feasible. that are registered at the creation of the Digital Twin.
+     * For those Augmentation Functions registered one the Digital Twin is created they will be notified step
+     * by step at the first Synchronization phase of the Digital Twin lifecycle.
+     * On the other hand, if an Augmentation Function is registered after the creation of the Digital Twin, it will be
+     * immediately notified as available only if the Digital Twin is currently in the Sync state,
+     * otherwise it will not be notified until the next Synchronization phase of the Digital Twin lifecycle.
+     * <b>IMPORTANT NOTE 2</b>: Since the evolution of the Digital Twin lifecycle is not predictable, the availability of
+     * Augmentation Functions is not predictable as well, so the Digital Twin Model should be able to handle the
+     * availability of Augmentation Functions at any time during its lifecycle and handle potential duplicated callbacks
+     * and notifications of the availability of the same Augmentation Function multiple times
+     * (e.g., if an Augmentation Function is registered while the Digital Twin is in Sync, then it will be notified as available,
+     * then if the Digital Twin goes out of sync and then back to sync, it will be notified again as available).
+     * This behavior is implemented in this way to ensure that the Digital Twin Model is always aware of the availability of Augmentation Functions and can handle it accordingly,
+     * <b>IMPORTANT NOTE 3</b>: At any time the Digital Twin Model can check the currently available Augmentation Functions
+     * by querying the Augmentation Manager, so it can always be aware of the currently available Augmentation Functions
+     * even if it misses some notifications of their availability of if the developer decides to not handle the in a
+     * different and custom way within the Digital Twin Behavior.
+     * This method is not abstract because not all Digital Twin Models may need to handle the availability of Augmentation Functions,
+     * so it provides a default implementation that can be optionally overridden
+     * by specific Digital Twin Models that need to process Augmentation Function availability.
+     * @param handlerId the id of the Augmentation Function Handler that registered the Augmentation Function
+     * @param augmentationFunction the Augmentation Function that became available
+     */
+    private void handleAugmentationFunctionNewFunctionAvailable(String handlerId, AugmentationFunction augmentationFunction) {
+        // Check if the Monitoring Interface is configured and has the handler configured
+        if(this.monitoringInterface == null || !this.monitoringInterface.isActive(WldtMetricComponent.DT_MODEL)){
+            try {
+                this.onAugmentationNewFunctionAvailable(handlerId, augmentationFunction);
+            }
+            catch (Exception e){
+                String errorMessage = String.format("onAugmentationNewFunctionAvailable Function Error Observing Augmentation Function Available: %s", e.getLocalizedMessage());
+                logger.error(errorMessage);
+            }
+        }
+        else {
+
+            long startMs = System.currentTimeMillis();
+            try {
+
+                // Call the actual function to handle the Augmentation Function Available (implemented by the developer)
+                this.onAugmentationNewFunctionAvailable(handlerId, augmentationFunction);
+
+                // Increase Success Counter
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.AF_REGISTERED_SUCCESS_COUNT);
+            }
+            catch (Exception e){
+                String errorMessage = String.format("onAugmentationNewFunctionAvailable Function Error Observing Augmentation Function Available: %s", e.getLocalizedMessage());
+                logger.error(errorMessage);
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.AF_REGISTERED_ERROR_COUNT);
+            }
+            finally {
+                // Update new Timer Value for the execution of the Physical Property Variation
+                this.monitoringInterface.updateTimerSince(
+                        this.metricsNamespace,
+                        CoreMonitoringUtils.AF_REGISTERED_EXEC_TIME,
+                        startMs);
+            }
+        }
+    }
+
+    /**
+     * Callback method invoked when an Augmentation Function has been unregistered, and it is no more available to be used.
+     * This method is not abstract because not all Digital Twin Models may need to handle the unavailability of Augmentation Functions,
+     * so it provides a default implementation that can be optionally overridden
+     * by specific Digital Twin Models that need to process Augmentation Function unavailability.
+     * @param handlerId the id of the Augmentation Function Handler that unregistered the Augmentation Function
+     * @param augmentationFunction the Augmentation Function that became unavailable
+     */
+    private void handleAugmentationFunctionUnAvailable(String handlerId, AugmentationFunction augmentationFunction) {
+        // Check if the Monitoring Interface is configured and has the handler configured
+        if(this.monitoringInterface == null || !this.monitoringInterface.isActive(WldtMetricComponent.DT_MODEL)){
+            try {
+                this.onAugmentationFunctionUnAvailable(handlerId, augmentationFunction);
+            }
+            catch (Exception e){
+                String errorMessage = String.format("onAugmentationFunctionUnAvailable Function Error Observing Augmentation Function Unavailable: %s", e.getLocalizedMessage());
+                logger.error(errorMessage);
+            }
+        }
+        else {
+
+            long startMs = System.currentTimeMillis();
+            try {
+
+                // Call the actual function to handle the Augmentation Function UnAvailable (implemented by the developer)
+                this.onAugmentationFunctionUnAvailable(handlerId, augmentationFunction);
+
+                // Increase Success Counter
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.AF_UNREGISTERED_SUCCESS_COUNT);
+            }
+            catch (Exception e){
+                String errorMessage = String.format("onAugmentationFunctionUnAvailable Function Error Observing Augmentation Function Unavailable: %s", e.getLocalizedMessage());
+                logger.error(errorMessage);
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.AF_UNREGISTERED_ERROR_COUNT);
+            }
+            finally {
+                // Update new Timer Value for the execution of the Physical Property Variation
+                this.monitoringInterface.updateTimerSince(
+                        this.metricsNamespace,
+                        CoreMonitoringUtils.AF_UNREGISTERED_EXEC_TIME,
+                        startMs);
+            }
+        }
+    }
+
+    /**
+     * Method to handle the availability of a list of Augmentation Functions, for example when a new Augmentation Function
+     * Handler is registered with a list of Augmentation Functions or when the Digital Twin is created and it is notified
+     * of the currently available Augmentation Functions that are registered at the creation of the Digital Twin.
+     * @param handlerId the id of the Augmentation Function Handler that registered the Augmentation Functions
+     * @param augmentationFunctionList the list of Augmentation Functions that became available
+     */
+    private void handleAugmentationFunctionListAvailable(String handlerId, List<AugmentationFunction> augmentationFunctionList) {
+        // Check if the Monitoring Interface is configured and has the handler configured
+        if(this.monitoringInterface == null || !this.monitoringInterface.isActive(WldtMetricComponent.DT_MODEL)){
+            try {
+                this.onAugmentationFunctionListAvailable(handlerId, augmentationFunctionList);
+            }
+            catch (Exception e){
+                String errorMessage = String.format("onAugmentationFunctionListAvailable Function Error Observing Augmentation Function List Available: %s", e.getLocalizedMessage());
+                logger.error(errorMessage);
+            }
+        }
+        else {
+
+            long startMs = System.currentTimeMillis();
+            try {
+
+                // Call the actual function to handle the Augmentation Function List Available (implemented by the developer)
+                this.onAugmentationFunctionListAvailable(handlerId, augmentationFunctionList);
+
+                // Increase Success Counter
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.AF_LIST_REGISTERED_SUCCESS_COUNT);
+            }
+            catch (Exception e){
+                String errorMessage = String.format("onAugmentationFunctionListAvailable Function Error Observing Augmentation Function List Available: %s", e.getLocalizedMessage());
+                logger.error(errorMessage);
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.AF_LIST_REGISTERED_ERROR_COUNT);
+            }
+            finally {
+                // Update new Timer Value for the execution of the Physical Property Variation
+                this.monitoringInterface.updateTimerSince(
+                        this.metricsNamespace,
+                        CoreMonitoringUtils.AF_LIST_REGISTERED_EXEC_TIME,
+                        startMs);
+            }
+        }
+    }
+
+    /**
+     * This method is called when an error occurs during the execution of an Augmentation Function. It provides a callback
+     * to handle such errors, allowing specific Digital Twin Models to implement custom error handling logic for Augmentation
+     * Function executions. This method is not abstract because not all Digital Twin Models may need to handle Augmentation
+     * Function errors, so it provides a default implementation that can be optionally overridden by specific Digital
+     * Twin Models that need to process Augmentation Function errors.
+     * @param handlerId the id of the Augmentation Function Handler that executed the Augmentation Function that caused the error
+     * @param augmentationFunctionError the error that occurred during the execution of the Augmentation Function
+     * @param functionId the id of the Augmentation Function that caused the error
+     */
+    private void handleAugmentationFunctionError(String handlerId, String functionId, AugmentationFunctionError augmentationFunctionError) {
+        // Check if the Monitoring Interface is configured and has the handler configured
+        if(this.monitoringInterface == null || !this.monitoringInterface.isActive(WldtMetricComponent.DT_MODEL)){
+            try {
+                this.onAugmentationFunctionError(handlerId, functionId, augmentationFunctionError);
+            }
+            catch (Exception e){
+                String errorMessage = String.format("onAugmentationFunctionError Function Error Observing Augmentation Function Error: %s", e.getLocalizedMessage());
+                logger.error(errorMessage);
+            }
+        }
+        else {
+
+            long startMs = System.currentTimeMillis();
+            try {
+
+                // Call the actual function to handle the Augmentation Function Error (implemented by the developer)
+                this.onAugmentationFunctionError(handlerId, functionId, augmentationFunctionError);
+
+                // Increase Success Counter
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.AF_ERROR_SUCCESS_COUNT);
+            }
+            catch (Exception e){
+                String errorMessage = String.format("onAugmentationFunctionError Function Error Observing Augmentation Function Error: %s", e.getLocalizedMessage());
+                logger.error(errorMessage);
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.AF_ERROR_ERROR_COUNT);
+            }
+            finally {
+                // Update new Timer Value for the execution of the Physical Property Variation
+                this.monitoringInterface.updateTimerSince(
+                        this.metricsNamespace,
+                        CoreMonitoringUtils.AF_ERROR_EXEC_TIME,
+                        startMs);
+            }
+        }
+    }
+
+    /**
      * TODO ...
      * @param wldtEvent
      */
@@ -1520,7 +1992,7 @@ public abstract class DigitalTwinModel implements WldtEventListener {
             String augmentationFunctionId = eventTypeParts[5];
 
             // Call the callback to handle the Augmentation Function Result Event with the correct body type
-            onAugmentationFunctionResultEvent(augmentationFunctionHandlerId, augmentationFunctionId, (AugmentationFunctionResultList) wldtEvent.getBody());
+            this.handleAugmentationFunctionResultEvent(augmentationFunctionHandlerId, augmentationFunctionId, (AugmentationFunctionResultList) wldtEvent.getBody());
         }
 
         // Handle Augmentation Function Registration Events with the correct callback and body type
@@ -1537,7 +2009,7 @@ public abstract class DigitalTwinModel implements WldtEventListener {
             AugmentationFunction augmentationFunction = augmentationFunctionRegistrationEvent.getBody();
 
             // Call the callback to handle the Augmentation Function Registration Event with the correct body type
-            this.onAugmentationNewFunctionAvailable(augmentationFunctionHandlerId, augmentationFunction);
+            this.handleAugmentationFunctionNewFunctionAvailable(augmentationFunctionHandlerId, augmentationFunction);
         }
 
         // Handle Augmentation Function Un-Registration Events with the correct callback and body type
@@ -1554,7 +2026,7 @@ public abstract class DigitalTwinModel implements WldtEventListener {
             AugmentationFunction augmentationFunction = augmentationFunctionUnRegistrationEvent.getBody();
 
             // Call the callback to handle the Augmentation Function Un-Registration Event with the correct body type
-            this.onAugmentationFunctionUnAvailable(augmentationFunctionHandlerId, augmentationFunction);
+            this.handleAugmentationFunctionUnAvailable(augmentationFunctionHandlerId, augmentationFunction);
         }
 
         // Handle Augmentation Function Error Events with the correct callback and body type
@@ -1574,7 +2046,7 @@ public abstract class DigitalTwinModel implements WldtEventListener {
             AugmentationFunctionError augmentationFunctionError = augmentationFunctionErrorWldtEvent.getBody();
 
             // Call the callback to handle the Augmentation Function Un-Registration Event with the correct body type
-            this.onAugmentationFunctionError(augmentationFunctionHandlerId, augmentationFunctionId, augmentationFunctionError);
+            this.handleAugmentationFunctionError(augmentationFunctionHandlerId, augmentationFunctionId, augmentationFunctionError);
         }
 
     }
@@ -1682,110 +2154,88 @@ public abstract class DigitalTwinModel implements WldtEventListener {
     abstract protected void onDigitalActionEvent(DigitalActionWldtEvent<?> digitalActionWldtEvent);
 
     /**
-     * Callback method invoked when results from Augmentation Functions are received.
-     * In this case the default implementation does nothing, but specific Digital Twin Models can override this method
-     * to handle the results of Augmentation Functions executions.
+     * Callback method invoked when an error occurs during the execution of an Augmentation Function.
      * <p>
-     * This method is not abstract because not all Digital Twin Models may need to handle Augmentation Function results,
-     * so it provides a default implementation that can be optionally overridden
-     * by specific Digital Twin Models that need to process Augmentation Function results.
-     * <p>
-     * This is different compared with method associated to the Shadowing Functions since they are
-     * mandatory for all the Digital Twin Models and they define the core behavior of the shadowing process,
-     * so they are defined as abstract methods without default implementation
-     * to force all the Digital Twin Models to provide their own implementation of the shadowing behavior.
-     *
-     * @param augmentationFunctionHandlerId the id of the Augmentation Function Handler that executed the Augmentation Function
-     * @param augmentationFunctionId the id of the executed Augmentation Function
-     * @param augmentationFunctionResult    the list of results from executed Augmentation Functions
+     * This shadowing function allows the DT to handle errors from Augmentation Function executions,
+     * which may involve logging, state updates, or triggering compensating actions.
+     * @param handlerId the id of the Augmentation Function Handler that executed the Augmentation Function that caused the error
+     * @param functionId the id of the Augmentation Function that caused the error
+     * @param augmentationFunctionError the error that occurred during the execution of the Augmentation Function
      */
-    protected void onAugmentationFunctionResultEvent(String augmentationFunctionHandlerId, String augmentationFunctionId, AugmentationFunctionResultList augmentationFunctionResult){
-        // Default implementation does nothing, can be overridden by specific
-        // Digital Twin Models to handle Augmentation Function results
-
-        logger.info("Default Implementation -> Nothing to do with: Augmentation Function Result Event: {}", augmentationFunctionResult);
-    }
+    @ShadowingFunction(
+            value = ShadowingType.AUGMENTATION_FUNCTION_ERROR,
+            description = "Handles errors that occur during the execution of Augmentation Functions"
+    )
+    abstract protected void onAugmentationFunctionError(String handlerId, String functionId, AugmentationFunctionError augmentationFunctionError);
 
     /**
-     * TODO Check ...
-     * Callback method invoked when a new Augmentation Function has been registered, and it is available to be used.
-     * <b>IMPORTANT NOTE 1</b>: Notification of the availability of augmentation functions are possible only if the Digital Twin is
-     * on the Sync state through its lifecycle. If the DT is not sync it means that its state is not consistent and so
-     * the execution of Augmentation function is not feasible. that are registered at the creation of the Digital Twin.
-     * For those Augmentation Functions registered one the Digital Twin is created they will be notified step
-     * by step at the first Synchronization phase of the Digital Twin lifecycle.
-     * On the other hand, if an Augmentation Function is registered after the creation of the Digital Twin, it will be
-     * immediately notified as available only if the Digital Twin is currently in the Sync state,
-     * otherwise it will not be notified until the next Synchronization phase of the Digital Twin lifecycle.
-     * <b>IMPORTANT NOTE 2</b>: Since the evolution of the Digital Twin lifecycle is not predictable, the availability of
-     * Augmentation Functions is not predictable as well, so the Digital Twin Model should be able to handle the
-     * availability of Augmentation Functions at any time during its lifecycle and handle potential duplicated callbacks
-     * and notifications of the availability of the same Augmentation Function multiple times
-     * (e.g., if an Augmentation Function is registered while the Digital Twin is in Sync, then it will be notified as available,
-     * then if the Digital Twin goes out of sync and then back to sync, it will be notified again as available).
-     * This behavior is implemented in this way to ensure that the Digital Twin Model is always aware of the availability of Augmentation Functions and can handle it accordingly,
-     * <b>IMPORTANT NOTE 3</b>: At any time the Digital Twin Model can check the currently available Augmentation Functions
-     * by querying the Augmentation Manager, so it can always be aware of the currently available Augmentation Functions
-     * even if it misses some notifications of their availability of if the developer decides to not handle the in a
-     * different and custom way within the Digital Twin Behavior.
-     * This method is not abstract because not all Digital Twin Models may need to handle the availability of Augmentation Functions,
-     * so it provides a default implementation that can be optionally overridden
-     * by specific Digital Twin Models that need to process Augmentation Function availability.
+     * Callback method invoked when results from Augmentation Functions are received.
+     * <p>
+     * This shadowing function processes the results of Augmentation Function executions, allowing the DT to integrate
+     * new information derived from the physical asset or to trigger further computations or actions based on those results.
+     * @param augmentationFunctionHandlerId the id of the Augmentation Function Handler that executed the Augmentation Function
+     * @param augmentationFunctionId the id of the executed Augmentation Function
+     * @param augmentationFunctionResults the list of results from executed Augmentation Functions
+     */
+    @ShadowingFunction(
+            value = ShadowingType.AUGMENTATION_FUNCTION_RESULT,
+            description = "Processes results from executed Augmentation Functions"
+    )
+    abstract protected void onAugmentationFunctionResultEvent(String augmentationFunctionHandlerId, String augmentationFunctionId, AugmentationFunctionResultList augmentationFunctionResults);
+
+    /**
+     * Callback method invoked when a new Augmentation Function becomes available for execution.
+     * <p>
+     * This shadowing function allows the DT to react to the availability of new Augmentation Functions that can be executed,
+     * which may involve:
+     * <ul>
+     *   <li>Checking if the new function is relevant to the current DT state</li>
+     *   <li>Triggering the execution of the new function if it is relevant</li>
+     *   <li>Updating internal models or state to reflect the new capabilities provided by the available function</li>
+     * </ul>
      * @param handlerId the id of the Augmentation Function Handler that registered the Augmentation Function
      * @param augmentationFunction the Augmentation Function that became available
      */
-    protected void onAugmentationNewFunctionAvailable(String handlerId, AugmentationFunction augmentationFunction) {
-        // Default implementation does nothing, can be overridden by specific
-        // Digital Twin Models to handle Augmentation Function results
-
-        logger.info("Default Implementation -> Nothing to do with: Augmentation Function Available: {} for Handler", augmentationFunction, handlerId);
-    }
+    @ShadowingFunction(
+            value = ShadowingType.AUGMENTATION_FUNCTION_AVAILABLE,
+            description = "Handles the availability of new Augmentation Functions that can be executed by the Digital Twin"
+    )
+    abstract protected void onAugmentationNewFunctionAvailable(String handlerId, AugmentationFunction augmentationFunction);
 
     /**
-     * Callback method invoked when an Augmentation Function has been unregistered, and it is no more available to be used.
-     * This method is not abstract because not all Digital Twin Models may need to handle the unavailability of Augmentation Functions,
-     * so it provides a default implementation that can be optionally overridden
-     * by specific Digital Twin Models that need to process Augmentation Function unavailability.
+     * Callback method invoked when an Augmentation Function becomes unavailable for execution.
+     * <p>
+     * This shadowing function allows the DT to handle the unavailability of Augmentation Functions that can be executed, which may involve:
+     * <ul>
+     *   <li>Checking if the unavailable function is relevant to the current DT state</li>
+     *   <li>Handling the unavailability of the function, for example by updating internal models
+     *   or state to reflect the loss of capabilities provided by the unavailable function</li>
      * @param handlerId the id of the Augmentation Function Handler that unregistered the Augmentation Function
      * @param augmentationFunction the Augmentation Function that became unavailable
      */
-    protected void onAugmentationFunctionUnAvailable(String handlerId, AugmentationFunction augmentationFunction) {
-        // Default implementation does nothing, can be overridden by specific
-        // Digital Twin Models to handle Augmentation Function results
-
-        logger.info("Default Implementation -> Nothing to do with: Augmentation Function UnAvailable: {} for Handler", augmentationFunction, handlerId);
-    }
+    @ShadowingFunction(
+            value = ShadowingType.AUGMENTATION_FUNCTION_UNAVAILABLE,
+            description = "Handles the unavailability of Augmentation Functions that can be executed by the Digital Twin"
+    )
+    abstract protected void onAugmentationFunctionUnAvailable(String handlerId, AugmentationFunction augmentationFunction);
 
     /**
-     * Method to handle the availability of a list of Augmentation Functions, for example when a new Augmentation Function
-     * Handler is registered with a list of Augmentation Functions or when the Digital Twin is created and it is notified
-     * of the currently available Augmentation Functions that are registered at the creation of the Digital Twin.
+     * Callback method invoked when a list of Augmentation Functions becomes available for execution.
+     * <p>
+     * This shadowing function allows the DT to react to the availability of a list of Augmentation Functions that can be executed, which may involve:
+     * <ul>
+     *   <li>Checking if the new functions are relevant to the current DT state</li>
+     *   <li>Triggering the execution of the new functions if they are relevant</li>
+     *   <li>Updating internal models or state to reflect the new capabilities provided by the available functions</li>
+     * </ul>
      * @param handlerId the id of the Augmentation Function Handler that registered the Augmentation Functions
      * @param augmentationFunctionList the list of Augmentation Functions that became available
      */
-    protected void onAugmentationFunctionListAvailable(String handlerId, List<AugmentationFunction> augmentationFunctionList) {
-        // Default implementation does nothing, can be overridden by specific
-        // Digital Twin Models to handle Augmentation Function results
-
-        logger.info("Default Implementation -> Nothing to do with: Augmentation Functions Registered for Handler {}: {}", handlerId, augmentationFunctionList);
-    }
-
-    /**
-     * This method is called when an error occurs during the execution of an Augmentation Function. It provides a callback
-     * to handle such errors, allowing specific Digital Twin Models to implement custom error handling logic for Augmentation
-     * Function executions. This method is not abstract because not all Digital Twin Models may need to handle Augmentation
-     * Function errors, so it provides a default implementation that can be optionally overridden by specific Digital
-     * Twin Models that need to process Augmentation Function errors.
-     * @param handlerId the id of the Augmentation Function Handler that executed the Augmentation Function that caused the error
-     * @param augmentationFunctionError the error that occurred during the execution of the Augmentation Function
-     * @param functionId the id of the Augmentation Function that caused the error
-     */
-    protected void onAugmentationFunctionError(String handlerId, String functionId, AugmentationFunctionError augmentationFunctionError) {
-        // Default implementation does nothing, can be overridden by specific
-        // Digital Twin Models to handle Augmentation Function errors
-
-        logger.info("Default Implementation -> Nothing to do with: Augmentation Function Error for Handler {} and Function {}: {}", handlerId, functionId, augmentationFunctionError);
-    }
+    @ShadowingFunction(
+            value = ShadowingType.AUGMENTATION_FUNCTION_LIST_AVAILABLE,
+            description = "Handles the availability of new Augmentation Functions that can be executed by the Digital Twin"
+    )
+    abstract protected void onAugmentationFunctionListAvailable(String handlerId, List<AugmentationFunction> augmentationFunctionList);
 
     public String getId() {
         return id;
