@@ -225,6 +225,21 @@ public class DigitalTwinModelTest {
 
                 //TODO Handle Event MANAGEMENT ON THE DT
             }
+
+            @Override
+            protected void onAugmentationFunctionError(String handlerId, String functionId, it.wldt.augmentation.error.AugmentationFunctionError augmentationFunctionError) {}
+
+            @Override
+            protected void onAugmentationFunctionResultEvent(String augmentationFunctionHandlerId, String augmentationFunctionId, it.wldt.augmentation.result.AugmentationFunctionResultList augmentationFunctionResults) {}
+
+            @Override
+            protected void onAugmentationNewFunctionAvailable(String handlerId, it.wldt.augmentation.function.AugmentationFunction augmentationFunction) {}
+
+            @Override
+            protected void onAugmentationFunctionUnAvailable(String handlerId, it.wldt.augmentation.function.AugmentationFunction augmentationFunction) {}
+
+            @Override
+            protected void onAugmentationFunctionListAvailable(String handlerId, java.util.List<it.wldt.augmentation.function.AugmentationFunction> augmentationFunctionList) {}
         };
     }
 

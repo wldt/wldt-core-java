@@ -169,7 +169,7 @@ public class DefaultAugmentationFunctionHandler extends AugmentationFunctionHand
         // so that they can update their internal state and generate new results if needed
         for(StatefulAugmentationFunction statefulAugmentationFunction : statefulAugmentationFunctions) {
             try {
-                statefulAugmentationFunction.onStateUpdate(newDigitalTwinState);
+                statefulAugmentationFunction.handleStateUpdate(newDigitalTwinState);
             } catch (AugmentationFunctionException e) {
                 // Log the error and continue with the next augmentation function
                logger.error(String.format("Error while notifying state update to augmentation function with id %s: %s", statefulAugmentationFunction.getId(), e.getMessage()));

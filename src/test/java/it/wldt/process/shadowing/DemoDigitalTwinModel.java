@@ -11,8 +11,12 @@ import it.wldt.core.state.*;
 import it.wldt.exception.EventBusException;
 import it.wldt.log.WldtLogger;
 import it.wldt.log.WldtLoggerProvider;
+import it.wldt.augmentation.error.AugmentationFunctionError;
+import it.wldt.augmentation.function.AugmentationFunction;
+import it.wldt.augmentation.result.AugmentationFunctionResultList;
 import it.wldt.utils.SharedTestMetrics;
 import it.wldt.process.physical.DemoPhysicalAdapter;
+import java.util.List;
 import java.util.Map;
 
 public class DemoDigitalTwinModel extends DigitalTwinModel {
@@ -289,5 +293,20 @@ public class DemoDigitalTwinModel extends DigitalTwinModel {
             e.printStackTrace();
         }
     }
+
+    @Override
+    protected void onAugmentationFunctionError(String handlerId, String functionId, AugmentationFunctionError augmentationFunctionError) {}
+
+    @Override
+    protected void onAugmentationFunctionResultEvent(String augmentationFunctionHandlerId, String augmentationFunctionId, AugmentationFunctionResultList augmentationFunctionResults) {}
+
+    @Override
+    protected void onAugmentationNewFunctionAvailable(String handlerId, AugmentationFunction augmentationFunction) {}
+
+    @Override
+    protected void onAugmentationFunctionUnAvailable(String handlerId, AugmentationFunction augmentationFunction) {}
+
+    @Override
+    protected void onAugmentationFunctionListAvailable(String handlerId, List<AugmentationFunction> augmentationFunctionList) {}
 
 }

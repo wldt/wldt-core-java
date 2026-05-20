@@ -164,77 +164,75 @@ public class SharedTestMetrics {
     }
 
     public void addPhysicalAdapterPropertyEvent(String digitalTwinId, PhysicalAssetPropertyWldtEvent<?> event){
-        this.physicalAdapterPropertyEventMap.get(digitalTwinId).add(event);
+        List<PhysicalAssetPropertyWldtEvent<?>> list = this.physicalAdapterPropertyEventMap.get(digitalTwinId);
+        if (list != null) list.add(event);
     }
 
     public void addPhysicalAdapterEventNotification(String digitalTwinId, PhysicalAssetEventWldtEvent<?> event){
-        this.physicalAdapterEventNotificationMap.get(digitalTwinId).add(event);
+        List<PhysicalAssetEventWldtEvent<?>> list = this.physicalAdapterEventNotificationMap.get(digitalTwinId);
+        if (list != null) list.add(event);
     }
 
     public void addShadowingFunctionPropertyEvent(String digitalTwinId, PhysicalAssetPropertyWldtEvent<?> event){
-        this.shadowingFunctionPropertyEventMap.get(digitalTwinId).add(event);
+        List<PhysicalAssetPropertyWldtEvent<?>> list = this.shadowingFunctionPropertyEventMap.get(digitalTwinId);
+        if (list != null) list.add(event);
     }
 
     public void addShadowingFunctionEventNotification(String digitalTwinId, PhysicalAssetEventWldtEvent<?> event){
-        this.shadowingFunctionEventNotificationMap.get(digitalTwinId).add(event);
+        List<PhysicalAssetEventWldtEvent<?>> list = this.shadowingFunctionEventNotificationMap.get(digitalTwinId);
+        if (list != null) list.add(event);
     }
 
     public void addDigitalAdapterEventNotification(String digitalTwinId, DigitalTwinStateEventNotification<?> event){
-        this.digitalAdapterEventNotificationMap.get(digitalTwinId).add(event);
+        List<DigitalTwinStateEventNotification<?>> list = this.digitalAdapterEventNotificationMap.get(digitalTwinId);
+        if (list != null) list.add(event);
     }
 
     public void addDigitalAdapterStateUpdate(String digitalTwinId, DigitalTwinState digitalTwinState){
-        this.digitalAdapterStateUpdateMap.get(digitalTwinId).add(digitalTwinState);
+        List<DigitalTwinState> list = this.digitalAdapterStateUpdateMap.get(digitalTwinId);
+        if (list != null) list.add(digitalTwinState);
     }
 
     public void addResourceManagerNotification(String digitalTwinId, String resourceId){
-        this.resourceManagerNotificationMap.get(digitalTwinId).add(resourceId);
+        List<String> list = this.resourceManagerNotificationMap.get(digitalTwinId);
+        if (list != null) list.add(resourceId);
     }
 
     public void addManagedResourceNotification(String digitalTwinId, String resourceId, String subResourceId){
-        this.managedResourceNotificationMap.get(digitalTwinId).put(resourceId, subResourceId);
+        Map<String, String> map = this.managedResourceNotificationMap.get(digitalTwinId);
+        if (map != null) map.put(resourceId, subResourceId);
     }
 
     public void addAugmentationFunctionRegistrationCallback(String digitalTwinId,
                                                             String augmentationFunctionHandlerId,
                                                             AugmentationFunction augmentationFunction){
-        // If the initial list of augmentation function registration callbacks for the specific augmentation function handler is not present, create a new one
-        if(!this.augmentationFunctionRegistrationCallbackMap.get(digitalTwinId).containsKey(augmentationFunctionHandlerId)){
-            this.augmentationFunctionRegistrationCallbackMap.get(digitalTwinId).put(augmentationFunctionHandlerId, new ArrayList<>());
-        }
-
-        // Save the augmentation function registration callback in the map
-        this.augmentationFunctionRegistrationCallbackMap.get(digitalTwinId).get(augmentationFunctionHandlerId).add(augmentationFunction);
+        Map<String, List<AugmentationFunction>> dtMap = this.augmentationFunctionRegistrationCallbackMap.get(digitalTwinId);
+        if (dtMap == null) return;
+        if(!dtMap.containsKey(augmentationFunctionHandlerId))
+            dtMap.put(augmentationFunctionHandlerId, new ArrayList<>());
+        dtMap.get(augmentationFunctionHandlerId).add(augmentationFunction);
     }
 
     public void addAugmentationFunctionUnRegistrationCallback(String digitalTwinId,
                                                             String augmentationFunctionHandlerId,
                                                             AugmentationFunction augmentationFunction){
-        // If the initial list of augmentation function unregistration callbacks for the specific augmentation function handler is not present, create a new one
-        if(!this.augmentationFunctionUnRegistrationCallbackMap.get(digitalTwinId).containsKey(augmentationFunctionHandlerId)){
-            this.augmentationFunctionUnRegistrationCallbackMap.get(digitalTwinId).put(augmentationFunctionHandlerId, new ArrayList<>());
-        }
-
-        // Save the augmentation function unregistration callback in the map
-        this.augmentationFunctionUnRegistrationCallbackMap.get(digitalTwinId).get(augmentationFunctionHandlerId).add(augmentationFunction);
+        Map<String, List<AugmentationFunction>> dtMap = this.augmentationFunctionUnRegistrationCallbackMap.get(digitalTwinId);
+        if (dtMap == null) return;
+        if(!dtMap.containsKey(augmentationFunctionHandlerId))
+            dtMap.put(augmentationFunctionHandlerId, new ArrayList<>());
+        dtMap.get(augmentationFunctionHandlerId).add(augmentationFunction);
     }
 
     public void addAugmentationFunctionResultNotification(String digitalTwinId,
                                                           String augmentationFunctionHandlerId,
                                                           String augmentationFunctionId,
                                                           AugmentationFunctionResultList augmentationFunctionResult){
-
-        // Concatenate the augmentation function handler id and the augmentation function id to create a
-        // unique key for the augmentation function result notification map
+        Map<String, List<AugmentationFunctionResultList>> dtMap = this.augmentationFunctionResultNotificationMap.get(digitalTwinId);
+        if (dtMap == null) return;
         String augmentationInternalId = String.format("%s.%s", augmentationFunctionHandlerId, augmentationFunctionId);
-
-        // If the initial list of augmentation function results for the specific augmentation function is not present, create a new one
-        if(!this.augmentationFunctionResultNotificationMap.get(digitalTwinId).containsKey(augmentationInternalId)){
-            this.augmentationFunctionResultNotificationMap.get(digitalTwinId).put(augmentationInternalId, new ArrayList<>());
-        }
-
-        // Save the augmentation function result in the map
-        this.augmentationFunctionResultNotificationMap.get(digitalTwinId).get(augmentationInternalId).add(augmentationFunctionResult);
+        if(!dtMap.containsKey(augmentationInternalId))
+            dtMap.put(augmentationInternalId, new ArrayList<>());
+        dtMap.get(augmentationInternalId).add(augmentationFunctionResult);
     }
 
     public void addAugmentationFunctionErrorNotification(String digitalTwinId,
@@ -246,13 +244,11 @@ public class SharedTestMetrics {
         // unique key for the augmentation function error notification map
         String augmentationInternalId = String.format("%s.%s", augmentationFunctionHandlerId, augmentationFunctionId);
 
-        // If the initial list of augmentation function errors for the specific augmentation function is not present, create a new one
-        if(!this.augmentationFunctionErrorNotificationMap.get(digitalTwinId).containsKey(augmentationInternalId)){
-            this.augmentationFunctionErrorNotificationMap.get(digitalTwinId).put(augmentationInternalId, new ArrayList<>());
-        }
-
-        // Save the augmentation function error in the map
-        this.augmentationFunctionErrorNotificationMap.get(digitalTwinId).get(augmentationInternalId).add(augmentationFunctionError);
+        Map<String, List<AugmentationFunctionError>> dtMap = this.augmentationFunctionErrorNotificationMap.get(digitalTwinId);
+        if (dtMap == null) return;
+        if(!dtMap.containsKey(augmentationInternalId))
+            dtMap.put(augmentationInternalId, new ArrayList<>());
+        dtMap.get(augmentationInternalId).add(augmentationFunctionError);
     }
 
     public List<AugmentationFunctionResultList> getAugmentationFunctionResultNotification(String digitalTwinId,
@@ -346,15 +342,19 @@ public class SharedTestMetrics {
     // -------------------------------------------------------------------------
 
     public void addMonitoringRegisteredMetric(String digitalTwinId, WldtMetricComponent component, WldtMetric metric) {
-        this.monitoringRegisteredMetricMap.get(digitalTwinId).add(metric);
-        if(!this.monitoringRegisteredComponentMap.get(digitalTwinId).contains(component))
-            this.monitoringRegisteredComponentMap.get(digitalTwinId).add(component);
+        List<WldtMetric> metricList = this.monitoringRegisteredMetricMap.get(digitalTwinId);
+        if (metricList == null) return;
+        metricList.add(metric);
+        List<WldtMetricComponent> compList = this.monitoringRegisteredComponentMap.get(digitalTwinId);
+        if (compList != null && !compList.contains(component)) compList.add(component);
     }
 
     public void addMonitoringUpdatedMetric(String digitalTwinId, WldtMetricComponent component, WldtMetric metric) {
-        this.monitoringUpdatedMetricMap.get(digitalTwinId).add(metric);
-        if(!this.monitoringUpdatedComponentMap.get(digitalTwinId).contains(component))
-            this.monitoringUpdatedComponentMap.get(digitalTwinId).add(component);
+        List<WldtMetric> metricList = this.monitoringUpdatedMetricMap.get(digitalTwinId);
+        if (metricList == null) return;
+        metricList.add(metric);
+        List<WldtMetricComponent> compList = this.monitoringUpdatedComponentMap.get(digitalTwinId);
+        if (compList != null && !compList.contains(component)) compList.add(component);
     }
 
     public List<WldtMetric> getMonitoringRegisteredMetricList(String digitalTwinId) {

@@ -31,6 +31,10 @@ import it.wldt.exception.WldtRuntimeException;
 import it.wldt.exception.WldtWorkerException;
 import it.wldt.log.WldtLogger;
 import it.wldt.log.WldtLoggerProvider;
+import it.wldt.monitoring.CoreMonitoringUtils;
+import it.wldt.monitoring.MonitoringInterface;
+import it.wldt.monitoring.metrics.WldtMetricComponent;
+import it.wldt.monitoring.metrics.WldtUpDownCounter;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -81,6 +85,16 @@ public class AugmentationManager implements LifeCycleListener {
     private ExecutorService augmentationFunctionHandlerExecutor = null;
 
     /**
+     * The Monitoring Interface used to record handler-count metrics for the Augmentation Manager.
+     */
+    private MonitoringInterface monitoringInterface = null;
+
+    /**
+     * The namespace used to register and retrieve metrics.
+     */
+    private String metricsNamespace = null;
+
+    /**
      * Constructor for the AugmentationManager class, initializing the digital twin ID and the necessary data structures 
      * for managing augmentation function handlers and life cycle listeners.
      * @param digitalTwinId The ID of the digital twin associated with this augmentation manager.
@@ -98,6 +112,36 @@ public class AugmentationManager implements LifeCycleListener {
 
         // Initialize the life cycle listener list
         this.augmentationFunctionlifeCycleListenerList = new ArrayList<>();
+    }
+
+    /**
+     * Sets the Monitoring Interface to be used by this manager for recording handler-count metrics.
+     * Follows the same pattern as PhysicalAdapter/DigitalAdapter: registers metrics immediately and propagates
+     * to any handlers already added before this call.
+     * @param monitoringInterface the MonitoringInterface instance to be used for metrics tracking
+     */
+    public void setMonitoringInterface(MonitoringInterface monitoringInterface) {
+        if (monitoringInterface != null) {
+            this.monitoringInterface = monitoringInterface;
+            handleMetricsRegistration();
+            for (AugmentationFunctionHandler handler : augmentationFunctionHandlerMap.values())
+                handler.setMonitoringInterface(monitoringInterface);
+        }
+    }
+
+    /**
+     * Registers the AUGMENTATION_FUNCTION_HANDLER_COUNT metric and sets its initial value based on the handlers
+     * already present. Idempotent — does nothing if the namespace is already initialised.
+     */
+    private void handleMetricsRegistration() {
+        if (this.monitoringInterface == null || !this.monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION))
+            return;
+        if (this.metricsNamespace != null)
+            return;
+        this.metricsNamespace = CoreMonitoringUtils.buildCoreNamespace();
+        this.monitoringInterface.registerMetric(new WldtUpDownCounter(this.digitalTwinId, this.metricsNamespace, CoreMonitoringUtils.AUGMENTATION_FUNCTION_HANDLER_COUNT, WldtMetricComponent.AUGMENTATION));
+        if (!augmentationFunctionHandlerMap.isEmpty())
+            this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.AUGMENTATION_FUNCTION_HANDLER_COUNT, augmentationFunctionHandlerMap.size());
     }
 
     /**
@@ -141,6 +185,10 @@ public class AugmentationManager implements LifeCycleListener {
         // Set the Digital Twin ID for the Augmentation Manager
         augmentationFunctionHandler.setDigitalTwinId(this.digitalTwinId);
 
+        // Propagate monitoring interface to the handler if already configured
+        if (this.monitoringInterface != null)
+            augmentationFunctionHandler.setMonitoringInterface(this.monitoringInterface);
+
         //Save BoundStatus to False. It will be changed through a call back by the adapter
         this.augmentationManagerStatusMap.put(augmentationFunctionHandler.getId(), false);
 
@@ -149,6 +197,9 @@ public class AugmentationManager implements LifeCycleListener {
 
         // Register the augmentation function handler
         augmentationFunctionHandlerMap.put(augmentationFunctionHandler.getId(), augmentationFunctionHandler);
+
+        if (monitoringInterface != null && monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION) && metricsNamespace != null)
+            monitoringInterface.increaseCounter(metricsNamespace, CoreMonitoringUtils.AUGMENTATION_FUNCTION_HANDLER_COUNT);
 
         logger.debug("New Augmentation Function Handler ({}) Added to the Worker List ! Augmentation Manager - Worker List Size: {}",
                 augmentationFunctionHandler.getClass().getName(),
@@ -167,6 +218,9 @@ public class AugmentationManager implements LifeCycleListener {
 
         // Unregister the augmentation function handler
         augmentationFunctionHandlerMap.remove(augmentationFunctionHandlerId);
+
+        if (monitoringInterface != null && monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION) && metricsNamespace != null)
+            monitoringInterface.decreaseCounter(metricsNamespace, CoreMonitoringUtils.AUGMENTATION_FUNCTION_HANDLER_COUNT);
     }
 
     /**

@@ -31,10 +31,16 @@ import it.wldt.core.state.DigitalTwinStateEventNotification;
 import it.wldt.exception.AugmentationFunctionException;
 import it.wldt.log.WldtLogger;
 import it.wldt.log.WldtLoggerProvider;
+import it.wldt.monitoring.CoreMonitoringUtils;
+import it.wldt.monitoring.metrics.WldtCounter;
+import it.wldt.monitoring.metrics.WldtMetricComponent;
+import it.wldt.monitoring.metrics.WldtTimer;
 import it.wldt.storage.query.QueryRequest;
 import it.wldt.storage.query.QueryResult;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -117,6 +123,25 @@ public abstract class StatefulAugmentationFunction extends AugmentationFunction{
                 new AugmentationFunctionContextRequest());
     }
 
+    @Override
+    protected void handleMetricsRegistration() {
+        if (monitoringInterface == null || !monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION))
+            return;
+        Map<String, Object> metadata = new HashMap<String, Object>() {{ put(METRIC_METADATA_AF_FUNCTION_ID_KEY, getId()); }};
+        monitoringInterface.registerMetric(new WldtTimer(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATEFUL_START_EXEC_TIME, WldtMetricComponent.AUGMENTATION, metadata));
+        monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATEFUL_START_SUCCESS_COUNT, WldtMetricComponent.AUGMENTATION, metadata));
+        monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATEFUL_START_ERROR_COUNT, WldtMetricComponent.AUGMENTATION, metadata));
+        monitoringInterface.registerMetric(new WldtTimer(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATEFUL_STOP_EXEC_TIME, WldtMetricComponent.AUGMENTATION, metadata));
+        monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATEFUL_STOP_SUCCESS_COUNT, WldtMetricComponent.AUGMENTATION, metadata));
+        monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATEFUL_STOP_ERROR_COUNT, WldtMetricComponent.AUGMENTATION, metadata));
+        monitoringInterface.registerMetric(new WldtTimer(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATE_UPDATE_EXEC_TIME, WldtMetricComponent.AUGMENTATION, metadata));
+        monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATE_UPDATE_SUCCESS_COUNT, WldtMetricComponent.AUGMENTATION, metadata));
+        monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATE_UPDATE_ERROR_COUNT, WldtMetricComponent.AUGMENTATION, metadata));
+        monitoringInterface.registerMetric(new WldtTimer(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_QUERY_EXEC_TIME, WldtMetricComponent.AUGMENTATION, metadata));
+        monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_QUERY_EXEC_SUCCESS_COUNT, WldtMetricComponent.AUGMENTATION, metadata));
+        monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_QUERY_EXEC_ERROR_COUNT, WldtMetricComponent.AUGMENTATION, metadata));
+    }
+
     /**
      * Method to handle the start of the Stateful Augmentation Function. This method is responsible for triggering the
      * start of the function and should be called when the function is requested to start. It takes an instance of
@@ -129,9 +154,21 @@ public abstract class StatefulAugmentationFunction extends AugmentationFunction{
      * @throws AugmentationFunctionException if any error occurs during the start of the function
      */
     public void handleStart(AugmentationFunctionRequest augmentationFunctionRequest) throws AugmentationFunctionException {
+        long startMs = System.currentTimeMillis();
         this.request = augmentationFunctionRequest;
-        this.start(augmentationFunctionRequest);
-        this.isRunning = true;
+        try {
+            this.start(augmentationFunctionRequest);
+            this.isRunning = true;
+            if (monitoringInterface != null && monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION))
+                monitoringInterface.increaseCounter(metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATEFUL_START_SUCCESS_COUNT);
+        } catch (Exception e) {
+            if (monitoringInterface != null && monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION))
+                monitoringInterface.increaseCounter(metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATEFUL_START_ERROR_COUNT);
+            throw e;
+        } finally {
+            if (monitoringInterface != null && monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION))
+                monitoringInterface.updateTimerSince(metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATEFUL_START_EXEC_TIME, startMs);
+        }
     }
 
     /**
@@ -146,9 +183,21 @@ public abstract class StatefulAugmentationFunction extends AugmentationFunction{
      * @throws AugmentationFunctionException if any error occurs during the stop of the function
      */
     public void handleStop(AugmentationFunctionRequest augmentationFunctionRequest) throws AugmentationFunctionException {
+        long startMs = System.currentTimeMillis();
         this.request = augmentationFunctionRequest;
-        this.stop(augmentationFunctionRequest);
-        this.isRunning = false;
+        try {
+            this.stop(augmentationFunctionRequest);
+            this.isRunning = false;
+            if (monitoringInterface != null && monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION))
+                monitoringInterface.increaseCounter(metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATEFUL_STOP_SUCCESS_COUNT);
+        } catch (Exception e) {
+            if (monitoringInterface != null && monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION))
+                monitoringInterface.increaseCounter(metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATEFUL_STOP_ERROR_COUNT);
+            throw e;
+        } finally {
+            if (monitoringInterface != null && monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION))
+                monitoringInterface.updateTimerSince(metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATEFUL_STOP_EXEC_TIME, startMs);
+        }
     }
 
     /**
@@ -168,6 +217,43 @@ public abstract class StatefulAugmentationFunction extends AugmentationFunction{
      * @throws AugmentationFunctionException if any error occurs during the stop of the function
      */
     protected abstract void stop(AugmentationFunctionRequest request) throws AugmentationFunctionException;
+
+    /**
+     * Framework entry point for state update dispatch. Instruments the call with metrics and delegates to
+     * the abstract {@link #onStateUpdate(DigitalTwinState)}. Called by the handler — do not call directly.
+     * @param digitalTwinState the new state of the digital twin
+     * @throws AugmentationFunctionException if any error occurs during state update handling
+     */
+    public final void handleStateUpdate(DigitalTwinState digitalTwinState) throws AugmentationFunctionException {
+        long startMs = System.currentTimeMillis();
+        try {
+            onStateUpdate(digitalTwinState);
+            if (monitoringInterface != null && monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION))
+                monitoringInterface.increaseCounter(metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATE_UPDATE_SUCCESS_COUNT);
+        } catch (Exception e) {
+            if (monitoringInterface != null && monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION))
+                monitoringInterface.increaseCounter(metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATE_UPDATE_ERROR_COUNT);
+            throw e;
+        } finally {
+            if (monitoringInterface != null && monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION))
+                monitoringInterface.updateTimerSince(metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATE_UPDATE_EXEC_TIME, startMs);
+        }
+    }
+
+    /**
+     * Called by the handler after executing a query on behalf of this function.
+     * Updates the query execution metrics.
+     * @param success true if the query completed without exception
+     * @param startMs the timestamp (from {@link System#currentTimeMillis()}) before the query was issued
+     */
+    public void notifyQueryExecution(boolean success, long startMs) {
+        if (monitoringInterface != null && monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION)) {
+            monitoringInterface.increaseCounter(metricsNamespace,
+                    success ? CoreMonitoringUtils.AF_FUNCTION_QUERY_EXEC_SUCCESS_COUNT
+                            : CoreMonitoringUtils.AF_FUNCTION_QUERY_EXEC_ERROR_COUNT);
+            monitoringInterface.updateTimerSince(metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_QUERY_EXEC_TIME, startMs);
+        }
+    }
 
     /**
      * Method to notify the running Stateful Augmentation Function of a new state update of the digital twin.

@@ -27,7 +27,13 @@ import it.wldt.augmentation.result.AugmentationFunctionResultList;
 import it.wldt.exception.AugmentationFunctionException;
 import it.wldt.log.WldtLogger;
 import it.wldt.log.WldtLoggerProvider;
+import it.wldt.monitoring.CoreMonitoringUtils;
+import it.wldt.monitoring.metrics.WldtCounter;
+import it.wldt.monitoring.metrics.WldtMetricComponent;
+import it.wldt.monitoring.metrics.WldtTimer;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Extends the base class {@link AugmentationFunction} and represents a specific type of augmentation function that is executed in a stateless manner.
@@ -112,6 +118,17 @@ public abstract class StatelessAugmentationFunction extends AugmentationFunction
                 new AugmentationFunctionContextRequest());
     }
 
+
+    @Override
+    protected void handleMetricsRegistration() {
+        if (monitoringInterface == null || !monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION))
+            return;
+        Map<String, Object> metadata = new HashMap<String, Object>() {{ put(METRIC_METADATA_AF_FUNCTION_ID_KEY, getId()); }};
+        monitoringInterface.registerMetric(new WldtTimer(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATELESS_EXEC_TIME, WldtMetricComponent.AUGMENTATION, metadata));
+        monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATELESS_EXEC_SUCCESS_COUNT, WldtMetricComponent.AUGMENTATION, metadata));
+        monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATELESS_EXEC_ERROR_COUNT, WldtMetricComponent.AUGMENTATION, metadata));
+    }
+
     /**
      * Handles the execution of the stateless augmentation function based on the provided request. This method is
      * responsible for executing the function's logic and returning the results of the execution. It also sets the
@@ -125,15 +142,27 @@ public abstract class StatelessAugmentationFunction extends AugmentationFunction
      * such as invalid parameters, execution errors, or any other issues that may arise during the execution process.
      */
     public AugmentationFunctionResultList handleRun(AugmentationFunctionRequest augmentationFunctionRequest) throws AugmentationFunctionException {
+        long startMs = System.currentTimeMillis();
         this.request = augmentationFunctionRequest;
-        AugmentationFunctionResultList results = this.run(augmentationFunctionRequest);
-        for(AugmentationFunctionResult<?> result : results) {
-            result.setRequest(augmentationFunctionRequest);
+        try {
+            AugmentationFunctionResultList results = this.run(augmentationFunctionRequest);
+            for(AugmentationFunctionResult<?> result : results) {
+                result.setRequest(augmentationFunctionRequest);
+            }
+            if(results.hasError() && results.getAugmentationFunctionError() != null) {
+                results.getAugmentationFunctionError().setAugmentationFunctionRequestId(request.getRequestId());
+            }
+            if (monitoringInterface != null && monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION))
+                monitoringInterface.increaseCounter(metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATELESS_EXEC_SUCCESS_COUNT);
+            return results;
+        } catch (Exception e) {
+            if (monitoringInterface != null && monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION))
+                monitoringInterface.increaseCounter(metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATELESS_EXEC_ERROR_COUNT);
+            throw e;
+        } finally {
+            if (monitoringInterface != null && monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION))
+                monitoringInterface.updateTimerSince(metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATELESS_EXEC_TIME, startMs);
         }
-        if(results.hasError() && results.getAugmentationFunctionError() != null) {
-            results.getAugmentationFunctionError().setAugmentationFunctionRequestId(request.getRequestId());
-        }
-        return results;
     }
 
     /**

@@ -98,21 +98,11 @@ public class CoreMonitoringUtils {
 
     //public static final String LIFE_CYCLE_VALUE_PUB_ERROR_COUNT = "dt_lifecycle_value_pub_error_count";
 
-    // Augmentation Function Handler
+    // Augmentation Function Manager
 
     public static final String AUGMENTATION_FUNCTION_HANDLER_COUNT = "af_handler_count";
 
-    public static final String AUGMENTATION_FUNCTION_STATELESS_COUNT = "af_stateless_count";
-
-    public static final String AUGMENTATION_FUNCTION_STATEFUL_COUNT = "af_stateful_count";
-
     public static final String AUGMENTATION_FUNCTION_STATEFUL_RUNNING_COUNT = "af_stateful_running_count";
-
-    public static final String AUGMENTATION_FUNCTION_ERROR_COUNT = "af_error_count";
-
-    public static final String AUGMENTATION_FUNCTION_REGISTRATION_COUNT = "af_registration_count";
-
-    public static final String AUGMENTATION_FUNCTION_UNREGISTRATION_COUNT = "af_unregistration_count";
 
     // Augmentation Function
 
@@ -120,7 +110,7 @@ public class CoreMonitoringUtils {
 
     public static final String AF_RESULT_ERROR_COUNT = "af_result_error_count";
 
-    public static final String AF_RESULT_EXEC_TIME = "af_exec_time";
+    public static final String AF_RESULT_EXEC_TIME = "af_result_exec_time";
 
     public static final String AF_ERROR_SUCCESS_COUNT = "af_error_success_count";
 
@@ -140,17 +130,74 @@ public class CoreMonitoringUtils {
 
     public static final String AF_UNREGISTERED_EXEC_TIME = "af_unregistered_exec_time";
 
-    public static final String AF_REQUEST_SUCCESS_COUNT = "af_request_success_count";
+    // Augmentation Function - DT Model Level - Stateless Execute
 
-    public static final String AF_REQUEST_ERROR_COUNT = "af_request_error_count";
+    public static final String AF_STATELESS_EXEC_SUCCESS_COUNT = "af_stateless_exec_success_count";
 
-    public static final String AF_REQUEST_EXEC_TIME = "af_request_exec_time";
+    public static final String AF_STATELESS_EXEC_ERROR_COUNT = "af_stateless_exec_error_count";
 
     public static final String AF_LIST_REGISTERED_SUCCESS_COUNT = "af_list_registered_success_count";
 
     public static final String AF_LIST_REGISTERED_ERROR_COUNT = "af_list_registered_error_count";
 
     public static final String AF_LIST_REGISTERED_EXEC_TIME = "af_list_registered_exec_time";
+
+    // Augmentation Function - DT Model Level - Stateful Start
+
+    public static final String AF_STATEFUL_START_SUCCESS_COUNT = "af_stateful_start_success_count";
+
+    public static final String AF_STATEFUL_START_ERROR_COUNT = "af_stateful_start_error_count";
+
+    // Augmentation Function - DT Model Level - Stateful Stop
+
+    public static final String AF_STATEFUL_STOP_SUCCESS_COUNT = "af_stateful_stop_success_count";
+
+    public static final String AF_STATEFUL_STOP_ERROR_COUNT = "af_stateful_stop_error_count";
+
+    // Augmentation Function - Function Level - Stateless Execution
+    public static final String AF_FUNCTION_STATELESS_EXEC_TIME = "af_function_stateless_exec_time";
+
+    public static final String AF_FUNCTION_STATELESS_EXEC_SUCCESS_COUNT = "af_function_stateless_exec_success_count";
+
+    public static final String AF_FUNCTION_STATELESS_EXEC_ERROR_COUNT = "af_function_stateless_exec_error_count";
+
+    // Augmentation Function - Handler Level - Stateful Running Count
+
+    public static final String AF_HANDLER_STATEFUL_RUNNING_COUNT = "af_handler_stateful_running_count";
+
+    // Augmentation Function - Handler Level - Stateful Start
+    public static final String AF_FUNCTION_STATEFUL_START_SUCCESS_COUNT = "af_function_stateful_start_success_count";
+
+    public static final String AF_FUNCTION_STATEFUL_START_ERROR_COUNT = "af_function_stateful_start_error_count";
+
+    public static final String AF_FUNCTION_STATEFUL_START_EXEC_TIME = "af_function_stateful_start_exec_time";
+
+    // Augmentation Function - Handler Level - Stateful Stop
+    public static final String AF_FUNCTION_STATEFUL_STOP_SUCCESS_COUNT = "af_function_stateful_stop_success_count";
+
+    public static final String AF_FUNCTION_STATEFUL_STOP_ERROR_COUNT = "af_function_stateful_stop_error_count";
+
+    public static final String AF_FUNCTION_STATEFUL_STOP_EXEC_TIME = "af_function_stateful_stop_exec_time";
+
+    // Augmentation Function - Handler Level - Query Execution
+    public static final String AF_FUNCTION_QUERY_EXEC_TIME = "af_function_query_exec_time";
+
+    public static final String AF_FUNCTION_QUERY_EXEC_SUCCESS_COUNT = "af_function_query_exec_success_count";
+
+    public static final String AF_FUNCTION_QUERY_EXEC_ERROR_COUNT = "af_function_query_exec_error_count";
+
+    // Augmentation Function - Handler Level - Registered Function Counts
+
+    public static final String AF_HANDLER_REGISTERED_STATELESS_COUNT = "af_handler_registered_stateless_count";
+
+    public static final String AF_HANDLER_REGISTERED_STATEFUL_COUNT = "af_handler_registered_stateful_count";
+
+    // Augmentation Function - Handler Level - State Update Dispatch
+    public static final String AF_FUNCTION_STATE_UPDATE_EXEC_TIME = "af_function_state_update_exec_time";
+
+    public static final String AF_FUNCTION_STATE_UPDATE_SUCCESS_COUNT = "af_function_state_update_success_count";
+
+    public static final String AF_FUNCTION_STATE_UPDATE_ERROR_COUNT = "af_function_state_update_error_count";
 
     public static String buildCoreNamespace(){
         // Lowercase both DT id and dt module

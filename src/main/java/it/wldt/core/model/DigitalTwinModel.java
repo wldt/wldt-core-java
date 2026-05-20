@@ -52,6 +52,7 @@ import it.wldt.monitoring.MonitoringInterface;
 import it.wldt.monitoring.metrics.WldtCounter;
 import it.wldt.monitoring.metrics.WldtMetricComponent;
 import it.wldt.monitoring.metrics.WldtTimer;
+import it.wldt.monitoring.metrics.WldtUpDownCounter;
 import it.wldt.storage.StorageManager;
 
 import java.util.*;
@@ -288,113 +289,107 @@ public abstract class DigitalTwinModel implements WldtEventListener {
                     this.digitalTwinStateManager.getDigitalTwinId(),
                     this.metricsNamespace,
                     CoreMonitoringUtils.AF_RESULT_SUCCESS_COUNT,
-                    WldtMetricComponent.AUGMENTATION));
+                    WldtMetricComponent.DT_MODEL));
 
             this.monitoringInterface.registerMetric(new WldtCounter(
                     this.digitalTwinStateManager.getDigitalTwinId(),
                     this.metricsNamespace,
                     CoreMonitoringUtils.AF_RESULT_ERROR_COUNT,
-                    WldtMetricComponent.AUGMENTATION));
+                    WldtMetricComponent.DT_MODEL));
 
             // Register Execution Time Metrics - Augmentation Function Result
             this.monitoringInterface.registerMetric(new WldtTimer(
                     this.digitalTwinStateManager.getDigitalTwinId(),
                     this.metricsNamespace,
                     CoreMonitoringUtils.AF_RESULT_EXEC_TIME,
-                    WldtMetricComponent.AUGMENTATION));
+                    WldtMetricComponent.DT_MODEL));
 
             // Register Counter Metric(s) - Augmentation Function Registration
             this.monitoringInterface.registerMetric(new WldtCounter(
                     this.digitalTwinStateManager.getDigitalTwinId(),
                     this.metricsNamespace,
                     CoreMonitoringUtils.AF_REGISTERED_SUCCESS_COUNT,
-                    WldtMetricComponent.AUGMENTATION));
+                    WldtMetricComponent.DT_MODEL));
 
             this.monitoringInterface.registerMetric(new WldtCounter(
                     this.digitalTwinStateManager.getDigitalTwinId(),
                     this.metricsNamespace,
                     CoreMonitoringUtils.AF_REGISTERED_ERROR_COUNT,
-                    WldtMetricComponent.AUGMENTATION));
+                    WldtMetricComponent.DT_MODEL));
 
             // Register Execution Time Metrics - Augmentation Function Registration
             this.monitoringInterface.registerMetric(new WldtTimer(
                     this.digitalTwinStateManager.getDigitalTwinId(),
                     this.metricsNamespace,
                     CoreMonitoringUtils.AF_REGISTERED_EXEC_TIME,
-                    WldtMetricComponent.AUGMENTATION));
+                    WldtMetricComponent.DT_MODEL));
 
             // Register Counter Metric(s) - Augmentation Function Un-Registration
-            this.monitoringInterface.registerMetric(new WldtTimer(
+            this.monitoringInterface.registerMetric(new WldtCounter(
                     this.digitalTwinStateManager.getDigitalTwinId(),
                     this.metricsNamespace,
                     CoreMonitoringUtils.AF_UNREGISTERED_SUCCESS_COUNT,
-                    WldtMetricComponent.AUGMENTATION));
+                    WldtMetricComponent.DT_MODEL));
 
             this.monitoringInterface.registerMetric(new WldtCounter(
                     this.digitalTwinStateManager.getDigitalTwinId(),
                     this.metricsNamespace,
                     CoreMonitoringUtils.AF_UNREGISTERED_ERROR_COUNT,
-                    WldtMetricComponent.AUGMENTATION));
+                    WldtMetricComponent.DT_MODEL));
 
             // Register Execution Time Metrics - Augmentation Function Un-Registration
             this.monitoringInterface.registerMetric(new WldtTimer(
                     this.digitalTwinStateManager.getDigitalTwinId(),
                     this.metricsNamespace,
                     CoreMonitoringUtils.AF_UNREGISTERED_EXEC_TIME,
-                    WldtMetricComponent.AUGMENTATION));
+                    WldtMetricComponent.DT_MODEL));
 
-            // Register Counter Metric(s) - Augmentation Function Request
+            // Register Counter Metric(s) - Augmentation Function Stateless Execute
             this.monitoringInterface.registerMetric(new WldtCounter(
                     this.digitalTwinStateManager.getDigitalTwinId(),
                     this.metricsNamespace,
-                    CoreMonitoringUtils.AF_REQUEST_SUCCESS_COUNT,
-                    WldtMetricComponent.AUGMENTATION));
+                    CoreMonitoringUtils.AF_STATELESS_EXEC_SUCCESS_COUNT,
+                    WldtMetricComponent.DT_MODEL));
 
             this.monitoringInterface.registerMetric(new WldtCounter(
                     this.digitalTwinStateManager.getDigitalTwinId(),
                     this.metricsNamespace,
-                    CoreMonitoringUtils.AF_REQUEST_ERROR_COUNT,
-                    WldtMetricComponent.AUGMENTATION));
+                    CoreMonitoringUtils.AF_STATELESS_EXEC_ERROR_COUNT,
+                    WldtMetricComponent.DT_MODEL));
 
-            // Register Execution Time Metrics - Augmentation Function Request
-            this.monitoringInterface.registerMetric(new WldtTimer(
-                    this.digitalTwinStateManager.getDigitalTwinId(),
-                    this.metricsNamespace,
-                    CoreMonitoringUtils.AF_REQUEST_EXEC_TIME,
-                    WldtMetricComponent.AUGMENTATION));
 
             // Register Counter Metric(s) - Augmentation Function Error
             this.monitoringInterface.registerMetric(new WldtCounter(
                     this.digitalTwinStateManager.getDigitalTwinId(),
                     this.metricsNamespace,
                     CoreMonitoringUtils.AF_ERROR_SUCCESS_COUNT,
-                    WldtMetricComponent.AUGMENTATION));
+                    WldtMetricComponent.DT_MODEL));
 
             this.monitoringInterface.registerMetric(new WldtCounter(
                     this.digitalTwinStateManager.getDigitalTwinId(),
                     this.metricsNamespace,
                     CoreMonitoringUtils.AF_ERROR_ERROR_COUNT,
-                    WldtMetricComponent.AUGMENTATION));
+                    WldtMetricComponent.DT_MODEL));
 
             // Register Execution Time Metrics - Augmentation Function Error
             this.monitoringInterface.registerMetric(new WldtTimer(
                     this.digitalTwinStateManager.getDigitalTwinId(),
                     this.metricsNamespace,
                     CoreMonitoringUtils.AF_ERROR_EXEC_TIME,
-                    WldtMetricComponent.AUGMENTATION));
+                    WldtMetricComponent.DT_MODEL));
 
             // Register Counter Metric(s) - Augmentation Function List Available
             this.monitoringInterface.registerMetric(new WldtCounter(
                     this.digitalTwinStateManager.getDigitalTwinId(),
                     this.metricsNamespace,
                     CoreMonitoringUtils.AF_LIST_REGISTERED_SUCCESS_COUNT,
-                    WldtMetricComponent.AUGMENTATION));
+                    WldtMetricComponent.DT_MODEL));
 
             this.monitoringInterface.registerMetric(new WldtCounter(
                     this.digitalTwinStateManager.getDigitalTwinId(),
                     this.metricsNamespace,
                     CoreMonitoringUtils.AF_LIST_REGISTERED_ERROR_COUNT,
-                    WldtMetricComponent.AUGMENTATION));
+                    WldtMetricComponent.DT_MODEL));
 
             // Register Execution Time Metrics - Augmentation Function List Available
 
@@ -402,7 +397,40 @@ public abstract class DigitalTwinModel implements WldtEventListener {
                     this.digitalTwinStateManager.getDigitalTwinId(),
                     this.metricsNamespace,
                     CoreMonitoringUtils.AF_LIST_REGISTERED_EXEC_TIME,
-                    WldtMetricComponent.AUGMENTATION));
+                    WldtMetricComponent.DT_MODEL));
+
+            // Register UpDownCounter Metric - Stateful Running Count
+            this.monitoringInterface.registerMetric(new WldtUpDownCounter(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.AUGMENTATION_FUNCTION_STATEFUL_RUNNING_COUNT,
+                    WldtMetricComponent.DT_MODEL));
+
+            // Register Counter Metric(s) - Stateful Start
+            this.monitoringInterface.registerMetric(new WldtCounter(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.AF_STATEFUL_START_SUCCESS_COUNT,
+                    WldtMetricComponent.DT_MODEL));
+
+            this.monitoringInterface.registerMetric(new WldtCounter(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.AF_STATEFUL_START_ERROR_COUNT,
+                    WldtMetricComponent.DT_MODEL));
+
+            // Register Counter Metric(s) - Stateful Stop
+            this.monitoringInterface.registerMetric(new WldtCounter(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.AF_STATEFUL_STOP_SUCCESS_COUNT,
+                    WldtMetricComponent.DT_MODEL));
+
+            this.monitoringInterface.registerMetric(new WldtCounter(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.AF_STATEFUL_STOP_ERROR_COUNT,
+                    WldtMetricComponent.DT_MODEL));
         }
 
     }
@@ -1113,19 +1141,12 @@ public abstract class DigitalTwinModel implements WldtEventListener {
                 WldtEventBus.getInstance().publishEvent(this.digitalTwinStateManager.getDigitalTwinId(), this.id, augmentationFunctionExecuteWldtEvent);
 
                 // Increase Success Counter
-                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.AF_REQUEST_SUCCESS_COUNT);
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.AF_STATELESS_EXEC_SUCCESS_COUNT);
             }
             catch (Exception e){
                 String errorMessage = String.format("Publish Event Function Error Publishing Augmentation Function Request: %s", e.getLocalizedMessage());
                 logger.error(errorMessage);
-                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.AF_REQUEST_ERROR_COUNT);
-            }
-            finally {
-                // Update new Timer Value for the execution of the Augmentation Function Request
-                this.monitoringInterface.updateTimerSince(
-                        this.metricsNamespace,
-                        CoreMonitoringUtils.AF_REQUEST_EXEC_TIME,
-                        startMs);
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.AF_STATELESS_EXEC_ERROR_COUNT);
             }
         }
     }
@@ -1245,7 +1266,7 @@ public abstract class DigitalTwinModel implements WldtEventListener {
                 WldtEventBus.getInstance().publishEvent(this.digitalTwinStateManager.getDigitalTwinId(), this.id, augmentationFunctionStartWldtEvent);
             }
             catch (Exception e){
-                String errorMessage = String.format("Publish Event Function Error Publishing Augmentation Function Request: %s", e.getLocalizedMessage());
+                String errorMessage = String.format("Publish Event Function Error Publishing Augmentation Function Start Request: %s", e.getLocalizedMessage());
                 logger.error(errorMessage);
             }
         }
@@ -1253,23 +1274,17 @@ public abstract class DigitalTwinModel implements WldtEventListener {
             long startMs = System.currentTimeMillis();
             try {
 
-                // Call the actual function to handle the Publish of Augmentation Function Request
+                // Publish the Start event for the Stateful Augmentation Function
                 WldtEventBus.getInstance().publishEvent(this.digitalTwinStateManager.getDigitalTwinId(), this.id, augmentationFunctionStartWldtEvent);
 
-                // Increase Success Counter
-                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.AF_REQUEST_SUCCESS_COUNT);
+                // Increase Success Counter and Stateful Running Count
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.AF_STATEFUL_START_SUCCESS_COUNT);
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.AUGMENTATION_FUNCTION_STATEFUL_RUNNING_COUNT);
             }
             catch (Exception e){
-                String errorMessage = String.format("Publish Event Function Error Publishing Augmentation Function Request: %s", e.getLocalizedMessage());
+                String errorMessage = String.format("Publish Event Function Error Publishing Augmentation Function Start Request: %s", e.getLocalizedMessage());
                 logger.error(errorMessage);
-                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.AF_REQUEST_ERROR_COUNT);
-            }
-            finally {
-                // Update new Timer Value for the execution of the Augmentation Function Request
-                this.monitoringInterface.updateTimerSince(
-                        this.metricsNamespace,
-                        CoreMonitoringUtils.AF_REQUEST_EXEC_TIME,
-                        startMs);
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.AF_STATEFUL_START_ERROR_COUNT);
             }
         }
 
@@ -1389,7 +1404,7 @@ public abstract class DigitalTwinModel implements WldtEventListener {
                 WldtEventBus.getInstance().publishEvent(this.digitalTwinStateManager.getDigitalTwinId(), this.id, augmentationFunctionStopWldtEvent);
             }
             catch (Exception e){
-                String errorMessage = String.format("Publish Event Function Error Publishing Augmentation Function Request: %s", e.getLocalizedMessage());
+                String errorMessage = String.format("Publish Event Function Error Publishing Augmentation Function Stop Request: %s", e.getLocalizedMessage());
                 logger.error(errorMessage);
             }
         }
@@ -1397,23 +1412,17 @@ public abstract class DigitalTwinModel implements WldtEventListener {
             long startMs = System.currentTimeMillis();
             try {
 
-                // Call the actual function to handle the Publish of Augmentation Function Request
+                // Publish the Stop event for the Stateful Augmentation Function
                 WldtEventBus.getInstance().publishEvent(this.digitalTwinStateManager.getDigitalTwinId(), this.id, augmentationFunctionStopWldtEvent);
 
-                // Increase Success Counter
-                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.AF_REQUEST_SUCCESS_COUNT);
+                // Increase Success Counter and decrease Stateful Running Count
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.AF_STATEFUL_STOP_SUCCESS_COUNT);
+                this.monitoringInterface.decreaseCounter(this.metricsNamespace, CoreMonitoringUtils.AUGMENTATION_FUNCTION_STATEFUL_RUNNING_COUNT);
             }
             catch (Exception e){
-                String errorMessage = String.format("Publish Event Function Error Publishing Augmentation Function Request: %s", e.getLocalizedMessage());
+                String errorMessage = String.format("Publish Event Function Error Publishing Augmentation Function Stop Request: %s", e.getLocalizedMessage());
                 logger.error(errorMessage);
-                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.AF_REQUEST_ERROR_COUNT);
-            }
-            finally {
-                // Update new Timer Value for the execution of the Augmentation Function Request
-                this.monitoringInterface.updateTimerSince(
-                        this.metricsNamespace,
-                        CoreMonitoringUtils.AF_REQUEST_EXEC_TIME,
-                        startMs);
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.AF_STATEFUL_STOP_ERROR_COUNT);
             }
         }
     }

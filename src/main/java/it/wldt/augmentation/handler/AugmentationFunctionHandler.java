@@ -31,7 +31,6 @@ import it.wldt.augmentation.function.StatelessAugmentationFunction;
 import it.wldt.augmentation.listener.AugmentationLifeCycleListener;
 import it.wldt.augmentation.listener.StatefulAugmentationListener;
 import it.wldt.augmentation.request.AugmentationFunctionRequest;
-import it.wldt.augmentation.result.AugmentationFunctionResult;
 import it.wldt.augmentation.result.AugmentationFunctionResultList;
 import it.wldt.core.engine.DigitalTwinWorker;
 import it.wldt.core.event.*;
@@ -42,6 +41,12 @@ import it.wldt.exception.WldtDigitalTwinStateEventException;
 import it.wldt.exception.WldtRuntimeException;
 import it.wldt.log.WldtLogger;
 import it.wldt.log.WldtLoggerProvider;
+import it.wldt.monitoring.CoreMonitoringUtils;
+import it.wldt.monitoring.MonitoringInterface;
+import it.wldt.monitoring.metrics.WldtCounter;
+import it.wldt.monitoring.metrics.WldtMetricComponent;
+import it.wldt.monitoring.metrics.WldtTimer;
+import it.wldt.monitoring.metrics.WldtUpDownCounter;
 import it.wldt.storage.query.QueryExecutor;
 import it.wldt.storage.query.QueryRequest;
 import it.wldt.storage.query.QueryResult;
@@ -70,6 +75,12 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
      * diagnosing issues that may arise during its operation.
      */
     private static final WldtLogger logger = WldtLoggerProvider.getLogger(AugmentationFunctionHandler.class);
+
+    /**
+     * Metadata key used to tag all metrics with the handler's unique identifier, allowing consumers
+     * (e.g. Prometheus, Grafana) to distinguish metrics from different handlers on the same DT.
+     */
+    public static final String METRIC_METADATA_AF_HANDLER_ID_KEY = "af_handler_id";
 
     /**
      * The unique identifier of the Augmentation Function Handler.
@@ -127,6 +138,16 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
     protected QueryExecutor queryExecutor = null;
 
     /**
+     * The Monitoring Interface used to record metrics for the Augmentation Function Handler.
+     */
+    protected MonitoringInterface monitoringInterface = null;
+
+    /**
+     * The namespace used to register and retrieve metrics for this handler.
+     */
+    private String metricsNamespace = null;
+
+    /**
      * Constructor of the AugmentationFunctionHandler class.
      * It is protected to allow the extension of the class and the creation of custom Augmentation Managers.
      */
@@ -144,6 +165,53 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
     public AugmentationFunctionHandler(String id) {
         this();
         this.id = id;
+    }
+
+    /**
+     * Sets the Monitoring Interface to be used by this handler for recording metrics.
+     * Follows the same pattern as PhysicalAdapter/DigitalAdapter: registers metrics immediately and propagates
+     * to any functions already registered before this call.
+     * @param monitoringInterface the MonitoringInterface instance to be used for metrics tracking
+     */
+    public void setMonitoringInterface(MonitoringInterface monitoringInterface) {
+        if (monitoringInterface != null) {
+            this.monitoringInterface = monitoringInterface;
+            handleMetricsRegistration();
+            // Update counts for functions registered before monitoring was set
+            if (this.monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION)) {
+                for (AugmentationFunction f : augmentationFunctionHashMap.values()) {
+                    if (f.getType().equals(AugmentationFunctionType.STATELESS))
+                        this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.AF_HANDLER_REGISTERED_STATELESS_COUNT);
+                    else if (f.getType().equals(AugmentationFunctionType.STATEFUL))
+                        this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.AF_HANDLER_REGISTERED_STATEFUL_COUNT);
+                }
+            }
+            // Propagate to already-registered functions
+            for (AugmentationFunction f : augmentationFunctionHashMap.values())
+                f.setMonitoringInterface(monitoringInterface, digitalTwinId);
+        }
+    }
+
+    /**
+     * Registers all handler-level metrics with the Monitoring Interface if it is active for the AUGMENTATION component.
+     * Called from {@link #setMonitoringInterface(MonitoringInterface)} — idempotent, safe to call multiple times.
+     */
+    private void handleMetricsRegistration() {
+        if (this.monitoringInterface == null || !this.monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION))
+            return;
+        if (this.metricsNamespace != null)
+            return;
+
+        this.metricsNamespace = CoreMonitoringUtils.buildCoreNamespace();
+
+        // Tag all handler metrics with the handler id so consumers can distinguish per-handler data
+        Map<String, Object> metricMetadata = new HashMap<String, Object>() {{
+            put(METRIC_METADATA_AF_HANDLER_ID_KEY, id);
+        }};
+
+        this.monitoringInterface.registerMetric(new WldtUpDownCounter(this.digitalTwinId, this.metricsNamespace, CoreMonitoringUtils.AF_HANDLER_STATEFUL_RUNNING_COUNT, WldtMetricComponent.AUGMENTATION, metricMetadata));
+        this.monitoringInterface.registerMetric(new WldtUpDownCounter(this.digitalTwinId, this.metricsNamespace, CoreMonitoringUtils.AF_HANDLER_REGISTERED_STATELESS_COUNT, WldtMetricComponent.AUGMENTATION, metricMetadata));
+        this.monitoringInterface.registerMetric(new WldtUpDownCounter(this.digitalTwinId, this.metricsNamespace, CoreMonitoringUtils.AF_HANDLER_REGISTERED_STATEFUL_COUNT, WldtMetricComponent.AUGMENTATION, metricMetadata));
     }
 
     /**
@@ -515,6 +583,17 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
             // Add the Augmentation Function to the list of the managed Augmentation Functions by the Handler
             this.augmentationFunctionHashMap.put(augmentationFunction.getId(), augmentationFunction);
 
+            // Inject MonitoringInterface so the function can register and update its own metrics
+            augmentationFunction.setMonitoringInterface(monitoringInterface, digitalTwinId);
+
+            // Track registered function count by type
+            if (monitoringInterface != null && monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION)) {
+                if (augmentationFunction.getType().equals(AugmentationFunctionType.STATELESS))
+                    monitoringInterface.increaseCounter(metricsNamespace, CoreMonitoringUtils.AF_HANDLER_REGISTERED_STATELESS_COUNT);
+                else if (augmentationFunction.getType().equals(AugmentationFunctionType.STATEFUL))
+                    monitoringInterface.increaseCounter(metricsNamespace, CoreMonitoringUtils.AF_HANDLER_REGISTERED_STATEFUL_COUNT);
+            }
+
             // Call the handler for the registration of the Augmentation Function
             handleAugmentationFunctionRegistration(augmentationFunction);
 
@@ -551,6 +630,14 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
 
         // Remove the Augmentation Function from the list of the managed Augmentation Functions by the Handler
         this.augmentationFunctionHashMap.remove(augmentationFunctionId);
+
+        // Track registered function count by type
+        if (monitoringInterface != null && monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION)) {
+            if (augmentationFunction.getType().equals(AugmentationFunctionType.STATELESS))
+                monitoringInterface.decreaseCounter(metricsNamespace, CoreMonitoringUtils.AF_HANDLER_REGISTERED_STATELESS_COUNT);
+            else if (augmentationFunction.getType().equals(AugmentationFunctionType.STATEFUL))
+                monitoringInterface.decreaseCounter(metricsNamespace, CoreMonitoringUtils.AF_HANDLER_REGISTERED_STATEFUL_COUNT);
+        }
 
         try{
             // Call the handler for the unregistration of the Augmentation Function
@@ -637,6 +724,9 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
 
             // Call the handler for the start of the Augmentation Function
             handleAugmentationFunctionStart(statefulAugmentationFunction, augmentationFunctionRequest);
+
+            if (monitoringInterface != null && monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION))
+                monitoringInterface.increaseCounter(metricsNamespace, CoreMonitoringUtils.AF_HANDLER_STATEFUL_RUNNING_COUNT);
         } catch (Exception e){
             throw new AugmentationFunctionException(String.format("Error starting Augmentation Function with id %s: %s", augmentationFunctionId, e.getLocalizedMessage()));
         }
@@ -680,6 +770,9 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
 
             // Call the handler for the stop of the Augmentation Function
             handleAugmentationFunctionStop(statefulAugmentationFunction, augmentationFunctionRequest);
+
+            if (monitoringInterface != null && monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION))
+                monitoringInterface.decreaseCounter(metricsNamespace, CoreMonitoringUtils.AF_HANDLER_STATEFUL_RUNNING_COUNT);
         } catch (Exception e){
             throw new AugmentationFunctionException(String.format("Error stopping Augmentation Function with id %s: %s", augmentationFunctionId, e.getLocalizedMessage()));
         }
@@ -1146,13 +1239,19 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
                 logger.warn(String.format("Error starting Augmentation Function with id %s: Augmentation Function not found !", augmentationFunctionId));
             } else {
                 if(augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest() != null && augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQueryRequest() != null) {
+                    long queryStartMs = System.currentTimeMillis();
+                    boolean querySuccess = false;
                     try {
                         augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQueryRequest().setRequestTimestampMs(System.currentTimeMillis());
                         augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQueryRequest().setRequestId(UUID.randomUUID().toString());
                         QueryResult<?> queryResult = this.queryExecutor.syncQueryExecute(augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQueryRequest());
                         augmentationFunctionRequest.getContext().setQueryResult(queryResult);
+                        querySuccess = true;
                     } catch (Exception e) {
                         logger.error("Error executing query for Augmentation Function with id {}: {}", augmentationFunctionId, e.getLocalizedMessage());
+                    } finally {
+                        if (augmentationFunctionHashMap.get(augmentationFunctionId) instanceof StatefulAugmentationFunction)
+                            ((StatefulAugmentationFunction) augmentationFunctionHashMap.get(augmentationFunctionId)).notifyQueryExecution(querySuccess, queryStartMs);
                     }
                 } else {
                     logger.debug(String.format("Not executing query for Augmentation Function with id %s: Augmentation Function Query Request not available in the context !", augmentationFunctionId));
@@ -1195,13 +1294,19 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
                 logger.warn(String.format("Error stopping Augmentation Function with id %s: Augmentation Function not found !", augmentationFunctionId));
             } else {
                 if(augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest() != null && augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQueryRequest() != null) {
+                    long queryStartMs = System.currentTimeMillis();
+                    boolean querySuccess = false;
                     try {
                         augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQueryRequest().setRequestTimestampMs(System.currentTimeMillis());
                         augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQueryRequest().setRequestId(UUID.randomUUID().toString());
                         QueryResult<?> queryResult = this.queryExecutor.syncQueryExecute(augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQueryRequest());
                         augmentationFunctionRequest.getContext().setQueryResult(queryResult);
+                        querySuccess = true;
                     } catch (Exception e) {
                         logger.error("Error executing query for Augmentation Function with id {}: {}", augmentationFunctionId, e.getLocalizedMessage());
+                    } finally {
+                        if (augmentationFunctionHashMap.get(augmentationFunctionId) instanceof StatefulAugmentationFunction)
+                            ((StatefulAugmentationFunction) augmentationFunctionHashMap.get(augmentationFunctionId)).notifyQueryExecution(querySuccess, queryStartMs);
                     }
                 } else {
                     logger.debug(String.format("Not executing query for Augmentation Function with id %s: Augmentation Function Query Request not available in the context !", augmentationFunctionId));
@@ -1245,12 +1350,18 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
                 QueryResult<?> queryResult = null;
 
                 if(augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest() != null && augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQueryRequest() != null) {
+                    long queryStartMs = System.currentTimeMillis();
+                    boolean querySuccess = false;
                     try {
                         augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQueryRequest().setRequestTimestampMs(System.currentTimeMillis());
                         augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQueryRequest().setRequestId(UUID.randomUUID().toString());
                         queryResult = this.queryExecutor.syncQueryExecute(augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQueryRequest());
+                        querySuccess = true;
                     } catch (Exception e) {
                         logger.error("Error executing query for Augmentation Function with id {}: {}", augmentationFunctionId, e.getLocalizedMessage());
+                    } finally {
+                        if (augmentationFunctionHashMap.get(augmentationFunctionId) instanceof StatefulAugmentationFunction)
+                            ((StatefulAugmentationFunction) augmentationFunctionHashMap.get(augmentationFunctionId)).notifyQueryExecution(querySuccess, queryStartMs);
                     }
                 } else {
                     logger.warn(String.format("Error executing query for Augmentation Function with id %s: Augmentation Function Query Request not available in the context !", augmentationFunctionId));

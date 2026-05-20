@@ -21,6 +21,9 @@
 package it.wldt.augmentation.function;
 
 import it.wldt.augmentation.context.AugmentationFunctionContextRequest;
+import it.wldt.monitoring.CoreMonitoringUtils;
+import it.wldt.monitoring.MonitoringInterface;
+import it.wldt.monitoring.metrics.WldtMetricComponent;
 
 /**
  * Base class representing an augmentation function in the WLDT framework. An augmentation function is a modular
@@ -31,6 +34,11 @@ import it.wldt.augmentation.context.AugmentationFunctionContextRequest;
  * process. Subclasses of this base class can implement specific types of augmentation functions with their own unique behavior and logic.
  */
 public abstract class AugmentationFunction {
+
+    /**
+     * Metadata key used to tag all function metrics with the function's unique identifier.
+     */
+    public static final String METRIC_METADATA_AF_FUNCTION_ID_KEY = "af_function_id";
 
     /**
      * The unique id of the augmentation function.
@@ -61,6 +69,21 @@ public abstract class AugmentationFunction {
      * The context request of the augmentation function.
      */
     private AugmentationFunctionContextRequest contextRequest;
+
+    /**
+     * The Monitoring Interface used to record metrics for this function.
+     */
+    protected MonitoringInterface monitoringInterface = null;
+
+    /**
+     * The namespace used to register and retrieve metrics for this function.
+     */
+    protected String metricsNamespace = null;
+
+    /**
+     * The Digital Twin id, needed when registering metrics.
+     */
+    protected String digitalTwinId = null;
 
     /**
      * Constructor of the AugmentationFunction class with all the parameters.
@@ -194,6 +217,27 @@ public abstract class AugmentationFunction {
     public void setContextRequest(AugmentationFunctionContextRequest contextRequest) {
         this.contextRequest = contextRequest;
     }
+
+    /**
+     * Injects the MonitoringInterface into this function and triggers metric registration.
+     * Called by the handler when the function is registered.
+     * @param monitoringInterface the monitoring interface to use for metrics
+     * @param digitalTwinId the id of the Digital Twin owning this function
+     */
+    public void setMonitoringInterface(MonitoringInterface monitoringInterface, String digitalTwinId) {
+        if (monitoringInterface != null) {
+            this.monitoringInterface = monitoringInterface;
+            this.digitalTwinId = digitalTwinId;
+            this.metricsNamespace = CoreMonitoringUtils.buildCoreNamespace();
+            handleMetricsRegistration();
+        }
+    }
+
+    /**
+     * Override in subclasses to register function-specific metrics.
+     * Called automatically by {@link #setMonitoringInterface(MonitoringInterface, String)}.
+     */
+    protected void handleMetricsRegistration() {}
 
     @Override
     public String toString() {
