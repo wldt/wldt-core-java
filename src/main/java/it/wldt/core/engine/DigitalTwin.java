@@ -754,7 +754,12 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
     }
 
     /**
-     * TODO ...
+     * Handles the registration of metrics for the digital twin. This method checks if the monitoring interface is properly
+     * configured and active, and if so, it registers the relevant metrics for the digital twin, such as counters for life
+     * cycle value publication success and error counts, and a gauge for the life cycle value. The metrics are registered
+     * with the appropriate namespace and component identifier for the digital twin model. This method is called during
+     * the startup sequence of the digital twin to ensure that metrics are available for monitoring the digital twin's
+     * performance and behavior.
      */
     private void handleMetricsRegistration() {
 

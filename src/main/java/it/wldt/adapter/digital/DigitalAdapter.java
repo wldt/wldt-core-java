@@ -122,7 +122,7 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
     }
 
     /**
-     * TODO ...
+     * This method allows to handle the registration of the Metrics related to the Digital Adapter component in the Monitoring Interface.
      */
     private void handleMetricsRegistration() {
 
@@ -558,8 +558,9 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
     }
 
     /**
-     * TODO ...
-     * @param wldtEvent
+     * This method is the main entry point for the handling of the Digital Twin State Update Events and is in charge of
+     * managing the monitoring of the processing of the events and the related metrics in the Monitoring Interface.
+     * @param wldtEvent the event associated to the Digital Twin State Update to be processed
      */
     private void handleDigitalTwinStateEvent(WldtEvent<?> wldtEvent){
 
@@ -600,8 +601,10 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
     }
 
     /**
-     * TODO ...
-     * @param digitalTwinStateEventNotification
+     * This method is the main entry point for the handling of the Digital Twin State Event Notifications and is in charge of
+     * managing the monitoring of the processing of the events and the related metrics in the Monitoring Interface.
+     * @param digitalTwinStateEventNotification the notification associated to the Digital Twin State Event to be processed
+     *                                         the notification associated to the Digital Twin State Event to be processed
      */
     private void handleEventNotification(DigitalTwinStateEventNotification<?> digitalTwinStateEventNotification){
 

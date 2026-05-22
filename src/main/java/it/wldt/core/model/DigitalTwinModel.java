@@ -176,7 +176,7 @@ public abstract class DigitalTwinModel implements WldtEventListener {
     }
 
     /**
-     * TODO ...
+     * Method to handle the registration of the Metrics related to the Digital Twin Model and its behavior
      */
     private void handleMetricsRegistration() {
 
@@ -1493,8 +1493,10 @@ public abstract class DigitalTwinModel implements WldtEventListener {
     }
 
     /**
-     * TODO ...
-     * @param wldtEvent
+     * Method to handle the Physical Asset Property Variation Event. This method is responsible to call the actual function
+     * implemented by the developer to handle the Physical Asset Property Variation Event and to manage the monitoring
+     * of the execution of the function by using the Monitoring Interface if configured.
+     * @param wldtEvent Physical Asset Property Variation Event to handle
      */
     private void handlePhysicalAssetPropertyVariation(PhysicalAssetPropertyWldtEvent<?> wldtEvent){
 
@@ -1535,8 +1537,10 @@ public abstract class DigitalTwinModel implements WldtEventListener {
     }
 
     /**
-     * TODO ...
-     * @param wldtEvent
+     * Method to handle the Physical Asset Event Notification. This method is responsible to call the actual function
+     * implemented by the developer to handle the Physical Asset Event Notification and to manage the monitoring of the
+     * execution of the function by using the Monitoring Interface if configured.
+     * @param wldtEvent Physical Asset Event Notification to handle
      */
     private void handlePhysicalAssetEventNotification(PhysicalAssetEventWldtEvent<?> wldtEvent){
 
@@ -1577,8 +1581,10 @@ public abstract class DigitalTwinModel implements WldtEventListener {
     }
 
     /**
-     * TODO ...
-     * @param wldtEvent
+     * Method to handle the Physical Asset Relationship Instance Created Event. This method is responsible to call the actual function
+     * implemented by the developer to handle the Physical Asset Relationship Instance Created Event and to manage the
+     * monitoring of the execution of the function by using the Monitoring Interface if configured.
+     * @param wldtEvent Physical Asset Relationship Instance Created Event to handle
      */
     private void handlePhysicalAssetRelationshipInstanceCreatedEvent(PhysicalAssetRelationshipInstanceCreatedWldtEvent<?> wldtEvent){
 
@@ -1875,8 +1881,10 @@ public abstract class DigitalTwinModel implements WldtEventListener {
     }
 
     /**
-     * TODO ...
-     * @param wldtEvent
+     * Method to handle the Physical Asset Relationship Instance Deleted Event. This method is responsible to call the actual function
+     * implemented by the developer to handle the Physical Asset Relationship Instance Deleted Event and to manage the
+     * monitoring of the execution of the function by using the Monitoring Interface if configured.
+     * @param wldtEvent Physical Asset Relationship Instance Deleted Event to handle
      */
     private void handlePhysicalAssetRelationshipInstanceDeletedEvent(PhysicalAssetRelationshipInstanceDeletedWldtEvent<?> wldtEvent){
 
@@ -1917,8 +1925,10 @@ public abstract class DigitalTwinModel implements WldtEventListener {
     }
 
     /**
-     * TODO ...
-     * @param wldtEvent
+     * Method to handle the Digital Action Event. This method is responsible to call the actual function
+     * implemented by the developer to handle the Digital Action Event and to manage the monitoring of the execution of the function
+     * by using the Monitoring Interface if configured.
+     * @param wldtEvent Digital Action Event to handle
      */
     private void handleDigitalActionEvent(DigitalActionWldtEvent<?> wldtEvent){
 
@@ -2285,15 +2295,17 @@ public abstract class DigitalTwinModel implements WldtEventListener {
     }
 
     /**
-     * TODO ...
-     * @return
+     * Get the reference to the Monitoring Interface configured for this Digital Twin Model, if any.
+     * @return the reference to the Monitoring Interface configured for this Digital Twin Model, or null if no Monitoring Interface is configured
      */
     public MonitoringInterface getMonitoringInterface() {
         return monitoringInterface;
     }
 
     /**
-     * TODO ...
+     * Set the reference to the Monitoring Interface to be used by this Digital Twin Model for monitoring its behavior and performance.
+     * @param monitoringInterface the reference to the Monitoring Interface to be used by this Digital Twin Model for monitoring its behavior and performance.
+     *                            It cannot be null, if no Monitoring Interface is available it should not be set and the monitoring will be disabled for this Digital Twin Model.
      */
     public void setMonitoringInterface(MonitoringInterface monitoringInterface) {
 

@@ -653,7 +653,7 @@ public class DigitalTwinStateManager {
     }
 
     /**
-     * TODO ...
+     * Handle the registration of the metrics related to the computation of the Digital Twin State if the Monitoring Interface is correctly configured on the DT State Manager.
      */
     private void handleMetricsRegistration() {
 

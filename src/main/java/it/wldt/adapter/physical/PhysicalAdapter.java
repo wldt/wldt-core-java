@@ -103,7 +103,8 @@ public abstract class PhysicalAdapter extends DigitalTwinWorker implements WldtE
     }
 
     /**
-     * TODO ...
+     * This method handles the registration of the Metrics related to the Physical Adapter. It is automatically called
+     * when the Monitoring Interface is set to the Physical Adapter through the setter method {@link #setMonitoringInterface(MonitoringInterface) setMonitoringInterface}.
      */
     private void handleMetricsRegistration() {
 
@@ -487,8 +488,10 @@ public abstract class PhysicalAdapter extends DigitalTwinWorker implements WldtE
     }
 
     /**
-     * TODO ...
-     * @param wldtEvent
+     * This method handles the reception of a Physical Action Event and the related execution of the logic implemented
+     * by the developer in the method {@link #onIncomingPhysicalAction(PhysicalAssetActionWldtEvent) onIncomingPhysicalAction}.
+     * @param wldtEvent Physical Asset Action Event received from the Event Bus and related to the Physical Asset Action
+     *                  exposed in the Physical Asset Description of the Physical Adapter
      */
     private void handleIncomingPhysicalAction(PhysicalAssetActionWldtEvent<?> wldtEvent){
 

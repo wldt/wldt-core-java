@@ -128,9 +128,9 @@ public abstract class WldtMetric {
     public abstract WldtMetric copy();
 
     /**
-     * TODO ...
-     * @param key
-     * @param value
+     * Merges the provided metadata map into this metric's existing metadata, overwriting any existing keys.
+     * @param key the metadata key to add or update
+     * @param value the metadata value to associate with the key
      */
     public void addMetadata(String key, Object value) {
         if(key != null && value != null && this.metadata != null)
@@ -138,8 +138,8 @@ public abstract class WldtMetric {
     }
 
     /**
-     * TODO ...
-     * @param key
+     * Removes the specified key from this metric's metadata if it exists.
+     * @param key the metadata key to remove
      */
     public void removeMetadata(String key) {
         if(key != null && this.metadata != null)
