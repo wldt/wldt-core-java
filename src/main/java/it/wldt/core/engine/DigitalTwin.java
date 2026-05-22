@@ -809,6 +809,10 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
         if (this.monitoringInterface != null)
             this.augmentationManager.setMonitoringInterface(this.monitoringInterface);
 
+        // Propagate Monitoring Interface to the Storage Manager
+        if (this.monitoringInterface != null)
+            this.storageManager.setMonitoringInterface(this.monitoringInterface);
+
         // Start the Augmentation Function Manager
         // This component should be ready before the Model since it can be used immediately by the Model Engine
         // to execute Augmentation Functions

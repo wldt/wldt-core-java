@@ -23,6 +23,11 @@ package it.wldt.storage.query;
 import it.wldt.exception.StorageException;
 import it.wldt.log.WldtLogger;
 import it.wldt.log.WldtLoggerProvider;
+import it.wldt.monitoring.CoreMonitoringUtils;
+import it.wldt.monitoring.MonitoringInterface;
+import it.wldt.monitoring.metrics.WldtCounter;
+import it.wldt.monitoring.metrics.WldtMetricComponent;
+import it.wldt.monitoring.metrics.WldtTimer;
 import it.wldt.storage.WldtStorage;
 import java.util.Map;
 import java.util.Optional;
@@ -38,6 +43,32 @@ import java.util.Optional;
 public class QueryManager {
 
     private static final WldtLogger logger = WldtLoggerProvider.getLogger(DefaultQueryManager.class);
+
+    protected String digitalTwinId;
+    protected MonitoringInterface monitoringInterface;
+    protected String metricsNamespace;
+
+    public QueryManager() {}
+
+    public QueryManager(String digitalTwinId) {
+        this.digitalTwinId = digitalTwinId;
+    }
+
+    public void setMonitoringInterface(MonitoringInterface monitoringInterface) {
+        if (monitoringInterface != null) {
+            this.monitoringInterface = monitoringInterface;
+            handleMetricsRegistration();
+        }
+    }
+
+    private void handleMetricsRegistration() {
+        if (this.monitoringInterface == null || !this.monitoringInterface.isActive(WldtMetricComponent.STORAGE)) return;
+        if (this.metricsNamespace != null) return;
+        this.metricsNamespace = CoreMonitoringUtils.buildCoreNamespace();
+        this.monitoringInterface.registerMetric(new WldtCounter(this.digitalTwinId, this.metricsNamespace, CoreMonitoringUtils.STORAGE_QUERY_SUCCESS_COUNT, WldtMetricComponent.STORAGE));
+        this.monitoringInterface.registerMetric(new WldtCounter(this.digitalTwinId, this.metricsNamespace, CoreMonitoringUtils.STORAGE_QUERY_ERROR_COUNT, WldtMetricComponent.STORAGE));
+        this.monitoringInterface.registerMetric(new WldtTimer(this.digitalTwinId, this.metricsNamespace, CoreMonitoringUtils.STORAGE_QUERY_EXEC_TIME, WldtMetricComponent.STORAGE));
+    }
 
     /**
      * Default implementation of the method for the query manager.

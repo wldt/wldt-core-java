@@ -13,6 +13,7 @@ import it.wldt.augmentation.stateful.generic.StatefulAutoStopAugmentationDigital
 import it.wldt.augmentation.stateful.generic.StatefulGenericResultAugmentationDigitalTwinModel;
 import it.wldt.storage.DefaultWldtStorage;
 import it.wldt.storage.query.QueryRequest;
+import it.wldt.storage.query.QueryRequestType;
 import it.wldt.storage.query.QueryResourceType;
 import it.wldt.core.engine.DigitalTwin;
 import it.wldt.core.engine.DigitalTwinEngine;
@@ -1654,6 +1655,554 @@ public class DigitalTwinProcessMetricsTests {
                             && m.getName().equals(CoreMonitoringUtils.AF_FUNCTION_STATELESS_EXEC_TIME))
                     .collect(Collectors.toList());
             assertTrue(execTime.size() >= 1);
+
+            Thread.sleep(2000);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Storage Metrics — DT State Write
+    // -------------------------------------------------------------------------
+
+    @Nested
+    class StorageDtStateWriteMetricsTests {
+
+        private static final String STORAGE_DT_ID = "dtTestStorageDtState";
+
+        private DigitalTwin storageDigitalTwin = null;
+        private DigitalTwinEngine storageDigitalTwinEngine = null;
+
+        @BeforeEach
+        public void setUp() throws KernelException, WldtRuntimeException, EventBusException,
+                WldtConfigurationException, WldtWorkerException, WldtDigitalTwinStateException,
+                WldtEngineException, it.wldt.exception.StorageException {
+
+            SharedTestMetrics.getInstance().registerDigitalTwin(STORAGE_DT_ID);
+            storageDigitalTwinEngine = new DigitalTwinEngine();
+            storageDigitalTwin = new DigitalTwin(STORAGE_DT_ID, new DemoDigitalTwinModel());
+            storageDigitalTwin.addPhysicalAdapter(new DemoPhysicalAdapter(
+                    String.format("%s-%s", STORAGE_DT_ID, "pa"),
+                    new DemoPhysicalAdapterConfiguration(), true, true));
+            storageDigitalTwin.addDigitalAdapter(new DemoDigitalAdapter(
+                    String.format("%s-%s", STORAGE_DT_ID, "da"),
+                    new DemoDigitalAdapterConfiguration()));
+            storageDigitalTwin.getStorageManager().putStorage(new DefaultWldtStorage("test-storage-dt-state", true));
+            storageDigitalTwin.getMonitoringInterface().setConfiguration(
+                    new MonitoringInterfaceConfiguration.Builder().withStorageMonitoring().build());
+            storageDigitalTwin.getMonitoringInterface().setHandler(new TestMonitoringInterfaceHandler(STORAGE_DT_ID));
+            storageDigitalTwinEngine.addDigitalTwin(storageDigitalTwin);
+            storageDigitalTwinEngine.startDigitalTwin(STORAGE_DT_ID);
+        }
+
+        @AfterEach
+        public void tearDown() throws WldtEngineException, InterruptedException {
+            storageDigitalTwinEngine.stopDigitalTwin(STORAGE_DT_ID);
+            storageDigitalTwinEngine.removeDigitalTwin(STORAGE_DT_ID);
+            storageDigitalTwin = null;
+            storageDigitalTwinEngine = null;
+            Thread.sleep(500);
+            SharedTestMetrics.getInstance().resetMetrics();
+            SharedTestMetrics.getInstance().unRegisterDigitalTwin(STORAGE_DT_ID);
+        }
+
+        @Test
+        @Order(25)
+        public void testStorageDtStateWriteMetrics() throws InterruptedException {
+            Thread.sleep(DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS +
+                    ((DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES +
+                            DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_EVENT_UPDATES) *
+                            DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS));
+
+            List<WldtMetric> updatedMetrics = SharedTestMetrics.getInstance().getMonitoringUpdatedMetricList(STORAGE_DT_ID);
+            assertNotNull(updatedMetrics);
+
+            // 1 initial commit (onDigitalTwinBound) + N property variations + R_CREATE rel instances + R_DELETE rel instances
+            int expectedStateWrites = 1
+                    + DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES
+                    + DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_REL_INSTANCE_CREATE
+                    + DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_REL_INSTANCE_DELETE;
+            List<WldtMetric> stateSuccess = updatedMetrics.stream()
+                    .filter(m -> m.getComponent().equals(WldtMetricComponent.STORAGE)
+                            && m.getName().equals(CoreMonitoringUtils.STORAGE_WRITE_DIGITAL_TWIN_STATE_SUCCESS_COUNT))
+                    .collect(Collectors.toList());
+            assertEquals(expectedStateWrites, stateSuccess.size());
+
+            assertTrue(updatedMetrics.stream().anyMatch(m ->
+                    m.getComponent().equals(WldtMetricComponent.STORAGE) &&
+                    m.getName().equals(CoreMonitoringUtils.STORAGE_WRITE_DIGITAL_TWIN_STATE_EXEC_TIME)));
+
+            Thread.sleep(2000);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Storage Metrics — Digital Event Write
+    // -------------------------------------------------------------------------
+
+    @Nested
+    class StorageDigitalEventWriteMetricsTests {
+
+        private static final String STORAGE_DT_ID = "dtTestStorageDigitalEvent";
+
+        private DigitalTwin storageDigitalTwin = null;
+        private DigitalTwinEngine storageDigitalTwinEngine = null;
+
+        @BeforeEach
+        public void setUp() throws KernelException, WldtRuntimeException, EventBusException,
+                WldtConfigurationException, WldtWorkerException, WldtDigitalTwinStateException,
+                WldtEngineException, it.wldt.exception.StorageException {
+
+            SharedTestMetrics.getInstance().registerDigitalTwin(STORAGE_DT_ID);
+            storageDigitalTwinEngine = new DigitalTwinEngine();
+            storageDigitalTwin = new DigitalTwin(STORAGE_DT_ID, new DemoDigitalTwinModel());
+            storageDigitalTwin.addPhysicalAdapter(new DemoPhysicalAdapter(
+                    String.format("%s-%s", STORAGE_DT_ID, "pa"),
+                    new DemoPhysicalAdapterConfiguration(), true, true));
+            storageDigitalTwin.addDigitalAdapter(new DemoDigitalAdapter(
+                    String.format("%s-%s", STORAGE_DT_ID, "da"),
+                    new DemoDigitalAdapterConfiguration()));
+            storageDigitalTwin.getStorageManager().putStorage(new DefaultWldtStorage("test-storage-digital-event", true));
+            storageDigitalTwin.getMonitoringInterface().setConfiguration(
+                    new MonitoringInterfaceConfiguration.Builder().withStorageMonitoring().build());
+            storageDigitalTwin.getMonitoringInterface().setHandler(new TestMonitoringInterfaceHandler(STORAGE_DT_ID));
+            storageDigitalTwinEngine.addDigitalTwin(storageDigitalTwin);
+            storageDigitalTwinEngine.startDigitalTwin(STORAGE_DT_ID);
+        }
+
+        @AfterEach
+        public void tearDown() throws WldtEngineException, InterruptedException {
+            storageDigitalTwinEngine.stopDigitalTwin(STORAGE_DT_ID);
+            storageDigitalTwinEngine.removeDigitalTwin(STORAGE_DT_ID);
+            storageDigitalTwin = null;
+            storageDigitalTwinEngine = null;
+            Thread.sleep(500);
+            SharedTestMetrics.getInstance().resetMetrics();
+            SharedTestMetrics.getInstance().unRegisterDigitalTwin(STORAGE_DT_ID);
+        }
+
+        @Test
+        @Order(26)
+        public void testStorageDigitalEventWriteMetrics() throws InterruptedException {
+            // DemoDigitalTwinModel fires notifyDigitalTwinStateEvent() on PA events → saveDigitalTwinStateEventNotification()
+            Thread.sleep(DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS +
+                    ((DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES +
+                            DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_EVENT_UPDATES) *
+                            DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS));
+
+            List<WldtMetric> updatedMetrics = SharedTestMetrics.getInstance().getMonitoringUpdatedMetricList(STORAGE_DT_ID);
+            assertNotNull(updatedMetrics);
+
+            // M PA events → M notifyDigitalTwinStateEvent() → M saveDigitalTwinStateEventNotification()
+            int M = DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_EVENT_UPDATES;
+            List<WldtMetric> digitalEventSuccess = updatedMetrics.stream()
+                    .filter(m -> m.getComponent().equals(WldtMetricComponent.STORAGE)
+                            && m.getName().equals(CoreMonitoringUtils.STORAGE_WRITE_DIGITAL_EVENT_SUCCESS_COUNT))
+                    .collect(Collectors.toList());
+            assertEquals(M, digitalEventSuccess.size());
+
+            assertTrue(updatedMetrics.stream().anyMatch(m ->
+                    m.getComponent().equals(WldtMetricComponent.STORAGE) &&
+                    m.getName().equals(CoreMonitoringUtils.STORAGE_WRITE_DIGITAL_EVENT_EXEC_TIME)));
+
+            Thread.sleep(2000);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Storage Metrics — Physical Event Write
+    // -------------------------------------------------------------------------
+
+    @Nested
+    class StoragePhysicalEventWriteMetricsTests {
+
+        private static final String STORAGE_DT_ID = "dtTestStoragePhysicalEvent";
+
+        private DigitalTwin storageDigitalTwin = null;
+        private DigitalTwinEngine storageDigitalTwinEngine = null;
+
+        @BeforeEach
+        public void setUp() throws KernelException, WldtRuntimeException, EventBusException,
+                WldtConfigurationException, WldtWorkerException, WldtDigitalTwinStateException,
+                WldtEngineException, it.wldt.exception.StorageException {
+
+            SharedTestMetrics.getInstance().registerDigitalTwin(STORAGE_DT_ID);
+            storageDigitalTwinEngine = new DigitalTwinEngine();
+            storageDigitalTwin = new DigitalTwin(STORAGE_DT_ID, new DemoDigitalTwinModel());
+            storageDigitalTwin.addPhysicalAdapter(new DemoPhysicalAdapter(
+                    String.format("%s-%s", STORAGE_DT_ID, "pa"),
+                    new DemoPhysicalAdapterConfiguration(), true, true));
+            storageDigitalTwin.addDigitalAdapter(new DemoDigitalAdapter(
+                    String.format("%s-%s", STORAGE_DT_ID, "da"),
+                    new DemoDigitalAdapterConfiguration()));
+            storageDigitalTwin.getStorageManager().putStorage(new DefaultWldtStorage("test-storage-physical-event", true));
+            storageDigitalTwin.getMonitoringInterface().setConfiguration(
+                    new MonitoringInterfaceConfiguration.Builder().withStorageMonitoring().build());
+            storageDigitalTwin.getMonitoringInterface().setHandler(new TestMonitoringInterfaceHandler(STORAGE_DT_ID));
+            storageDigitalTwinEngine.addDigitalTwin(storageDigitalTwin);
+            storageDigitalTwinEngine.startDigitalTwin(STORAGE_DT_ID);
+        }
+
+        @AfterEach
+        public void tearDown() throws WldtEngineException, InterruptedException {
+            storageDigitalTwinEngine.stopDigitalTwin(STORAGE_DT_ID);
+            storageDigitalTwinEngine.removeDigitalTwin(STORAGE_DT_ID);
+            storageDigitalTwin = null;
+            storageDigitalTwinEngine = null;
+            Thread.sleep(500);
+            SharedTestMetrics.getInstance().resetMetrics();
+            SharedTestMetrics.getInstance().unRegisterDigitalTwin(STORAGE_DT_ID);
+        }
+
+        @Test
+        @Order(27)
+        public void testStoragePhysicalEventWriteMetrics() throws InterruptedException {
+            Thread.sleep(DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS +
+                    ((DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES +
+                            DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_EVENT_UPDATES) *
+                            DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS));
+
+            List<WldtMetric> updatedMetrics = SharedTestMetrics.getInstance().getMonitoringUpdatedMetricList(STORAGE_DT_ID);
+            assertNotNull(updatedMetrics);
+
+            // N property variations + M PA events + R_CREATE rel instances + R_DELETE rel instances
+            int N = DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES;
+            int M = DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_EVENT_UPDATES;
+            int RC = DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_REL_INSTANCE_CREATE;
+            int RD = DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_REL_INSTANCE_DELETE;
+            List<WldtMetric> physicalSuccess = updatedMetrics.stream()
+                    .filter(m -> m.getComponent().equals(WldtMetricComponent.STORAGE)
+                            && m.getName().equals(CoreMonitoringUtils.STORAGE_WRITE_PHYSICAL_EVENT_SUCCESS_COUNT))
+                    .collect(Collectors.toList());
+            assertEquals(N + M + RC + RD, physicalSuccess.size());
+
+            assertTrue(updatedMetrics.stream().anyMatch(m ->
+                    m.getComponent().equals(WldtMetricComponent.STORAGE) &&
+                    m.getName().equals(CoreMonitoringUtils.STORAGE_WRITE_PHYSICAL_EVENT_EXEC_TIME)));
+
+            Thread.sleep(2000);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Storage Metrics — Physical Asset Description Write
+    // -------------------------------------------------------------------------
+
+    @Nested
+    class StoragePadWriteMetricsTests {
+
+        private static final String STORAGE_DT_ID = "dtTestStoragePad";
+
+        private DigitalTwin storageDigitalTwin = null;
+        private DigitalTwinEngine storageDigitalTwinEngine = null;
+
+        @BeforeEach
+        public void setUp() throws KernelException, WldtRuntimeException, EventBusException,
+                WldtConfigurationException, WldtWorkerException, WldtDigitalTwinStateException,
+                WldtEngineException, it.wldt.exception.StorageException {
+
+            SharedTestMetrics.getInstance().registerDigitalTwin(STORAGE_DT_ID);
+            storageDigitalTwinEngine = new DigitalTwinEngine();
+            storageDigitalTwin = new DigitalTwin(STORAGE_DT_ID, new DemoDigitalTwinModel());
+            storageDigitalTwin.addPhysicalAdapter(new DemoPhysicalAdapter(
+                    String.format("%s-%s", STORAGE_DT_ID, "pa"),
+                    new DemoPhysicalAdapterConfiguration(), true, true));
+            storageDigitalTwin.addDigitalAdapter(new DemoDigitalAdapter(
+                    String.format("%s-%s", STORAGE_DT_ID, "da"),
+                    new DemoDigitalAdapterConfiguration()));
+            storageDigitalTwin.getStorageManager().putStorage(new DefaultWldtStorage("test-storage-pad", true));
+            storageDigitalTwin.getMonitoringInterface().setConfiguration(
+                    new MonitoringInterfaceConfiguration.Builder().withStorageMonitoring().build());
+            storageDigitalTwin.getMonitoringInterface().setHandler(new TestMonitoringInterfaceHandler(STORAGE_DT_ID));
+            storageDigitalTwinEngine.addDigitalTwin(storageDigitalTwin);
+            storageDigitalTwinEngine.startDigitalTwin(STORAGE_DT_ID);
+        }
+
+        @AfterEach
+        public void tearDown() throws WldtEngineException, InterruptedException {
+            storageDigitalTwinEngine.stopDigitalTwin(STORAGE_DT_ID);
+            storageDigitalTwinEngine.removeDigitalTwin(STORAGE_DT_ID);
+            storageDigitalTwin = null;
+            storageDigitalTwinEngine = null;
+            Thread.sleep(500);
+            SharedTestMetrics.getInstance().resetMetrics();
+            SharedTestMetrics.getInstance().unRegisterDigitalTwin(STORAGE_DT_ID);
+        }
+
+        @Test
+        @Order(28)
+        public void testStoragePadWriteMetrics() throws InterruptedException {
+            // PAD available fires on adapter bind — wait for bind to complete
+            Thread.sleep(DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS * 2);
+
+            List<WldtMetric> updatedMetrics = SharedTestMetrics.getInstance().getMonitoringUpdatedMetricList(STORAGE_DT_ID);
+            assertNotNull(updatedMetrics);
+
+            // 1 physical adapter → 1 PAD available event → 1 saveNewPhysicalAssetDescriptionNotification
+            List<WldtMetric> padSuccess = updatedMetrics.stream()
+                    .filter(m -> m.getComponent().equals(WldtMetricComponent.STORAGE)
+                            && m.getName().equals(CoreMonitoringUtils.STORAGE_WRITE_PHYSICAL_ASSET_DESCRIPTION_SUCCESS_COUNT))
+                    .collect(Collectors.toList());
+            assertEquals(1, padSuccess.size());
+
+            assertTrue(updatedMetrics.stream().anyMatch(m ->
+                    m.getComponent().equals(WldtMetricComponent.STORAGE) &&
+                    m.getName().equals(CoreMonitoringUtils.STORAGE_WRITE_PHYSICAL_ASSET_DESCRIPTION_EXEC_TIME)));
+
+            Thread.sleep(2000);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Storage Metrics — Lifecycle Write
+    // -------------------------------------------------------------------------
+
+    @Nested
+    class StorageLifecycleWriteMetricsTests {
+
+        private static final String STORAGE_DT_ID = "dtTestStorageLifecycle";
+
+        private DigitalTwin storageDigitalTwin = null;
+        private DigitalTwinEngine storageDigitalTwinEngine = null;
+
+        @BeforeEach
+        public void setUp() throws KernelException, WldtRuntimeException, EventBusException,
+                WldtConfigurationException, WldtWorkerException, WldtDigitalTwinStateException,
+                WldtEngineException, it.wldt.exception.StorageException {
+
+            SharedTestMetrics.getInstance().registerDigitalTwin(STORAGE_DT_ID);
+            storageDigitalTwinEngine = new DigitalTwinEngine();
+            storageDigitalTwin = new DigitalTwin(STORAGE_DT_ID, new DemoDigitalTwinModel());
+            storageDigitalTwin.addPhysicalAdapter(new DemoPhysicalAdapter(
+                    String.format("%s-%s", STORAGE_DT_ID, "pa"),
+                    new DemoPhysicalAdapterConfiguration(), true, true));
+            storageDigitalTwin.addDigitalAdapter(new DemoDigitalAdapter(
+                    String.format("%s-%s", STORAGE_DT_ID, "da"),
+                    new DemoDigitalAdapterConfiguration()));
+            storageDigitalTwin.getStorageManager().putStorage(new DefaultWldtStorage("test-storage-lifecycle", true));
+            storageDigitalTwin.getMonitoringInterface().setConfiguration(
+                    new MonitoringInterfaceConfiguration.Builder().withStorageMonitoring().build());
+            storageDigitalTwin.getMonitoringInterface().setHandler(new TestMonitoringInterfaceHandler(STORAGE_DT_ID));
+            storageDigitalTwinEngine.addDigitalTwin(storageDigitalTwin);
+            storageDigitalTwinEngine.startDigitalTwin(STORAGE_DT_ID);
+        }
+
+        @AfterEach
+        public void tearDown() throws WldtEngineException, InterruptedException {
+            storageDigitalTwinEngine.stopDigitalTwin(STORAGE_DT_ID);
+            storageDigitalTwinEngine.removeDigitalTwin(STORAGE_DT_ID);
+            storageDigitalTwin = null;
+            storageDigitalTwinEngine = null;
+            Thread.sleep(500);
+            SharedTestMetrics.getInstance().resetMetrics();
+            SharedTestMetrics.getInstance().unRegisterDigitalTwin(STORAGE_DT_ID);
+        }
+
+        @Test
+        @Order(29)
+        public void testStorageLifecycleWriteMetrics() throws InterruptedException {
+            // CREATED + STARTED + BOUND + SYNCHRONIZED = 4 publishLifeCycleEvent calls during normal startup
+            Thread.sleep(DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS * 2);
+
+            List<WldtMetric> updatedMetrics = SharedTestMetrics.getInstance().getMonitoringUpdatedMetricList(STORAGE_DT_ID);
+            assertNotNull(updatedMetrics);
+
+            List<WldtMetric> lifecycleSuccess = updatedMetrics.stream()
+                    .filter(m -> m.getComponent().equals(WldtMetricComponent.STORAGE)
+                            && m.getName().equals(CoreMonitoringUtils.STORAGE_WRITE_LIFECYCLE_EVENT_SUCCESS_COUNT))
+                    .collect(Collectors.toList());
+            assertEquals(4, lifecycleSuccess.size());
+
+            assertTrue(updatedMetrics.stream().anyMatch(m ->
+                    m.getComponent().equals(WldtMetricComponent.STORAGE) &&
+                    m.getName().equals(CoreMonitoringUtils.STORAGE_WRITE_LIFECYCLE_EVENT_EXEC_TIME)));
+
+            Thread.sleep(2000);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Storage Metrics — Augmentation Function Write
+    // -------------------------------------------------------------------------
+
+    @Nested
+    class StorageAugmentationWriteMetricsTests {
+
+        private static final String STORAGE_DT_ID = "dtTestStorageAug";
+        private static final String HANDLER_ID = "test-storage-aug-handler";
+
+        private DigitalTwin storageDigitalTwin = null;
+        private DigitalTwinEngine storageDigitalTwinEngine = null;
+
+        @BeforeEach
+        public void setUp() throws KernelException, WldtRuntimeException, EventBusException,
+                WldtConfigurationException, WldtWorkerException, WldtDigitalTwinStateException,
+                WldtEngineException, it.wldt.exception.AugmentationFunctionException,
+                it.wldt.exception.StorageException {
+
+            SharedTestMetrics.getInstance().registerDigitalTwin(STORAGE_DT_ID);
+            storageDigitalTwinEngine = new DigitalTwinEngine();
+            storageDigitalTwin = new DigitalTwin(STORAGE_DT_ID, new GenericResultAugmentationDigitalTwinModel());
+            storageDigitalTwin.addPhysicalAdapter(new DemoPhysicalAdapter(
+                    String.format("%s-%s", STORAGE_DT_ID, "pa"),
+                    new DemoPhysicalAdapterConfiguration(), true, true));
+            storageDigitalTwin.addDigitalAdapter(new DemoDigitalAdapter(
+                    String.format("%s-%s", STORAGE_DT_ID, "da"),
+                    new DemoDigitalAdapterConfiguration()));
+            AugmentationFunctionHandler handler = new DefaultAugmentationFunctionHandler(HANDLER_ID);
+            storageDigitalTwin.getAugmentationManager().addAugmentationFunctionHandler(handler);
+            if (storageDigitalTwin.getAugmentationManager().getAugmentationFunctionHandler(HANDLER_ID).isPresent())
+                storageDigitalTwin.getAugmentationManager().getAugmentationFunctionHandler(HANDLER_ID)
+                        .get().registerAugmentationFunction(new RandomNumberAugmentationFunction());
+            storageDigitalTwin.getStorageManager().putStorage(new DefaultWldtStorage("test-storage-aug", true));
+            storageDigitalTwin.getMonitoringInterface().setConfiguration(
+                    new MonitoringInterfaceConfiguration.Builder()
+                            .withDtModelMonitoring()
+                            .withAugmentationMonitoring()
+                            .withStorageMonitoring()
+                            .build());
+            storageDigitalTwin.getMonitoringInterface().setHandler(new TestMonitoringInterfaceHandler(STORAGE_DT_ID));
+            storageDigitalTwinEngine.addDigitalTwin(storageDigitalTwin);
+            storageDigitalTwinEngine.startDigitalTwin(STORAGE_DT_ID);
+        }
+
+        @AfterEach
+        public void tearDown() throws WldtEngineException, InterruptedException {
+            storageDigitalTwinEngine.stopDigitalTwin(STORAGE_DT_ID);
+            storageDigitalTwinEngine.removeDigitalTwin(STORAGE_DT_ID);
+            storageDigitalTwin = null;
+            storageDigitalTwinEngine = null;
+            Thread.sleep(500);
+            SharedTestMetrics.getInstance().resetMetrics();
+            SharedTestMetrics.getInstance().unRegisterDigitalTwin(STORAGE_DT_ID);
+        }
+
+        @Test
+        @Order(30)
+        public void testStorageAugmentationWriteMetrics() throws InterruptedException {
+            Thread.sleep(DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS +
+                    ((DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES +
+                            DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_EVENT_UPDATES) *
+                            DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS));
+
+            List<WldtMetric> updatedMetrics = SharedTestMetrics.getInstance().getMonitoringUpdatedMetricList(STORAGE_DT_ID);
+            assertNotNull(updatedMetrics);
+
+            int N = DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES;
+            // N execute requests + N results (registration event fires before putStorage → storageMap empty → missed)
+            List<WldtMetric> augSuccess = updatedMetrics.stream()
+                    .filter(m -> m.getComponent().equals(WldtMetricComponent.STORAGE)
+                            && m.getName().equals(CoreMonitoringUtils.STORAGE_WRITE_AUGMENTATION_FUNCTION_SUCCESS_COUNT))
+                    .collect(Collectors.toList());
+            assertEquals(N + N, augSuccess.size());
+
+            assertTrue(updatedMetrics.stream().anyMatch(m ->
+                    m.getComponent().equals(WldtMetricComponent.STORAGE) &&
+                    m.getName().equals(CoreMonitoringUtils.STORAGE_WRITE_AUGMENTATION_FUNCTION_EXEC_TIME)));
+
+            Thread.sleep(2000);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Storage Metrics — Query (success and error)
+    // -------------------------------------------------------------------------
+
+    @Nested
+    class StorageQueryMetricsTests {
+
+        private static final String STORAGE_DT_ID = "dtTestStorageQuery";
+
+        private DigitalTwin storageDigitalTwin = null;
+        private DigitalTwinEngine storageDigitalTwinEngine = null;
+
+        @BeforeEach
+        public void setUp() throws KernelException, WldtRuntimeException, EventBusException,
+                WldtConfigurationException, WldtWorkerException, WldtDigitalTwinStateException,
+                WldtEngineException, it.wldt.exception.StorageException {
+
+            SharedTestMetrics.getInstance().registerDigitalTwin(STORAGE_DT_ID);
+            storageDigitalTwinEngine = new DigitalTwinEngine();
+            storageDigitalTwin = new DigitalTwin(STORAGE_DT_ID, new DemoDigitalTwinModel());
+            storageDigitalTwin.addPhysicalAdapter(new DemoPhysicalAdapter(
+                    String.format("%s-%s", STORAGE_DT_ID, "pa"),
+                    new DemoPhysicalAdapterConfiguration(), true, true));
+            storageDigitalTwin.addDigitalAdapter(new DemoDigitalAdapter(
+                    String.format("%s-%s", STORAGE_DT_ID, "da"),
+                    new DemoDigitalAdapterConfiguration()));
+            storageDigitalTwin.getStorageManager().putStorage(new DefaultWldtStorage("test-query-storage", true));
+            storageDigitalTwin.getMonitoringInterface().setConfiguration(
+                    new MonitoringInterfaceConfiguration.Builder().withStorageMonitoring().build());
+            storageDigitalTwin.getMonitoringInterface().setHandler(new TestMonitoringInterfaceHandler(STORAGE_DT_ID));
+            storageDigitalTwinEngine.addDigitalTwin(storageDigitalTwin);
+            storageDigitalTwinEngine.startDigitalTwin(STORAGE_DT_ID);
+        }
+
+        @AfterEach
+        public void tearDown() throws WldtEngineException, InterruptedException {
+            storageDigitalTwinEngine.stopDigitalTwin(STORAGE_DT_ID);
+            storageDigitalTwinEngine.removeDigitalTwin(STORAGE_DT_ID);
+            storageDigitalTwin = null;
+            storageDigitalTwinEngine = null;
+            Thread.sleep(500);
+            SharedTestMetrics.getInstance().resetMetrics();
+            SharedTestMetrics.getInstance().unRegisterDigitalTwin(STORAGE_DT_ID);
+        }
+
+        @Test
+        @Order(31)
+        public void testStorageQuerySuccessMetrics() throws InterruptedException {
+            Thread.sleep(DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS * 2);
+
+            QueryRequest queryRequest = new QueryRequest();
+            queryRequest.setResourceType(QueryResourceType.DIGITAL_TWIN_STATE);
+            queryRequest.setRequestType(QueryRequestType.LAST_VALUE);
+            EventManager.publishStorageQueryRequest(STORAGE_DT_ID, "test-storage-query-publisher", queryRequest);
+
+            Thread.sleep(500);
+
+            List<WldtMetric> updatedMetrics = SharedTestMetrics.getInstance().getMonitoringUpdatedMetricList(STORAGE_DT_ID);
+            assertNotNull(updatedMetrics);
+
+            // 1 query published → 1 success
+            List<WldtMetric> querySuccess = updatedMetrics.stream()
+                    .filter(m -> m.getComponent().equals(WldtMetricComponent.STORAGE)
+                            && m.getName().equals(CoreMonitoringUtils.STORAGE_QUERY_SUCCESS_COUNT))
+                    .collect(Collectors.toList());
+            assertEquals(1, querySuccess.size());
+
+            assertTrue(updatedMetrics.stream().anyMatch(m ->
+                    m.getComponent().equals(WldtMetricComponent.STORAGE) &&
+                    m.getName().equals(CoreMonitoringUtils.STORAGE_QUERY_EXEC_TIME)));
+
+            Thread.sleep(2000);
+        }
+
+        @Test
+        @Order(32)
+        public void testStorageQueryErrorMetrics() throws InterruptedException {
+            Thread.sleep(DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS * 2);
+
+            // Null requestType → NullPointerException in handleStateQuery → caught → isSuccessful()=false
+            QueryRequest queryRequest = new QueryRequest();
+            queryRequest.setResourceType(QueryResourceType.DIGITAL_TWIN_STATE);
+            queryRequest.setRequestType(null);
+            EventManager.publishStorageQueryRequest(STORAGE_DT_ID, "test-storage-error-publisher", queryRequest);
+
+            Thread.sleep(500);
+
+            List<WldtMetric> updatedMetrics = SharedTestMetrics.getInstance().getMonitoringUpdatedMetricList(STORAGE_DT_ID);
+            assertNotNull(updatedMetrics);
+
+            // 1 error query published → 1 error
+            List<WldtMetric> queryError = updatedMetrics.stream()
+                    .filter(m -> m.getComponent().equals(WldtMetricComponent.STORAGE)
+                            && m.getName().equals(CoreMonitoringUtils.STORAGE_QUERY_ERROR_COUNT))
+                    .collect(Collectors.toList());
+            assertEquals(1, queryError.size());
+
+            assertTrue(updatedMetrics.stream().anyMatch(m ->
+                    m.getComponent().equals(WldtMetricComponent.STORAGE) &&
+                    m.getName().equals(CoreMonitoringUtils.STORAGE_QUERY_EXEC_TIME)));
 
             Thread.sleep(2000);
         }

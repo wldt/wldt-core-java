@@ -21,6 +21,8 @@
 package it.wldt.storage.query;
 
 import it.wldt.exception.StorageException;
+import it.wldt.monitoring.CoreMonitoringUtils;
+import it.wldt.monitoring.metrics.WldtMetricComponent;
 import it.wldt.storage.WldtStorage;
 import it.wldt.storage.model.augmentation.*;
 import it.wldt.storage.model.state.DigitalTwinStateEventNotificationRecord;
@@ -45,6 +47,10 @@ public class DefaultQueryManager extends QueryManager{
         super();
     }
 
+    public DefaultQueryManager(String digitalTwinId) {
+        super(digitalTwinId);
+    }
+
     /**
      * The method has been designed to return the desired storage object from the storage map to be used for the query management.
      * Recall the default implementation of the method for the query manager.
@@ -60,6 +66,24 @@ public class DefaultQueryManager extends QueryManager{
     @Override
     public Optional<WldtStorage> getTargetStorage(QueryRequest queryRequest, Map<String, WldtStorage> storageMap) {
         return super.getTargetStorage(queryRequest, storageMap);
+    }
+
+    /**
+     * Override of handleQuery to add monitoring metrics (STORAGE_QUERY_*).
+     * Delegates actual execution to the parent implementation.
+     */
+    @Override
+    public QueryResult<?> handleQuery(QueryRequest queryRequest, Map<String, WldtStorage> storageMap) {
+        if (monitoringInterface == null || !monitoringInterface.isActive(WldtMetricComponent.STORAGE))
+            return super.handleQuery(queryRequest, storageMap);
+        long startMs = System.currentTimeMillis();
+        QueryResult<?> result = super.handleQuery(queryRequest, storageMap);
+        monitoringInterface.updateTimerSince(metricsNamespace, CoreMonitoringUtils.STORAGE_QUERY_EXEC_TIME, startMs);
+        if (result != null && result.isSuccessful())
+            monitoringInterface.increaseCounter(metricsNamespace, CoreMonitoringUtils.STORAGE_QUERY_SUCCESS_COUNT);
+        else
+            monitoringInterface.increaseCounter(metricsNamespace, CoreMonitoringUtils.STORAGE_QUERY_ERROR_COUNT);
+        return result;
     }
 
     /**

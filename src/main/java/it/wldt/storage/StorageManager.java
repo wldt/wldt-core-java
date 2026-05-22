@@ -48,6 +48,8 @@ import it.wldt.exception.WldtRuntimeException;
 import it.wldt.adapter.physical.PhysicalAssetPropertyVariation;
 import it.wldt.log.WldtLogger;
 import it.wldt.log.WldtLoggerProvider;
+import it.wldt.monitoring.CoreMonitoringUtils;
+import it.wldt.monitoring.MonitoringInterface;
 import it.wldt.storage.query.DefaultQueryManager;
 import it.wldt.storage.query.QueryManager;
 import it.wldt.storage.query.QueryRequest;
@@ -81,6 +83,8 @@ public class StorageManager extends DigitalTwinWorker implements IWldtEventObser
     // The WldtEventObserver instance
     private WldtEventObserver wldtEventObserver;
 
+    private MonitoringInterface monitoringInterface;
+
     /**
      * Default constructor for the StorageManager class
      */
@@ -93,9 +97,19 @@ public class StorageManager extends DigitalTwinWorker implements IWldtEventObser
         this.storageMap = new HashMap<>();
 
         // Set the Default Query Manager (can be updated through the setQueryManager method)
-        this.queryManager = new DefaultQueryManager();
+        this.queryManager = new DefaultQueryManager(this.digitalTwinId);
 
         logger.info("StorageManager created for the DigitalTwin with id: {}", digitalTwinId);
+    }
+
+    public void setMonitoringInterface(MonitoringInterface monitoringInterface) {
+        if (monitoringInterface != null) {
+            this.monitoringInterface = monitoringInterface;
+            if (this.queryManager != null)
+                this.queryManager.setMonitoringInterface(monitoringInterface);
+            for (WldtStorage storage : storageMap.values())
+                storage.setMonitoringInterface(this.digitalTwinId, monitoringInterface);
+        }
     }
 
     /**
@@ -108,6 +122,8 @@ public class StorageManager extends DigitalTwinWorker implements IWldtEventObser
             throw new StorageException("The storage object or the storage id cannot be null !");
 
         this.storageMap.put(storage.getStorageId(), storage);
+        if (this.monitoringInterface != null)
+            storage.setMonitoringInterface(this.digitalTwinId, this.monitoringInterface);
         return this;
     }
 
@@ -245,8 +261,16 @@ public class StorageManager extends DigitalTwinWorker implements IWldtEventObser
                 // Find Storage interested to the target event
                 for (Map.Entry<String, WldtStorage> entry : storageMap.entrySet()) {
                     WldtStorage storage = entry.getValue();
-                    if(storage != null && storage.isObserveStateEvents())
-                        storage.saveDigitalTwinState(currentState, stateChangeList);
+                    if(storage != null && storage.isObserveStateEvents()) {
+                        long startMs = System.currentTimeMillis();
+                        try {
+                            storage.saveDigitalTwinState(currentState, stateChangeList);
+                            storage.notifyWriteSuccess(CoreMonitoringUtils.STORAGE_WRITE_DIGITAL_TWIN_STATE_SUCCESS_COUNT, CoreMonitoringUtils.STORAGE_WRITE_DIGITAL_TWIN_STATE_EXEC_TIME, startMs);
+                        } catch (StorageException e) {
+                            storage.notifyWriteError(CoreMonitoringUtils.STORAGE_WRITE_DIGITAL_TWIN_STATE_ERROR_COUNT, CoreMonitoringUtils.STORAGE_WRITE_DIGITAL_TWIN_STATE_EXEC_TIME, startMs);
+                            logger.error("Error saving DigitalTwinState to storage {}: {}", entry.getKey(), e.getLocalizedMessage());
+                        }
+                    }
                 }
 
             }
@@ -256,8 +280,16 @@ public class StorageManager extends DigitalTwinWorker implements IWldtEventObser
                 // Find Storage interested to the target event
                 for (Map.Entry<String, WldtStorage> entry : storageMap.entrySet()) {
                     WldtStorage storage = entry.getValue();
-                    if(storage != null && storage.isObserveStateEvents())
-                        storage.saveDigitalTwinStateEventNotification(eventNotification);
+                    if(storage != null && storage.isObserveStateEvents()) {
+                        long startMs = System.currentTimeMillis();
+                        try {
+                            storage.saveDigitalTwinStateEventNotification(eventNotification);
+                            storage.notifyWriteSuccess(CoreMonitoringUtils.STORAGE_WRITE_DIGITAL_EVENT_SUCCESS_COUNT, CoreMonitoringUtils.STORAGE_WRITE_DIGITAL_EVENT_EXEC_TIME, startMs);
+                        } catch (StorageException e) {
+                            storage.notifyWriteError(CoreMonitoringUtils.STORAGE_WRITE_DIGITAL_EVENT_ERROR_COUNT, CoreMonitoringUtils.STORAGE_WRITE_DIGITAL_EVENT_EXEC_TIME, startMs);
+                            logger.error("Error saving DigitalTwinStateEventNotification to storage {}: {}", entry.getKey(), e.getLocalizedMessage());
+                        }
+                    }
                 }
             }
             else
@@ -288,35 +320,63 @@ public class StorageManager extends DigitalTwinWorker implements IWldtEventObser
                         // Save the PhysicalAsset Property Variation
                         if(WldtEventBus.getInstance().matchWildCardType(event.getType(), WldtEventTypes.ALL_PHYSICAL_PROPERTY_VARIATION_EVENT_TYPE) && event instanceof PhysicalAssetPropertyWldtEvent<?>){
                             PhysicalAssetPropertyWldtEvent<?> propertyVariationEvent = (PhysicalAssetPropertyWldtEvent<?>) event;
-                            storage.savePhysicalAssetPropertyVariation(new PhysicalAssetPropertyVariation(propertyVariationEvent.getCreationTimestamp(),
-                                    propertyVariationEvent.getPhysicalPropertyId(),
-                                    propertyVariationEvent.getBody(),
-                                    propertyVariationEvent.getMetadata()));
+                            long startMs = System.currentTimeMillis();
+                            try {
+                                storage.savePhysicalAssetPropertyVariation(new PhysicalAssetPropertyVariation(propertyVariationEvent.getCreationTimestamp(),
+                                        propertyVariationEvent.getPhysicalPropertyId(),
+                                        propertyVariationEvent.getBody(),
+                                        propertyVariationEvent.getMetadata()));
+                                storage.notifyWriteSuccess(CoreMonitoringUtils.STORAGE_WRITE_PHYSICAL_EVENT_SUCCESS_COUNT, CoreMonitoringUtils.STORAGE_WRITE_PHYSICAL_EVENT_EXEC_TIME, startMs);
+                            } catch (StorageException e) {
+                                storage.notifyWriteError(CoreMonitoringUtils.STORAGE_WRITE_PHYSICAL_EVENT_ERROR_COUNT, CoreMonitoringUtils.STORAGE_WRITE_PHYSICAL_EVENT_EXEC_TIME, startMs);
+                                logger.error("Error saving PhysicalAssetPropertyVariation to storage {}: {}", entry.getKey(), e.getLocalizedMessage());
+                            }
                         }
 
                         // Save the PhysicalAsset Event
                         if(WldtEventBus.getInstance().matchWildCardType(event.getType(), WldtEventTypes.ALL_PHYSICAL_EVENT_NOTIFICATION_EVENT_TYPE) && event instanceof PhysicalAssetEventWldtEvent<?>){
                             PhysicalAssetEventWldtEvent<?> physicalEvent = (PhysicalAssetEventWldtEvent<?>) event;
-                            storage.savePhysicalAssetEventNotification(new PhysicalAssetEventNotification(physicalEvent.getCreationTimestamp(),
-                                    physicalEvent.getPhysicalEventKey(),
-                                    physicalEvent.getBody(),
-                                    physicalEvent.getMetadata()));
+                            long startMs = System.currentTimeMillis();
+                            try {
+                                storage.savePhysicalAssetEventNotification(new PhysicalAssetEventNotification(physicalEvent.getCreationTimestamp(),
+                                        physicalEvent.getPhysicalEventKey(),
+                                        physicalEvent.getBody(),
+                                        physicalEvent.getMetadata()));
+                                storage.notifyWriteSuccess(CoreMonitoringUtils.STORAGE_WRITE_PHYSICAL_EVENT_SUCCESS_COUNT, CoreMonitoringUtils.STORAGE_WRITE_PHYSICAL_EVENT_EXEC_TIME, startMs);
+                            } catch (StorageException e) {
+                                storage.notifyWriteError(CoreMonitoringUtils.STORAGE_WRITE_PHYSICAL_EVENT_ERROR_COUNT, CoreMonitoringUtils.STORAGE_WRITE_PHYSICAL_EVENT_EXEC_TIME, startMs);
+                                logger.error("Error saving PhysicalAssetEventNotification to storage {}: {}", entry.getKey(), e.getLocalizedMessage());
+                            }
                         }
 
                         // Save the PhysicalAsset Relationship Instance Created
                         if(WldtEventBus.getInstance().matchWildCardType(event.getType(), WldtEventTypes.ALL_PHYSICAL_RELATIONSHIP_INSTANCE_CREATION_EVENT_TYPE) && event instanceof PhysicalAssetRelationshipInstanceCreatedWldtEvent<?>){
                             PhysicalAssetRelationshipInstanceCreatedWldtEvent<?> physicalEvent = (PhysicalAssetRelationshipInstanceCreatedWldtEvent<?>) event;
                             PhysicalAssetRelationshipInstance<?> relationshipInstance = physicalEvent.getBody();
-                            storage.savePhysicalAssetRelationshipInstanceCreatedNotification(new PhysicalRelationshipInstanceVariation(physicalEvent.getCreationTimestamp(),
-                                    relationshipInstance));
+                            long startMs = System.currentTimeMillis();
+                            try {
+                                storage.savePhysicalAssetRelationshipInstanceCreatedNotification(new PhysicalRelationshipInstanceVariation(physicalEvent.getCreationTimestamp(),
+                                        relationshipInstance));
+                                storage.notifyWriteSuccess(CoreMonitoringUtils.STORAGE_WRITE_PHYSICAL_EVENT_SUCCESS_COUNT, CoreMonitoringUtils.STORAGE_WRITE_PHYSICAL_EVENT_EXEC_TIME, startMs);
+                            } catch (StorageException e) {
+                                storage.notifyWriteError(CoreMonitoringUtils.STORAGE_WRITE_PHYSICAL_EVENT_ERROR_COUNT, CoreMonitoringUtils.STORAGE_WRITE_PHYSICAL_EVENT_EXEC_TIME, startMs);
+                                logger.error("Error saving RelationshipInstanceCreated to storage {}: {}", entry.getKey(), e.getLocalizedMessage());
+                            }
                         }
 
                         // Save the PhysicalAsset Relationship Instance Deleted
                         if(WldtEventBus.getInstance().matchWildCardType(event.getType(), WldtEventTypes.ALL_PHYSICAL_RELATIONSHIP_INSTANCE_DELETED_EVENT_TYPE) && event instanceof PhysicalAssetRelationshipInstanceDeletedWldtEvent<?>){
                             PhysicalAssetRelationshipInstanceDeletedWldtEvent<?> physicalEvent = (PhysicalAssetRelationshipInstanceDeletedWldtEvent<?>) event;
                             PhysicalAssetRelationshipInstance<?> relationshipInstance = physicalEvent.getBody();
-                            storage.savePhysicalAssetRelationshipInstanceDeletedNotification(new PhysicalRelationshipInstanceVariation(physicalEvent.getCreationTimestamp(),
-                                    relationshipInstance));
+                            long startMs = System.currentTimeMillis();
+                            try {
+                                storage.savePhysicalAssetRelationshipInstanceDeletedNotification(new PhysicalRelationshipInstanceVariation(physicalEvent.getCreationTimestamp(),
+                                        relationshipInstance));
+                                storage.notifyWriteSuccess(CoreMonitoringUtils.STORAGE_WRITE_PHYSICAL_EVENT_SUCCESS_COUNT, CoreMonitoringUtils.STORAGE_WRITE_PHYSICAL_EVENT_EXEC_TIME, startMs);
+                            } catch (StorageException e) {
+                                storage.notifyWriteError(CoreMonitoringUtils.STORAGE_WRITE_PHYSICAL_EVENT_ERROR_COUNT, CoreMonitoringUtils.STORAGE_WRITE_PHYSICAL_EVENT_EXEC_TIME, startMs);
+                                logger.error("Error saving RelationshipInstanceDeleted to storage {}: {}", entry.getKey(), e.getLocalizedMessage());
+                            }
                         }
                     }
                 }
@@ -347,10 +407,17 @@ public class StorageManager extends DigitalTwinWorker implements IWldtEventObser
                     // Save the PhysicalAssetActionWldtEvent
                     if (storage != null && storage.isObserverPhysicalAssetActionEvents()) {
                         PhysicalAssetActionWldtEvent<?> physicalAssetActionWldtEvent = (PhysicalAssetActionWldtEvent<?>) wldtEvent;
-                        storage.savePhysicalAssetActionRequest(new PhysicalAssetActionRequest(physicalAssetActionWldtEvent.getCreationTimestamp(),
-                                physicalAssetActionWldtEvent.getActionKey(),
-                                physicalAssetActionWldtEvent.getBody(),
-                                physicalAssetActionWldtEvent.getMetadata()));
+                        long startMs = System.currentTimeMillis();
+                        try {
+                            storage.savePhysicalAssetActionRequest(new PhysicalAssetActionRequest(physicalAssetActionWldtEvent.getCreationTimestamp(),
+                                    physicalAssetActionWldtEvent.getActionKey(),
+                                    physicalAssetActionWldtEvent.getBody(),
+                                    physicalAssetActionWldtEvent.getMetadata()));
+                            storage.notifyWriteSuccess(CoreMonitoringUtils.STORAGE_WRITE_PHYSICAL_EVENT_SUCCESS_COUNT, CoreMonitoringUtils.STORAGE_WRITE_PHYSICAL_EVENT_EXEC_TIME, startMs);
+                        } catch (StorageException e) {
+                            storage.notifyWriteError(CoreMonitoringUtils.STORAGE_WRITE_PHYSICAL_EVENT_ERROR_COUNT, CoreMonitoringUtils.STORAGE_WRITE_PHYSICAL_EVENT_EXEC_TIME, startMs);
+                            logger.error("Error saving PhysicalAssetActionRequest to storage {}: {}", entry.getKey(), e.getLocalizedMessage());
+                        }
                     }
                 }
             else
@@ -374,11 +441,18 @@ public class StorageManager extends DigitalTwinWorker implements IWldtEventObser
                     // Save the DigitalActionWldtEvent
                     if (storage != null && storage.isObserverDigitalActionEvents()) {
                         DigitalActionWldtEvent<?> digitalActionWldtEvent = (DigitalActionWldtEvent<?>) wldtEvent;
-                        storage.saveDigitalActionRequest(new DigitalActionRequest(
-                                digitalActionWldtEvent.getCreationTimestamp(),
-                                digitalActionWldtEvent.getActionKey(),
-                                digitalActionWldtEvent.getBody(),
-                                digitalActionWldtEvent.getMetadata()));
+                        long startMs = System.currentTimeMillis();
+                        try {
+                            storage.saveDigitalActionRequest(new DigitalActionRequest(
+                                    digitalActionWldtEvent.getCreationTimestamp(),
+                                    digitalActionWldtEvent.getActionKey(),
+                                    digitalActionWldtEvent.getBody(),
+                                    digitalActionWldtEvent.getMetadata()));
+                            storage.notifyWriteSuccess(CoreMonitoringUtils.STORAGE_WRITE_DIGITAL_EVENT_SUCCESS_COUNT, CoreMonitoringUtils.STORAGE_WRITE_DIGITAL_EVENT_EXEC_TIME, startMs);
+                        } catch (StorageException e) {
+                            storage.notifyWriteError(CoreMonitoringUtils.STORAGE_WRITE_DIGITAL_EVENT_ERROR_COUNT, CoreMonitoringUtils.STORAGE_WRITE_DIGITAL_EVENT_EXEC_TIME, startMs);
+                            logger.error("Error saving DigitalActionRequest to storage {}: {}", entry.getKey(), e.getLocalizedMessage());
+                        }
                     }
                 }
             else
@@ -408,17 +482,28 @@ public class StorageManager extends DigitalTwinWorker implements IWldtEventObser
                             adapterId = (String) wldtEvent.getMetadata(WldtEventTypes.PHYSICAL_ASSET_DESCRIPTION_EVENT_METADATA_ADAPTER_ID).get();
 
                         // Save the PhysicalAssetDescription Event
-                        if (wldtEvent.getType().equals(WldtEventTypes.PHYSICAL_ASSET_DESCRIPTION_AVAILABLE))
-                            storage.saveNewPhysicalAssetDescriptionNotification(new PhysicalAssetDescriptionNotification(
-                                    timestamp,
-                                    adapterId,
-                                    (PhysicalAssetDescription) wldtEvent.getBody())
-                            );
-                        if (wldtEvent.getType().equals(WldtEventTypes.PHYSICAL_ASSET_DESCRIPTION_UPDATED))
-                            storage.saveUpdatedPhysicalAssetDescriptionNotification(new PhysicalAssetDescriptionNotification(
-                                    timestamp,
-                                    adapterId,
-                                    (PhysicalAssetDescription) wldtEvent.getBody()));
+                        if (wldtEvent.getType().equals(WldtEventTypes.PHYSICAL_ASSET_DESCRIPTION_AVAILABLE)) {
+                            long startMs = System.currentTimeMillis();
+                            try {
+                                storage.saveNewPhysicalAssetDescriptionNotification(new PhysicalAssetDescriptionNotification(
+                                        timestamp, adapterId, (PhysicalAssetDescription) wldtEvent.getBody()));
+                                storage.notifyWriteSuccess(CoreMonitoringUtils.STORAGE_WRITE_PHYSICAL_ASSET_DESCRIPTION_SUCCESS_COUNT, CoreMonitoringUtils.STORAGE_WRITE_PHYSICAL_ASSET_DESCRIPTION_EXEC_TIME, startMs);
+                            } catch (StorageException e) {
+                                storage.notifyWriteError(CoreMonitoringUtils.STORAGE_WRITE_PHYSICAL_ASSET_DESCRIPTION_ERROR_COUNT, CoreMonitoringUtils.STORAGE_WRITE_PHYSICAL_ASSET_DESCRIPTION_EXEC_TIME, startMs);
+                                logger.error("Error saving new PAD to storage {}: {}", entry.getKey(), e.getLocalizedMessage());
+                            }
+                        }
+                        if (wldtEvent.getType().equals(WldtEventTypes.PHYSICAL_ASSET_DESCRIPTION_UPDATED)) {
+                            long startMs = System.currentTimeMillis();
+                            try {
+                                storage.saveUpdatedPhysicalAssetDescriptionNotification(new PhysicalAssetDescriptionNotification(
+                                        timestamp, adapterId, (PhysicalAssetDescription) wldtEvent.getBody()));
+                                storage.notifyWriteSuccess(CoreMonitoringUtils.STORAGE_WRITE_PHYSICAL_ASSET_DESCRIPTION_SUCCESS_COUNT, CoreMonitoringUtils.STORAGE_WRITE_PHYSICAL_ASSET_DESCRIPTION_EXEC_TIME, startMs);
+                            } catch (StorageException e) {
+                                storage.notifyWriteError(CoreMonitoringUtils.STORAGE_WRITE_PHYSICAL_ASSET_DESCRIPTION_ERROR_COUNT, CoreMonitoringUtils.STORAGE_WRITE_PHYSICAL_ASSET_DESCRIPTION_EXEC_TIME, startMs);
+                                logger.error("Error saving updated PAD to storage {}: {}", entry.getKey(), e.getLocalizedMessage());
+                            }
+                        }
                     }
                 }
             else
@@ -438,25 +523,46 @@ public class StorageManager extends DigitalTwinWorker implements IWldtEventObser
                     // Check if the event is a AugmentationFunctionStartEvent
                     if(wldtEvent != null && wldtEvent.getBody() != null && wldtEvent.getType().startsWith(WldtEventTypes.AUGMENTATION_FUNCTION_START_BASE_TYPE) && wldtEvent.getBody() instanceof AugmentationFunctionRequest) {
                         AugmentationFunctionStartWldtEvent augmentationFunctionStartWldtEvent = (AugmentationFunctionStartWldtEvent) wldtEvent;
-                        storage.saveAugmentationFunctionRequest(augmentationFunctionStartWldtEvent.getAugmentationFunctionId(),
-                                augmentationFunctionStartWldtEvent.getAugmentationHandlerId(),
-                                augmentationFunctionStartWldtEvent.getBody());
+                        long startMs = System.currentTimeMillis();
+                        try {
+                            storage.saveAugmentationFunctionRequest(augmentationFunctionStartWldtEvent.getAugmentationFunctionId(),
+                                    augmentationFunctionStartWldtEvent.getAugmentationHandlerId(),
+                                    augmentationFunctionStartWldtEvent.getBody());
+                            storage.notifyWriteSuccess(CoreMonitoringUtils.STORAGE_WRITE_AUGMENTATION_FUNCTION_SUCCESS_COUNT, CoreMonitoringUtils.STORAGE_WRITE_AUGMENTATION_FUNCTION_EXEC_TIME, startMs);
+                        } catch (StorageException e) {
+                            storage.notifyWriteError(CoreMonitoringUtils.STORAGE_WRITE_AUGMENTATION_FUNCTION_ERROR_COUNT, CoreMonitoringUtils.STORAGE_WRITE_AUGMENTATION_FUNCTION_EXEC_TIME, startMs);
+                            logger.error("Error saving AugmentationFunctionRequest (start) to storage {}: {}", entry.getKey(), e.getLocalizedMessage());
+                        }
                     }
 
                     // Check if the event is a AugmentationFunctionStopEvent
                     if(wldtEvent != null && wldtEvent.getBody() != null && wldtEvent.getType().startsWith(WldtEventTypes.AUGMENTATION_FUNCTION_STOP_BASE_TYPE) && wldtEvent.getBody() instanceof AugmentationFunctionRequest) {
                         AugmentationFunctionStopWldtEvent augmentationFunctionStopWldtEvent = (AugmentationFunctionStopWldtEvent) wldtEvent;
-                        storage.saveAugmentationFunctionRequest(augmentationFunctionStopWldtEvent.getAugmentationFunctionId(),
-                                augmentationFunctionStopWldtEvent.getAugmentationHandlerId(),
-                                augmentationFunctionStopWldtEvent.getBody());
+                        long startMs = System.currentTimeMillis();
+                        try {
+                            storage.saveAugmentationFunctionRequest(augmentationFunctionStopWldtEvent.getAugmentationFunctionId(),
+                                    augmentationFunctionStopWldtEvent.getAugmentationHandlerId(),
+                                    augmentationFunctionStopWldtEvent.getBody());
+                            storage.notifyWriteSuccess(CoreMonitoringUtils.STORAGE_WRITE_AUGMENTATION_FUNCTION_SUCCESS_COUNT, CoreMonitoringUtils.STORAGE_WRITE_AUGMENTATION_FUNCTION_EXEC_TIME, startMs);
+                        } catch (StorageException e) {
+                            storage.notifyWriteError(CoreMonitoringUtils.STORAGE_WRITE_AUGMENTATION_FUNCTION_ERROR_COUNT, CoreMonitoringUtils.STORAGE_WRITE_AUGMENTATION_FUNCTION_EXEC_TIME, startMs);
+                            logger.error("Error saving AugmentationFunctionRequest (stop) to storage {}: {}", entry.getKey(), e.getLocalizedMessage());
+                        }
                     }
 
                     // Check if the event is a AugmentationFunctionExecuteEvent
                     if(wldtEvent != null && wldtEvent.getBody() != null && wldtEvent.getType().startsWith(WldtEventTypes.AUGMENTATION_FUNCTION_EXECUTE_BASE_TYPE) && wldtEvent.getBody() instanceof AugmentationFunctionRequest) {
                         AugmentationFunctionExecuteWldtEvent augmentationFunctionExecuteWldtEvent = (AugmentationFunctionExecuteWldtEvent) wldtEvent;
-                        storage.saveAugmentationFunctionRequest(augmentationFunctionExecuteWldtEvent.getAugmentationFunctionId(),
-                                augmentationFunctionExecuteWldtEvent.getAugmentationHandlerId(),
-                                augmentationFunctionExecuteWldtEvent.getBody());
+                        long startMs = System.currentTimeMillis();
+                        try {
+                            storage.saveAugmentationFunctionRequest(augmentationFunctionExecuteWldtEvent.getAugmentationFunctionId(),
+                                    augmentationFunctionExecuteWldtEvent.getAugmentationHandlerId(),
+                                    augmentationFunctionExecuteWldtEvent.getBody());
+                            storage.notifyWriteSuccess(CoreMonitoringUtils.STORAGE_WRITE_AUGMENTATION_FUNCTION_SUCCESS_COUNT, CoreMonitoringUtils.STORAGE_WRITE_AUGMENTATION_FUNCTION_EXEC_TIME, startMs);
+                        } catch (StorageException e) {
+                            storage.notifyWriteError(CoreMonitoringUtils.STORAGE_WRITE_AUGMENTATION_FUNCTION_ERROR_COUNT, CoreMonitoringUtils.STORAGE_WRITE_AUGMENTATION_FUNCTION_EXEC_TIME, startMs);
+                            logger.error("Error saving AugmentationFunctionRequest (execute) to storage {}: {}", entry.getKey(), e.getLocalizedMessage());
+                        }
                     }
 
                     // Check if the event is a AugmentationFunctionResultEvent
@@ -464,34 +570,62 @@ public class StorageManager extends DigitalTwinWorker implements IWldtEventObser
                         AugmentationFunctionResultWldtEvent augmentationFunctionResultWldtEvent = (AugmentationFunctionResultWldtEvent) wldtEvent;
                         AugmentationFunctionResultList results = augmentationFunctionResultWldtEvent.getBody();
                         for(AugmentationFunctionResult<?> result : results) {
-                            storage.saveAugmentationFunctionResult(augmentationFunctionResultWldtEvent.getAugmentationFunctionId(),
-                                    augmentationFunctionResultWldtEvent.getAugmentationHandlerId(),
-                                    result);
+                            long startMs = System.currentTimeMillis();
+                            try {
+                                storage.saveAugmentationFunctionResult(augmentationFunctionResultWldtEvent.getAugmentationFunctionId(),
+                                        augmentationFunctionResultWldtEvent.getAugmentationHandlerId(),
+                                        result);
+                                storage.notifyWriteSuccess(CoreMonitoringUtils.STORAGE_WRITE_AUGMENTATION_FUNCTION_SUCCESS_COUNT, CoreMonitoringUtils.STORAGE_WRITE_AUGMENTATION_FUNCTION_EXEC_TIME, startMs);
+                            } catch (StorageException e) {
+                                storage.notifyWriteError(CoreMonitoringUtils.STORAGE_WRITE_AUGMENTATION_FUNCTION_ERROR_COUNT, CoreMonitoringUtils.STORAGE_WRITE_AUGMENTATION_FUNCTION_EXEC_TIME, startMs);
+                                logger.error("Error saving AugmentationFunctionResult to storage {}: {}", entry.getKey(), e.getLocalizedMessage());
+                            }
                         }
                     }
 
                     // Check if the event is a AugmentationFunctionErrorEvent
                     if(wldtEvent != null && wldtEvent.getBody() != null && wldtEvent.getType().startsWith(WldtEventTypes.AUGMENTATION_FUNCTION_ERROR_EVENT_TYPE) && wldtEvent.getBody() instanceof AugmentationFunctionError) {
                         AugmentationFunctionErrorWldtEvent augmentationFunctionErrorWldtEvent = (AugmentationFunctionErrorWldtEvent) wldtEvent;
-                        storage.saveAugmentationFunctionError(augmentationFunctionErrorWldtEvent.getAugmentationFunctionId(),
-                                augmentationFunctionErrorWldtEvent.getAugmentationHandlerId(),
-                                augmentationFunctionErrorWldtEvent.getBody());
+                        long startMs = System.currentTimeMillis();
+                        try {
+                            storage.saveAugmentationFunctionError(augmentationFunctionErrorWldtEvent.getAugmentationFunctionId(),
+                                    augmentationFunctionErrorWldtEvent.getAugmentationHandlerId(),
+                                    augmentationFunctionErrorWldtEvent.getBody());
+                            storage.notifyWriteSuccess(CoreMonitoringUtils.STORAGE_WRITE_AUGMENTATION_FUNCTION_SUCCESS_COUNT, CoreMonitoringUtils.STORAGE_WRITE_AUGMENTATION_FUNCTION_EXEC_TIME, startMs);
+                        } catch (StorageException e) {
+                            storage.notifyWriteError(CoreMonitoringUtils.STORAGE_WRITE_AUGMENTATION_FUNCTION_ERROR_COUNT, CoreMonitoringUtils.STORAGE_WRITE_AUGMENTATION_FUNCTION_EXEC_TIME, startMs);
+                            logger.error("Error saving AugmentationFunctionError to storage {}: {}", entry.getKey(), e.getLocalizedMessage());
+                        }
                     }
 
                     // Check if the event is a AugmentationFunctionRegistrationEvent
                     if(wldtEvent != null && wldtEvent.getBody() != null && wldtEvent.getType().startsWith(WldtEventTypes.AUGMENTATION_FUNCTION_REGISTERED_EVENT_TYPE) && wldtEvent.getBody() instanceof AugmentationFunction) {
                         AugmentationFunctionRegistrationWldtEvent augmentationFunctionRegistrationWldtEvent = (AugmentationFunctionRegistrationWldtEvent) wldtEvent;
-                        storage.saveAugmentationFunctionRegistration(augmentationFunctionRegistrationWldtEvent.getBody().getId(),
-                                augmentationFunctionRegistrationWldtEvent.getAugmentationHandlerId(),
-                                augmentationFunctionRegistrationWldtEvent.getBody().getType());
+                        long startMs = System.currentTimeMillis();
+                        try {
+                            storage.saveAugmentationFunctionRegistration(augmentationFunctionRegistrationWldtEvent.getBody().getId(),
+                                    augmentationFunctionRegistrationWldtEvent.getAugmentationHandlerId(),
+                                    augmentationFunctionRegistrationWldtEvent.getBody().getType());
+                            storage.notifyWriteSuccess(CoreMonitoringUtils.STORAGE_WRITE_AUGMENTATION_FUNCTION_SUCCESS_COUNT, CoreMonitoringUtils.STORAGE_WRITE_AUGMENTATION_FUNCTION_EXEC_TIME, startMs);
+                        } catch (StorageException e) {
+                            storage.notifyWriteError(CoreMonitoringUtils.STORAGE_WRITE_AUGMENTATION_FUNCTION_ERROR_COUNT, CoreMonitoringUtils.STORAGE_WRITE_AUGMENTATION_FUNCTION_EXEC_TIME, startMs);
+                            logger.error("Error saving AugmentationFunctionRegistration to storage {}: {}", entry.getKey(), e.getLocalizedMessage());
+                        }
                     }
 
                     // Check if the event is a AugmentationFunctionUnRegistrationEvent
                     if(wldtEvent != null && wldtEvent.getBody() != null && wldtEvent.getType().startsWith(WldtEventTypes.AUGMENTATION_FUNCTION_UNREGISTERED_EVENT_TYPE) && wldtEvent.getBody() instanceof AugmentationFunction) {
                         AugmentationFunctionUnRegistrationWldtEvent augmentationFunctionUnRegistrationWldtEvent = (AugmentationFunctionUnRegistrationWldtEvent) wldtEvent;
-                        storage.saveAugmentationFunctionUnregistration(augmentationFunctionUnRegistrationWldtEvent.getBody().getId(),
-                                augmentationFunctionUnRegistrationWldtEvent.getAugmentationHandlerId(),
-                                augmentationFunctionUnRegistrationWldtEvent.getBody().getType());
+                        long startMs = System.currentTimeMillis();
+                        try {
+                            storage.saveAugmentationFunctionUnregistration(augmentationFunctionUnRegistrationWldtEvent.getBody().getId(),
+                                    augmentationFunctionUnRegistrationWldtEvent.getAugmentationHandlerId(),
+                                    augmentationFunctionUnRegistrationWldtEvent.getBody().getType());
+                            storage.notifyWriteSuccess(CoreMonitoringUtils.STORAGE_WRITE_AUGMENTATION_FUNCTION_SUCCESS_COUNT, CoreMonitoringUtils.STORAGE_WRITE_AUGMENTATION_FUNCTION_EXEC_TIME, startMs);
+                        } catch (StorageException e) {
+                            storage.notifyWriteError(CoreMonitoringUtils.STORAGE_WRITE_AUGMENTATION_FUNCTION_ERROR_COUNT, CoreMonitoringUtils.STORAGE_WRITE_AUGMENTATION_FUNCTION_EXEC_TIME, startMs);
+                            logger.error("Error saving AugmentationFunctionUnregistration to storage {}: {}", entry.getKey(), e.getLocalizedMessage());
+                        }
                     }
                 }
             }
@@ -514,9 +648,16 @@ public class StorageManager extends DigitalTwinWorker implements IWldtEventObser
                 // Find Storage interested to the target event
                 for (Map.Entry<String, WldtStorage> entry : storageMap.entrySet()) {
                     WldtStorage storage = entry.getValue();
-                    if (storage != null && storage.isObserveLifeCycleEvents())
-                        //storage.saveLifeCycleState(new LifeCycleStateVariation(wldtEvent.getCreationTimestamp(), LifeCycleState.valueOf((String) wldtEvent.getBody())));
-                        storage.saveLifeCycleState(new LifeCycleStateVariation(wldtEvent.getCreationTimestamp(), LifeCycleState.fromValue((String) wldtEvent.getBody())));
+                    if (storage != null && storage.isObserveLifeCycleEvents()) {
+                        long startMs = System.currentTimeMillis();
+                        try {
+                            storage.saveLifeCycleState(new LifeCycleStateVariation(wldtEvent.getCreationTimestamp(), LifeCycleState.fromValue((String) wldtEvent.getBody())));
+                            storage.notifyWriteSuccess(CoreMonitoringUtils.STORAGE_WRITE_LIFECYCLE_EVENT_SUCCESS_COUNT, CoreMonitoringUtils.STORAGE_WRITE_LIFECYCLE_EVENT_EXEC_TIME, startMs);
+                        } catch (StorageException e) {
+                            storage.notifyWriteError(CoreMonitoringUtils.STORAGE_WRITE_LIFECYCLE_EVENT_ERROR_COUNT, CoreMonitoringUtils.STORAGE_WRITE_LIFECYCLE_EVENT_EXEC_TIME, startMs);
+                            logger.error("Error saving LifeCycleState to storage {}: {}", entry.getKey(), e.getLocalizedMessage());
+                        }
+                    }
                 }
             else
                 logger.error("Error saving the LifeCycleEvent Event ! The event body is not a String !");
