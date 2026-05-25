@@ -35,6 +35,7 @@ The documentation is structured in the following subsections:
 - [Error Handling](#augmentation-function-error-handling): How augmentation functions report errors using `AugmentationFunctionError` and `AugmentationFunctionErrorType`
 - [Implementation Guide](#augmentation-function-implementation): Base classes (`AugmentationFunction`, `AugmentationFunctionType`), abstract implementations, and practical examples for both stateless and stateful augmentation functions
 - [WLDT Event Bus Integration](#wldt-event-bus-integration): Internal event classes used by the framework for communication between the DTM, Augmentation Manager, and Handlers
+- [Monitoring Integration](#augmentation-function-monitoring-integration): How augmentation functions participate in the WLDT monitoring system — automatic injection, the `handleMetricsRegistration()` hook, and function-level custom metrics
 
 ## Augmentation Function - Architecture & Components
 
@@ -2490,4 +2491,10 @@ public class AugmentationFunctionErrorWldtEvent extends WldtEvent<AugmentationFu
 > Developers typically do not instantiate them directly—invocations of
 > `executeAugmentationFunction()`, `startAugmentationFunction()`, and `stopAugmentationFunction()`
 > in the Digital Twin Model automatically create and publish the corresponding events.
+
+## Augmentation Function Monitoring Integration
+
+Augmentation functions participate in the WLDT monitoring system through built-in support in the `AugmentationFunction` base class. The `MonitoringInterface` is injected automatically by `AugmentationFunctionHandler` when a function is registered — developers do not manage this injection themselves.
+
+For the full reference on monitoring integration — including the `handleMetricsRegistration()` hook, the `METRIC_METADATA_AF_FUNCTION_ID_KEY` constant for tagging function-level metrics, the list of framework-native augmentation metrics, and code examples — see [Augmentation Function Monitoring Integration](monitoring.md#augmentation-function-monitoring-integration) in the monitoring documentation.
 

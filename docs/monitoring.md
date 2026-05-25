@@ -7,7 +7,7 @@
 ## Digital Twin Monitoring Interface
 
 The WLDT monitoring system is built around three collaborating classes: `MonitoringInterface`, `MonitoringInterfaceHandler`, and `WldtMetricRegistry`. 
-Metrics are **registered once** with an initial value and then **updated in-place** as new measurements arrive. 
+Metrics are **registered once** and then **updated in-place** as new measurements arrive. 
 Each metric instance accumulates type-specific supporting fields (delta, min/max, cumulative counts) across all updates.
 
 ---
@@ -20,18 +20,20 @@ The central hub. Each `DigitalTwin` instance owns one `MonitoringInterface` whic
 
 It exposes two primary methods used by framework components:
 
-- **`notifyMetric(WldtMetric metric)`** — the standard push path. On the **first push** for a given metric name the metric is registered and `MonitoringInterfaceHandler.onMetricRegistered()` is called. On **every subsequent push** for the same name the stored live instance is mutated in-place and `MonitoringInterfaceHandler.onMetricUpdated()` is called.
+- **`notifyMetric(WldtMetric metric)`** — the standard push path. On the **first push** for a given metric name, the metric is registered and `MonitoringInterfaceHandler.onMetricRegistered()` is called with an empty snapshot; if the metric was constructed with an initial value, `onMetricUpdated()` also fires immediately after. On **every subsequent push** for the same name the stored live instance is mutated in-place and `MonitoringInterfaceHandler.onMetricUpdated()` is called.
 - **`trackCustomMetric(WldtMetric metric)`** — same pipeline for developer-defined custom metrics; bypasses per-component flag gating; metric component must be `WldtMetricComponent.CUSTOM`.
 
 Additional utility methods:
 
 | Method | Purpose |
 |---|---|
-| `registerMetric(WldtMetric)` | Pre-register a metric without firing any callback (useful at startup) |
+| `registerMetric(WldtMetric)` | Pre-register a metric bypassing per-component flag gating; fires `onMetricRegistered` (and `onMetricUpdated` if initialized); useful at DT startup to declare metrics before measurements are available |
 | `deregisterMetric(String fullName)` | Remove a metric; next push starts fresh |
 | `getMetric(String fullName)` | Query the live instance by full name (`namespace.name`) |
 | `getAllMetrics()` | Snapshot of all registered live instances |
 | `isMetricRegistered(String fullName)` | Check presence |
+| `isActive()` | Returns `true` if both configuration and handler are set |
+| `isActive(WldtMetricComponent)` | Returns `true` if active and the given component's flag is enabled |
 | `setConfiguration(MonitoringInterfaceConfiguration)` | Configure per-component enable flags |
 | `setHandler(MonitoringInterfaceHandler)` | Attach the developer callback implementation |
 
@@ -70,11 +72,14 @@ Abstract class with two callbacks. Developers extend it and override whichever c
 ```java
 public abstract class MonitoringInterfaceHandler {
 
-    /** Fires once when a metric name is first observed. */
+    /** Fires once when a metric name is first observed.
+     *  The metric is an empty (uninitialized) snapshot of the live type — it carries
+     *  identity fields (namespace, name, component) but no measured value. */
     public void onMetricRegistered(WldtMetricComponent component, WldtMetric metric) {}
 
-    /** Fires on every subsequent push for an already-registered metric.
-     *  The metric is a snapshot copy of the live instance taken at callback time. */
+    /** Fires on every update for an already-registered metric, including the initial
+     *  update if the metric was constructed with a starting value.
+     *  The metric is an independent snapshot copy of the live instance taken at callback time. */
     public void onMetricUpdated(WldtMetricComponent component, WldtMetric metric) {}
 }
 ```
@@ -83,11 +88,11 @@ The `component` parameter identifies which DT component emitted the metric. Use 
 
 ##### Metric snapshots in handler callbacks
 
-Both `onMetricRegistered` and `onMetricUpdated` receive a **snapshot copy** of the metric, not a reference to the live registry instance.
+`onMetricRegistered` always receives an **empty snapshot** (`emptySnapshot()`) — the metric exists but carries no measured value yet. This callback is intended for setup (e.g., creating the corresponding Prometheus counter before any data arrives).
 
-`MonitoringInterface` calls `metric.copy()` — defined on every metric type — immediately before invoking each callback. The copy captures all fields at that instant: the current value, delta, min/max, cumulative counters, and `lastUpdatedMs`. From that point on, the snapshot and the live instance are fully independent objects — subsequent pushes that mutate the live registry entry do not affect the copy held by the handler.
+`onMetricUpdated` receives an **independent copy** of the live metric (`copy()`) capturing all fields at that instant: the current value, delta, min/max, cumulative counters, and `lastUpdatedMs`. Subsequent pushes that mutate the live registry entry do not affect the copy held by the handler.
 
-This guarantee is important when a handler stores metrics for later inspection (e.g., in a list or a metrics sink), because without it the stored reference would silently reflect future mutations rather than the value at the time of the callback.
+If a metric is constructed with an initial value, both callbacks fire on the first push — `onMetricRegistered` first (empty snapshot), then `onMetricUpdated` (snapshot of the initial value).
 
 ```java
 public class MyHandler extends MonitoringInterfaceHandler {
@@ -138,13 +143,23 @@ Internal store (not used directly by developers). Maintains the live mutable met
 ### Metric Types
 
 All metrics extend `WldtMetric` and carry:
-- `namespace` — logical grouping prefix (e.g. `"wldt.internal"` or `"myapp.sensor"`)
+- `digitalTwinId` — the id of the `DigitalTwin` instance that owns this metric (first constructor parameter)
+- `namespace` — logical grouping prefix (e.g. `"core"` for framework metrics, or `"myapp.sensor"` for custom metrics)
 - `name` — identifier within the namespace
 - `component` — `WldtMetricComponent` enum value (routing and flag gating)
 - `timestampMs` — epoch ms at construction
 - `lastUpdatedMs` — epoch ms of the most recent mutation
+- `isInitialized()` — `false` for metrics constructed without an initial value; `true` once a value has been set
+- `emptySnapshot()` — returns a new uninitialized copy of the same type (used internally for `onMetricRegistered` callbacks)
+- **Metadata** — arbitrary key-value tags: `addMetadata(String key, Object value)`, `removeMetadata(String key)`, `setMetadata(Map)`, `getMetadata()`. Useful for tagging metrics with context (e.g. function id, adapter id).
 
 The **full name** used for registry lookup is `namespace + "." + name`.
+
+All metric constructors accept `digitalTwinId` as their first parameter. Constructors come in two flavors:
+- **Uninitialized** (`digitalTwinId, namespace, name, component`) — registers the metric slot without a starting value; `isInitialized()` returns `false` until the first `update()` call.
+- **Initialized** (`digitalTwinId, namespace, name, component, initialValue`) — sets a starting value immediately; `isInitialized()` returns `true`.
+
+Both flavors have an additional overload accepting a `Map<String, Object> metadata` as final parameter.
 
 ---
 
@@ -163,18 +178,18 @@ Models discrete occurrences that can only increase (total events processed, erro
 
 ```java
 // --- Registration (first push) ---
-String namespace = CoreMonitoringUtils.buildNamespace(digitalTwinId, "my_component");
+String dtId = "my-digital-twin";
+String namespace = CoreMonitoringUtils.buildCoreNamespace(); // returns "core"
 
 monitoringInterface.notifyMetric(
-        new WldtCounter(namespace, "events_processed", WldtMetricComponent.DT_MODEL, 0L));
-// → fires onMetricRegistered(DT_MODEL, counter)
-//   counter.getValue() == 0, counter.getDelta() == null
+        new WldtCounter(dtId, namespace, "events_processed", WldtMetricComponent.DT_MODEL, 0L));
+// → fires onMetricRegistered(DT_MODEL, emptySnapshot)
+// → fires onMetricUpdated(DT_MODEL, snapshot{value=0}) because metric is initialized
 
 // --- Update (absolute value) ---
 monitoringInterface.notifyMetric(
-        new WldtCounter(namespace, "events_processed", WldtMetricComponent.DT_MODEL, 5L));
-// → fires onMetricUpdated(DT_MODEL, liveCounter)
-//   liveCounter.getValue() == 5, liveCounter.getDelta() == 5L
+        new WldtCounter(dtId, namespace, "events_processed", WldtMetricComponent.DT_MODEL, 5L));
+// → fires onMetricUpdated(DT_MODEL, snapshot{value=5, delta=5})
 
 // --- Update (increment directly on the stored instance) ---
 WldtCounter stored = (WldtCounter) monitoringInterface
@@ -199,15 +214,18 @@ Models discrete entity counts that can increase or decrease (active connections,
 **Example:**
 
 ```java
+String dtId = "my-digital-twin";
+String namespace = CoreMonitoringUtils.buildCoreNamespace();
+
 // --- Registration ---
 monitoringInterface.notifyMetric(
-        new WldtUpDownCounter(namespace, "active_connections",
+        new WldtUpDownCounter(dtId, namespace, "active_connections",
                 WldtMetricComponent.PHYSICAL_ADAPTER, 0L));
-// → onMetricRegistered fired, delta == null
+// → onMetricRegistered fired, then onMetricUpdated(value=0)
 
 // --- Update via absolute value ---
 monitoringInterface.notifyMetric(
-        new WldtUpDownCounter(namespace, "active_connections",
+        new WldtUpDownCounter(dtId, namespace, "active_connections",
                 WldtMetricComponent.PHYSICAL_ADAPTER, 3L));
 // → onMetricUpdated fired
 //   delta == +3, peakValue == 3
@@ -233,16 +251,18 @@ Models a continuously observed numeric value with no direction constraint (queue
 **Example:**
 
 ```java
+String dtId = "my-digital-twin";
+
 // --- Registration ---
 monitoringInterface.notifyMetric(
-        new WldtGauge("myapp.sensor", "temperature",
+        new WldtGauge(dtId, "myapp.sensor", "temperature",
                 WldtMetricComponent.CUSTOM, 20.0));
-// → onMetricRegistered fired
+// → onMetricRegistered fired, then onMetricUpdated(value=20.0)
 //   minObserved == maxObserved == 20.0, previousValue == null
 
 // --- Update ---
 monitoringInterface.notifyMetric(
-        new WldtGauge("myapp.sensor", "temperature",
+        new WldtGauge(dtId, "myapp.sensor", "temperature",
                 WldtMetricComponent.CUSTOM, 23.5));
 // → onMetricUpdated fired
 //   value == 23.5, previousValue == 20.0, delta == +3.5
@@ -258,7 +278,7 @@ System.out.println("Range: " + g.getMinObserved() + " – " + g.getMaxObserved()
 
 #### `WldtTimer` — Duration Measurement
 
-Records the elapsed time of operations in milliseconds. The constructor records the first observation. Accumulates `minDurationMs`, `maxDurationMs`, `totalDurationMs`, and `observationCount` across all recordings.
+Records the elapsed time of operations in milliseconds. Accumulates `minDurationMs`, `maxDurationMs`, `totalDurationMs`, and `observationCount` across all recordings.
 
 **Mutation methods:**
 - `update(long durationMs)` — record a new observation; updates min/max/total/count
@@ -269,21 +289,24 @@ Records the elapsed time of operations in milliseconds. The constructor records 
 **Example:**
 
 ```java
+String dtId = "my-digital-twin";
+String namespace = CoreMonitoringUtils.buildCoreNamespace();
+
 // --- Registration (first measurement) ---
 long startMs = System.currentTimeMillis();
 // ... operation ...
 monitoringInterface.notifyMetric(
-        new WldtTimer(namespace, "processing_latency_ms",
+        new WldtTimer(dtId, namespace, "processing_latency_ms",
                 WldtMetricComponent.DT_MODEL,
                 System.currentTimeMillis() - startMs));
-// → onMetricRegistered fired
+// → onMetricRegistered fired, then onMetricUpdated
 //   min == max == total == firstDuration, observationCount == 1
 
 // --- Update (subsequent measurements via absolute duration) ---
 startMs = System.currentTimeMillis();
 // ... next operation ...
 monitoringInterface.notifyMetric(
-        new WldtTimer(namespace, "processing_latency_ms",
+        new WldtTimer(dtId, namespace, "processing_latency_ms",
                 WldtMetricComponent.DT_MODEL,
                 System.currentTimeMillis() - startMs));
 // → onMetricUpdated fired with the live timer
@@ -317,12 +340,15 @@ Aggregates observations into a statistical summary. Supports two accumulation mo
 **Example:**
 
 ```java
+String dtId = "my-digital-twin";
+String namespace = CoreMonitoringUtils.buildCoreNamespace();
+
 // --- Registration (first window) ---
 monitoringInterface.notifyMetric(
-        new WldtHistogram(namespace, "message_size_bytes",
+        new WldtHistogram(dtId, namespace, "message_size_bytes",
                 WldtMetricComponent.PHYSICAL_ADAPTER,
                 10L, 1200.0, 80.0, 160.0));
-// → onMetricRegistered fired
+// → onMetricRegistered fired, then onMetricUpdated
 //   count==10, mean==120, globalMin==80, globalMax==160, windowCount==1
 
 // --- Update via single observations ---
@@ -335,7 +361,7 @@ h.observe(200.0);
 
 // --- Update via pre-aggregated window ---
 monitoringInterface.notifyMetric(
-        new WldtHistogram(namespace, "message_size_bytes",
+        new WldtHistogram(dtId, namespace, "message_size_bytes",
                 WldtMetricComponent.PHYSICAL_ADAPTER,
                 5L, 600.0, 60.0, 180.0));
 // → onMetricUpdated fired
@@ -377,6 +403,7 @@ silently swallowed — metric updates never affect the normal execution of the p
 |---|---|---|
 | `increaseCounter(ns, name)` | `WldtCounter` / `WldtUpDownCounter` | Increments by 1 |
 | `increaseCounter(ns, name, amount)` | `WldtCounter` / `WldtUpDownCounter` | Increments by `amount` |
+| `updateCounter(ns, name, value)` | `WldtCounter` / `WldtUpDownCounter` | Sets absolute value (`WldtCounter` requires value ≥ current) |
 | `decreaseCounter(ns, name)` | `WldtUpDownCounter` | Decrements by 1 |
 | `decreaseCounter(ns, name, amount)` | `WldtUpDownCounter` | Decrements by `amount` |
 | `updateGauge(ns, name, value)` | `WldtGauge` | Sets a new observed value |
@@ -392,22 +419,31 @@ silently swallowed — metric updates never affect the normal execution of the p
 **Counter:**
 
 ```java
+String dtId = "my-digital-twin";
+String namespace = CoreMonitoringUtils.buildCoreNamespace();
+
 // Register once
 monitoringInterface.registerMetric(
-        new WldtCounter(namespace, "events_processed", WldtMetricComponent.DT_MODEL, 0L));
+        new WldtCounter(dtId, namespace, "events_processed", WldtMetricComponent.DT_MODEL, 0L));
 
 // Later — increment by 1
 monitoringInterface.increaseCounter(namespace, "events_processed");
 
 // Or increment by a specific amount
 monitoringInterface.increaseCounter(namespace, "events_processed", 5L);
+
+// Or set an absolute value (must be >= current)
+monitoringInterface.updateCounter(namespace, "events_processed", 100L);
 ```
 
 **UpDownCounter:**
 
 ```java
+String dtId = "my-digital-twin";
+String namespace = CoreMonitoringUtils.buildCoreNamespace();
+
 monitoringInterface.registerMetric(
-        new WldtUpDownCounter(namespace, "active_connections",
+        new WldtUpDownCounter(dtId, namespace, "active_connections",
                 WldtMetricComponent.PHYSICAL_ADAPTER, 0L));
 
 // New connection established
@@ -420,8 +456,10 @@ monitoringInterface.decreaseCounter(namespace, "active_connections");
 **Gauge:**
 
 ```java
+String dtId = "my-digital-twin";
+
 monitoringInterface.registerMetric(
-        new WldtGauge("myapp.sensor", "temperature", WldtMetricComponent.CUSTOM, 20.0));
+        new WldtGauge(dtId, "myapp.sensor", "temperature", WldtMetricComponent.CUSTOM, 20.0));
 
 // Record a new reading
 monitoringInterface.updateGauge("myapp.sensor", "temperature", 23.5);
@@ -430,8 +468,11 @@ monitoringInterface.updateGauge("myapp.sensor", "temperature", 23.5);
 **Timer:**
 
 ```java
+String dtId = "my-digital-twin";
+String namespace = CoreMonitoringUtils.buildCoreNamespace();
+
 monitoringInterface.registerMetric(
-        new WldtTimer(namespace, "processing_latency_ms", WldtMetricComponent.DT_MODEL, 0L));
+        new WldtTimer(dtId, namespace, "processing_latency_ms", WldtMetricComponent.DT_MODEL, 0L));
 
 // Record an already-measured duration
 monitoringInterface.updateTimer(namespace, "processing_latency_ms", elapsedMs);
@@ -445,8 +486,11 @@ monitoringInterface.updateTimerSince(namespace, "processing_latency_ms", startMs
 **Histogram:**
 
 ```java
+String dtId = "my-digital-twin";
+String namespace = CoreMonitoringUtils.buildCoreNamespace();
+
 monitoringInterface.registerMetric(
-        new WldtHistogram(namespace, "message_size_bytes",
+        new WldtHistogram(dtId, namespace, "message_size_bytes",
                 WldtMetricComponent.PHYSICAL_ADAPTER, 1L, 120.0, 120.0, 120.0));
 
 // Add individual observations
@@ -470,20 +514,22 @@ This is useful when multiple updates need to be applied in sequence, or when the
 Retrieve the live instance once and apply updates in a single expression:
 
 ```java
+String namespace = CoreMonitoringUtils.buildCoreNamespace();
+
 // Counter — chain two increments
-((WldtCounter) monitoringInterface.getMetric(ns + ".events").get())
+((WldtCounter) monitoringInterface.getMetric(namespace + ".events").get())
         .increment(3L)
         .increment(2L);
 // value += 5 in one line
 
 // UpDownCounter — increment then decrement
-((WldtUpDownCounter) monitoringInterface.getMetric(ns + ".connections").get())
+((WldtUpDownCounter) monitoringInterface.getMetric(namespace + ".connections").get())
         .increment(5L)
         .decrement(2L);
 // net change: +3
 
 // Histogram — record several observations without intermediate variables
-((WldtHistogram) monitoringInterface.getMetric(ns + ".msg_size").get())
+((WldtHistogram) monitoringInterface.getMetric(namespace + ".msg_size").get())
         .observe(42.0)
         .observe(55.0)
         .observe(38.0);
@@ -502,8 +548,9 @@ WldtGauge temperature = (WldtGauge) monitoringInterface
 monitoringInterface.notifyMetric(temperature.update(24.1));
 
 // Same pattern with a timer — record elapsed time and notify immediately
+String namespace = CoreMonitoringUtils.buildCoreNamespace();
 WldtTimer latency = (WldtTimer) monitoringInterface
-        .getMetric(ns + ".processing_latency_ms").get();
+        .getMetric(namespace + ".processing_latency_ms").get();
 
 monitoringInterface.notifyMetric(latency.updateSince(startMs));
 ```
@@ -513,10 +560,235 @@ monitoringInterface.notifyMetric(latency.updateSince(startMs));
 The fluent return also simplifies the registration-then-first-update pattern when using `registerMetric()` followed by an immediate mutation before the first `notifyMetric` call:
 
 ```java
+String dtId = "my-digital-twin";
+String namespace = CoreMonitoringUtils.buildCoreNamespace();
+
 // Register a counter at zero, then immediately set an initial real value
-WldtCounter errors = new WldtCounter(ns, "errors", WldtMetricComponent.DT_MODEL, 0L);
+WldtCounter errors = new WldtCounter(dtId, namespace, "errors", WldtMetricComponent.DT_MODEL, 0L);
 monitoringInterface.registerMetric(errors);
 
 // Later, increment and notify without a separate lookup
 monitoringInterface.notifyMetric(errors.increment());
+```
+
+---
+
+### Framework-Native Metrics
+
+When a component's monitoring flag is enabled via `MonitoringInterfaceConfiguration`, the WLDT framework automatically registers and tracks a standard set of metrics. All framework-native metrics use the namespace `"core"` (returned by `CoreMonitoringUtils.buildCoreNamespace()`).
+
+The full metric name is `core.<metric_name>` and `CoreMonitoringUtils` exposes all names as public string constants.
+
+#### DT_MODEL metrics (Shadowing Function)
+
+Requires `withDtModelMonitoring()` in the configuration.
+
+| Metric name (constant) | Type | Tracks |
+|---|---|---|
+| `pt_property_variation_exec_time` | `WldtTimer` | Execution time of PA property variation processing |
+| `pt_property_variation_exec_success_count` | `WldtCounter` | Successful PA property variation handlers |
+| `pt_property_variation_exec_error_count` | `WldtCounter` | Failed PA property variation handlers |
+| `pt_event_notification_exec_time` | `WldtTimer` | Execution time of PA event notification processing |
+| `pt_event_notification_exec_success_count` | `WldtCounter` | Successful PA event notification handlers |
+| `pt_event_notification_exec_error_count` | `WldtCounter` | Failed PA event notification handlers |
+| `pt_rel_instance_created_exec_time` | `WldtTimer` | Execution time of relationship-created handlers |
+| `pt_rel_instance_created_exec_success_count` | `WldtCounter` | Successful relationship-created handlers |
+| `pt_rel_instance_created_exec_error_count` | `WldtCounter` | Failed relationship-created handlers |
+| `pt_rel_instance_deleted_exec_time` | `WldtTimer` | Execution time of relationship-deleted handlers |
+| `pt_rel_instance_deleted_exec_success_count` | `WldtCounter` | Successful relationship-deleted handlers |
+| `pt_rel_instance_deleted_exec_error_count` | `WldtCounter` | Failed relationship-deleted handlers |
+| `digital_action_exec_time` | `WldtTimer` | Execution time of digital action request processing |
+| `digital_action_exec_success_count` | `WldtCounter` | Successful digital action handlers |
+| `digital_action_exec_error_count` | `WldtCounter` | Failed digital action handlers |
+| `dt_state_computation_exec_time` | `WldtTimer` | Time taken for full DT state computation |
+| `dt_state_computation_exec_success_count` | `WldtCounter` | Successful state computations |
+| `dt_state_computation_exec_error_count` | `WldtCounter` | Failed state computations |
+| `af_stateless_exec_success_count` | `WldtCounter` | Stateless augmentation function invocations that succeeded |
+| `af_stateless_exec_error_count` | `WldtCounter` | Stateless augmentation function invocations that failed |
+| `af_stateful_start_success_count` | `WldtCounter` | Successful stateful AF start requests |
+| `af_stateful_start_error_count` | `WldtCounter` | Failed stateful AF start requests |
+| `af_stateful_stop_success_count` | `WldtCounter` | Successful stateful AF stop requests |
+| `af_stateful_stop_error_count` | `WldtCounter` | Failed stateful AF stop requests |
+| `af_list_registered_success_count` | `WldtCounter` | Successful AF list-registered calls |
+| `af_list_registered_error_count` | `WldtCounter` | Failed AF list-registered calls |
+| `af_list_registered_exec_time` | `WldtTimer` | Time taken to query registered AFs |
+
+#### PHYSICAL_ADAPTER metrics
+
+Requires `withPhysicalAdapterMonitoring()` in the configuration.
+
+| Metric name | Type | Tracks |
+|---|---|---|
+| `pa_property_event_pub_success_count` | `WldtCounter` | Property variation events published successfully |
+| `pa_property_event_pub_error_count` | `WldtCounter` | Property variation event publication failures |
+| `pa_property_event_notification_pub_success_count` | `WldtCounter` | Event notification messages published successfully |
+| `pa_property_event_notification_pub_error_count` | `WldtCounter` | Event notification publication failures |
+| `pa_property_rel_created_event_pub_success_count` | `WldtCounter` | Relationship-created events published successfully |
+| `pa_property_rel_created_event_pub_error_count` | `WldtCounter` | Relationship-created event publication failures |
+| `pa_property_rel_deleted_event_pub_success_count` | `WldtCounter` | Relationship-deleted events published successfully |
+| `pa_property_rel_deleted_event_pub_error_count` | `WldtCounter` | Relationship-deleted event publication failures |
+| `pa_action_computation_exec_time` | `WldtTimer` | Time taken to compute a physical action |
+| `pa_action_computation_exec_success_count` | `WldtCounter` | Successful physical action computations |
+| `pa_action_computation_exec_error_count` | `WldtCounter` | Failed physical action computations |
+
+#### DIGITAL_ADAPTER metrics
+
+Requires `withDigitalAdapterMonitoring()` in the configuration.
+
+| Metric name | Type | Tracks |
+|---|---|---|
+| `da_action_event_pub_success_count` | `WldtCounter` | Digital action events published successfully |
+| `da_action_event_pub_error_count` | `WldtCounter` | Digital action event publication failures |
+| `da_state_update_processing_exec_time` | `WldtTimer` | Time to process incoming DT state updates |
+| `da_state_update_processing_exec_success_count` | `WldtCounter` | Successful state update processing |
+| `da_state_update_processing_exec_error_count` | `WldtCounter` | Failed state update processing |
+| `da_event_notification_processing_exec_time` | `WldtTimer` | Time to process incoming DT event notifications |
+| `da_event_notification_processing_exec_success_count` | `WldtCounter` | Successful event notification processing |
+| `da_event_notification_processing_exec_error_count` | `WldtCounter` | Failed event notification processing |
+
+#### AUGMENTATION metrics
+
+Requires `withAugmentationMonitoring()` in the configuration.
+
+| Metric name | Type | Tracks |
+|---|---|---|
+| `af_handler_count` | `WldtUpDownCounter` | Current number of registered `AugmentationFunctionHandler` instances |
+| `af_stateful_running_count` | `WldtUpDownCounter` | Current number of stateful AFs in the running state (manager-level) |
+| `af_handler_registered_stateless_count` | `WldtUpDownCounter` | Number of stateless functions registered in a handler |
+| `af_handler_registered_stateful_count` | `WldtUpDownCounter` | Number of stateful functions registered in a handler |
+| `af_handler_stateful_running_count` | `WldtUpDownCounter` | Number of stateful functions currently running in a handler |
+| `af_result_success_count` | `WldtCounter` | Successful AF result dispatches |
+| `af_result_error_count` | `WldtCounter` | Failed AF result dispatches |
+| `af_result_exec_time` | `WldtTimer` | Time to dispatch AF results |
+| `af_error_success_count` | `WldtCounter` | Successful AF error dispatches |
+| `af_error_error_count` | `WldtCounter` | Failed AF error dispatches |
+| `af_error_exec_time` | `WldtTimer` | Time to dispatch AF errors |
+| `af_registered_success_count` | `WldtCounter` | Successful AF registration events |
+| `af_registered_error_count` | `WldtCounter` | Failed AF registration events |
+| `af_registered_exec_time` | `WldtTimer` | Time to process AF registration events |
+| `af_unregistered_success_count` | `WldtCounter` | Successful AF unregistration events |
+| `af_unregistered_error_count` | `WldtCounter` | Failed AF unregistration events |
+| `af_unregistered_exec_time` | `WldtTimer` | Time to process AF unregistration events |
+| `af_function_stateless_exec_time` | `WldtTimer` | Execution time of a stateless function invocation |
+| `af_function_stateless_exec_success_count` | `WldtCounter` | Successful stateless function executions |
+| `af_function_stateless_exec_error_count` | `WldtCounter` | Failed stateless function executions |
+| `af_function_stateful_start_exec_time` | `WldtTimer` | Time to start a stateful function |
+| `af_function_stateful_start_success_count` | `WldtCounter` | Successful stateful function starts |
+| `af_function_stateful_start_error_count` | `WldtCounter` | Failed stateful function starts |
+| `af_function_stateful_stop_exec_time` | `WldtTimer` | Time to stop a stateful function |
+| `af_function_stateful_stop_success_count` | `WldtCounter` | Successful stateful function stops |
+| `af_function_stateful_stop_error_count` | `WldtCounter` | Failed stateful function stops |
+| `af_function_query_exec_time` | `WldtTimer` | Time taken by storage queries issued from a function |
+| `af_function_query_exec_success_count` | `WldtCounter` | Successful storage queries from a function |
+| `af_function_query_exec_error_count` | `WldtCounter` | Failed storage queries from a function |
+| `af_function_state_update_exec_time` | `WldtTimer` | Time to dispatch a DT state update to a stateful function |
+| `af_function_state_update_success_count` | `WldtCounter` | Successful state update dispatches to functions |
+| `af_function_state_update_error_count` | `WldtCounter` | Failed state update dispatches to functions |
+| `dt_lifecycle_value` | `WldtGauge` | Current DT lifecycle state as numeric ordinal |
+
+#### STORAGE metrics
+
+Requires `withStorageMonitoring()` in the configuration. `StorageManager`, `WldtStorage`, and `DefaultQueryManager` are all instrumented automatically — no developer action required.
+
+| Metric name | Type | Tracks |
+|---|---|---|
+| `af_storage_query_success_count` | `WldtCounter` | Successful storage queries |
+| `af_storage_query_error_count` | `WldtCounter` | Failed storage queries |
+| `af_storage_query_exec_time` | `WldtTimer` | Query execution time |
+| `af_storage_write_pa_description_success_count` | `WldtCounter` | Successful PA description write operations |
+| `af_storage_write_pa_description_error_count` | `WldtCounter` | Failed PA description write operations |
+| `af_storage_write_pa_description_exec_time` | `WldtTimer` | PA description write time |
+| `af_storage_write_dt_state_success_count` | `WldtCounter` | Successful DT state write operations |
+| `af_storage_write_dt_state_error_count` | `WldtCounter` | Failed DT state write operations |
+| `af_storage_write_dt_state_exec_time` | `WldtTimer` | DT state write time |
+| `af_storage_write_af_success_count` | `WldtCounter` | Successful augmentation function result write operations |
+| `af_storage_write_af_error_count` | `WldtCounter` | Failed augmentation function result write operations |
+| `af_storage_write_af_exec_time` | `WldtTimer` | Augmentation function result write time |
+| `af_storage_write_de_success_count` | `WldtCounter` | Successful digital event write operations |
+| `af_storage_write_de_error_count` | `WldtCounter` | Failed digital event write operations |
+| `af_storage_write_de_exec_time` | `WldtTimer` | Digital event write time |
+| `af_storage_write_pe_success_count` | `WldtCounter` | Successful physical event write operations |
+| `af_storage_write_pe_error_count` | `WldtCounter` | Failed physical event write operations |
+| `af_storage_write_pe_exec_time` | `WldtTimer` | Physical event write time |
+| `af_storage_write_lifecycle_event_success_count` | `WldtCounter` | Successful lifecycle event write operations |
+| `af_storage_write_lifecycle_event_error_count` | `WldtCounter` | Failed lifecycle event write operations |
+| `af_storage_write_lifecycle_event_exec_time` | `WldtTimer` | Lifecycle event write time |
+
+---
+
+### Augmentation Function Monitoring Integration
+
+Augmentation functions participate in the monitoring system through the `AugmentationFunction` base class, which provides built-in monitoring support.
+
+#### Automatic injection
+
+When a function is registered with an `AugmentationFunctionHandler`, the handler automatically injects the `MonitoringInterface` by calling `setMonitoringInterface(monitoringInterface, digitalTwinId)`. Developers do not call this method directly.
+
+After injection, three protected fields are available to subclasses:
+
+| Field | Type | Value |
+|---|---|---|
+| `monitoringInterface` | `MonitoringInterface` | The shared monitoring interface of the owning DT |
+| `digitalTwinId` | `String` | The owning DT's unique id |
+| `metricsNamespace` | `String` | Set to `CoreMonitoringUtils.buildCoreNamespace()` (`"core"`) |
+
+#### Registering custom function-level metrics
+
+Override `handleMetricsRegistration()` to register function-specific metrics at injection time. This method is called automatically after `setMonitoringInterface()` completes.
+
+```java
+public class MyStatelessFunction extends StatelessAugmentationFunction {
+
+    private static final String MY_METRIC = "my_custom_exec_time";
+
+    public MyStatelessFunction(String id) {
+        super(id, "MyFunction", AugmentationFunctionType.STATELESS);
+    }
+
+    @Override
+    protected void handleMetricsRegistration() {
+        if (monitoringInterface != null && monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION)) {
+            Map<String, Object> meta = new HashMap<>();
+            meta.put(METRIC_METADATA_AF_FUNCTION_ID_KEY, getId());
+            monitoringInterface.registerMetric(
+                    new WldtTimer(digitalTwinId, metricsNamespace, MY_METRIC,
+                            WldtMetricComponent.AUGMENTATION, meta));
+        }
+    }
+
+    @Override
+    public AugmentationFunctionResult execute(AugmentationFunctionRequest request,
+                                              AugmentationFunctionContext context) {
+        long start = System.currentTimeMillis();
+        // ... function logic ...
+        monitoringInterface.updateTimerSince(metricsNamespace, MY_METRIC, start);
+        return new AugmentationFunctionResult(...);
+    }
+}
+```
+
+#### Tagging metrics with function id
+
+`AugmentationFunction.METRIC_METADATA_AF_FUNCTION_ID_KEY` (`"af_function_id"`) is a standard metadata key for tagging function-level metrics with the function's unique id. Use it when registering custom metrics so that metrics from different function instances can be distinguished in the handler.
+
+```java
+Map<String, Object> meta = Collections.singletonMap(
+        AugmentationFunction.METRIC_METADATA_AF_FUNCTION_ID_KEY, getId());
+
+monitoringInterface.registerMetric(
+        new WldtTimer(digitalTwinId, metricsNamespace, "my_exec_time",
+                WldtMetricComponent.AUGMENTATION, meta));
+```
+
+In the handler, retrieve the tag from the snapshot:
+
+```java
+@Override
+public void onMetricUpdated(WldtMetricComponent component, WldtMetric metric) {
+    if (component == WldtMetricComponent.AUGMENTATION) {
+        String functionId = (String) metric.getMetadata()
+                .get(AugmentationFunction.METRIC_METADATA_AF_FUNCTION_ID_KEY);
+        // use functionId to route the metric to the right Prometheus label, etc.
+    }
+}
 ```
