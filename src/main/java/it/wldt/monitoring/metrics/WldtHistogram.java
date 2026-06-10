@@ -197,13 +197,18 @@ public class WldtHistogram extends WldtMetric {
         this.windowCount = source.windowCount;
         this.initialized = source.initialized;
         this.lastUpdatedMs = source.lastUpdatedMs;
+        source.copyInstanceIdTo(this);
     }
 
     @Override
     public synchronized WldtHistogram copy() { return new WldtHistogram(this); }
 
     @Override
-    public WldtHistogram emptySnapshot() { return new WldtHistogram(getDigitalTwinId(), getNamespace(), getName(), getComponent(), getMetadata()); }
+    public WldtHistogram emptySnapshot() {
+        WldtHistogram s = new WldtHistogram(getDigitalTwinId(), getNamespace(), getName(), getComponent(), getMetadata());
+        copyInstanceIdTo(s);
+        return s;
+    }
 
     // --- Current-window accessors ---
 

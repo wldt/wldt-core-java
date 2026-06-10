@@ -1,5 +1,11 @@
 package it.wldt.monitoring.prometheus;
 
+import it.wldt.augmentation.handler.AugmentationFunctionHandler;
+import it.wldt.augmentation.handler.DefaultAugmentationFunctionHandler;
+import it.wldt.augmentation.stateless.function.RandomNumberAugmentationFunction;
+import it.wldt.storage.augmentation.function.StorageTestErrorStatefulAugmentationFunction;
+import it.wldt.storage.augmentation.function.StorageTestStatefulAugmentationFunction;
+import it.wldt.augmentation.stateless.generic.GenericResultAugmentationDigitalTwinModel;
 import it.wldt.core.engine.DigitalTwin;
 import it.wldt.core.engine.DigitalTwinEngine;
 import it.wldt.monitoring.MonitoringInterfaceConfiguration;
@@ -8,7 +14,11 @@ import it.wldt.process.digital.DemoDigitalAdapter;
 import it.wldt.process.digital.DemoDigitalAdapterConfiguration;
 import it.wldt.process.physical.DemoPhysicalAdapter;
 import it.wldt.process.physical.DemoPhysicalAdapterConfiguration;
-import it.wldt.process.shadowing.DemoDigitalTwinModel;
+import it.wldt.storage.DefaultWldtStorage;
+import it.wldt.storage.query.QueryRequest;
+import it.wldt.storage.query.QueryRequestType;
+import it.wldt.storage.query.QueryResourceType;
+import it.wldt.storage.query.QueryResult;
 import it.wldt.utils.SharedTestMetrics;
 
 /**
@@ -24,6 +34,9 @@ import it.wldt.utils.SharedTestMetrics;
 public class PrometheusMonitoringInterfaceExample {
 
     private static final String DT_ID = "dt-example-1";
+
+    private static AugmentationFunctionHandler augHandler;
+    private static GenericResultAugmentationDigitalTwinModel dtModel;
 
     public static void main(String[] args) throws Exception {
 
@@ -92,6 +105,20 @@ public class PrometheusMonitoringInterfaceExample {
 
         handler.start();
 
+        // Wait for DT model to subscribe to augmentation events, then fire one
+        // unregister+re-register cycle to populate af_unregistered_* and af_registered_* metrics.
+        Thread.sleep(500);
+        System.out.println("Unregistering and re-registering RandomNumber function to populate af_unregistered/af_registered metrics...");
+        augHandler.unRegisterAugmentationFunction(RandomNumberAugmentationFunction.FUNCTION_ID);
+        augHandler.registerAugmentationFunction(new RandomNumberAugmentationFunction());
+        System.out.println("Done.");
+
+        // Small delay before starting stateful AFs.
+        Thread.sleep(500);
+
+        // Start ALL stateful AFs together so they run while PA data is flowing in.
+        startAllStatefulFunctions();
+
         // Wait for the physical adapter to finish publishing all property updates,
         // events, and relationship changes before triggering digital actions.
         long waitMs = DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS
@@ -102,12 +129,19 @@ public class PrometheusMonitoringInterfaceExample {
         System.out.println("Waiting " + waitMs + " ms for PA events to complete...");
         Thread.sleep(waitMs);
 
+        // Stop ALL stateful AFs together.
+        stopAllStatefulFunctions();
+
         // Trigger digital actions to generate DT_MODEL and PHYSICAL_ADAPTER action metrics
         System.out.println("Invoking digital actions...");
         digitalAdapter.invokeAction(DemoPhysicalAdapter.SWITCH_ON_ACTION_KEY, "ON");
         Thread.sleep(2000);
         digitalAdapter.invokeAction(DemoPhysicalAdapter.SWITCH_OFF_ACTION_KEY, "OFF");
         Thread.sleep(2000);
+
+        System.out.println("Running storage query to populate query metrics...");
+        runStorageQuery(digitalAdapter);
+        Thread.sleep(1000);
 
         System.out.println("All events processed. Scrape " +
                 "http://localhost:" + port + "/metrics to observe DT metrics.");
@@ -154,6 +188,14 @@ public class PrometheusMonitoringInterfaceExample {
 
         handler.start();
 
+        System.out.println("Unregistering and re-registering RandomNumber function to populate af_unregistered/af_registered metrics...");
+        augHandler.unRegisterAugmentationFunction(RandomNumberAugmentationFunction.FUNCTION_ID);
+        augHandler.registerAugmentationFunction(new RandomNumberAugmentationFunction());
+        System.out.println("Done.");
+
+        // Start ALL stateful AFs together so they run while PA data is flowing in.
+        startAllStatefulFunctions();
+
         long waitMs = DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS
                 + (DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES
                    + DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_EVENT_UPDATES)
@@ -162,11 +204,18 @@ public class PrometheusMonitoringInterfaceExample {
         System.out.println("Waiting " + waitMs + " ms for PA events to complete...");
         Thread.sleep(waitMs);
 
+        // Stop ALL stateful AFs together.
+        stopAllStatefulFunctions();
+
         System.out.println("Invoking digital actions...");
         digitalAdapter.invokeAction(DemoPhysicalAdapter.SWITCH_ON_ACTION_KEY, "ON");
         Thread.sleep(2000);
         digitalAdapter.invokeAction(DemoPhysicalAdapter.SWITCH_OFF_ACTION_KEY, "OFF");
         Thread.sleep(2000);
+
+        System.out.println("Running storage query to populate query metrics...");
+        runStorageQuery(digitalAdapter);
+        Thread.sleep(1000);
 
         System.out.println("All events processed. Keeping handler alive for 30 s...");
         Thread.sleep(30_000);
@@ -182,8 +231,10 @@ public class PrometheusMonitoringInterfaceExample {
     /**
      * Builds and starts the Digital Twin with the demo adapter stack, wiring
      * the given Prometheus handler to the DT's MonitoringInterface before start.
-     * The {@code digitalAdapter} instance is created externally so the caller
-     * can invoke actions on it after the DT is running.
+     * All augmentation functions are registered before {@code engine.startDigitalTwin()} so
+     * the handler holds a full list when the DT model starts, populating {@code af_list_registered_*}.
+     * After start, callers perform an unregister+re-register cycle to populate
+     * {@code af_unregistered_*} and {@code af_registered_*} while the model is subscribed.
      */
     private static DigitalTwinEngine startDt(PrometheusMonitoringInterfaceHandler handler,
                                              DemoDigitalAdapter digitalAdapter)
@@ -191,7 +242,8 @@ public class PrometheusMonitoringInterfaceExample {
 
         DigitalTwinEngine engine = new DigitalTwinEngine();
 
-        DigitalTwin dt = new DigitalTwin(DT_ID, new DemoDigitalTwinModel());
+        dtModel = new GenericResultAugmentationDigitalTwinModel();
+        DigitalTwin dt = new DigitalTwin(DT_ID, dtModel);
 
         dt.addPhysicalAdapter(
                 new DemoPhysicalAdapter(
@@ -202,16 +254,30 @@ public class PrometheusMonitoringInterfaceExample {
 
         dt.addDigitalAdapter(digitalAdapter);
 
+        dt.getStorageManager().putStorage(new DefaultWldtStorage(DT_ID + "-storage", true));
+
+        augHandler = new DefaultAugmentationFunctionHandler(DT_ID + "-aug-handler");
+        dt.getAugmentationManager().addAugmentationFunctionHandler(augHandler);
+
+        // Register all functions before start so the handler holds a full list when
+        // DigitalTwinModel.startHandlingAugmentationFunction() runs and fires af_list_registered_*.
+        augHandler.registerAugmentationFunction(new RandomNumberAugmentationFunction());
+        augHandler.registerAugmentationFunction(new StorageTestStatefulAugmentationFunction());
+        augHandler.registerAugmentationFunction(new StorageTestErrorStatefulAugmentationFunction());
+        augHandler.registerAugmentationFunction(new PrometheusTestStatefulAugmentationFunction());
+
         dt.getMonitoringInterface().setConfiguration(
                 new MonitoringInterfaceConfiguration.Builder()
                         .withDtModelMonitoring()
                         .withPhysicalAdapterMonitoring()
                         .withDigitalAdapterMonitoring()
+                        .withAugmentationMonitoring()
+                        .withStorageMonitoring()
                         .build());
 
         dt.getMonitoringInterface().setHandler(handler);
 
-        // Required by DemoDigitalTwinModel — it records events into SharedTestMetrics
+        // Required by GenericResultAugmentationDigitalTwinModel — it records events into SharedTestMetrics
         SharedTestMetrics.getInstance().registerDigitalTwin(DT_ID);
 
         engine.addDigitalTwin(dt);
@@ -219,6 +285,47 @@ public class PrometheusMonitoringInterfaceExample {
 
         System.out.println("Digital Twin '" + DT_ID + "' started.");
         return engine;
+    }
+
+    /**
+     * Starts all three stateful AFs simultaneously via the DT model so that af_stateful_start_*
+     * metrics fire for all of them while PA data is flowing in.
+     */
+    private static void startAllStatefulFunctions() throws Exception {
+        if (dtModel == null) return;
+        System.out.println("Starting all stateful AFs simultaneously via DT model...");
+        dtModel.triggerStartAugmentationFunction(StorageTestStatefulAugmentationFunction.FUNCTION_ID);
+        dtModel.triggerStartAugmentationFunction(StorageTestErrorStatefulAugmentationFunction.FUNCTION_ID);
+        dtModel.triggerStartAugmentationFunction(PrometheusTestStatefulAugmentationFunction.FUNCTION_ID);
+        System.out.println("All stateful AFs started.");
+    }
+
+    /**
+     * Stops all three stateful AFs simultaneously via the DT model so that af_stateful_stop_*
+     * metrics fire for all of them.
+     */
+    private static void stopAllStatefulFunctions() throws Exception {
+        if (dtModel == null) return;
+        System.out.println("Stopping all stateful AFs simultaneously via DT model...");
+        dtModel.triggerStopAugmentationFunction(StorageTestStatefulAugmentationFunction.FUNCTION_ID);
+        dtModel.triggerStopAugmentationFunction(StorageTestErrorStatefulAugmentationFunction.FUNCTION_ID);
+        dtModel.triggerStopAugmentationFunction(PrometheusTestStatefulAugmentationFunction.FUNCTION_ID);
+        System.out.println("All stateful AFs stopped.");
+    }
+
+    private static void runStorageQuery(DemoDigitalAdapter digitalAdapter) {
+        try {
+            QueryRequest query = new QueryRequest();
+            query.setResourceType(QueryResourceType.DIGITAL_TWIN_STATE);
+            query.setRequestType(QueryRequestType.LAST_VALUE);
+            QueryResult<?> result = digitalAdapter.testSyncQuery(query);
+            if (result != null && result.isSuccessful())
+                System.out.println("Storage query OK — results: " + result.getTotalResults());
+            else
+                System.out.println("Storage query failed: " + (result != null ? result.getErrorMessage() : "null result"));
+        } catch (Exception e) {
+            System.err.println("Storage query exception: " + e.getMessage());
+        }
     }
 
     private static void stopDt(DigitalTwinEngine engine) throws Exception {

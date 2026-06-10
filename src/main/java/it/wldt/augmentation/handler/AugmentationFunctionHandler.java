@@ -148,6 +148,11 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
     private String metricsNamespace = null;
 
     /**
+     * Instance id used as inner registry key for this handler's metrics.
+     */
+    private String metricsInstanceId = null;
+
+    /**
      * Constructor of the AugmentationFunctionHandler class.
      * It is protected to allow the extension of the class and the creation of custom Augmentation Managers.
      */
@@ -181,9 +186,9 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
             if (this.monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION)) {
                 for (AugmentationFunction f : augmentationFunctionHashMap.values()) {
                     if (f.getType().equals(AugmentationFunctionType.STATELESS))
-                        this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.AF_HANDLER_REGISTERED_STATELESS_COUNT);
+                        this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.AF_HANDLER_REGISTERED_STATELESS_COUNT, metricsInstanceId);
                     else if (f.getType().equals(AugmentationFunctionType.STATEFUL))
-                        this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.AF_HANDLER_REGISTERED_STATEFUL_COUNT);
+                        this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.AF_HANDLER_REGISTERED_STATEFUL_COUNT, metricsInstanceId);
                 }
             }
             // Propagate to already-registered functions
@@ -203,15 +208,16 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
             return;
 
         this.metricsNamespace = CoreMonitoringUtils.buildCoreNamespace();
+        this.metricsInstanceId = id;
 
         // Tag all handler metrics with the handler id so consumers can distinguish per-handler data
         Map<String, Object> metricMetadata = new HashMap<String, Object>() {{
             put(METRIC_METADATA_AF_HANDLER_ID_KEY, id);
         }};
 
-        this.monitoringInterface.registerMetric(new WldtUpDownCounter(this.digitalTwinId, this.metricsNamespace, CoreMonitoringUtils.AF_HANDLER_STATEFUL_RUNNING_COUNT, WldtMetricComponent.AUGMENTATION, metricMetadata));
-        this.monitoringInterface.registerMetric(new WldtUpDownCounter(this.digitalTwinId, this.metricsNamespace, CoreMonitoringUtils.AF_HANDLER_REGISTERED_STATELESS_COUNT, WldtMetricComponent.AUGMENTATION, metricMetadata));
-        this.monitoringInterface.registerMetric(new WldtUpDownCounter(this.digitalTwinId, this.metricsNamespace, CoreMonitoringUtils.AF_HANDLER_REGISTERED_STATEFUL_COUNT, WldtMetricComponent.AUGMENTATION, metricMetadata));
+        this.monitoringInterface.registerMetric(new WldtUpDownCounter(this.digitalTwinId, this.metricsNamespace, CoreMonitoringUtils.AF_HANDLER_STATEFUL_RUNNING_COUNT, WldtMetricComponent.AUGMENTATION, metricMetadata).withInstanceId(metricsInstanceId));
+        this.monitoringInterface.registerMetric(new WldtUpDownCounter(this.digitalTwinId, this.metricsNamespace, CoreMonitoringUtils.AF_HANDLER_REGISTERED_STATELESS_COUNT, WldtMetricComponent.AUGMENTATION, metricMetadata).withInstanceId(metricsInstanceId));
+        this.monitoringInterface.registerMetric(new WldtUpDownCounter(this.digitalTwinId, this.metricsNamespace, CoreMonitoringUtils.AF_HANDLER_REGISTERED_STATEFUL_COUNT, WldtMetricComponent.AUGMENTATION, metricMetadata).withInstanceId(metricsInstanceId));
     }
 
     /**
@@ -589,9 +595,9 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
             // Track registered function count by type
             if (monitoringInterface != null && monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION)) {
                 if (augmentationFunction.getType().equals(AugmentationFunctionType.STATELESS))
-                    monitoringInterface.increaseCounter(metricsNamespace, CoreMonitoringUtils.AF_HANDLER_REGISTERED_STATELESS_COUNT);
+                    monitoringInterface.increaseCounter(metricsNamespace, CoreMonitoringUtils.AF_HANDLER_REGISTERED_STATELESS_COUNT, metricsInstanceId);
                 else if (augmentationFunction.getType().equals(AugmentationFunctionType.STATEFUL))
-                    monitoringInterface.increaseCounter(metricsNamespace, CoreMonitoringUtils.AF_HANDLER_REGISTERED_STATEFUL_COUNT);
+                    monitoringInterface.increaseCounter(metricsNamespace, CoreMonitoringUtils.AF_HANDLER_REGISTERED_STATEFUL_COUNT, metricsInstanceId);
             }
 
             // Call the handler for the registration of the Augmentation Function
@@ -634,9 +640,9 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
         // Track registered function count by type
         if (monitoringInterface != null && monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION)) {
             if (augmentationFunction.getType().equals(AugmentationFunctionType.STATELESS))
-                monitoringInterface.decreaseCounter(metricsNamespace, CoreMonitoringUtils.AF_HANDLER_REGISTERED_STATELESS_COUNT);
+                monitoringInterface.decreaseCounter(metricsNamespace, CoreMonitoringUtils.AF_HANDLER_REGISTERED_STATELESS_COUNT, metricsInstanceId);
             else if (augmentationFunction.getType().equals(AugmentationFunctionType.STATEFUL))
-                monitoringInterface.decreaseCounter(metricsNamespace, CoreMonitoringUtils.AF_HANDLER_REGISTERED_STATEFUL_COUNT);
+                monitoringInterface.decreaseCounter(metricsNamespace, CoreMonitoringUtils.AF_HANDLER_REGISTERED_STATEFUL_COUNT, metricsInstanceId);
         }
 
         try{
@@ -726,7 +732,7 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
             handleAugmentationFunctionStart(statefulAugmentationFunction, augmentationFunctionRequest);
 
             if (monitoringInterface != null && monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION))
-                monitoringInterface.increaseCounter(metricsNamespace, CoreMonitoringUtils.AF_HANDLER_STATEFUL_RUNNING_COUNT);
+                monitoringInterface.increaseCounter(metricsNamespace, CoreMonitoringUtils.AF_HANDLER_STATEFUL_RUNNING_COUNT, metricsInstanceId);
         } catch (Exception e){
             throw new AugmentationFunctionException(String.format("Error starting Augmentation Function with id %s: %s", augmentationFunctionId, e.getLocalizedMessage()));
         }
@@ -772,7 +778,7 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
             handleAugmentationFunctionStop(statefulAugmentationFunction, augmentationFunctionRequest);
 
             if (monitoringInterface != null && monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION))
-                monitoringInterface.decreaseCounter(metricsNamespace, CoreMonitoringUtils.AF_HANDLER_STATEFUL_RUNNING_COUNT);
+                monitoringInterface.decreaseCounter(metricsNamespace, CoreMonitoringUtils.AF_HANDLER_STATEFUL_RUNNING_COUNT, metricsInstanceId);
         } catch (Exception e){
             throw new AugmentationFunctionException(String.format("Error stopping Augmentation Function with id %s: %s", augmentationFunctionId, e.getLocalizedMessage()));
         }

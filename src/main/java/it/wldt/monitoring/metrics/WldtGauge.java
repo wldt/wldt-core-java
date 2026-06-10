@@ -124,13 +124,18 @@ public class WldtGauge extends WldtMetric {
         this.updateCount   = source.updateCount;
         this.initialized   = source.initialized;
         this.lastUpdatedMs = source.lastUpdatedMs;
+        source.copyInstanceIdTo(this);
     }
 
     @Override
     public synchronized WldtGauge copy() { return new WldtGauge(this); }
 
     @Override
-    public WldtGauge emptySnapshot() { return new WldtGauge(getDigitalTwinId(), getNamespace(), getName(), getComponent(), getMetadata()); }
+    public WldtGauge emptySnapshot() {
+        WldtGauge s = new WldtGauge(getDigitalTwinId(), getNamespace(), getName(), getComponent(), getMetadata());
+        copyInstanceIdTo(s);
+        return s;
+    }
 
     /** @return current observed value */
     public synchronized double getValue()          { return value; }

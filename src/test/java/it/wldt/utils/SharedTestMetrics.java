@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * @author Marco Picone, Ph.D. - picone.m@gmail.com
@@ -117,10 +118,10 @@ public class SharedTestMetrics {
         this.augmentationFunctionRegistrationCallbackMap.put(digitalTwinId, new HashMap<>());
         this.augmentationFunctionUnRegistrationCallbackMap.put(digitalTwinId, new HashMap<>());
         this.augmentationFunctionErrorNotificationMap.put(digitalTwinId, new HashMap<>());
-        this.monitoringRegisteredMetricMap.put(digitalTwinId,    new ArrayList<>());
-        this.monitoringRegisteredComponentMap.put(digitalTwinId, new ArrayList<>());
-        this.monitoringUpdatedMetricMap.put(digitalTwinId,       new ArrayList<>());
-        this.monitoringUpdatedComponentMap.put(digitalTwinId,    new ArrayList<>());
+        this.monitoringRegisteredMetricMap.put(digitalTwinId,    new CopyOnWriteArrayList<WldtMetric>());
+        this.monitoringRegisteredComponentMap.put(digitalTwinId, new CopyOnWriteArrayList<WldtMetricComponent>());
+        this.monitoringUpdatedMetricMap.put(digitalTwinId,       new CopyOnWriteArrayList<WldtMetric>());
+        this.monitoringUpdatedComponentMap.put(digitalTwinId,    new CopyOnWriteArrayList<WldtMetricComponent>());
     }
 
     public void unRegisterDigitalTwin(String digitalTwinId){

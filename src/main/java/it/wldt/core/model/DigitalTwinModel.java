@@ -419,6 +419,13 @@ public abstract class DigitalTwinModel implements WldtEventListener {
                     CoreMonitoringUtils.AF_STATEFUL_START_ERROR_COUNT,
                     WldtMetricComponent.DT_MODEL));
 
+            // Register Execution Time Metrics - Stateful Start
+            this.monitoringInterface.registerMetric(new WldtTimer(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.AF_STATEFUL_START_EXEC_TIME,
+                    WldtMetricComponent.DT_MODEL));
+
             // Register Counter Metric(s) - Stateful Stop
             this.monitoringInterface.registerMetric(new WldtCounter(
                     this.digitalTwinStateManager.getDigitalTwinId(),
@@ -430,6 +437,13 @@ public abstract class DigitalTwinModel implements WldtEventListener {
                     this.digitalTwinStateManager.getDigitalTwinId(),
                     this.metricsNamespace,
                     CoreMonitoringUtils.AF_STATEFUL_STOP_ERROR_COUNT,
+                    WldtMetricComponent.DT_MODEL));
+
+            // Register Execution Time Metrics - Stateful Stop
+            this.monitoringInterface.registerMetric(new WldtTimer(
+                    this.digitalTwinStateManager.getDigitalTwinId(),
+                    this.metricsNamespace,
+                    CoreMonitoringUtils.AF_STATEFUL_STOP_EXEC_TIME,
                     WldtMetricComponent.DT_MODEL));
         }
 
@@ -1286,6 +1300,9 @@ public abstract class DigitalTwinModel implements WldtEventListener {
                 logger.error(errorMessage);
                 this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.AF_STATEFUL_START_ERROR_COUNT);
             }
+            finally {
+                this.monitoringInterface.updateTimerSince(this.metricsNamespace, CoreMonitoringUtils.AF_STATEFUL_START_EXEC_TIME, startMs);
+            }
         }
 
     }
@@ -1423,6 +1440,9 @@ public abstract class DigitalTwinModel implements WldtEventListener {
                 String errorMessage = String.format("Publish Event Function Error Publishing Augmentation Function Stop Request: %s", e.getLocalizedMessage());
                 logger.error(errorMessage);
                 this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.AF_STATEFUL_STOP_ERROR_COUNT);
+            }
+            finally {
+                this.monitoringInterface.updateTimerSince(this.metricsNamespace, CoreMonitoringUtils.AF_STATEFUL_STOP_EXEC_TIME, startMs);
             }
         }
     }

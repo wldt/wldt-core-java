@@ -128,18 +128,18 @@ public abstract class StatefulAugmentationFunction extends AugmentationFunction{
         if (monitoringInterface == null || !monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION))
             return;
         Map<String, Object> metadata = new HashMap<String, Object>() {{ put(METRIC_METADATA_AF_FUNCTION_ID_KEY, getId()); }};
-        monitoringInterface.registerMetric(new WldtTimer(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATEFUL_START_EXEC_TIME, WldtMetricComponent.AUGMENTATION, metadata));
-        monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATEFUL_START_SUCCESS_COUNT, WldtMetricComponent.AUGMENTATION, metadata));
-        monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATEFUL_START_ERROR_COUNT, WldtMetricComponent.AUGMENTATION, metadata));
-        monitoringInterface.registerMetric(new WldtTimer(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATEFUL_STOP_EXEC_TIME, WldtMetricComponent.AUGMENTATION, metadata));
-        monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATEFUL_STOP_SUCCESS_COUNT, WldtMetricComponent.AUGMENTATION, metadata));
-        monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATEFUL_STOP_ERROR_COUNT, WldtMetricComponent.AUGMENTATION, metadata));
-        monitoringInterface.registerMetric(new WldtTimer(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATE_UPDATE_EXEC_TIME, WldtMetricComponent.AUGMENTATION, metadata));
-        monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATE_UPDATE_SUCCESS_COUNT, WldtMetricComponent.AUGMENTATION, metadata));
-        monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATE_UPDATE_ERROR_COUNT, WldtMetricComponent.AUGMENTATION, metadata));
-        monitoringInterface.registerMetric(new WldtTimer(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_QUERY_EXEC_TIME, WldtMetricComponent.AUGMENTATION, metadata));
-        monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_QUERY_EXEC_SUCCESS_COUNT, WldtMetricComponent.AUGMENTATION, metadata));
-        monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_QUERY_EXEC_ERROR_COUNT, WldtMetricComponent.AUGMENTATION, metadata));
+        monitoringInterface.registerMetric(new WldtTimer(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATEFUL_START_EXEC_TIME, WldtMetricComponent.AUGMENTATION, metadata).withInstanceId(metricsInstanceId));
+        monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATEFUL_START_SUCCESS_COUNT, WldtMetricComponent.AUGMENTATION, metadata).withInstanceId(metricsInstanceId));
+        monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATEFUL_START_ERROR_COUNT, WldtMetricComponent.AUGMENTATION, metadata).withInstanceId(metricsInstanceId));
+        monitoringInterface.registerMetric(new WldtTimer(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATEFUL_STOP_EXEC_TIME, WldtMetricComponent.AUGMENTATION, metadata).withInstanceId(metricsInstanceId));
+        monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATEFUL_STOP_SUCCESS_COUNT, WldtMetricComponent.AUGMENTATION, metadata).withInstanceId(metricsInstanceId));
+        monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATEFUL_STOP_ERROR_COUNT, WldtMetricComponent.AUGMENTATION, metadata).withInstanceId(metricsInstanceId));
+        monitoringInterface.registerMetric(new WldtTimer(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATE_UPDATE_EXEC_TIME, WldtMetricComponent.AUGMENTATION, metadata).withInstanceId(metricsInstanceId));
+        monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATE_UPDATE_SUCCESS_COUNT, WldtMetricComponent.AUGMENTATION, metadata).withInstanceId(metricsInstanceId));
+        monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATE_UPDATE_ERROR_COUNT, WldtMetricComponent.AUGMENTATION, metadata).withInstanceId(metricsInstanceId));
+        monitoringInterface.registerMetric(new WldtTimer(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_QUERY_EXEC_TIME, WldtMetricComponent.AUGMENTATION, metadata).withInstanceId(metricsInstanceId));
+        monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_QUERY_EXEC_SUCCESS_COUNT, WldtMetricComponent.AUGMENTATION, metadata).withInstanceId(metricsInstanceId));
+        monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_QUERY_EXEC_ERROR_COUNT, WldtMetricComponent.AUGMENTATION, metadata).withInstanceId(metricsInstanceId));
     }
 
     /**
@@ -160,14 +160,14 @@ public abstract class StatefulAugmentationFunction extends AugmentationFunction{
             this.start(augmentationFunctionRequest);
             this.isRunning = true;
             if (monitoringInterface != null && monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION))
-                monitoringInterface.increaseCounter(metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATEFUL_START_SUCCESS_COUNT);
+                monitoringInterface.increaseCounter(metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATEFUL_START_SUCCESS_COUNT, metricsInstanceId);
         } catch (Exception e) {
             if (monitoringInterface != null && monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION))
-                monitoringInterface.increaseCounter(metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATEFUL_START_ERROR_COUNT);
+                monitoringInterface.increaseCounter(metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATEFUL_START_ERROR_COUNT, metricsInstanceId);
             throw e;
         } finally {
             if (monitoringInterface != null && monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION))
-                monitoringInterface.updateTimerSince(metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATEFUL_START_EXEC_TIME, startMs);
+                monitoringInterface.updateTimerSince(metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATEFUL_START_EXEC_TIME, startMs, metricsInstanceId);
         }
     }
 
@@ -189,14 +189,14 @@ public abstract class StatefulAugmentationFunction extends AugmentationFunction{
             this.stop(augmentationFunctionRequest);
             this.isRunning = false;
             if (monitoringInterface != null && monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION))
-                monitoringInterface.increaseCounter(metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATEFUL_STOP_SUCCESS_COUNT);
+                monitoringInterface.increaseCounter(metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATEFUL_STOP_SUCCESS_COUNT, metricsInstanceId);
         } catch (Exception e) {
             if (monitoringInterface != null && monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION))
-                monitoringInterface.increaseCounter(metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATEFUL_STOP_ERROR_COUNT);
+                monitoringInterface.increaseCounter(metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATEFUL_STOP_ERROR_COUNT, metricsInstanceId);
             throw e;
         } finally {
             if (monitoringInterface != null && monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION))
-                monitoringInterface.updateTimerSince(metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATEFUL_STOP_EXEC_TIME, startMs);
+                monitoringInterface.updateTimerSince(metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATEFUL_STOP_EXEC_TIME, startMs, metricsInstanceId);
         }
     }
 
@@ -229,14 +229,14 @@ public abstract class StatefulAugmentationFunction extends AugmentationFunction{
         try {
             onStateUpdate(digitalTwinState);
             if (monitoringInterface != null && monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION))
-                monitoringInterface.increaseCounter(metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATE_UPDATE_SUCCESS_COUNT);
+                monitoringInterface.increaseCounter(metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATE_UPDATE_SUCCESS_COUNT, metricsInstanceId);
         } catch (Exception e) {
             if (monitoringInterface != null && monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION))
-                monitoringInterface.increaseCounter(metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATE_UPDATE_ERROR_COUNT);
+                monitoringInterface.increaseCounter(metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATE_UPDATE_ERROR_COUNT, metricsInstanceId);
             throw e;
         } finally {
             if (monitoringInterface != null && monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION))
-                monitoringInterface.updateTimerSince(metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATE_UPDATE_EXEC_TIME, startMs);
+                monitoringInterface.updateTimerSince(metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATE_UPDATE_EXEC_TIME, startMs, metricsInstanceId);
         }
     }
 
@@ -250,8 +250,9 @@ public abstract class StatefulAugmentationFunction extends AugmentationFunction{
         if (monitoringInterface != null && monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION)) {
             monitoringInterface.increaseCounter(metricsNamespace,
                     success ? CoreMonitoringUtils.AF_FUNCTION_QUERY_EXEC_SUCCESS_COUNT
-                            : CoreMonitoringUtils.AF_FUNCTION_QUERY_EXEC_ERROR_COUNT);
-            monitoringInterface.updateTimerSince(metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_QUERY_EXEC_TIME, startMs);
+                            : CoreMonitoringUtils.AF_FUNCTION_QUERY_EXEC_ERROR_COUNT,
+                    metricsInstanceId);
+            monitoringInterface.updateTimerSince(metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_QUERY_EXEC_TIME, startMs, metricsInstanceId);
         }
     }
 

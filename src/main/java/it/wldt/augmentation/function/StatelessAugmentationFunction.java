@@ -124,9 +124,9 @@ public abstract class StatelessAugmentationFunction extends AugmentationFunction
         if (monitoringInterface == null || !monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION))
             return;
         Map<String, Object> metadata = new HashMap<String, Object>() {{ put(METRIC_METADATA_AF_FUNCTION_ID_KEY, getId()); }};
-        monitoringInterface.registerMetric(new WldtTimer(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATELESS_EXEC_TIME, WldtMetricComponent.AUGMENTATION, metadata));
-        monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATELESS_EXEC_SUCCESS_COUNT, WldtMetricComponent.AUGMENTATION, metadata));
-        monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATELESS_EXEC_ERROR_COUNT, WldtMetricComponent.AUGMENTATION, metadata));
+        monitoringInterface.registerMetric(new WldtTimer(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATELESS_EXEC_TIME, WldtMetricComponent.AUGMENTATION, metadata).withInstanceId(metricsInstanceId));
+        monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATELESS_EXEC_SUCCESS_COUNT, WldtMetricComponent.AUGMENTATION, metadata).withInstanceId(metricsInstanceId));
+        monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATELESS_EXEC_ERROR_COUNT, WldtMetricComponent.AUGMENTATION, metadata).withInstanceId(metricsInstanceId));
     }
 
     /**
@@ -153,15 +153,15 @@ public abstract class StatelessAugmentationFunction extends AugmentationFunction
                 results.getAugmentationFunctionError().setAugmentationFunctionRequestId(request.getRequestId());
             }
             if (monitoringInterface != null && monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION))
-                monitoringInterface.increaseCounter(metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATELESS_EXEC_SUCCESS_COUNT);
+                monitoringInterface.increaseCounter(metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATELESS_EXEC_SUCCESS_COUNT, metricsInstanceId);
             return results;
         } catch (Exception e) {
             if (monitoringInterface != null && monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION))
-                monitoringInterface.increaseCounter(metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATELESS_EXEC_ERROR_COUNT);
+                monitoringInterface.increaseCounter(metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATELESS_EXEC_ERROR_COUNT, metricsInstanceId);
             throw e;
         } finally {
             if (monitoringInterface != null && monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION))
-                monitoringInterface.updateTimerSince(metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATELESS_EXEC_TIME, startMs);
+                monitoringInterface.updateTimerSince(metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATELESS_EXEC_TIME, startMs, metricsInstanceId);
         }
     }
 

@@ -35,6 +35,13 @@ public abstract class WldtMetric {
     private final long timestampMs;
     private Map<String, Object> metadata;
 
+    /**
+     * Identifies the specific component instance that owns this metric (e.g. adapter id, function id).
+     * {@code null} for singleton components such as {@code DigitalTwinModel} and {@code AugmentationManager}.
+     * Used by the registry as the inner key in the two-level {@code Map<fullName, Map<instanceId, WldtMetric>>}.
+     */
+    private String instanceId = null;
+
     /** Epoch milliseconds of the most recent in-place mutation; equals timestampMs before any mutation. */
     protected volatile long lastUpdatedMs;
 
@@ -168,6 +175,33 @@ public abstract class WldtMetric {
 
     public String getDigitalTwinId() {
         return digitalTwinId;
+    }
+
+    /** @return the instance id of the component that owns this metric, or {@code null} for singletons */
+    public String getInstanceId() { return instanceId; }
+
+    /**
+     * Sets the instance id that identifies the specific component instance owning this metric.
+     * @param instanceId the instance identifier; {@code null} for singleton components
+     */
+    public void setInstanceId(String instanceId) { this.instanceId = instanceId; }
+
+    /**
+     * Fluent setter for {@link #setInstanceId(String)}.
+     * @param instanceId the instance identifier
+     * @return this metric, for chaining
+     */
+    public WldtMetric withInstanceId(String instanceId) {
+        this.instanceId = instanceId;
+        return this;
+    }
+
+    /**
+     * Copies this metric's {@code instanceId} into {@code target}.
+     * Called by copy constructors and {@code emptySnapshot()} implementations in subclasses.
+     */
+    protected void copyInstanceIdTo(WldtMetric target) {
+        target.instanceId = this.instanceId;
     }
 
     @Override

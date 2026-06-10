@@ -148,11 +148,17 @@ public class CoreMonitoringUtils {
 
     public static final String AF_STATEFUL_START_ERROR_COUNT = "af_stateful_start_error_count";
 
+    // Augmentation Function - DT Model Level - Stateful Start Execution Time
+
+    public static final String AF_STATEFUL_START_EXEC_TIME = "af_stateful_start_exec_time";
+
     // Augmentation Function - DT Model Level - Stateful Stop
 
     public static final String AF_STATEFUL_STOP_SUCCESS_COUNT = "af_stateful_stop_success_count";
 
     public static final String AF_STATEFUL_STOP_ERROR_COUNT = "af_stateful_stop_error_count";
+
+    public static final String AF_STATEFUL_STOP_EXEC_TIME = "af_stateful_stop_exec_time";
 
     // Augmentation Function - Function Level - Stateless Execution
     public static final String AF_FUNCTION_STATELESS_EXEC_TIME = "af_function_stateless_exec_time";
@@ -201,47 +207,47 @@ public class CoreMonitoringUtils {
 
     //Storage
 
-    public static final String STORAGE_QUERY_SUCCESS_COUNT = "af_storage_query_success_count";
+    public static final String STORAGE_QUERY_SUCCESS_COUNT = "storage_query_success_count";
 
-    public static final String STORAGE_QUERY_ERROR_COUNT = "af_storage_query_error_count";
+    public static final String STORAGE_QUERY_ERROR_COUNT = "storage_query_error_count";
 
-    public static final String STORAGE_QUERY_EXEC_TIME = "af_storage_query_exec_time";
+    public static final String STORAGE_QUERY_EXEC_TIME = "storage_query_exec_time";
 
-    public static final String STORAGE_WRITE_PHYSICAL_ASSET_DESCRIPTION_SUCCESS_COUNT = "af_storage_write_pa_description_success_count";
+    public static final String STORAGE_WRITE_PHYSICAL_ASSET_DESCRIPTION_SUCCESS_COUNT = "storage_write_pa_description_success_count";
 
-    public static final String STORAGE_WRITE_PHYSICAL_ASSET_DESCRIPTION_ERROR_COUNT = "af_storage_write_pa_description_error_count";
+    public static final String STORAGE_WRITE_PHYSICAL_ASSET_DESCRIPTION_ERROR_COUNT = "storage_write_pa_description_error_count";
 
-    public static final String STORAGE_WRITE_PHYSICAL_ASSET_DESCRIPTION_EXEC_TIME = "af_storage_write_pa_description_exec_time";
+    public static final String STORAGE_WRITE_PHYSICAL_ASSET_DESCRIPTION_EXEC_TIME = "storage_write_pa_description_exec_time";
 
-    public static final String STORAGE_WRITE_DIGITAL_TWIN_STATE_SUCCESS_COUNT = "af_storage_write_dt_state_success_count";
+    public static final String STORAGE_WRITE_DIGITAL_TWIN_STATE_SUCCESS_COUNT = "storage_write_dt_state_success_count";
 
-    public static final String STORAGE_WRITE_DIGITAL_TWIN_STATE_ERROR_COUNT = "af_storage_write_dt_state_error_count";
+    public static final String STORAGE_WRITE_DIGITAL_TWIN_STATE_ERROR_COUNT = "storage_write_dt_state_error_count";
 
-    public static final String STORAGE_WRITE_DIGITAL_TWIN_STATE_EXEC_TIME = "af_storage_write_dt_state_exec_time";
+    public static final String STORAGE_WRITE_DIGITAL_TWIN_STATE_EXEC_TIME = "storage_write_dt_state_exec_time";
 
-    public static final String STORAGE_WRITE_AUGMENTATION_FUNCTION_SUCCESS_COUNT = "af_storage_write_af_success_count";
+    public static final String STORAGE_WRITE_AUGMENTATION_FUNCTION_SUCCESS_COUNT = "storage_write_af_success_count";
 
-    public static final String STORAGE_WRITE_AUGMENTATION_FUNCTION_ERROR_COUNT = "af_storage_write_af_error_count";
+    public static final String STORAGE_WRITE_AUGMENTATION_FUNCTION_ERROR_COUNT = "storage_write_af_error_count";
 
-    public static final String STORAGE_WRITE_AUGMENTATION_FUNCTION_EXEC_TIME = "af_storage_write_af_exec_time";
+    public static final String STORAGE_WRITE_AUGMENTATION_FUNCTION_EXEC_TIME = "storage_write_af_exec_time";
 
-    public static final String STORAGE_WRITE_DIGITAL_EVENT_SUCCESS_COUNT = "af_storage_write_de_success_count";
+    public static final String STORAGE_WRITE_DIGITAL_EVENT_SUCCESS_COUNT = "storage_write_de_success_count";
 
-    public static final String STORAGE_WRITE_DIGITAL_EVENT_ERROR_COUNT = "af_storage_write_de_error_count";
+    public static final String STORAGE_WRITE_DIGITAL_EVENT_ERROR_COUNT = "storage_write_de_error_count";
 
-    public static final String STORAGE_WRITE_DIGITAL_EVENT_EXEC_TIME = "af_storage_write_de_exec_time";
+    public static final String STORAGE_WRITE_DIGITAL_EVENT_EXEC_TIME = "storage_write_de_exec_time";
 
-    public static final String STORAGE_WRITE_PHYSICAL_EVENT_SUCCESS_COUNT = "af_storage_write_pe_success_count";
+    public static final String STORAGE_WRITE_PHYSICAL_EVENT_SUCCESS_COUNT = "storage_write_pe_success_count";
 
-    public static final String STORAGE_WRITE_PHYSICAL_EVENT_ERROR_COUNT = "af_storage_write_pe_error_count";
+    public static final String STORAGE_WRITE_PHYSICAL_EVENT_ERROR_COUNT = "storage_write_pe_error_count";
 
-    public static final String STORAGE_WRITE_PHYSICAL_EVENT_EXEC_TIME = "af_storage_write_pe_exec_time";
+    public static final String STORAGE_WRITE_PHYSICAL_EVENT_EXEC_TIME = "storage_write_pe_exec_time";
 
-    public static final String STORAGE_WRITE_LIFECYCLE_EVENT_SUCCESS_COUNT = "af_storage_write_lifecycle_event_success_count";
+    public static final String STORAGE_WRITE_LIFECYCLE_EVENT_SUCCESS_COUNT = "storage_write_lifecycle_event_success_count";
 
-    public static final String STORAGE_WRITE_LIFECYCLE_EVENT_ERROR_COUNT = "af_storage_write_lifecycle_event_error_count";
+    public static final String STORAGE_WRITE_LIFECYCLE_EVENT_ERROR_COUNT = "storage_write_lifecycle_event_error_count";
 
-    public static final String STORAGE_WRITE_LIFECYCLE_EVENT_EXEC_TIME = "af_storage_write_lifecycle_event_exec_time";
+    public static final String STORAGE_WRITE_LIFECYCLE_EVENT_EXEC_TIME = "storage_write_lifecycle_event_exec_time";
 
     public static String buildCoreNamespace(){
         // Lowercase both DT id and dt module

@@ -86,6 +86,12 @@ public abstract class AugmentationFunction {
     protected String digitalTwinId = null;
 
     /**
+     * The instance id used as the registry inner key for this function's metrics.
+     * Set to {@link #getId()} in {@link #setMonitoringInterface}.
+     */
+    protected String metricsInstanceId = null;
+
+    /**
      * Constructor of the AugmentationFunction class with all the parameters.
      *
      * @param id the unique id of the augmentation function
@@ -229,6 +235,7 @@ public abstract class AugmentationFunction {
             this.monitoringInterface = monitoringInterface;
             this.digitalTwinId = digitalTwinId;
             this.metricsNamespace = CoreMonitoringUtils.buildCoreNamespace();
+            this.metricsInstanceId = getId();
             handleMetricsRegistration();
         }
     }

@@ -105,6 +105,11 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
      */
     private String metricsNamespace;
 
+    /**
+     * Instance id used as inner registry key for this adapter's metrics.
+     */
+    private String metricsInstanceId;
+
 
     private DigitalAdapter() {
         super();
@@ -129,8 +134,9 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
         // Check if the Monitoring Interface is configured and has the handler configured
         if(this.monitoringInterface != null && this.monitoringInterface.isActive(WldtMetricComponent.DIGITAL_ADAPTER)) {
 
-            // Build metric namespace
+            // Build metric namespace and instance id
             this.metricsNamespace = CoreMonitoringUtils.buildCoreNamespace();
+            this.metricsInstanceId = getId();
 
             // Create Additional Metric Metadata to keep track of the adapter Id
             Map<String, Object> metricMetadata = new HashMap<String, Object>() {{
@@ -142,53 +148,53 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
                     this.digitalTwinId,
                     this.metricsNamespace,
                     CoreMonitoringUtils.DIGITAL_ADAPTER_ACTION_EVENT_PUB_SUCCESS_COUNT,
-                    WldtMetricComponent.DIGITAL_ADAPTER, metricMetadata));
+                    WldtMetricComponent.DIGITAL_ADAPTER, metricMetadata).withInstanceId(metricsInstanceId));
 
             this.monitoringInterface.registerMetric(new WldtCounter(
                     this.digitalTwinId,
                     this.metricsNamespace,
                     CoreMonitoringUtils.DIGITAL_ADAPTER_ACTION_EVENT_PUB_ERROR_COUNT,
-                    WldtMetricComponent.DIGITAL_ADAPTER, metricMetadata));
+                    WldtMetricComponent.DIGITAL_ADAPTER, metricMetadata).withInstanceId(metricsInstanceId));
 
             // Register Counter Metric(s) - Digital Twin State Processing
             this.monitoringInterface.registerMetric(new WldtCounter(
                     this.digitalTwinId,
                     this.metricsNamespace,
                     CoreMonitoringUtils.DIGITAL_ADAPTER_STATE_UPDATE_SUCCESS_COUNT,
-                    WldtMetricComponent.DIGITAL_ADAPTER, metricMetadata));
+                    WldtMetricComponent.DIGITAL_ADAPTER, metricMetadata).withInstanceId(metricsInstanceId));
 
             this.monitoringInterface.registerMetric(new WldtCounter(
                     this.digitalTwinId,
                     this.metricsNamespace,
                     CoreMonitoringUtils.DIGITAL_ADAPTER_STATE_UPDATE_ERROR_COUNT,
-                    WldtMetricComponent.DIGITAL_ADAPTER, metricMetadata));
+                    WldtMetricComponent.DIGITAL_ADAPTER, metricMetadata).withInstanceId(metricsInstanceId));
 
             // Register Execution Time Metrics - Digital Twin State Processing
             this.monitoringInterface.registerMetric(new WldtTimer(
                     this.digitalTwinId,
                     this.metricsNamespace,
                     CoreMonitoringUtils.DIGITAL_ADAPTER_STATE_UPDATE_EXEC_TIME,
-                    WldtMetricComponent.DIGITAL_ADAPTER, metricMetadata));
+                    WldtMetricComponent.DIGITAL_ADAPTER, metricMetadata).withInstanceId(metricsInstanceId));
 
             // Register Counter Metric(s) - Digital Twin Event Processing
             this.monitoringInterface.registerMetric(new WldtCounter(
                     this.digitalTwinId,
                     this.metricsNamespace,
                     CoreMonitoringUtils.DIGITAL_EVENT_NOTIFICATION_SUCCESS_COUNT,
-                    WldtMetricComponent.DIGITAL_ADAPTER, metricMetadata));
+                    WldtMetricComponent.DIGITAL_ADAPTER, metricMetadata).withInstanceId(metricsInstanceId));
 
             this.monitoringInterface.registerMetric(new WldtCounter(
                     this.digitalTwinId,
                     this.metricsNamespace,
                     CoreMonitoringUtils.DIGITAL_EVENT_NOTIFICATION_ERROR_COUNT,
-                    WldtMetricComponent.DIGITAL_ADAPTER, metricMetadata));
+                    WldtMetricComponent.DIGITAL_ADAPTER, metricMetadata).withInstanceId(metricsInstanceId));
 
             // Register Execution Time Metrics - Digital Twin Event Processing
             this.monitoringInterface.registerMetric(new WldtTimer(
                     this.digitalTwinId,
                     this.metricsNamespace,
                     CoreMonitoringUtils.DIGITAL_EVENT_NOTIFICATION_EXEC_TIME,
-                    WldtMetricComponent.DIGITAL_ADAPTER, metricMetadata));
+                    WldtMetricComponent.DIGITAL_ADAPTER, metricMetadata).withInstanceId(metricsInstanceId));
 
         }
 
@@ -251,7 +257,7 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
 
             // Increase Success Counter
             if(this.monitoringInterface != null && this.monitoringInterface.isActive(WldtMetricComponent.DIGITAL_ADAPTER))
-                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.DIGITAL_ADAPTER_ACTION_EVENT_PUB_SUCCESS_COUNT);
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.DIGITAL_ADAPTER_ACTION_EVENT_PUB_SUCCESS_COUNT, metricsInstanceId);
         } catch (Exception e){
 
             // Build the error message
@@ -260,7 +266,7 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
 
             // Increate Metrics Count
             if(this.monitoringInterface != null && this.monitoringInterface.isActive(WldtMetricComponent.DIGITAL_ADAPTER))
-                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.DIGITAL_ADAPTER_ACTION_EVENT_PUB_ERROR_COUNT);
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.DIGITAL_ADAPTER_ACTION_EVENT_PUB_ERROR_COUNT, metricsInstanceId);
 
             // Propagate the Exception
             throw new EventBusException(errorMessage);
@@ -283,7 +289,7 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
 
             // Increase Success Counter
             if(this.monitoringInterface != null && this.monitoringInterface.isActive(WldtMetricComponent.DIGITAL_ADAPTER))
-                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.DIGITAL_ADAPTER_ACTION_EVENT_PUB_SUCCESS_COUNT);
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.DIGITAL_ADAPTER_ACTION_EVENT_PUB_SUCCESS_COUNT, metricsInstanceId);
         } catch (Exception e){
 
             // Build the error message
@@ -292,7 +298,7 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
 
             // Increate Metrics Count
             if(this.monitoringInterface != null && this.monitoringInterface.isActive(WldtMetricComponent.DIGITAL_ADAPTER))
-                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.DIGITAL_ADAPTER_ACTION_EVENT_PUB_ERROR_COUNT);
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.DIGITAL_ADAPTER_ACTION_EVENT_PUB_ERROR_COUNT, metricsInstanceId);
 
             // Propagate the Exception
             throw new EventBusException(errorMessage);
@@ -583,19 +589,20 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
                 processDigitalTwinStateUpdateEvent(wldtEvent);
 
                 // Increase Success Counter
-                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.DIGITAL_ADAPTER_STATE_UPDATE_SUCCESS_COUNT);
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.DIGITAL_ADAPTER_STATE_UPDATE_SUCCESS_COUNT, metricsInstanceId);
             }
             catch (Exception e){
                 String errorMessage = String.format("handleDigitalTwinStateEvent Error Processing DT State Update Event: %s", e.getLocalizedMessage());
                 logger.error(errorMessage);
-                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.DIGITAL_ADAPTER_STATE_UPDATE_ERROR_COUNT);
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.DIGITAL_ADAPTER_STATE_UPDATE_ERROR_COUNT, metricsInstanceId);
             }
             finally {
                 // Update new Timer Value for the execution of the Physical Property Variation
                 this.monitoringInterface.updateTimerSince(
                         this.metricsNamespace,
                         CoreMonitoringUtils.DIGITAL_ADAPTER_STATE_UPDATE_EXEC_TIME,
-                        startMs);
+                        startMs,
+                        metricsInstanceId);
             }
         }
     }
@@ -627,19 +634,20 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
                 onEventNotificationReceived(digitalTwinStateEventNotification);
 
                 // Increase Success Counter
-                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.DIGITAL_EVENT_NOTIFICATION_SUCCESS_COUNT);
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.DIGITAL_EVENT_NOTIFICATION_SUCCESS_COUNT, metricsInstanceId);
             }
             catch (Exception e){
                 String errorMessage = String.format("handleEventNotification Error Processing DT Event Notification: %s", e.getLocalizedMessage());
                 logger.error(errorMessage);
-                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.DIGITAL_EVENT_NOTIFICATION_ERROR_COUNT);
+                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.DIGITAL_EVENT_NOTIFICATION_ERROR_COUNT, metricsInstanceId);
             }
             finally {
                 // Update new Timer Value for the execution of the Physical Property Variation
                 this.monitoringInterface.updateTimerSince(
                         this.metricsNamespace,
                         CoreMonitoringUtils.DIGITAL_EVENT_NOTIFICATION_EXEC_TIME,
-                        startMs);
+                        startMs,
+                        metricsInstanceId);
             }
         }
     }

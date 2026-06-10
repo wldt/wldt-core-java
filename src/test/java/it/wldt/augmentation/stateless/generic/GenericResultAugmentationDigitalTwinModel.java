@@ -13,6 +13,7 @@ import it.wldt.augmentation.result.AugmentationFunctionResultList;
 import it.wldt.augmentation.stateless.function.RandomNumberAugmentationFunction;
 import it.wldt.core.model.DigitalTwinModel;
 import it.wldt.core.state.*;
+import it.wldt.exception.AugmentationFunctionException;
 import it.wldt.exception.EventBusException;
 import it.wldt.log.WldtLogger;
 import it.wldt.log.WldtLoggerProvider;
@@ -349,5 +350,13 @@ public class GenericResultAugmentationDigitalTwinModel extends DigitalTwinModel 
 
         // Register the received callback on the Shared Test Metrics for later verification
         SharedTestMetrics.getInstance().addAugmentationFunctionErrorNotification(this.digitalTwinStateManager.getDigitalTwinId(), handlerId, functionId, augmentationFunctionError);
+    }
+
+    public void triggerStartAugmentationFunction(String functionId) throws AugmentationFunctionException, EventBusException {
+        startAugmentationFunction(functionId);
+    }
+
+    public void triggerStopAugmentationFunction(String functionId) throws AugmentationFunctionException, EventBusException {
+        stopAugmentationFunction(functionId);
     }
 }

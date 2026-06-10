@@ -142,13 +142,18 @@ public class WldtUpDownCounter extends WldtMetric {
         this.totalUpdates = source.totalUpdates;
         this.initialized  = source.initialized;
         this.lastUpdatedMs = source.lastUpdatedMs;
+        source.copyInstanceIdTo(this);
     }
 
     @Override
     public synchronized WldtUpDownCounter copy() { return new WldtUpDownCounter(this); }
 
     @Override
-    public WldtUpDownCounter emptySnapshot() { return new WldtUpDownCounter(getDigitalTwinId(), getNamespace(), getName(), getComponent(), getMetadata()); }
+    public WldtUpDownCounter emptySnapshot() {
+        WldtUpDownCounter s = new WldtUpDownCounter(getDigitalTwinId(), getNamespace(), getName(), getComponent(), getMetadata());
+        copyInstanceIdTo(s);
+        return s;
+    }
 
     /** @return current absolute counter value */
     public synchronized long getValue()          { return value; }

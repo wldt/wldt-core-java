@@ -132,13 +132,18 @@ public class WldtCounter extends WldtMetric {
         this.totalIncrements = source.totalIncrements;
         this.initialized     = source.initialized;
         this.lastUpdatedMs   = source.lastUpdatedMs;
+        source.copyInstanceIdTo(this);
     }
 
     @Override
     public synchronized WldtCounter copy() { return new WldtCounter(this); }
 
     @Override
-    public WldtCounter emptySnapshot() { return new WldtCounter(getDigitalTwinId(), getNamespace(), getName(), getComponent(), getMetadata()); }
+    public WldtCounter emptySnapshot() {
+        WldtCounter s = new WldtCounter(getDigitalTwinId(), getNamespace(), getName(), getComponent(), getMetadata());
+        copyInstanceIdTo(s);
+        return s;
+    }
 
     /** @return current cumulative counter value */
     public synchronized long getValue() { return value; }

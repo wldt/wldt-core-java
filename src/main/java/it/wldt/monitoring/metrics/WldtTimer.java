@@ -129,13 +129,18 @@ public class WldtTimer extends WldtMetric {
         this.observationCount = source.observationCount;
         this.initialized      = source.initialized;
         this.lastUpdatedMs    = source.lastUpdatedMs;
+        source.copyInstanceIdTo(this);
     }
 
     @Override
     public synchronized WldtTimer copy() { return new WldtTimer(this); }
 
     @Override
-    public WldtTimer emptySnapshot() { return new WldtTimer(getDigitalTwinId(), getNamespace(), getName(), getComponent(), getMetadata()); }
+    public WldtTimer emptySnapshot() {
+        WldtTimer s = new WldtTimer(getDigitalTwinId(), getNamespace(), getName(), getComponent(), getMetadata());
+        copyInstanceIdTo(s);
+        return s;
+    }
 
     /** @return the most recent recorded duration in milliseconds */
     public synchronized long getDurationMs()        { return durationMs; }

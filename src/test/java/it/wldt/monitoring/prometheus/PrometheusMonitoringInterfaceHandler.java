@@ -293,6 +293,7 @@ public class PrometheusMonitoringInterfaceHandler extends MonitoringInterfaceHan
         java.util.List<String> labels = new java.util.ArrayList<String>();
         labels.add("component");
         labels.add("dt_id");
+        if (metric.getInstanceId() != null) labels.add("instance_id");
 
         Map<String, Object> metadata = metric.getMetadata();
         if (metadata != null && !metadata.isEmpty()) {
@@ -310,6 +311,7 @@ public class PrometheusMonitoringInterfaceHandler extends MonitoringInterfaceHan
         java.util.List<String> values = new java.util.ArrayList<String>();
         values.add(component.name());
         values.add(metric.getDigitalTwinId());
+        if (metric.getInstanceId() != null) values.add(metric.getInstanceId());
 
         Map<String, Object> metadata = metric.getMetadata();
         if (metadata != null && !metadata.isEmpty()) {

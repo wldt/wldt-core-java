@@ -7,6 +7,8 @@ import it.wldt.monitoring.metrics.*;
 import java.util.Map;
 import java.util.Optional;
 
+// Note: getAllMetrics() returns Map<String, Map<String, WldtMetric>> (outer key = fullName, inner key = instanceId)
+
 /**
  * Central hub of the WLDT monitoring system.
  *
@@ -101,7 +103,7 @@ public final class MonitoringInterface {
     }
 
     /**
-     * Returns the last registered metric for the given full name ({@code namespace.name}).
+     * Returns the singleton live metric for the given full name (backward-compatible).
      *
      * @param fullName the full metric name
      * @return an {@link Optional} with the live metric, or empty if not yet registered
@@ -111,21 +113,44 @@ public final class MonitoringInterface {
     }
 
     /**
-     * Returns an unmodifiable snapshot of all currently registered live metrics.
+     * Returns the live metric for the specific {@code (fullName, instanceId)} slot.
      *
-     * @return unmodifiable map of full metric names to live instances
+     * @param fullName   the full metric name
+     * @param instanceId the instance id, or {@code null} for singletons
+     * @return an {@link Optional} with the live metric, or empty if not yet registered
      */
-    public Map<String, WldtMetric> getAllMetrics() {
+    public Optional<WldtMetric> getMetric(String fullName, String instanceId) {
+        return registry.getMetric(fullName, instanceId);
+    }
+
+    /**
+     * Returns an unmodifiable nested snapshot of all currently registered live metrics.
+     * Outer key is the full metric name ({@code namespace.name}); inner key is the
+     * instance id (or {@code ""} for singleton components).
+     *
+     * @return unmodifiable {@code Map<fullName, Map<instanceId, WldtMetric>>}
+     */
+    public Map<String, Map<String, WldtMetric>> getAllMetrics() {
         return registry.getAllMetrics();
     }
 
     /**
-     * Returns {@code true} if a metric with the given full name is registered.
+     * Returns {@code true} if at least one instance is registered under the given full name.
      *
      * @param fullName the full metric name
      */
     public boolean isMetricRegistered(String fullName) {
         return registry.isRegistered(fullName);
+    }
+
+    /**
+     * Returns {@code true} if the specific {@code (fullName, instanceId)} slot is registered.
+     *
+     * @param fullName   the full metric name
+     * @param instanceId the instance id, or {@code null} for singletons
+     */
+    public boolean isMetricRegistered(String fullName, String instanceId) {
+        return registry.isRegistered(fullName, instanceId);
     }
 
     /**
@@ -145,13 +170,22 @@ public final class MonitoringInterface {
     }
 
     /**
-     * Removes a metric from the registry by its full name.
-     * After deregistration the next push for this name is treated as a fresh registration.
+     * Removes ALL instances registered under {@code fullName}.
      *
      * @param fullName the full metric name to remove
      */
     public void deregisterMetric(String fullName) {
         registry.deregister(fullName);
+    }
+
+    /**
+     * Removes the specific {@code (fullName, instanceId)} entry.
+     *
+     * @param fullName   the full metric name
+     * @param instanceId the instance id, or {@code null} for singletons
+     */
+    public void deregisterMetric(String fullName, String instanceId) {
+        registry.deregister(fullName, instanceId);
     }
 
     public MonitoringInterfaceConfiguration getConfiguration() { return configuration; }
@@ -175,27 +209,48 @@ public final class MonitoringInterface {
     // -------------------------------------------------------------------------
 
     /**
-     * Increments a {@link WldtCounter} or {@link WldtUpDownCounter} by 1.
-     * Looks up the metric by {@code namespace.name}, validates its type, applies the mutation,
-     * and fires {@link MonitoringInterfaceHandler#onMetricUpdated}. All errors are logged internally.
+     * Increments a {@link WldtCounter} or {@link WldtUpDownCounter} by 1 (singleton/no-instance variant).
      *
      * @param namespace the metric namespace
      * @param name      the metric name within the namespace
      */
     public void increaseCounter(String namespace, String name) {
-        increaseCounter(namespace, name, 1L);
+        increaseCounter(namespace, name, 1L, null);
     }
 
     /**
-     * Increments a {@link WldtCounter} or {@link WldtUpDownCounter} by {@code amount}.
+     * Increments a {@link WldtCounter} or {@link WldtUpDownCounter} by 1 for a specific instance.
+     *
+     * @param namespace  the metric namespace
+     * @param name       the metric name within the namespace
+     * @param instanceId the component instance id, or {@code null} for singletons
+     */
+    public void increaseCounter(String namespace, String name, String instanceId) {
+        increaseCounter(namespace, name, 1L, instanceId);
+    }
+
+    /**
+     * Increments a {@link WldtCounter} or {@link WldtUpDownCounter} by {@code amount} (singleton variant).
      *
      * @param namespace the metric namespace
      * @param name      the metric name within the namespace
      * @param amount    positive increment value
      */
     public void increaseCounter(String namespace, String name, long amount) {
+        increaseCounter(namespace, name, amount, null);
+    }
+
+    /**
+     * Increments a {@link WldtCounter} or {@link WldtUpDownCounter} by {@code amount} for a specific instance.
+     *
+     * @param namespace  the metric namespace
+     * @param name       the metric name within the namespace
+     * @param amount     positive increment value
+     * @param instanceId the component instance id, or {@code null} for singletons
+     */
+    public void increaseCounter(String namespace, String name, long amount, String instanceId) {
         try {
-            WldtMetric metric = resolveMetric(namespace, name);
+            WldtMetric metric = resolveMetric(namespace, name, instanceId);
             if (metric instanceof WldtCounter)
                 notifyUpdated(((WldtCounter) metric).increment(amount));
             else if (metric instanceof WldtUpDownCounter)
@@ -209,16 +264,27 @@ public final class MonitoringInterface {
     }
 
     /**
-     * Sets a {@link WldtCounter} or {@link WldtUpDownCounter} to a new absolute value.
-     * For {@link WldtCounter} the value must be &ge; the current value (monotonically increasing).
+     * Sets a {@link WldtCounter} or {@link WldtUpDownCounter} to a new absolute value (singleton variant).
      *
      * @param namespace the metric namespace
      * @param name      the metric name within the namespace
      * @param value     new absolute counter value; must be non-negative
      */
     public void updateCounter(String namespace, String name, long value) {
+        updateCounter(namespace, name, value, null);
+    }
+
+    /**
+     * Sets a {@link WldtCounter} or {@link WldtUpDownCounter} to a new absolute value for a specific instance.
+     *
+     * @param namespace  the metric namespace
+     * @param name       the metric name within the namespace
+     * @param value      new absolute counter value; must be non-negative
+     * @param instanceId the component instance id, or {@code null} for singletons
+     */
+    public void updateCounter(String namespace, String name, long value, String instanceId) {
         try {
-            WldtMetric metric = resolveMetric(namespace, name);
+            WldtMetric metric = resolveMetric(namespace, name, instanceId);
             if (metric instanceof WldtCounter)
                 notifyUpdated(((WldtCounter) metric).update(value));
             else if (metric instanceof WldtUpDownCounter)
@@ -232,26 +298,48 @@ public final class MonitoringInterface {
     }
 
     /**
-     * Decrements a {@link WldtUpDownCounter} by 1.
-     * {@link WldtCounter} does not support decrease — an error is logged if the wrong type is used.
+     * Decrements a {@link WldtUpDownCounter} by 1 (singleton variant).
      *
      * @param namespace the metric namespace
      * @param name      the metric name within the namespace
      */
     public void decreaseCounter(String namespace, String name) {
-        decreaseCounter(namespace, name, 1L);
+        decreaseCounter(namespace, name, 1L, null);
     }
 
     /**
-     * Decrements a {@link WldtUpDownCounter} by {@code amount}.
+     * Decrements a {@link WldtUpDownCounter} by 1 for a specific instance.
+     *
+     * @param namespace  the metric namespace
+     * @param name       the metric name within the namespace
+     * @param instanceId the component instance id, or {@code null} for singletons
+     */
+    public void decreaseCounter(String namespace, String name, String instanceId) {
+        decreaseCounter(namespace, name, 1L, instanceId);
+    }
+
+    /**
+     * Decrements a {@link WldtUpDownCounter} by {@code amount} (singleton variant).
      *
      * @param namespace the metric namespace
      * @param name      the metric name within the namespace
      * @param amount    positive decrement value
      */
     public void decreaseCounter(String namespace, String name, long amount) {
+        decreaseCounter(namespace, name, amount, null);
+    }
+
+    /**
+     * Decrements a {@link WldtUpDownCounter} by {@code amount} for a specific instance.
+     *
+     * @param namespace  the metric namespace
+     * @param name       the metric name within the namespace
+     * @param amount     positive decrement value
+     * @param instanceId the component instance id, or {@code null} for singletons
+     */
+    public void decreaseCounter(String namespace, String name, long amount, String instanceId) {
         try {
-            WldtMetric metric = resolveMetric(namespace, name);
+            WldtMetric metric = resolveMetric(namespace, name, instanceId);
             if (metric instanceof WldtUpDownCounter)
                 notifyUpdated(((WldtUpDownCounter) metric).decrement(amount));
             else if (metric instanceof WldtCounter)
@@ -266,15 +354,27 @@ public final class MonitoringInterface {
     }
 
     /**
-     * Updates a {@link WldtGauge} to a new observed value.
+     * Updates a {@link WldtGauge} to a new observed value (singleton variant).
      *
      * @param namespace the metric namespace
      * @param name      the metric name within the namespace
      * @param value     the new observed value; must be finite
      */
     public void updateGauge(String namespace, String name, double value) {
+        updateGauge(namespace, name, value, null);
+    }
+
+    /**
+     * Updates a {@link WldtGauge} to a new observed value for a specific instance.
+     *
+     * @param namespace  the metric namespace
+     * @param name       the metric name within the namespace
+     * @param value      the new observed value; must be finite
+     * @param instanceId the component instance id, or {@code null} for singletons
+     */
+    public void updateGauge(String namespace, String name, double value, String instanceId) {
         try {
-            WldtMetric metric = resolveMetric(namespace, name);
+            WldtMetric metric = resolveMetric(namespace, name, instanceId);
             if (metric instanceof WldtGauge)
                 notifyUpdated(((WldtGauge) metric).update(value));
             else
@@ -286,15 +386,27 @@ public final class MonitoringInterface {
     }
 
     /**
-     * Records a new duration observation on a {@link WldtTimer}.
+     * Records a new duration observation on a {@link WldtTimer} (singleton variant).
      *
      * @param namespace  the metric namespace
      * @param name       the metric name within the namespace
      * @param durationMs measured duration in milliseconds; must be &ge; 0
      */
     public void updateTimer(String namespace, String name, long durationMs) {
+        updateTimer(namespace, name, durationMs, null);
+    }
+
+    /**
+     * Records a new duration observation on a {@link WldtTimer} for a specific instance.
+     *
+     * @param namespace  the metric namespace
+     * @param name       the metric name within the namespace
+     * @param durationMs measured duration in milliseconds; must be &ge; 0
+     * @param instanceId the component instance id, or {@code null} for singletons
+     */
+    public void updateTimer(String namespace, String name, long durationMs, String instanceId) {
         try {
-            WldtMetric metric = resolveMetric(namespace, name);
+            WldtMetric metric = resolveMetric(namespace, name, instanceId);
             if (metric instanceof WldtTimer)
                 notifyUpdated(((WldtTimer) metric).update(durationMs));
             else
@@ -306,27 +418,50 @@ public final class MonitoringInterface {
     }
 
     /**
-     * Records a duration observation on a {@link WldtTimer} computed as
-     * {@code System.currentTimeMillis() - startMs}.
+     * Records a duration observation on a {@link WldtTimer} from {@code startMs} (singleton variant).
      *
      * @param namespace the metric namespace
      * @param name      the metric name within the namespace
      * @param startMs   epoch milliseconds when the measured operation started
      */
     public void updateTimerSince(String namespace, String name, long startMs) {
-        updateTimer(namespace, name, System.currentTimeMillis() - startMs);
+        updateTimer(namespace, name, System.currentTimeMillis() - startMs, null);
     }
 
     /**
-     * Adds a single observation to a {@link WldtHistogram}.
+     * Records a duration observation on a {@link WldtTimer} from {@code startMs} for a specific instance.
+     *
+     * @param namespace  the metric namespace
+     * @param name       the metric name within the namespace
+     * @param startMs    epoch milliseconds when the measured operation started
+     * @param instanceId the component instance id, or {@code null} for singletons
+     */
+    public void updateTimerSince(String namespace, String name, long startMs, String instanceId) {
+        updateTimer(namespace, name, System.currentTimeMillis() - startMs, instanceId);
+    }
+
+    /**
+     * Adds a single observation to a {@link WldtHistogram} (singleton variant).
      *
      * @param namespace the metric namespace
      * @param name      the metric name within the namespace
      * @param value     the observed value; must be finite
      */
     public void histogramObservation(String namespace, String name, double value) {
+        histogramObservation(namespace, name, value, null);
+    }
+
+    /**
+     * Adds a single observation to a {@link WldtHistogram} for a specific instance.
+     *
+     * @param namespace  the metric namespace
+     * @param name       the metric name within the namespace
+     * @param value      the observed value; must be finite
+     * @param instanceId the component instance id, or {@code null} for singletons
+     */
+    public void histogramObservation(String namespace, String name, double value, String instanceId) {
         try {
-            WldtMetric metric = resolveMetric(namespace, name);
+            WldtMetric metric = resolveMetric(namespace, name, instanceId);
             if (metric instanceof WldtHistogram)
                 notifyUpdated(((WldtHistogram) metric).observe(value));
             else
@@ -338,7 +473,7 @@ public final class MonitoringInterface {
     }
 
     /**
-     * Merges a pre-aggregated window into a {@link WldtHistogram}.
+     * Merges a pre-aggregated window into a {@link WldtHistogram} (singleton variant).
      *
      * @param namespace the metric namespace
      * @param name      the metric name within the namespace
@@ -349,8 +484,24 @@ public final class MonitoringInterface {
      */
     public void histogramObservation(String namespace, String name,
                                      long count, double sum, double min, double max) {
+        histogramObservation(namespace, name, count, sum, min, max, null);
+    }
+
+    /**
+     * Merges a pre-aggregated window into a {@link WldtHistogram} for a specific instance.
+     *
+     * @param namespace  the metric namespace
+     * @param name       the metric name within the namespace
+     * @param count      number of observations in the window; must be positive
+     * @param sum        arithmetic sum of observations; must be finite
+     * @param min        minimum observation; must be finite and &le; max
+     * @param max        maximum observation; must be finite and &ge; min
+     * @param instanceId the component instance id, or {@code null} for singletons
+     */
+    public void histogramObservation(String namespace, String name,
+                                     long count, double sum, double min, double max, String instanceId) {
         try {
-            WldtMetric metric = resolveMetric(namespace, name);
+            WldtMetric metric = resolveMetric(namespace, name, instanceId);
             if (metric instanceof WldtHistogram)
                 notifyUpdated(((WldtHistogram) metric).update(count, sum, min, max));
             else
@@ -383,13 +534,14 @@ public final class MonitoringInterface {
     }
 
     /**
-     * Looks up the live metric by {@code namespace.name}. Throws {@link IllegalStateException}
-     * if not registered, so callers can catch it uniformly.
+     * Looks up the live metric by {@code namespace.name} for a given instanceId.
+     * Pass {@code instanceId = null} for singleton components.
+     * Throws {@link IllegalStateException} if not registered.
      */
-    private WldtMetric resolveMetric(String namespace, String name) {
+    private WldtMetric resolveMetric(String namespace, String name, String instanceId) {
         String fullName = namespace + "." + name;
-        return registry.getMetric(fullName).orElseThrow(() ->
-                new IllegalStateException("Metric '" + fullName + "' is not registered"));
+        return registry.getMetric(fullName, instanceId).orElseThrow(() ->
+                new IllegalStateException("Metric '" + fullName + "' instance '" + instanceId + "' is not registered"));
     }
 
     /**

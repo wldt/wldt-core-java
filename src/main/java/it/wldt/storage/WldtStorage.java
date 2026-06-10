@@ -101,6 +101,7 @@ public abstract class WldtStorage {
     private String digitalTwinId;
     private MonitoringInterface monitoringInterface;
     private String metricsNamespace;
+    private String metricsInstanceId;
 
     /**
      * Default Constructor
@@ -233,40 +234,41 @@ public abstract class WldtStorage {
         if (this.monitoringInterface == null || !this.monitoringInterface.isActive(WldtMetricComponent.STORAGE)) return;
         if (this.metricsNamespace != null) return;
         this.metricsNamespace = CoreMonitoringUtils.buildCoreNamespace();
+        this.metricsInstanceId = getStorageId();
         final Map<String, Object> metadata = new HashMap<String, Object>() {{
             put(METRIC_METADATA_STORAGE_ID_KEY, getStorageId());
         }};
-        this.monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.STORAGE_WRITE_DIGITAL_TWIN_STATE_SUCCESS_COUNT, WldtMetricComponent.STORAGE, metadata));
-        this.monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.STORAGE_WRITE_DIGITAL_TWIN_STATE_ERROR_COUNT, WldtMetricComponent.STORAGE, metadata));
-        this.monitoringInterface.registerMetric(new WldtTimer(digitalTwinId, metricsNamespace, CoreMonitoringUtils.STORAGE_WRITE_DIGITAL_TWIN_STATE_EXEC_TIME, WldtMetricComponent.STORAGE, metadata));
-        this.monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.STORAGE_WRITE_DIGITAL_EVENT_SUCCESS_COUNT, WldtMetricComponent.STORAGE, metadata));
-        this.monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.STORAGE_WRITE_DIGITAL_EVENT_ERROR_COUNT, WldtMetricComponent.STORAGE, metadata));
-        this.monitoringInterface.registerMetric(new WldtTimer(digitalTwinId, metricsNamespace, CoreMonitoringUtils.STORAGE_WRITE_DIGITAL_EVENT_EXEC_TIME, WldtMetricComponent.STORAGE, metadata));
-        this.monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.STORAGE_WRITE_PHYSICAL_EVENT_SUCCESS_COUNT, WldtMetricComponent.STORAGE, metadata));
-        this.monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.STORAGE_WRITE_PHYSICAL_EVENT_ERROR_COUNT, WldtMetricComponent.STORAGE, metadata));
-        this.monitoringInterface.registerMetric(new WldtTimer(digitalTwinId, metricsNamespace, CoreMonitoringUtils.STORAGE_WRITE_PHYSICAL_EVENT_EXEC_TIME, WldtMetricComponent.STORAGE, metadata));
-        this.monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.STORAGE_WRITE_PHYSICAL_ASSET_DESCRIPTION_SUCCESS_COUNT, WldtMetricComponent.STORAGE, metadata));
-        this.monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.STORAGE_WRITE_PHYSICAL_ASSET_DESCRIPTION_ERROR_COUNT, WldtMetricComponent.STORAGE, metadata));
-        this.monitoringInterface.registerMetric(new WldtTimer(digitalTwinId, metricsNamespace, CoreMonitoringUtils.STORAGE_WRITE_PHYSICAL_ASSET_DESCRIPTION_EXEC_TIME, WldtMetricComponent.STORAGE, metadata));
-        this.monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.STORAGE_WRITE_LIFECYCLE_EVENT_SUCCESS_COUNT, WldtMetricComponent.STORAGE, metadata));
-        this.monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.STORAGE_WRITE_LIFECYCLE_EVENT_ERROR_COUNT, WldtMetricComponent.STORAGE, metadata));
-        this.monitoringInterface.registerMetric(new WldtTimer(digitalTwinId, metricsNamespace, CoreMonitoringUtils.STORAGE_WRITE_LIFECYCLE_EVENT_EXEC_TIME, WldtMetricComponent.STORAGE, metadata));
-        this.monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.STORAGE_WRITE_AUGMENTATION_FUNCTION_SUCCESS_COUNT, WldtMetricComponent.STORAGE, metadata));
-        this.monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.STORAGE_WRITE_AUGMENTATION_FUNCTION_ERROR_COUNT, WldtMetricComponent.STORAGE, metadata));
-        this.monitoringInterface.registerMetric(new WldtTimer(digitalTwinId, metricsNamespace, CoreMonitoringUtils.STORAGE_WRITE_AUGMENTATION_FUNCTION_EXEC_TIME, WldtMetricComponent.STORAGE, metadata));
+        this.monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.STORAGE_WRITE_DIGITAL_TWIN_STATE_SUCCESS_COUNT, WldtMetricComponent.STORAGE, metadata).withInstanceId(metricsInstanceId));
+        this.monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.STORAGE_WRITE_DIGITAL_TWIN_STATE_ERROR_COUNT, WldtMetricComponent.STORAGE, metadata).withInstanceId(metricsInstanceId));
+        this.monitoringInterface.registerMetric(new WldtTimer(digitalTwinId, metricsNamespace, CoreMonitoringUtils.STORAGE_WRITE_DIGITAL_TWIN_STATE_EXEC_TIME, WldtMetricComponent.STORAGE, metadata).withInstanceId(metricsInstanceId));
+        this.monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.STORAGE_WRITE_DIGITAL_EVENT_SUCCESS_COUNT, WldtMetricComponent.STORAGE, metadata).withInstanceId(metricsInstanceId));
+        this.monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.STORAGE_WRITE_DIGITAL_EVENT_ERROR_COUNT, WldtMetricComponent.STORAGE, metadata).withInstanceId(metricsInstanceId));
+        this.monitoringInterface.registerMetric(new WldtTimer(digitalTwinId, metricsNamespace, CoreMonitoringUtils.STORAGE_WRITE_DIGITAL_EVENT_EXEC_TIME, WldtMetricComponent.STORAGE, metadata).withInstanceId(metricsInstanceId));
+        this.monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.STORAGE_WRITE_PHYSICAL_EVENT_SUCCESS_COUNT, WldtMetricComponent.STORAGE, metadata).withInstanceId(metricsInstanceId));
+        this.monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.STORAGE_WRITE_PHYSICAL_EVENT_ERROR_COUNT, WldtMetricComponent.STORAGE, metadata).withInstanceId(metricsInstanceId));
+        this.monitoringInterface.registerMetric(new WldtTimer(digitalTwinId, metricsNamespace, CoreMonitoringUtils.STORAGE_WRITE_PHYSICAL_EVENT_EXEC_TIME, WldtMetricComponent.STORAGE, metadata).withInstanceId(metricsInstanceId));
+        this.monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.STORAGE_WRITE_PHYSICAL_ASSET_DESCRIPTION_SUCCESS_COUNT, WldtMetricComponent.STORAGE, metadata).withInstanceId(metricsInstanceId));
+        this.monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.STORAGE_WRITE_PHYSICAL_ASSET_DESCRIPTION_ERROR_COUNT, WldtMetricComponent.STORAGE, metadata).withInstanceId(metricsInstanceId));
+        this.monitoringInterface.registerMetric(new WldtTimer(digitalTwinId, metricsNamespace, CoreMonitoringUtils.STORAGE_WRITE_PHYSICAL_ASSET_DESCRIPTION_EXEC_TIME, WldtMetricComponent.STORAGE, metadata).withInstanceId(metricsInstanceId));
+        this.monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.STORAGE_WRITE_LIFECYCLE_EVENT_SUCCESS_COUNT, WldtMetricComponent.STORAGE, metadata).withInstanceId(metricsInstanceId));
+        this.monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.STORAGE_WRITE_LIFECYCLE_EVENT_ERROR_COUNT, WldtMetricComponent.STORAGE, metadata).withInstanceId(metricsInstanceId));
+        this.monitoringInterface.registerMetric(new WldtTimer(digitalTwinId, metricsNamespace, CoreMonitoringUtils.STORAGE_WRITE_LIFECYCLE_EVENT_EXEC_TIME, WldtMetricComponent.STORAGE, metadata).withInstanceId(metricsInstanceId));
+        this.monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.STORAGE_WRITE_AUGMENTATION_FUNCTION_SUCCESS_COUNT, WldtMetricComponent.STORAGE, metadata).withInstanceId(metricsInstanceId));
+        this.monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.STORAGE_WRITE_AUGMENTATION_FUNCTION_ERROR_COUNT, WldtMetricComponent.STORAGE, metadata).withInstanceId(metricsInstanceId));
+        this.monitoringInterface.registerMetric(new WldtTimer(digitalTwinId, metricsNamespace, CoreMonitoringUtils.STORAGE_WRITE_AUGMENTATION_FUNCTION_EXEC_TIME, WldtMetricComponent.STORAGE, metadata).withInstanceId(metricsInstanceId));
     }
 
     void notifyWriteSuccess(String successMetric, String timeMetric, long startMs) {
         if (monitoringInterface != null && monitoringInterface.isActive(WldtMetricComponent.STORAGE)) {
-            monitoringInterface.increaseCounter(metricsNamespace, successMetric);
-            monitoringInterface.updateTimerSince(metricsNamespace, timeMetric, startMs);
+            monitoringInterface.increaseCounter(metricsNamespace, successMetric, metricsInstanceId);
+            monitoringInterface.updateTimerSince(metricsNamespace, timeMetric, startMs, metricsInstanceId);
         }
     }
 
     void notifyWriteError(String errorMetric, String timeMetric, long startMs) {
         if (monitoringInterface != null && monitoringInterface.isActive(WldtMetricComponent.STORAGE)) {
-            monitoringInterface.increaseCounter(metricsNamespace, errorMetric);
-            monitoringInterface.updateTimerSince(metricsNamespace, timeMetric, startMs);
+            monitoringInterface.increaseCounter(metricsNamespace, errorMetric, metricsInstanceId);
+            monitoringInterface.updateTimerSince(metricsNamespace, timeMetric, startMs, metricsInstanceId);
         }
     }
 
