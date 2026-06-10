@@ -2249,6 +2249,7 @@ public abstract class DigitalTwinModel implements WldtEventListener {
      *   <li>Checking if the unavailable function is relevant to the current DT state</li>
      *   <li>Handling the unavailability of the function, for example by updating internal models
      *   or state to reflect the loss of capabilities provided by the unavailable function</li>
+     * </ul>
      * @param handlerId the id of the Augmentation Function Handler that unregistered the Augmentation Function
      * @param augmentationFunction the Augmentation Function that became unavailable
      */

@@ -355,3 +355,49 @@ public <T> void invokeAction(String actionKey, T body){
     }  
 }
 ```
+
+---
+
+## Storage Monitoring Integration
+
+When `withStorageMonitoring()` is included in `MonitoringInterfaceConfiguration`, `StorageManager`, `WldtStorage`, and `DefaultQueryManager` are instrumented automatically. No developer action is required beyond the configuration step.
+
+```java
+MonitoringInterfaceConfiguration config = new MonitoringInterfaceConfiguration.Builder()
+        .withStorageMonitoring()
+        .build();
+
+digitalTwin.getMonitoringInterface().setConfiguration(config);
+digitalTwin.getMonitoringInterface().setHandler(new MyMonitoringHandler());
+```
+
+### What is tracked
+
+21 metrics are registered under the `"core"` namespace, covering:
+
+- **Query operations** — success count, error count, and execution time for every query handled by `DefaultQueryManager`
+- **Write operations** — success count, error count, and write time for each entity type: DT state, Physical Asset Description, augmentation function results, digital events, physical events, and lifecycle events
+
+For the full list of metric names and types, see [STORAGE metrics](monitoring.md#storage-metrics) in the monitoring documentation.
+
+### Per-storage identification
+
+Each `WldtStorage` instance contributes its own metric slot, keyed by the storage ID. When multiple storage implementations are registered on the same DT, metrics from each can be distinguished in `MonitoringInterfaceHandler` callbacks via the `"storage_id"` metadata tag, exposed as the constant `WldtStorage.METRIC_METADATA_STORAGE_ID_KEY`.
+
+```java
+@Override
+public void onMetricUpdated(WldtMetricComponent component, WldtMetric metric) {
+    if (component == WldtMetricComponent.STORAGE) {
+        String storageId = (String) metric.getMetadata()
+                .get(WldtStorage.METRIC_METADATA_STORAGE_ID_KEY);
+        // route metric to the right Prometheus label, etc.
+    }
+}
+```
+
+Direct lookup by storage ID:
+
+```java
+Optional<WldtMetric> m = monitoringInterface.getMetric(
+        "core.storage_query_success_count", storageId);
+```

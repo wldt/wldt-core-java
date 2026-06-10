@@ -401,18 +401,30 @@ silently swallowed — metric updates never affect the normal execution of the p
 
 | Method | Target type | Description |
 |---|---|---|
-| `increaseCounter(ns, name)` | `WldtCounter` / `WldtUpDownCounter` | Increments by 1 |
-| `increaseCounter(ns, name, amount)` | `WldtCounter` / `WldtUpDownCounter` | Increments by `amount` |
-| `updateCounter(ns, name, value)` | `WldtCounter` / `WldtUpDownCounter` | Sets absolute value (`WldtCounter` requires value ≥ current) |
-| `decreaseCounter(ns, name)` | `WldtUpDownCounter` | Decrements by 1 |
-| `decreaseCounter(ns, name, amount)` | `WldtUpDownCounter` | Decrements by `amount` |
-| `updateGauge(ns, name, value)` | `WldtGauge` | Sets a new observed value |
-| `updateTimer(ns, name, durationMs)` | `WldtTimer` | Records an absolute duration |
-| `updateTimerSince(ns, name, startMs)` | `WldtTimer` | Records `now − startMs` as duration |
-| `histogramObservation(ns, name, value)` | `WldtHistogram` | Adds a single observation |
-| `histogramObservation(ns, name, count, sum, min, max)` | `WldtHistogram` | Merges a pre-aggregated window |
+| `increaseCounter(ns, name)` | `WldtCounter` / `WldtUpDownCounter` | Increments by 1 (singleton) |
+| `increaseCounter(ns, name, instanceId)` | `WldtCounter` / `WldtUpDownCounter` | Increments by 1 (per-instance) |
+| `increaseCounter(ns, name, amount)` | `WldtCounter` / `WldtUpDownCounter` | Increments by `amount` (singleton) |
+| `increaseCounter(ns, name, amount, instanceId)` | `WldtCounter` / `WldtUpDownCounter` | Increments by `amount` (per-instance) |
+| `updateCounter(ns, name, value)` | `WldtCounter` / `WldtUpDownCounter` | Sets absolute value (singleton; `WldtCounter` requires value ≥ current) |
+| `updateCounter(ns, name, value, instanceId)` | `WldtCounter` / `WldtUpDownCounter` | Sets absolute value (per-instance) |
+| `decreaseCounter(ns, name)` | `WldtUpDownCounter` | Decrements by 1 (singleton) |
+| `decreaseCounter(ns, name, instanceId)` | `WldtUpDownCounter` | Decrements by 1 (per-instance) |
+| `decreaseCounter(ns, name, amount)` | `WldtUpDownCounter` | Decrements by `amount` (singleton) |
+| `decreaseCounter(ns, name, amount, instanceId)` | `WldtUpDownCounter` | Decrements by `amount` (per-instance) |
+| `updateGauge(ns, name, value)` | `WldtGauge` | Sets a new observed value (singleton) |
+| `updateGauge(ns, name, value, instanceId)` | `WldtGauge` | Sets a new observed value (per-instance) |
+| `updateTimer(ns, name, durationMs)` | `WldtTimer` | Records an absolute duration (singleton) |
+| `updateTimer(ns, name, durationMs, instanceId)` | `WldtTimer` | Records an absolute duration (per-instance) |
+| `updateTimerSince(ns, name, startMs)` | `WldtTimer` | Records `now − startMs` as duration (singleton) |
+| `updateTimerSince(ns, name, startMs, instanceId)` | `WldtTimer` | Records `now − startMs` as duration (per-instance) |
+| `histogramObservation(ns, name, value)` | `WldtHistogram` | Adds a single observation (singleton) |
+| `histogramObservation(ns, name, value, instanceId)` | `WldtHistogram` | Adds a single observation (per-instance) |
+| `histogramObservation(ns, name, count, sum, min, max)` | `WldtHistogram` | Merges a pre-aggregated window (singleton) |
+| `histogramObservation(ns, name, count, sum, min, max, instanceId)` | `WldtHistogram` | Merges a pre-aggregated window (per-instance) |
 
 > **Note:** calling `decreaseCounter` on a `WldtCounter` (which is monotonically increasing) logs an error and has no effect. Use `WldtUpDownCounter` for metrics that can go down.
+
+> **Instance ID:** pass `null` for singleton metrics. For multi-instance components (adapters, augmentation functions, storage instances), pass the component's ID so that each instance has its own metric slot in the registry — retrievable via `getMetric(fullName, instanceId)`.
 
 #### Examples
 
@@ -631,6 +643,8 @@ Requires `withPhysicalAdapterMonitoring()` in the configuration.
 | `pa_action_computation_exec_success_count` | `WldtCounter` | Successful physical action computations |
 | `pa_action_computation_exec_error_count` | `WldtCounter` | Failed physical action computations |
 
+> **Per-instance tracking:** each Physical Adapter instance has its own metric slot, keyed by the adapter ID. Use `METRIC_METADATA_PHYSICAL_ADAPTER_ID_KEY` (`"pa_id"`) from `PhysicalAdapter` to identify the source adapter in handler callbacks, and `getMetric(fullName, adapterId)` for direct lookup.
+
 #### DIGITAL_ADAPTER metrics
 
 Requires `withDigitalAdapterMonitoring()` in the configuration.
@@ -645,6 +659,8 @@ Requires `withDigitalAdapterMonitoring()` in the configuration.
 | `da_event_notification_processing_exec_time` | `WldtTimer` | Time to process incoming DT event notifications |
 | `da_event_notification_processing_exec_success_count` | `WldtCounter` | Successful event notification processing |
 | `da_event_notification_processing_exec_error_count` | `WldtCounter` | Failed event notification processing |
+
+> **Per-instance tracking:** each Digital Adapter instance has its own metric slot, keyed by the adapter ID. Use `METRIC_METADATA_DIGITAL_ADAPTER_ID_KEY` (`"da_id"`) from `DigitalAdapter` to identify the source adapter in handler callbacks, and `getMetric(fullName, adapterId)` for direct lookup.
 
 #### AUGMENTATION metrics
 
@@ -684,7 +700,9 @@ Requires `withAugmentationMonitoring()` in the configuration.
 | `af_function_state_update_exec_time` | `WldtTimer` | Time to dispatch a DT state update to a stateful function |
 | `af_function_state_update_success_count` | `WldtCounter` | Successful state update dispatches to functions |
 | `af_function_state_update_error_count` | `WldtCounter` | Failed state update dispatches to functions |
-| `dt_lifecycle_value` | `WldtGauge` | Current DT lifecycle state as numeric ordinal |
+| `dt_lifecycle_value` | `WldtUpDownCounter` | Current DT lifecycle state as numeric ordinal |
+
+> **Per-instance tracking:** handler-level metrics (`af_handler_registered_*`, `af_handler_stateful_running_count`) are tracked per handler, keyed by the handler ID. Use `AugmentationFunctionHandler.METRIC_METADATA_AF_HANDLER_ID_KEY` (`"af_handler_id"`) in handler callbacks to identify the source handler, and `getMetric(fullName, handlerId)` for direct lookup. Function-level metrics (`af_function_*`) are tracked per function instance using the function ID — use `AugmentationFunction.METRIC_METADATA_AF_FUNCTION_ID_KEY` (`"af_function_id"`) and `getMetric(fullName, functionId)` accordingly.
 
 #### STORAGE metrics
 
@@ -692,27 +710,29 @@ Requires `withStorageMonitoring()` in the configuration. `StorageManager`, `Wldt
 
 | Metric name | Type | Tracks |
 |---|---|---|
-| `af_storage_query_success_count` | `WldtCounter` | Successful storage queries |
-| `af_storage_query_error_count` | `WldtCounter` | Failed storage queries |
-| `af_storage_query_exec_time` | `WldtTimer` | Query execution time |
-| `af_storage_write_pa_description_success_count` | `WldtCounter` | Successful PA description write operations |
-| `af_storage_write_pa_description_error_count` | `WldtCounter` | Failed PA description write operations |
-| `af_storage_write_pa_description_exec_time` | `WldtTimer` | PA description write time |
-| `af_storage_write_dt_state_success_count` | `WldtCounter` | Successful DT state write operations |
-| `af_storage_write_dt_state_error_count` | `WldtCounter` | Failed DT state write operations |
-| `af_storage_write_dt_state_exec_time` | `WldtTimer` | DT state write time |
-| `af_storage_write_af_success_count` | `WldtCounter` | Successful augmentation function result write operations |
-| `af_storage_write_af_error_count` | `WldtCounter` | Failed augmentation function result write operations |
-| `af_storage_write_af_exec_time` | `WldtTimer` | Augmentation function result write time |
-| `af_storage_write_de_success_count` | `WldtCounter` | Successful digital event write operations |
-| `af_storage_write_de_error_count` | `WldtCounter` | Failed digital event write operations |
-| `af_storage_write_de_exec_time` | `WldtTimer` | Digital event write time |
-| `af_storage_write_pe_success_count` | `WldtCounter` | Successful physical event write operations |
-| `af_storage_write_pe_error_count` | `WldtCounter` | Failed physical event write operations |
-| `af_storage_write_pe_exec_time` | `WldtTimer` | Physical event write time |
-| `af_storage_write_lifecycle_event_success_count` | `WldtCounter` | Successful lifecycle event write operations |
-| `af_storage_write_lifecycle_event_error_count` | `WldtCounter` | Failed lifecycle event write operations |
-| `af_storage_write_lifecycle_event_exec_time` | `WldtTimer` | Lifecycle event write time |
+| `storage_query_success_count` | `WldtCounter` | Successful storage queries |
+| `storage_query_error_count` | `WldtCounter` | Failed storage queries |
+| `storage_query_exec_time` | `WldtTimer` | Query execution time |
+| `storage_write_pa_description_success_count` | `WldtCounter` | Successful PA description write operations |
+| `storage_write_pa_description_error_count` | `WldtCounter` | Failed PA description write operations |
+| `storage_write_pa_description_exec_time` | `WldtTimer` | PA description write time |
+| `storage_write_dt_state_success_count` | `WldtCounter` | Successful DT state write operations |
+| `storage_write_dt_state_error_count` | `WldtCounter` | Failed DT state write operations |
+| `storage_write_dt_state_exec_time` | `WldtTimer` | DT state write time |
+| `storage_write_af_success_count` | `WldtCounter` | Successful augmentation function result write operations |
+| `storage_write_af_error_count` | `WldtCounter` | Failed augmentation function result write operations |
+| `storage_write_af_exec_time` | `WldtTimer` | Augmentation function result write time |
+| `storage_write_de_success_count` | `WldtCounter` | Successful digital event write operations |
+| `storage_write_de_error_count` | `WldtCounter` | Failed digital event write operations |
+| `storage_write_de_exec_time` | `WldtTimer` | Digital event write time |
+| `storage_write_pe_success_count` | `WldtCounter` | Successful physical event write operations |
+| `storage_write_pe_error_count` | `WldtCounter` | Failed physical event write operations |
+| `storage_write_pe_exec_time` | `WldtTimer` | Physical event write time |
+| `storage_write_lifecycle_event_success_count` | `WldtCounter` | Successful lifecycle event write operations |
+| `storage_write_lifecycle_event_error_count` | `WldtCounter` | Failed lifecycle event write operations |
+| `storage_write_lifecycle_event_exec_time` | `WldtTimer` | Lifecycle event write time |
+
+> **Per-instance tracking:** each `WldtStorage` instance has its own metric slot, keyed by the storage ID. Use `WldtStorage.METRIC_METADATA_STORAGE_ID_KEY` (`"storage_id"`) in handler callbacks to identify which storage produced the metric, and `getMetric("core.storage_query_success_count", storageId)` for direct lookup.
 
 ---
 
