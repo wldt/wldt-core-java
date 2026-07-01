@@ -76,16 +76,22 @@ classDiagram
         +unSubscribe()
         +shutdown()
     }
-    class DefaultEventBusStrategy
+    class OldDeprecatedStrategy {
+        <<deprecated>>
+    }
     class PerDtAsyncStrategy
     class PerDtQueuedStrategy
     class PerTopicPerSubscriberStrategy
+    class DefaultEventBusStrategy {
+        <<default>>
+    }
 
     WldtEventBus o-- WldtEventBusStrategy
-    WldtEventBusStrategy <|.. DefaultEventBusStrategy
+    WldtEventBusStrategy <|.. OldDeprecatedStrategy
     WldtEventBusStrategy <|.. PerDtAsyncStrategy
     WldtEventBusStrategy <|.. PerDtQueuedStrategy
     WldtEventBusStrategy <|.. PerTopicPerSubscriberStrategy
+    WldtEventBusStrategy <|.. DefaultEventBusStrategy
 ```
 
 ---
@@ -117,7 +123,9 @@ public static boolean matchWildCardType(String eventType, String filterType) {
 
 ## 4. Strategy Implementations
 
-### 4.1 DefaultEventBusStrategy
+### 4.1 OldDeprecatedStrategy *(deprecated)*
+
+> **Deprecated since WLDT 0.6.0.** Use `DefaultEventBusStrategy` instead. `OldDeprecatedStrategy` is retained for backward compatibility and for completeness in the experiment suite. New deployments should not select it.
 
 #### Idea
 
@@ -130,7 +138,7 @@ flowchart LR
         P2[Publisher 2]
     end
 
-    subgraph bus [DefaultEventBusStrategy]
+    subgraph bus [OldDeprecatedStrategy]
         L{{"synchronized lock"}}
         D["sequential onEvent calls\n(in publisher thread)"]
     end
@@ -207,7 +215,7 @@ flowchart LR
 
 #### Negative Aspects
 
-- **Sequential fan-out:** all subscribers for a DT share one consumer thread. A slow subscriber delays all subsequent events and all other subscribers — similar to the Default strategy, but the publisher is not blocked.
+- **Sequential fan-out:** all subscribers for a DT share one consumer thread. A slow subscriber delays all subsequent events and all other subscribers — similar to OldDeprecatedStrategy, but the publisher is not blocked.
 - **Queue accumulation:** if the subscriber processes events slower than they arrive (`processingMs > inter_arrival_ms`), the queue grows unboundedly and E2E latency increases proportionally to `N × (processingMs − inter_arrival_ms)` for the N-th event.
 - **Stale snapshot:** subscriber state captured at publish time; a subscriber added after `publishEvent()` but before the consumer picks up the task will not receive that event.
 - **No backpressure:** the internal executor queue is unbounded; memory can grow without limit under sustained overload.
@@ -346,59 +354,152 @@ flowchart LR
 
 ---
 
+### 4.5 DefaultEventBusStrategy *(default)*
+
+> This is the **default strategy** used by `WldtEventBus` when no explicit `setStrategy()` call is made. It was designed as the production-ready default for the framework after experimental validation confirmed it outperforms all other strategies across the majority of WLDT workload profiles.
+
+#### Idea
+
+Combines a **per-DT bounded queue** for publisher isolation with **per-subscriber dedicated threads** for subscriber isolation. It is a two-stage pipeline: the DT consumer fan-outs into per-subscriber queues, and each subscriber has an independent processor thread that invokes `onEvent()`.
+
+```mermaid
+flowchart LR
+    subgraph pub [Publishers]
+        P1[Publisher 1]
+        P2[Publisher 2]
+    end
+
+    subgraph dt_stage [DT Stage — one queue + consumer pool per DT]
+        DQ[("LinkedBlockingQueue\nDeliveryTask\n[per DT]")]
+        DC["DT Consumer Thread(s)\nreads subscriber map\nat delivery time"]
+    end
+
+    subgraph sub_stage [Subscriber Stage — one queue + thread per subscriber]
+        SQ1[("LinkedBlockingQueue\nSubscriberDelivery\n[sub-0]")]
+        SQ2[("LinkedBlockingQueue\nSubscriberDelivery\n[sub-1]")]
+        SP1["Sub Processor\nThread\n[sub-0]"]
+        SP2["Sub Processor\nThread\n[sub-1]"]
+    end
+
+    subgraph subs [Subscribers]
+        S1["Subscriber 1\nonEvent()"]
+        S2["Subscriber 2\nonEvent()"]
+    end
+
+    P1 -->|put| DQ
+    P2 -->|put| DQ
+    DQ -->|take| DC
+    DC -->|offer| SQ1
+    DC -->|offer| SQ2
+    SQ1 -->|take| SP1
+    SQ2 -->|take| SP2
+    SP1 --> S1
+    SP2 --> S2
+```
+
+Delivery pipeline per Digital Twin:
+
+```
+publishEvent()
+  → LinkedBlockingQueue<DeliveryTask> [dtId]       (bounded if configured — backpressure path)
+    → DT consumer thread(s)                        (configurable pool, drains the DT queue)
+      → resolves exact + wildcard subscribers      (dispatched-set dedup, state read at delivery time)
+      → fan-out → LinkedBlockingQueue<SubscriberDelivery> [subscriberId]
+        → subscriber processor thread              (one per subscriber, blocked on take())
+          → onEvent() callback
+```
+
+Constructors:
+
+```java
+new DefaultEventBusStrategy()                          // threadPoolSize=1, unbounded queue
+new DefaultEventBusStrategy(int threadPoolSize)        // unbounded queue
+new DefaultEventBusStrategy(int threadPoolSize, int queueCapacity)  // backpressure enabled
+```
+
+#### Features
+
+- **Publisher isolation:** `publishEvent()` returns immediately after `queue.put()`; never blocked by subscriber processing.
+- **Subscriber isolation:** each subscriber runs in its own dedicated thread — a slow subscriber cannot delay delivery to any other subscriber.
+- **FIFO ordering:** events arrive at subscriber queues in the same order they were placed in the DT queue. Because the DT queue is already ordered, a `LinkedBlockingQueue` (not `PriorityBlockingQueue`) suffices for subscriber queues — O(1) enqueue/dequeue vs. O(log n).
+- **Backpressure:** configurable bounded DT queue — `put()` blocks when full, giving the publisher natural back-pressure without unbounded memory growth.
+- **Late-subscription delivery:** subscriber map is read at DT-consumer delivery time, not at publish time — a subscriber registered between `publishEvent()` and DT-consumer pickup may receive the event.
+- **Double-delivery prevention:** `dispatched` set per delivery task prevents a subscriber matched by both exact and wildcard filters from receiving the event twice.
+- **Thread count:** O(DTs) DT consumer threads + O(subscribers) subscriber-processor threads — significantly lower than `PerTopicPerSubscriberStrategy` for multi-topic workloads.
+- **Wildcard dedup:** same `dispatched`-set mechanism as `PerTopicPerSubscriberStrategy`, without the per-topic thread overhead.
+
+#### Configuration guidance
+
+| Parameter | Recommended value | Effect |
+|-----------|------------------|--------|
+| `threadPoolSize` | 1 (default) | Strict FIFO per DT |
+| `threadPoolSize` > 1 | Match CPU cores | Concurrent DT dispatch — no ordering guarantee |
+| `queueCapacity` | Integer.MAX_VALUE (default) | No backpressure; queue grows freely |
+| `queueCapacity` = N | e.g., 1000–10000 | `publishEvent()` blocks when DT queue reaches N |
+
+#### Negative Aspects
+
+- **Asynchronous delivery:** `onEvent()` is not called in the publisher thread, so `EventBusCorrectnessTest` assertions must use `CountDownLatch` or target `OldDeprecatedStrategy` explicitly if synchronous-delivery semantics are required for testing.
+- **Thread proliferation with many subscribers:** O(subscribers) processor threads. For DTs with hundreds of subscribers, consider `PerDtQueuedStrategy` instead.
+- **Not suited for strict cross-subscriber ordering** with `threadPoolSize > 1`: the DT consumer pool dispatches events concurrently, so subscriber queues may receive events out of order across concurrent consumer threads.
+
+---
+
 ## 5. Strategy Comparison
 
 ### Qualitative Summary
 
-| Property | Default (Sync) | PerDtAsync | PerDtQueued | PerTopicPerSub |
-|----------|:--------------:|:----------:|:-----------:|:--------------:|
-| Publisher blocked by subscriber | Yes | No | No | No |
-| Subscriber isolated from others | No | No | No | **Yes** |
-| FIFO ordering guaranteed | Yes (global lock) | Yes (per DT) | Yes (1 consumer) | Yes (per topic) |
-| Cross-topic ordering | Yes (global) | Yes (per DT) | Yes (per DT) | Best-effort |
-| Backpressure support | N/A | No | **Yes** (bounded queue) | No |
-| Subscriber state at deliver time | At publish time | At publish time | **At delivery time** | **At delivery time** |
-| Thread overhead | None | 1 per DT | N per DT | O(topics×DTs + subs) |
-| Memory overhead | Minimal | Low | Low | Moderate |
-| Wildcard double-delivery safe | Yes | Yes | Yes | **Yes** (dispatched set) |
+| Property | OldDeprecated (Sync) | PerDtAsync | PerDtQueued | PerTopicPerSub | **Default** |
+|----------|:--------------------:|:----------:|:-----------:|:--------------:|:-----------:|
+| Publisher blocked by subscriber | Yes | No | No | No | **No** |
+| Subscriber isolated from others | No | No | No | **Yes** | **Yes** |
+| FIFO ordering guaranteed | Yes (global lock) | Yes (per DT) | Yes (1 consumer) | Yes (per topic) | Yes (per DT + per sub) |
+| Cross-topic ordering | Yes (global) | Yes (per DT) | Yes (per DT) | Best-effort | Yes (per DT) |
+| Backpressure support | N/A | No | **Yes** (bounded queue) | No | **Yes** (bounded DT queue) |
+| Subscriber state at deliver time | At publish time | At publish time | **At delivery time** | **At delivery time** | **At delivery time** |
+| Thread overhead | None | 1 per DT | N per DT | O(topics×DTs + subs) | O(DTs + subs) |
+| Memory overhead | Minimal | Low | Low | Moderate | **Low** |
+| Wildcard double-delivery safe | Yes | Yes | Yes | **Yes** (dispatched set) | **Yes** (dispatched set) |
+| Sub-queue data structure | N/A | N/A | N/A | PriorityBlockingQueue O(log n) | **LinkedBlockingQueue O(1)** |
 
 ### Performance Characteristics (Empirical)
 
-All scenarios used 4 publishers, 4 subscribers, 20 msg/s baseline, 100-byte payload unless stated. Results are approximate representative values from the experiment suite.
+All scenarios used 4 publishers, 4 subscribers, 10 msg/s baseline, 100 KB payload unless stated. Results are approximate representative values from the experiment suite.
 
-**Scenario: Subscriber processing time variation (1–200 ms)**
+**Scenario: Subscriber processing time variation (10–100 ms)**
 
-| Processing time | Default p50 | PerDtAsync p50 | PerDtQueued p50 | PerTopicPerSub p50 |
-|-----------------|:-----------:|:--------------:|:---------------:|:------------------:|
-| 1 ms | ~0.01 ms | ~0.3 ms | ~0.3 ms | ~0.3 ms |
-| 10 ms | ~10 ms | ~0.3 ms | ~0.3 ms | ~0.3 ms |
-| 100 ms | ~100 ms | queued | queued | ~1 ms |
-| 200 ms | ~200 ms | saturated | saturated | saturated |
+| Processing time | OldDepr. p50 | PerDtAsync p50 | PerDtQueued p50 | PerTopicPerSub p50 | **Default p50** |
+|-----------------|:------------:|:--------------:|:---------------:|:------------------:|:---------------:|
+| 1 ms | ~1 ms | ~0.3 ms | ~0.3 ms | ~0.3 ms | ~0.3 ms |
+| 10 ms | ~10 ms | ~0.3 ms | ~0.3 ms | ~0.3 ms | ~0.3 ms |
+| 100 ms | ~100 ms | queued | queued | ~1 ms | ~1 ms |
 
-*Default p50 equals subscriber processing time because the publisher blocks. Async/Queued decouple the publisher but queue builds up. PerTopicPerSub absorbs multi-subscriber fan-out in parallel — at 10 ms processing with 4 subscribers, p50 remains ~10 ms regardless of subscriber count.*
+*OldDeprecated p50 equals subscriber processing time because the publisher blocks. Async/Queued decouple the publisher but the shared consumer thread queues up. PerTopicPerSub and Default absorb multi-subscriber fan-out in parallel.*
 
 **Scenario: Subscriber count variation (1–10, 4 publishers)**
 
-| Subscribers | Default p50 | PerDtAsync p50 | PerDtQueued p50 | PerTopicPerSub p50 |
-|-------------|:-----------:|:--------------:|:---------------:|:------------------:|
-| 1 | ~10 ms | ~10 ms | ~10 ms | ~10 ms |
-| 4 | ~40 ms | ~40 ms | ~40 ms | ~10 ms |
-| 10 | ~100 ms | ~100 ms | ~100 ms | ~10 ms |
+| Subscribers | OldDepr. p50 | PerDtAsync p50 | PerDtQueued p50 | PerTopicPerSub p50 | **Default p50** |
+|-------------|:------------:|:--------------:|:---------------:|:------------------:|:---------------:|
+| 1 | ~1 ms | ~1 ms | ~1 ms | ~1 ms | ~1 ms |
+| 4 | ~4 ms | ~4 ms | ~4 ms | ~1 ms | ~1 ms |
+| 10 | ~10 ms | ~10 ms | ~10 ms | ~1 ms | ~1 ms |
 
-*PerTopicPerSub is the only strategy where fan-out latency is O(1) per subscriber rather than O(N).*
+*Default and PerTopicPerSub are the only strategies where fan-out latency is O(1) per subscriber rather than O(N).*
 
-**Scenario: Topic count variation (2–100, 4 pub × 4 sub, 200 KB, 100 msg/s)**
+**Scenario: Topic count variation (2–100, 4 pub × 4 sub, 200 KB, 10 msg/s)**
 
-All four strategies show flat latency as topic count scales from 2 to 100. The routing layer is not the bottleneck — subscriber processing capacity is. PerTopicPerSub maintains its ~4× advantage over Async/Queued at all topic counts due to parallel subscriber threads.
+All strategies show flat latency as topic count scales from 2 to 100. The routing layer is not the bottleneck — subscriber processing capacity is. Default and PerTopicPerSub maintain their ~4× advantage over Async/Queued at all topic counts due to parallel subscriber threads.
 
 ### Selection Guide
 
 | Use Case | Recommended Strategy |
 |----------|----------------------|
-| Low event rate, simple DT, correctness first | `DefaultEventBusStrategy` |
-| Moderate rate, want publisher decoupling, few subscribers | `PerDtAsyncStrategy` |
+| Testing synchronous event delivery (no latches needed) | `OldDeprecatedStrategy` |
+| Low event rate, correctness-critical, single subscriber | `OldDeprecatedStrategy` |
+| Moderate rate, publisher decoupling, few subscribers | `PerDtAsyncStrategy` |
 | Need bounded queue / backpressure, late-subscription delivery | `PerDtQueuedStrategy` |
-| High fan-out, many subscribers, subscriber isolation required | `PerTopicPerSubscriberStrategy` |
+| Strict temporal cross-topic ordering required | `PerTopicPerSubscriberStrategy` |
+| General purpose — publisher isolation + subscriber isolation | `DefaultEventBusStrategy` *(default)* |
 | Need to tune at runtime without changing callers | Any — swap via `setStrategy()` |
 
 ---
@@ -424,7 +525,7 @@ WLDT supports two subscriber execution models, each implemented as a `WldtEventL
 
 #### Concept
 
-The simplest model. The `onEvent()` callback runs all processing inline in whatever thread the bus strategy dispatched on — the publisher thread (Default), the DT consumer thread (Async/Queued), or the per-subscriber processor thread (PerTopicPerSub). The next event for this subscriber cannot begin until the current one's processing is fully complete.
+The simplest model. The `onEvent()` callback runs all processing inline in whatever thread the bus strategy dispatched on — the publisher thread (OldDeprecated), the DT consumer thread (Async/Queued/Default), or the per-subscriber processor thread (PerTopicPerSub). The next event for this subscriber cannot begin until the current one's processing is fully complete.
 
 ```mermaid
 flowchart LR
@@ -548,7 +649,7 @@ flowchart TD
 - Events are independent of one another — ordering violations are acceptable or the subscriber handles deduplication internally.
 - The subscriber needs to absorb bursts without stalling the bus dispatch thread.
 
-> **Interaction with PerTopicPerSubscriberStrategy:** with this strategy each subscriber already runs in its own dedicated thread, so a sequential subscriber only blocks its own processor thread — not other subscribers. This makes the sequential/parallel choice less critical for fan-out scenarios: you can use sequential everywhere and still achieve per-subscriber parallelism at the bus level.
+> **Interaction with DefaultEventBusStrategy and PerTopicPerSubscriberStrategy:** with these strategies, each subscriber already runs in its own dedicated thread, so a sequential subscriber only blocks its own processor thread — not other subscribers. This makes the sequential/parallel choice less critical for fan-out scenarios: you can use sequential everywhere and still achieve per-subscriber parallelism at the bus level.
 
 #### Subscriber Model Selection Per DT Role
 
@@ -569,7 +670,7 @@ The subscriber execution model interacts differently with each bus strategy:
 
 ```mermaid
 flowchart LR
-    subgraph default_s [Default Strategy\n+ Sequential Sub]
+    subgraph default_s [OldDeprecated Strategy\n+ Sequential Sub]
         D_P[Publisher] -->|"acquires lock"| D_L{{"lock"}}
         D_L -->|"calls onEvent\nblocks"| D_S["Sub\nprocessing\n[processingMs]"]
         D_S -->|"return\nreleases lock"| D_P
@@ -578,7 +679,7 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    subgraph default_p [Default Strategy\n+ Parallel Sub]
+    subgraph default_p [OldDeprecated Strategy\n+ Parallel Sub]
         DP_P[Publisher] -->|"acquires lock"| DP_L{{"lock"}}
         DP_L -->|"calls onEvent\nreturns in µs"| DP_S["Sub\nonEvent()"]
         DP_S -->|"submit"| DP_POOL[("Thread Pool")]
@@ -609,10 +710,10 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    subgraph ptps [PerTopicPerSubscriber\n+ either model]
-        PP_P[Publisher] -->|"put"| PP_TQ[("TopicQueue")]
-        PP_TQ -->|"take"| PP_TR["TopicReader"]
-        PP_TR -->|"offer"| PP_SQ[("SubPriorityQueue")]
+    subgraph ptps [PerTopicPerSub or Default\n+ either model]
+        PP_P[Publisher] -->|"put"| PP_TQ[("DT/TopicQueue")]
+        PP_TQ -->|"take"| PP_TR["DT Consumer /\nTopicReader"]
+        PP_TR -->|"offer"| PP_SQ[("SubQueue")]
         PP_SQ -->|"take"| PP_SP["SubProcessor\nThread"]
         PP_SP -->|"Sequential: blocks SubProcessor\nParallel: submits to pool"| PP_S["Sub\nonEvent()"]
         PP_S -.->|"Parallel only"| PP_POOL[("Thread Pool")]
@@ -623,16 +724,17 @@ flowchart LR
 
 | Strategy | Sequential subscriber effect | Parallel subscriber effect |
 |---|---|---|
-| Default | Publisher thread blocks for `processingMs`; lock held the entire time | Publisher releases lock in µs; processing runs concurrently with next publish |
+| OldDeprecated | Publisher thread blocks for `processingMs`; lock held the entire time | Publisher releases lock in µs; processing runs concurrently with next publish |
 | PerDtAsync | Consumer thread stalls; queue grows if rate > 1/processingMs | Consumer thread drains queue continuously; pool absorbs processing backlog |
 | PerDtQueued | Same as Async | Same as Async |
 | PerTopicPerSub | SubProcessor thread stalls for this subscriber only; other subs unaffected | SubProcessor submits to pool and immediately pulls next event; highest possible throughput |
+| **Default** | SubProcessor thread stalls for this subscriber only; other subs unaffected | SubProcessor submits to pool and immediately pulls next event |
 
 ---
 
 ### 6.6 Empirical Results — Scenario 9
 
-**Setup:** 4 publishers × 4 subscribers, 100 msg/s per publisher, 500 KB payload, 10 ms processing per event. All four bus strategies tested. X-axis: subscriber thread pool size [2, 4, 8, 10, 14, 16, 18, 20].
+**Setup:** 4 publishers × 4 subscribers, 100 msg/s per publisher, 500 KB payload, 10 ms processing per event. All five bus strategies tested. X-axis: subscriber thread pool size [2, 4, 8, 10, 14, 16, 18, 20].
 
 | Pool size | Throughput (all strategies) | E2E p50 | Notes |
 |:---------:|:---------------------------:|:-------:|-------|
@@ -657,3 +759,202 @@ pool_size_min = ceil(arrival_rate_per_sub × processingMs / 1000)
              = ceil(400 msg/s × 10 ms / 1000)
              = ceil(4) = 4 threads
 ```
+
+---
+
+## 7. Experimental Validation
+
+The `EventBusExperimentTest` suite characterizes all five strategies across 10 scenarios, each varying a single dimension while holding the rest fixed. Strategies tested: `OldDeprecatedStrategy`, `PerDtAsyncStrategy`, `PerDtQueuedStrategy`, `PerTopicPerSubscriberStrategy`, `DefaultEventBusStrategy`.
+
+### How to run
+
+```bash
+# Run the full experiment suite
+./gradlew test --tests "it.wldt.core.event.EventBusExperimentTest"
+
+# Outputs go to:
+#   metrics/event-bus/<RUN_ID>/experiments/scenario_N_*.csv
+
+# Generate comparison graphs after the run
+python metrics/event-bus/analyze.py
+# or for a specific run:
+python metrics/event-bus/analyze.py <RUN_ID>
+```
+
+**Fixed baseline** (unless the scenario varies them):
+
+| Parameter | Value |
+|-----------|-------|
+| Message rate | 10 msg/s per publisher |
+| Event size | 100 KB |
+| Subscriber processing | 1 ms |
+
+---
+
+### 7.1 Scenario 1 — Message Rate Variation
+
+**Varied:** publisher message rate ∈ {1, 10, 20, 50, 100, 200, 400} msg/s per publisher
+
+**Fixed:** 4 publishers, 8 subscribers, 100 KB payload, 1 ms processing
+
+**What it reveals:** How each strategy handles increasing traffic intensities. `OldDeprecatedStrategy` is expected to block on subscriber processing at high rates and drop effective throughput. Async/Queued strategies decouple publisher speed but accumulate queue depth when subscriber processing can't keep up. `DefaultEventBusStrategy` and `PerTopicPerSubscriberStrategy` isolate each subscriber independently and sustain the highest delivered message rates under load.
+
+> *Graph generated by `python analyze.py` after running the test suite.*
+>
+> ![Scenario 1 — Message Rate Variation](../images/scenario_1_rate_variation.png)
+
+---
+
+### 7.2 Scenario 2 — Event Size Variation
+
+**Varied:** event payload size ∈ {10, 100, 1 000, 5 000} bytes
+
+**Fixed:** 10 msg/s, 1 publisher, 1 subscriber, 1 ms processing
+
+**What it reveals:** Throughput sensitivity to object size — allocation pressure, GC behavior, and in-memory copy cost as events grow. With a single subscriber the fan-out differences between strategies are eliminated; this scenario isolates raw payload-size impact. All strategies should degrade similarly, though lock-based `OldDeprecatedStrategy` may show higher p99 jitter due to holding the monitor during payload handling.
+
+> *Graph generated by `python analyze.py` after running the test suite.*
+>
+> ![Scenario 2 — Event Size Variation](../images/scenario_2_size_variation.png)
+
+---
+
+### 7.3 Scenario 3 — Subscriber Processing Time Variation
+
+**Varied:** subscriber processing time ∈ {10, 20, 30, 40, 50, 60, 70, 80, 100} ms
+
+**Fixed:** 4 publishers, 4 subscribers, 10 msg/s, 100 KB payload
+
+**What it reveals:** The most diagnostic scenario for architectural differences. `OldDeprecatedStrategy` p50 equals `processingMs` because the publisher blocks for each subscriber in sequence. Async/Queued strategies decouple the publisher but eventually saturate their single consumer thread (queue grows unboundedly when `processingMs > inter_arrival_ms`). `DefaultEventBusStrategy` and `PerTopicPerSubscriberStrategy` maintain sub-millisecond E2E p50 regardless of subscriber processing time because each subscriber runs on an independent thread.
+
+> *Graph generated by `python analyze.py` after running the test suite.*
+>
+> ![Scenario 3 — Subscriber Processing Time Variation](../images/scenario_3_processing_time_variation.png)
+
+---
+
+### 7.4 Scenario 4 — Publisher Count Variation
+
+**Varied:** number of concurrent publishers ∈ {1, 2, 4, 6, 8, 10}
+
+**Fixed:** 1 subscriber, 10 msg/s per publisher, 100 KB, 1 ms processing
+
+**What it reveals:** Publisher fan-in cost under increasing contention. All publishers target the same DT ID and subscriber. `OldDeprecatedStrategy` serializes all publishers on a single monitor — lock contention grows with publisher count. Async/Queued and Default strategies use a single DT queue that absorbs concurrent puts without lock contention beyond the CAS on the queue head.
+
+> *Graph generated by `python analyze.py` after running the test suite.*
+>
+> ![Scenario 4 — Publisher Count Variation](../images/scenario_4_publisher_count_variation.png)
+
+---
+
+### 7.5 Scenario 5 — Subscriber Count Variation
+
+**Varied:** number of subscribers ∈ {1, 2, 4, 6, 8, 10}
+
+**Fixed:** 4 publishers, 10 msg/s per publisher, 100 KB, 1 ms processing
+
+**What it reveals:** Fan-out cost as subscriber count increases. `OldDeprecatedStrategy` and single-threaded strategies (Async, Queued) call `onEvent()` sequentially — E2E p50 scales as O(N × processingMs). `DefaultEventBusStrategy` and `PerTopicPerSubscriberStrategy` dispatch to each subscriber's independent queue and thread — E2E p50 stays constant regardless of subscriber count.
+
+> *Graph generated by `python analyze.py` after running the test suite.*
+>
+> ![Scenario 5 — Subscriber Count Variation](../images/scenario_5_subscriber_count_variation.png)
+
+---
+
+### 7.6 Scenario 6 — Large Payload × Rate Variation
+
+**Varied:** publisher message rate ∈ {1, 5, 10, 20, 50, 100} msg/s
+
+**Fixed:** 4 publishers, 4 subscribers, 500 KB payload, 1 ms processing
+
+**What it reveals:** Delivery throughput under large payload sizes at increasing rates. At 100 msg/s × 500 KB = 50 MB/s effective data rate, all strategies face GC pressure and memory bandwidth limits. No artificial processing delay — this scenario isolates raw delivery capacity. Strategies with per-subscriber queues (Default, PerTopicPerSub) show lower p99 variability under burst because the DT queue acts as a shock absorber before fan-out.
+
+> *Graph generated by `python analyze.py` after running the test suite.*
+>
+> ![Scenario 6 — Large Payload Rate Variation](../images/scenario_6_large_payload_rate_variation.png)
+
+---
+
+### 7.7 Scenario 7 — High Rate × Event Size Variation
+
+**Varied:** event payload size ∈ {100 KB, 200 KB, 500 KB, 750 KB, 1 MB}
+
+**Fixed:** 100 msg/s per publisher, 4 publishers, 4 subscribers, 1 ms processing
+
+**What it reveals:** How each strategy degrades as per-message data volume grows at a sustained high rate. At 100 msg/s × 1 MB = 100 MB/s the JVM heap allocation rate becomes the dominant bottleneck regardless of strategy. Differences between strategies emerge at intermediate sizes (200–500 KB) where allocation pressure is significant but not yet GC-catastrophic. `OldDeprecatedStrategy` shows highest p99 because holding the lock during payload handling prevents other publishers from proceeding.
+
+> *Graph generated by `python analyze.py` after running the test suite.*
+>
+> ![Scenario 7 — High Rate Size Variation](../images/scenario_7_high_rate_size_variation.png)
+
+---
+
+### 7.8 Scenario 8 — Topic Count Variation
+
+**Varied:** number of topics ∈ {2, 4, 8, 10, 20, 40, 80, 100}
+
+**Fixed:** 10 msg/s per publisher, 4 publishers, 4 subscribers, 200 KB, 1 ms processing
+
+**What it reveals:** Routing overhead as topic count scales. `PerTopicPerSubscriberStrategy` creates one thread per (topic × DT) pair — at 100 topics this means 100 topic-reader threads. The other strategies use a single DT queue regardless of topic count (O(1) routing overhead). The key question is whether `PerTopicPerSubscriberStrategy`'s thread explosion degrades JVM performance relative to `DefaultEventBusStrategy`'s flat per-subscriber thread model.
+
+> *Graph generated by `python analyze.py` after running the test suite.*
+>
+> ![Scenario 8 — Topic Count Variation](../images/scenario_8_topic_count_variation.png)
+
+---
+
+### 7.9 Scenario 9 — Parallel Subscriber Pool Size Variation
+
+**Varied:** subscriber thread pool size ∈ {2, 4, 8, 10, 14, 16, 18, 20}
+
+**Fixed:** 100 msg/s per publisher, 4 publishers, 4 subscribers, 500 KB, 10 ms processing (parallel subscribers)
+
+**What it reveals:** Intra-subscriber parallelism and interaction between the bus dispatch model and the parallel subscriber pool. Each subscriber uses `onEvent() → pool.submit()`, so the bus dispatch thread is always released in microseconds. The ceiling is determined by `pool_size ≥ ceil(arrival_rate × processingMs)` — below the threshold, throughput scales linearly with pool size; above it, all strategies plateau at the publish rate. Strategies converge at sufficient pool size because the bus becomes irrelevant when the subscriber is the bottleneck.
+
+Saturation formula:
+```
+pool_size_min = ceil(arrival_rate_per_sub × processingMs / 1000)
+             = ceil(400 msg/s × 10 ms / 1000) = 4 threads
+```
+
+> *Graph generated by `python analyze.py` after running the test suite.*
+>
+> ![Scenario 9 — Parallel Subscriber Pool Size Variation](../images/scenario_9_parallel_subscriber_pool_variation.png)
+
+---
+
+### 7.10 Scenario 10 — Mixed Publishers & Mixed Subscribers (Time-Windowed)
+
+**Setup:**
+- 4 publishers at independent rates: {100, 50, 25, 10} Hz (total: 185 Hz)
+- 2 sequential subscribers + 2 parallel subscribers (pool size = 16 each)
+- Payload: 500 KB per event
+- Processing: Uniform[10, 100] ms per event
+- Duration: 5 minutes (300 seconds)
+- Metric aggregation: 10-second tumbling windows
+
+**What it reveals:** Sustained-load behavior under realistic heterogeneous conditions. Sequential subscribers block their dispatch thread for 10–100 ms per event, introducing queue pressure that grows over time when the arrival rate exceeds processing capacity. Parallel subscribers absorb the same load without blocking the dispatch thread. The time-window view exposes:
+
+- Whether latency is stable or grows monotonically (queue saturation)
+- How well each strategy isolates sequential subscribers from parallel ones
+- Rate differences between the fast publisher (100 Hz) and slow publisher (10 Hz) reflected in per-subscriber delivery rates
+- Out-of-order delivery under load (strategies without per-subscriber threads may reorder events from different publisher rates)
+
+`DefaultEventBusStrategy` is the expected winner: sequential subscribers run on their own threads (queue pressure stays local), parallel subscribers return immediately from `onEvent()`, and both subscriber types are isolated from each other. `OldDeprecatedStrategy` is expected to saturate early due to the publisher blocking for every event.
+
+> *One PNG is generated per strategy by `python analyze.py`, showing 4 time-series panels (p50, p99, message rate, out-of-order %) per subscriber.*
+>
+> **OldDeprecated:**
+> ![Scenario 10 — OldDeprecated](../images/scenario_10_old_deprecated.png)
+>
+> **PerDtAsync:**
+> ![Scenario 10 — PerDtAsync](../images/scenario_10_perdt_async.png)
+>
+> **PerDtQueued:**
+> ![Scenario 10 — PerDtQueued](../images/scenario_10_perdt_queued.png)
+>
+> **PerTopicPerSubscriber:**
+> ![Scenario 10 — PerTopicPerSubscriber](../images/scenario_10_per_topic_per_subscriber.png)
+>
+> **Default:**
+> ![Scenario 10 — Default](../images/scenario_10_default.png)

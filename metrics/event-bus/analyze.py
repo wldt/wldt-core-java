@@ -14,6 +14,7 @@ Graphs are saved in each experiment-type subfolder:
 
 import csv
 import glob
+import json
 import sys
 from pathlib import Path
 
@@ -30,12 +31,58 @@ BASE_DIR = Path(__file__).parent
 
 # ── Strategy palette ──────────────────────────────────────────────────────────
 STRATEGIES = {
-    "default":                 {"label": "Default (Sync)",           "color": "#2196F3", "ls": "-"},
-    "perdt_async":             {"label": "Per-DT Async",             "color": "#FF9800", "ls": "--"},
-    "perdt_queued":            {"label": "Per-DT Queued",            "color": "#4CAF50", "ls": "-."},
-    "per_topic_per_subscriber":{"label": "Per-Topic Per-Subscriber", "color": "#9C27B0", "ls": ":"},
+    "old_deprecated":           {"label": "Old Deprecated (Sync)",     "color": "#90A4AE", "ls": ":"},
+    "perdt_async":              {"label": "Per-DT Async",              "color": "#FF9800", "ls": "--"},
+    "perdt_queued":             {"label": "Per-DT Queued",             "color": "#4CAF50", "ls": "-."},
+    "per_topic_per_subscriber": {"label": "Per-Topic Per-Subscriber",  "color": "#9C27B0", "ls": (0, (3, 1))},
+    "default":                  {"label": "Default",                   "color": "#2196F3", "ls": "-"},
 }
 STRATEGY_ORDER = list(STRATEGIES.keys())
+
+
+# ─── Metadata helpers ────────────────────────────────────────────────────────
+
+def load_meta(csv_path):
+    """Load _meta.json alongside a CSV; returns dict or None if not found."""
+    meta_path = Path(str(csv_path).replace(".csv", "_meta.json"))
+    if not meta_path.exists():
+        return None
+    with open(meta_path) as f:
+        return json.load(f)
+
+
+def _fmt_size(b):
+    if b >= 1_000_000:
+        return f"{b // 1_000_000} MB"
+    if b >= 1_000:
+        return f"{b // 1_000} KB"
+    return f"{b} B"
+
+
+def build_fixed_label(meta, varied_param):
+    """Build a human-readable 'Fixed: ...' label from metadata, excluding the varied param."""
+    parts = []
+    if varied_param != "msg_rate_per_pub" and "msg_rate_per_pub" in meta:
+        parts.append(f"rate={meta['msg_rate_per_pub']} msg/s")
+    if varied_param != "event_size_bytes" and "event_size_bytes" in meta:
+        parts.append(f"size={_fmt_size(meta['event_size_bytes'])}")
+    if varied_param != "processing_time_ms" and "processing_time_ms" in meta:
+        parts.append(f"proc={meta['processing_time_ms']} ms")
+    if varied_param != "num_publishers" and "num_publishers" in meta:
+        n = meta["num_publishers"]
+        parts.append(f"{n} publisher{'s' if n != 1 else ''}")
+    if varied_param != "num_subscribers" and "num_subscribers" in meta:
+        n = meta["num_subscribers"]
+        parts.append(f"{n} subscriber{'s' if n != 1 else ''}")
+    if varied_param != "num_topics" and "num_topics" in meta:
+        n = meta["num_topics"]
+        if n != 1:
+            parts.append(f"{n} topics")
+    if varied_param != "subscriber_pool_size" and "subscriber_pool_size" in meta:
+        n = meta["subscriber_pool_size"]
+        if n > 1:
+            parts.append(f"parallel subscriber (pool={n})")
+    return "  |  ".join(parts) if parts else ""
 
 
 # ─── I/O helpers ─────────────────────────────────────────────────────────────
@@ -551,6 +598,12 @@ def analyze_experiments(run_dir: Path) -> None:
         if not csv_path.exists():
             continue
 
+        meta = load_meta(csv_path)
+        if meta:
+            dynamic = build_fixed_label(meta, param_col)
+            if dynamic:
+                fixed_label = dynamic
+
         # Parse CSV
         rows = []
         with open(csv_path, newline="") as f:
@@ -625,10 +678,14 @@ def analyze_experiments(run_dir: Path) -> None:
         axes[0].grid(True, alpha=0.3)
 
         axes[1].set(title="Message Rate", xlabel=x_label, ylabel="Messages [msg/s]")
+        axes[1].ticklabel_format(useOffset=False)
+        axes[1].set_ylim(bottom=0)
         axes[1].legend(fontsize=8)
         axes[1].grid(True, alpha=0.3)
 
         axes[2].set(title="Throughput", xlabel=x_label, ylabel="Throughput [Mbit/s]")
+        axes[2].ticklabel_format(useOffset=False)
+        axes[2].set_ylim(bottom=0)
         axes[2].legend(fontsize=8)
         axes[2].grid(True, alpha=0.3)
 
@@ -662,6 +719,20 @@ def analyze_scenario10(run_dir: Path) -> None:
         return
 
     print("\n[scenario 10 — mixed publishers & subscribers]")
+
+    meta = load_meta(csv_path)
+    if meta:
+        rates_str = "/".join(str(r) for r in meta.get("publisher_rates_hz", []))
+        seq       = meta.get("num_sequential_subs", "?")
+        par       = meta.get("num_parallel_subs", "?")
+        size_str  = _fmt_size(meta.get("event_size_bytes", 0))
+        pmin      = meta.get("processing_min_ms", "?")
+        pmax      = meta.get("processing_max_ms", "?")
+        s10_subtitle = (f"publishers: {rates_str} Hz  |  {seq} sequential + {par} parallel subscribers  |  "
+                        f"{size_str} payload  |  proc ∈ [{pmin}, {pmax}] ms")
+    else:
+        s10_subtitle = ("publishers: 100/50/25/10 Hz  |  2 sequential + 2 parallel subscribers  |  "
+                        "500 KB payload  |  proc ∈ [10, 100] ms")
 
     rows = []
     with open(csv_path, newline="") as f:
@@ -720,9 +791,7 @@ def analyze_scenario10(run_dir: Path) -> None:
         fig, axes = plt.subplots(2, 2, figsize=(16, 10))
         fig.suptitle(
             f"Scenario 10 — Mixed Publishers & Subscribers\n"
-            f"Strategy: {strat_cfg['label']}  |  "
-            f"publishers: 100/50/25/10 Hz  |  2 sequential + 2 parallel subscribers  |  "
-            f"500 KB payload  |  proc ∈ [10, 100] ms",
+            f"Strategy: {strat_cfg['label']}  |  {s10_subtitle}",
             fontsize=10,
         )
         axes_flat = [axes[0][0], axes[0][1], axes[1][0], axes[1][1]]

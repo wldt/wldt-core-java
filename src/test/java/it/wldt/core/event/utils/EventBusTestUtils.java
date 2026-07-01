@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.*;
@@ -54,19 +55,22 @@ public final class EventBusTestUtils {
 
     // ── Strategy registry ──────────────────────────────────────────────────────
 
-    public static final String   STRATEGY_DEFAULT          = "default";
-    public static final String   STRATEGY_ASYNC            = "perdt_async";
-    public static final String   STRATEGY_QUEUED           = "perdt_queued";
-    public static final String   STRATEGY_TOPIC_SUBSCRIBER = "per_topic_per_subscriber";
-    public static final String[] STRATEGY_NAMES            = {
-            STRATEGY_DEFAULT, STRATEGY_ASYNC, STRATEGY_QUEUED, STRATEGY_TOPIC_SUBSCRIBER };
+    public static final String   STRATEGY_DEFAULT                   = "default";
+    public static final String   STRATEGY_ASYNC                     = "perdt_async";
+    public static final String   STRATEGY_QUEUED                    = "perdt_queued";
+    public static final String   STRATEGY_TOPIC_SUBSCRIBER          = "per_topic_per_subscriber";
+    public static final String   STRATEGY_OLD_DEPRECATED            = "old_deprecated";
+    public static final String[] STRATEGY_NAMES                     = {
+            STRATEGY_OLD_DEPRECATED, STRATEGY_ASYNC, STRATEGY_QUEUED,
+            STRATEGY_TOPIC_SUBSCRIBER, STRATEGY_DEFAULT };
 
     public static WldtEventBusStrategy createStrategy(String name) {
         switch (name) {
-            case STRATEGY_DEFAULT:          return new DefaultEventBusStrategy();
+            case STRATEGY_OLD_DEPRECATED:   return new OldDeprecatedStrategy();
             case STRATEGY_ASYNC:            return new PerDtAsyncStrategy();
             case STRATEGY_QUEUED:           return new PerDtQueuedStrategy();
             case STRATEGY_TOPIC_SUBSCRIBER: return new PerTopicPerSubscriberStrategy();
+            case STRATEGY_DEFAULT:          return new DefaultEventBusStrategy();
             default: throw new IllegalArgumentException("Unknown strategy: " + name);
         }
     }
@@ -279,7 +283,7 @@ public final class EventBusTestUtils {
         try (PrintWriter w = new PrintWriter(Files.newBufferedWriter(file))) {
             w.println(EXPERIMENT_CSV_HEADER);
             for (ExperimentResult r : results) {
-                w.printf("%s,%s,%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%.3f,%.3f,%.3f,%.2f,%.6f,%d,%.2f%n",
+                w.printf(Locale.US, "%s,%s,%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%.3f,%.3f,%.3f,%.2f,%.6f,%d,%.2f%n",
                         r.config.paramName, r.config.paramValue, r.config.strategyName,
                         r.config.numPublishers, r.config.numSubscribers, r.config.numTopics,
                         r.config.msgRatePerPublisher, r.config.eventSizeBytes,
@@ -407,16 +411,24 @@ public final class EventBusTestUtils {
 
         byte[]         sharedData = new byte[cfg.eventSizeBytes];
         AtomicInteger  published  = new AtomicInteger(0);
-        CountDownLatch pubDone    = new CountDownLatch(cfg.numPublishers);
         long intervalNs = cfg.msgRatePerPublisher > 0
                 ? 1_000_000_000L / cfg.msgRatePerPublisher : 0L;
 
-        ExecutorService pubPool = Executors.newFixedThreadPool(cfg.numPublishers);
+        // One queue per publisher: producer enqueues at target rate, publisher drains into bus.
+        // sendNanos is stamped at creation so E2E includes queueing wait (visible for Default strategy).
+        LinkedBlockingQueue<WldtEvent<?>>[] sendQueues = new LinkedBlockingQueue[cfg.numPublishers];
+        for (int p = 0; p < cfg.numPublishers; p++)
+            sendQueues[p] = new LinkedBlockingQueue<>();
+
+        CountDownLatch producerDone  = new CountDownLatch(cfg.numPublishers);
+        CountDownLatch pubDone       = new CountDownLatch(cfg.numPublishers);
+        ExecutorService producerPool = Executors.newFixedThreadPool(cfg.numPublishers);
+        ExecutorService pubPool      = Executors.newFixedThreadPool(cfg.numPublishers);
         long expStart = System.nanoTime();
 
         for (int p = 0; p < cfg.numPublishers; p++) {
             final int pubIdx = p;
-            pubPool.submit(() -> {
+            producerPool.submit(() -> {
                 try {
                     final String pubId = "pub-" + pubIdx;
                     long nextDeadline = System.nanoTime() + intervalNs;
@@ -424,25 +436,51 @@ public final class EventBusTestUtils {
                         String topic = topicNames[i % cfg.numTopics];
                         TimestampedPayload payload =
                                 new TimestampedPayload(System.nanoTime(), pubId, sharedData);
-                        bus.publishEvent(dtId, pubId, new WldtEvent<>(topic, payload));
-                        published.incrementAndGet();
+                        try {
+                            sendQueues[pubIdx].offer(new WldtEvent<>(topic, payload));
+                        } catch (Exception ignored) {}
                         if (intervalNs > 0) {
                             awaitDeadline(nextDeadline);
                             nextDeadline += intervalNs;
                         }
                     }
-                } catch (Exception ex) {
-                    // EventBusException or interrupt — latch times out, result shows fewer deliveries
+                } finally {
+                    producerDone.countDown();
+                }
+            });
+        }
+
+        for (int p = 0; p < cfg.numPublishers; p++) {
+            final int pubIdx = p;
+            pubPool.submit(() -> {
+                try {
+                    final String pubId = "pub-" + pubIdx;
+                    int sent = 0;
+                    while (sent < cfg.messagesPerPublisher) {
+                        try {
+                            WldtEvent<?> event = sendQueues[pubIdx].poll(200, TimeUnit.MILLISECONDS);
+                            if (event == null) continue;
+                            bus.publishEvent(dtId, pubId, event);
+                            published.incrementAndGet();
+                            sent++;
+                        } catch (EventBusException ex) {
+                            sent++;
+                        }
+                    }
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
                 } finally {
                     pubDone.countDown();
                 }
             });
         }
 
+        producerDone.await();
         pubDone.await();
         boolean timedOut = !deliveryLatch.await(120, TimeUnit.SECONDS);
         long totalWallMs = (System.nanoTime() - expStart) / 1_000_000L;
 
+        producerPool.shutdownNow();
         pubPool.shutdownNow();
         for (ExecutorService pool : subPools)
             if (pool != null) pool.shutdownNow();
@@ -598,12 +636,62 @@ public final class EventBusTestUtils {
         try (PrintWriter w = new PrintWriter(Files.newBufferedWriter(file))) {
             w.println(SCENARIO10_CSV_HEADER);
             for (WindowMetrics m : metrics) {
-                w.printf("%d,%d,%s,%s,%s,%d,%.3f,%.3f,%.3f,%.2f,%.6f,%.2f%n",
+                w.printf(Locale.US, "%d,%d,%s,%s,%s,%d,%.3f,%.3f,%.3f,%.2f,%.6f,%.2f%n",
                         m.windowStartSec, m.windowEndSec, m.strategy,
                         m.subscriberId, m.subscriberType, m.msgsDelivered,
                         m.e2eP50Ms, m.e2eP95Ms, m.e2eP99Ms,
                         m.msgRatePerSec, m.throughputMbps, m.outOfOrderPct);
             }
+        }
+    }
+
+    // ── Metadata writers ──────────────────────────────────────────────────────
+
+    /** Writes <csv-stem>_meta.json alongside the CSV with the actual fixed parameters used. */
+    public static void writeExperimentMeta(Path csvFile, List<ExperimentResult> results) throws IOException {
+        if (results.isEmpty()) return;
+        ExperimentConfig first = results.get(0).config;
+        Path metaFile = csvFile.resolveSibling(
+                csvFile.getFileName().toString().replace(".csv", "_meta.json"));
+        Files.createDirectories(metaFile.getParent());
+        try (PrintWriter w = new PrintWriter(Files.newBufferedWriter(metaFile))) {
+            w.println("{");
+            w.printf("  \"varied_param\": \"%s\",%n",     first.paramName);
+            w.printf("  \"num_publishers\": %d,%n",        first.numPublishers);
+            w.printf("  \"num_subscribers\": %d,%n",       first.numSubscribers);
+            w.printf("  \"num_topics\": %d,%n",            first.numTopics);
+            w.printf("  \"msg_rate_per_pub\": %d,%n",      first.msgRatePerPublisher);
+            w.printf("  \"event_size_bytes\": %d,%n",      first.eventSizeBytes);
+            w.printf("  \"processing_time_ms\": %d,%n",    first.subscriberProcessingMs);
+            w.printf("  \"subscriber_pool_size\": %d,%n",  first.subscriberThreadPoolSize);
+            w.printf("  \"messages_per_publisher\": %d%n", first.messagesPerPublisher);
+            w.println("}");
+        }
+    }
+
+    /** Writes <csv-stem>_meta.json for Scenario 10 alongside the CSV. */
+    public static void writeScenario10Meta(Path csvFile, Scenario10Config cfg) throws IOException {
+        Path metaFile = csvFile.resolveSibling(
+                csvFile.getFileName().toString().replace(".csv", "_meta.json"));
+        Files.createDirectories(metaFile.getParent());
+        StringBuilder rates = new StringBuilder("[");
+        for (int i = 0; i < cfg.publisherRatesHz.length; i++) {
+            if (i > 0) rates.append(", ");
+            rates.append(cfg.publisherRatesHz[i]);
+        }
+        rates.append("]");
+        try (PrintWriter w = new PrintWriter(Files.newBufferedWriter(metaFile))) {
+            w.println("{");
+            w.printf("  \"publisher_rates_hz\": %s,%n",     rates);
+            w.printf("  \"num_sequential_subs\": %d,%n",    cfg.numSequentialSubs);
+            w.printf("  \"num_parallel_subs\": %d,%n",      cfg.numParallelSubs);
+            w.printf("  \"parallel_sub_pool_size\": %d,%n", cfg.parallelSubPoolSize);
+            w.printf("  \"event_size_bytes\": %d,%n",       cfg.eventSizeBytes);
+            w.printf("  \"processing_min_ms\": %d,%n",      cfg.processingMinMs);
+            w.printf("  \"processing_max_ms\": %d,%n",      cfg.processingMaxMs);
+            w.printf("  \"duration_ms\": %d,%n",            cfg.durationMs);
+            w.printf("  \"window_sec\": %d%n",              cfg.windowSec);
+            w.println("}");
         }
     }
 
@@ -680,33 +768,57 @@ public final class EventBusTestUtils {
         }
 
         // Start publishers — each with its own independent rate
+        // Producer enqueues at target rate; publisher drains into bus.
+        // sendNanos stamped at creation so E2E includes queueing wait for Default strategy.
         final byte[]        sharedData = new byte[cfg.eventSizeBytes];
         final AtomicBoolean running    = new AtomicBoolean(true);
-        final ExecutorService pubPool  = Executors.newFixedThreadPool(cfg.numPublishers());
         final long expStartNanos       = System.nanoTime();
+
+        LinkedBlockingQueue<WldtEvent<?>>[] sendQueues10 = new LinkedBlockingQueue[cfg.numPublishers()];
+        for (int p = 0; p < cfg.numPublishers(); p++)
+            sendQueues10[p] = new LinkedBlockingQueue<>();
+
+        final ExecutorService producerPool10 = Executors.newFixedThreadPool(cfg.numPublishers());
+        final ExecutorService pubPool        = Executors.newFixedThreadPool(cfg.numPublishers());
 
         for (int p = 0; p < cfg.numPublishers(); p++) {
             final int  pubIdx     = p;
             final long intervalNs = 1_000_000_000L / cfg.publisherRatesHz[pubIdx];
-            pubPool.submit(() -> {
-                String pubId       = "pub-" + pubIdx;
+            producerPool10.submit(() -> {
+                String pubId        = "pub-" + pubIdx;
                 long   nextDeadline = System.nanoTime() + intervalNs;
                 while (running.get()) {
                     try {
                         TimestampedPayload payload =
                                 new TimestampedPayload(System.nanoTime(), pubId, sharedData);
-                        bus.publishEvent(dtId, pubId, new WldtEvent<>(topic, payload));
-                    } catch (Exception ex) { /* EventBusException — continue */ }
-                    if (!running.get()) break;  // re-check after publish (may have been blocked)
+                        sendQueues10[pubIdx].offer(new WldtEvent<>(topic, payload));
+                    } catch (Exception ignored) {}
+                    if (!running.get()) break;
                     awaitDeadline(nextDeadline);
                     nextDeadline += intervalNs;
                 }
             });
         }
 
-        // Run experiment for durationMs, then stop publishers
+        for (int p = 0; p < cfg.numPublishers(); p++) {
+            final int pubIdx = p;
+            pubPool.submit(() -> {
+                String pubId = "pub-" + pubIdx;
+                while (running.get() || !sendQueues10[pubIdx].isEmpty()) {
+                    try {
+                        WldtEvent<?> event = sendQueues10[pubIdx].poll(10, TimeUnit.MILLISECONDS);
+                        if (event == null) continue;
+                        bus.publishEvent(dtId, pubId, event);
+                    } catch (Exception ignored) {}
+                }
+            });
+        }
+
+        // Run experiment for durationMs, then stop
         Thread.sleep(cfg.durationMs);
         running.set(false);
+        producerPool10.shutdownNow();
+        producerPool10.awaitTermination(2, TimeUnit.SECONDS);
         pubPool.shutdownNow();
         pubPool.awaitTermination(5, TimeUnit.SECONDS);
 

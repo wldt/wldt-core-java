@@ -16,6 +16,9 @@ import static org.junit.jupiter.api.Assertions.*;
  *
  * No metrics, no latency measurement. All tests exploit the synchronous delivery model:
  * publishEvent() returns only after all onEvent() callbacks complete, so no latches are needed.
+ *
+ * OldDeprecatedStrategy is set explicitly in @BeforeEach so that correctness assertions
+ * remain valid without CountDownLatches, even though the bus default is now asynchronous.
  */
 public class EventBusCorrectnessTest {
 
@@ -28,6 +31,7 @@ public class EventBusCorrectnessTest {
     @BeforeEach
     void reset() throws Exception {
         EventBusTestUtils.resetEventBus();
+        WldtEventBus.getInstance().setStrategy(new OldDeprecatedStrategy());
     }
 
     @Test

@@ -41,9 +41,9 @@ import java.util.Map;
 public class EventBusExperimentTest {
 
     // Baseline parameters (held fixed when not the varied dimension)
-    private static final int  FIXED_RATE    = 20;   // msg/sec per publisher
-    private static final int  FIXED_SIZE    = 100;  // event payload bytes
-    private static final long FIXED_PROC_MS = 10L;  // subscriber processing time
+    private static final int  FIXED_RATE    = 10;   // msg/sec per publisher
+    private static final int  FIXED_SIZE    = 100000;  // event payload bytes
+    private static final long FIXED_PROC_MS = 1L;  // subscriber processing time
 
     /**
      * Message count per publisher: enough samples for stable percentiles without
@@ -65,13 +65,13 @@ public class EventBusExperimentTest {
     @Test
     @Order(1)
     void scenario1_messageRateVariation() throws Exception {
-        int[] rates = {1, 10, 20, 50, 100};
+        int[] rates = {1, 10, 20, 50, 100, 200, 400};
         List<ExperimentResult> results = new ArrayList<>();
 
         for (String strat : EventBusTestUtils.STRATEGY_NAMES) {
             for (int rate : rates) {
                 ExperimentConfig cfg = new ExperimentConfig(
-                        strat, 1, 1, rate, FIXED_SIZE, FIXED_PROC_MS, msgCount(rate),
+                        strat, 4, 8, rate, FIXED_SIZE, FIXED_PROC_MS, msgCount(rate),
                         "msg_rate_per_pub", String.valueOf(rate));
                 ExperimentResult r = EventBusTestUtils.runExperiment(cfg);
                 results.add(r);
@@ -81,6 +81,7 @@ public class EventBusExperimentTest {
 
         Path csv = EventBusTestUtils.csvPath("experiments", "scenario_1_rate_variation");
         EventBusTestUtils.writeExperimentCsv(csv, results);
+        EventBusTestUtils.writeExperimentMeta(csv, results);
         System.out.println("Scenario 1 CSV: " + csv.toAbsolutePath());
     }
 
@@ -111,6 +112,7 @@ public class EventBusExperimentTest {
 
         Path csv = EventBusTestUtils.csvPath("experiments", "scenario_2_size_variation");
         EventBusTestUtils.writeExperimentCsv(csv, results);
+        EventBusTestUtils.writeExperimentMeta(csv, results);
         System.out.println("Scenario 2 CSV: " + csv.toAbsolutePath());
     }
 
@@ -126,14 +128,14 @@ public class EventBusExperimentTest {
     @Test
     @Order(3)
     void scenario3_subscriberProcessingTimeVariation() throws Exception {
-        long[] procTimes = {1L, 10L, 50L, 100L, 200L};
+        long[] procTimes = {10L, 20L, 30L, 40L, 50L, 60L, 70L, 80L, 100L};
         int msgs = msgCount(FIXED_RATE);
         List<ExperimentResult> results = new ArrayList<>();
 
         for (String strat : EventBusTestUtils.STRATEGY_NAMES) {
             for (long proc : procTimes) {
                 ExperimentConfig cfg = new ExperimentConfig(
-                        strat, 1, 1, FIXED_RATE, FIXED_SIZE, proc, msgs,
+                        strat, 4, 4, FIXED_RATE, FIXED_SIZE, proc, msgs,
                         "processing_time_ms", String.valueOf(proc));
                 ExperimentResult r = EventBusTestUtils.runExperiment(cfg);
                 results.add(r);
@@ -143,6 +145,7 @@ public class EventBusExperimentTest {
 
         Path csv = EventBusTestUtils.csvPath("experiments", "scenario_3_processing_time_variation");
         EventBusTestUtils.writeExperimentCsv(csv, results);
+        EventBusTestUtils.writeExperimentMeta(csv, results);
         System.out.println("Scenario 3 CSV: " + csv.toAbsolutePath());
     }
 
@@ -173,6 +176,7 @@ public class EventBusExperimentTest {
 
         Path csv = EventBusTestUtils.csvPath("experiments", "scenario_4_publisher_count_variation");
         EventBusTestUtils.writeExperimentCsv(csv, results);
+        EventBusTestUtils.writeExperimentMeta(csv, results);
         System.out.println("Scenario 4 CSV: " + csv.toAbsolutePath());
     }
 
@@ -204,6 +208,7 @@ public class EventBusExperimentTest {
 
         Path csv = EventBusTestUtils.csvPath("experiments", "scenario_5_subscriber_count_variation");
         EventBusTestUtils.writeExperimentCsv(csv, results);
+        EventBusTestUtils.writeExperimentMeta(csv, results);
         System.out.println("Scenario 5 CSV: " + csv.toAbsolutePath());
     }
 
@@ -234,6 +239,7 @@ public class EventBusExperimentTest {
 
         Path csv = EventBusTestUtils.csvPath("experiments", "scenario_6_large_payload_rate_variation");
         EventBusTestUtils.writeExperimentCsv(csv, results);
+        EventBusTestUtils.writeExperimentMeta(csv, results);
         System.out.println("Scenario 6 CSV: " + csv.toAbsolutePath());
     }
 
@@ -265,6 +271,7 @@ public class EventBusExperimentTest {
 
         Path csv = EventBusTestUtils.csvPath("experiments", "scenario_7_high_rate_size_variation");
         EventBusTestUtils.writeExperimentCsv(csv, results);
+        EventBusTestUtils.writeExperimentMeta(csv, results);
         System.out.println("Scenario 7 CSV: " + csv.toAbsolutePath());
     }
 
@@ -281,7 +288,7 @@ public class EventBusExperimentTest {
     @Order(8)
     void scenario8_topicCountVariation() throws Exception {
         int[] topics = {2, 4, 8, 10, 20, 40, 80, 100};
-        int   rate   = 100;  // msg/s per publisher (overall — divided across topics)
+        int   rate   = 10;  // msg/s per publisher (overall — divided across topics)
         int   size   = 200_000; // 200 KB
         int   msgs   = msgCount(rate); // 300 total messages per publisher across all topics
         List<ExperimentResult> results = new ArrayList<>();
@@ -300,6 +307,7 @@ public class EventBusExperimentTest {
 
         Path csv = EventBusTestUtils.csvPath("experiments", "scenario_8_topic_count_variation");
         EventBusTestUtils.writeExperimentCsv(csv, results);
+        EventBusTestUtils.writeExperimentMeta(csv, results);
         System.out.println("Scenario 8 CSV: " + csv.toAbsolutePath());
     }
 
@@ -345,6 +353,7 @@ public class EventBusExperimentTest {
 
         Path csv = EventBusTestUtils.csvPath("experiments", "scenario_9_parallel_subscriber_pool_variation");
         EventBusTestUtils.writeExperimentCsv(csv, results);
+        EventBusTestUtils.writeExperimentMeta(csv, results);
         System.out.println("Scenario 9 CSV: " + csv.toAbsolutePath());
     }
 
@@ -365,6 +374,7 @@ public class EventBusExperimentTest {
     @Order(10)
     void scenario10_mixedPublishersAndSubscribers() throws Exception {
         List<WindowMetrics> allResults = new ArrayList<>();
+        Scenario10Config lastCfg = null;
 
         for (String strat : EventBusTestUtils.STRATEGY_NAMES) {
             Scenario10Config cfg = new Scenario10Config(
@@ -374,6 +384,7 @@ public class EventBusExperimentTest {
                     500_000,                      // 500 KB payload
                     10, 100,                      // processing [10, 100] ms
                     300_000L, 10);                // 5 min duration, 10-sec windows
+            lastCfg = cfg;
 
             System.out.printf("[S10|%s] Starting 5-minute experiment...%n", strat);
             List<WindowMetrics> results = EventBusTestUtils.runScenario10Experiment(cfg);
@@ -383,6 +394,7 @@ public class EventBusExperimentTest {
 
         Path csv = EventBusTestUtils.csvPath("experiments", "scenario_10_mixed_publishers_subscribers");
         EventBusTestUtils.writeScenario10Csv(csv, allResults);
+        if (lastCfg != null) EventBusTestUtils.writeScenario10Meta(csv, lastCfg);
         System.out.println("Scenario 10 CSV: " + csv.toAbsolutePath());
     }
 
