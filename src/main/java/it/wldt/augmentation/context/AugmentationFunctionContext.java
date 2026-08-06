@@ -25,6 +25,12 @@ import it.wldt.core.state.DigitalTwinState;
 import it.wldt.storage.query.QueryRequest;
 import it.wldt.storage.query.QueryResult;
 
+/**
+ * This class represents the context of an Augmentation Function execution, providing access to the Digital Twin State
+ * and the results of any associated query.
+ * It encapsulates the state of the Digital Twin at the time of the function's execution and the results of a query
+ * performed on the Digital Twin's storage, allowing augmentation functions to operate with the most current data available.
+ */
 public class AugmentationFunctionContext {
 
     /**
@@ -80,10 +86,19 @@ public class AugmentationFunctionContext {
         return queryResult;
     }
 
+    /**
+     * Sets the Digital Twin State at the time of the augmentation function execution.
+     * @param digitalTwinState The Digital Twin State to set for the context.
+     */
     public void setDigitalTwinState(DigitalTwinState digitalTwinState) {
         this.digitalTwinState = digitalTwinState;
     }
 
+    /**
+     * Sets the results of the query on the Digital Twin's storage associated to the {@link QueryRequest}
+     * defined in the {@link AugmentationFunctionContextRequest} of the {@link AugmentationFunction}
+     * @param queryResult The QueryResult to set for the context.
+     */
     public void setQueryResult(QueryResult<?> queryResult) {
         this.queryResult = queryResult;
     }

@@ -30,7 +30,7 @@ import java.util.Map;
  * the value of the result, any relevant metadata, and the request that led to this result. The AugmentationFunctionResult
  * class serves as a data structure to hold all relevant information about a specific result from an augmentation
  * function execution, allowing for better management and tracking of results within the system.
- * @param <T>
+ * @param <T> The type of the value produced by the augmentation function, allowing for flexibility in the types of results that can be represented and managed within the system.
  */
 public class AugmentationFunctionResult<T> {
 

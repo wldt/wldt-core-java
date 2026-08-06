@@ -369,6 +369,7 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
      * Enable the observation of available Digital Twin State Events Notifications.
      * @param digitalTwinState the Digital Twin State to observe
      * @throws EventBusException Thrown if there is an error in the EventBus subscription
+     * @throws WldtDigitalTwinStateEventException Thrown if there is an error in the Digital Twin State Events management
      */
     protected void observeDigitalTwinEventsNotifications(DigitalTwinState digitalTwinState) throws EventBusException, WldtDigitalTwinStateEventException {
 
@@ -383,6 +384,7 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
      * Cancel the observation of Digital Twin State Events Notifications
      * @param digitalTwinState the Digital Twin State to unobserve
      * @throws EventBusException Thrown if there is an error in the EventBus unsubscription
+     * @throws WldtDigitalTwinStateEventException Thrown if there is an error in the Digital Twin State Events management
      */
     protected void unObserveDigitalTwinEventsNotifications(DigitalTwinState digitalTwinState) throws EventBusException, WldtDigitalTwinStateEventException {
 
@@ -846,6 +848,7 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
      * @param statelessAugmentationFunction the Stateless Augmentation Function to be executed, encapsulated in an instance of {@link StatelessAugmentationFunction}
      * @param augmentationFunctionRequest the request associated to the execution of the Augmentation Function, containing all the necessary information for the execution of the function.
      * @throws AugmentationFunctionException Thrown if there is an error during the handling of the execution of the Augmentation Function.
+     * @return an instance of {@link AugmentationFunctionResultList} containing the result of the execution of the Augmentation Function
      */
     abstract protected AugmentationFunctionResultList handleAugmentationFunctionExecution(StatelessAugmentationFunction statelessAugmentationFunction, AugmentationFunctionRequest augmentationFunctionRequest) throws AugmentationFunctionException;
 
@@ -855,6 +858,7 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
      * handler for the refresh of the result of the Augmentation Function to allow the implementation of any specific
      * logic for the refresh of the result of the Augmentation Function.
      * @param augmentationFunctionId the id of the Augmentation Function to be refreshed
+     * @param queryRequest the request associated to the refresh of the execution of the Augmentation Function, containing all the necessary information for the refresh of the result of the function.
      * @param queryResult the result associated to the refresh of the execution of the Augmentation Function, containing all the necessary information for the refresh of the result of the function.
      */
     public void executeAugmentationFunctionQueryResultRefresh(String augmentationFunctionId, QueryRequest queryRequest, QueryResult<?> queryResult) {
@@ -879,6 +883,7 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
      * method after checking the registration and the type of the Augmentation Function, allowing to implement any specific
      * logic for the refresh of the result of the Augmentation Function.
      * @param statefulAugmentationFunction the Stateful Augmentation Function to be refreshed, encapsulated in an instance of {@link StatefulAugmentationFunction}
+     * @param queryRequest the request associated to the refresh of the execution of the Augmentation Function, containing all the necessary information for the refresh of the result of the function.
      * @param queryResult the result associated to the refresh of the execution of the Augmentation Function, containing all the necessary information for the refresh of the result of the function.
      * @throws AugmentationFunctionException Thrown if there is an error during the handling of the refresh of the result of the Augmentation Function.
      */

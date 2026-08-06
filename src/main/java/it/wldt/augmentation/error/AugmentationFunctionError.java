@@ -23,6 +23,15 @@ package it.wldt.augmentation.error;
 import java.util.HashMap;
 import java.util.UUID;
 
+/**
+ * This class represents an error that occurred during the execution of an Augmentation Function.
+ * It contains information about the error, including a unique identifier, timestamp, error type, message, and any relevant metadata.
+ * The error type can be used to categorize the error and provide more information about the nature of the error.
+ * The metadata can include any relevant information that can help with understanding the error and finding a solution.
+ * This class can be used to log errors, report errors to a monitoring system, or to provide feedback to the user about the error that occurred.
+ * It can also be used to trace back the error to the specific request that was being processed when the error occurred,
+ * by including the identifier of the augmentation function request in the error object.
+ */
 public class AugmentationFunctionError {
 
     /**

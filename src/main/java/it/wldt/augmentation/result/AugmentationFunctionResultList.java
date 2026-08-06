@@ -174,7 +174,7 @@ public class AugmentationFunctionResultList extends ArrayList<AugmentationFuncti
         super.removeRange(fromIndex, toIndex);
     }
 
-    /** Returns {@code true} if this list is in an error state. */
+    /** @return {@code true} if this list is in an error state. */
     public boolean hasError() {
         return augmentationFunctionError != null;
     }
@@ -191,6 +191,7 @@ public class AugmentationFunctionResultList extends ArrayList<AugmentationFuncti
     /**
      * Sets the error on this list.  Once set, all mutating operations will throw
      * {@link IllegalStateException} until the error is cleared.
+     * @param augmentationFunctionError the error to associate with this list, or {@code null} to clear any existing error
      */
     public void setAugmentationFunctionError(AugmentationFunctionError augmentationFunctionError) {
         this.augmentationFunctionError = augmentationFunctionError;

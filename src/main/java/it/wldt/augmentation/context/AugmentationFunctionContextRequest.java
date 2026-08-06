@@ -24,6 +24,15 @@ import it.wldt.storage.query.QueryRequest;
 
 import java.util.List;
 
+/**
+ * This class represents the request for the context of an Augmentation Function execution, allowing the specification
+ * of observation preferences and query requests.
+ * It provides options to observe the state of the system and event notifications, as well as filters for properties,
+ * events, and relationships. Additionally, it allows the inclusion of a QueryRequest to retrieve necessary data from
+ * the storage system during the execution of the augmentation function.
+ * The class is designed to be flexible, enabling augmentation functions to customize their context based on their
+ * specific needs and requirements.
+ */
 public class AugmentationFunctionContextRequest {
 
     /**
