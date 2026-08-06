@@ -82,12 +82,14 @@ public void onAdapterStart() {
         PhysicalAssetDescription pad = new PhysicalAssetDescription();
         
         //Add a new Property associated to the target PAD with a key and a default resource
+        //By default 'type' is set equal to the key and 'contentType' is derived from the value's Class (e.g. java.lang.Double);
+        //use the (key, type, contentType, initialValue[, immutable, writable]) constructors to set them explicitly
         PhysicalAssetProperty<Double> temperatureProperty = new PhysicalAssetProperty<Double>(TEMPERATURE_PROPERTY_KEY, 0.0);
         pad.getProperties().add(temperatureProperty);
         
-        //Add the declaration of a new type of generated event associated to a event key
-        // and the content type of the generated payload
-        PhysicalAssetEvent overheatingEvent = new PhysicalAssetEvent(OVERHEATING_EVENT_KEY, "text/plain");
+        //Add the declaration of a new type of generated event associated to an event key, a domain-specific type
+        // and the content-type of the generated payload
+        PhysicalAssetEvent overheatingEvent = new PhysicalAssetEvent(OVERHEATING_EVENT_KEY, "temperature.overheating", "text/plain");
         pad.getEvents().add(overheatingEvent);
         
         //Declare the availability of a target action characterized by a Key, an action type
@@ -236,12 +238,14 @@ public class TestPhysicalAdapter extends PhysicalAdapter {
             PhysicalAssetDescription pad = new PhysicalAssetDescription();
 
             //Add a new Property associated to the target PAD with a key and a default resource
+            //By default 'type' is set equal to the key and 'contentType' is derived from the value's Class (e.g. java.lang.Double);
+            //use the (key, type, contentType, initialValue[, immutable, writable]) constructors to set them explicitly
             PhysicalAssetProperty<Double> temperatureProperty = new PhysicalAssetProperty<Double>(TEMPERATURE_PROPERTY_KEY, 0.0);
             pad.getProperties().add(temperatureProperty);
 
-            //Add the declaration of a new type of generated event associated to a event key
-            // and the content type of the generated payload
-            PhysicalAssetEvent overheatingEvent = new PhysicalAssetEvent(OVERHEATING_EVENT_KEY, "text/plain");
+            //Add the declaration of a new type of generated event associated to an event key, a domain-specific type
+            // and the content-type of the generated payload
+            PhysicalAssetEvent overheatingEvent = new PhysicalAssetEvent(OVERHEATING_EVENT_KEY, "temperature.overheating", "text/plain");
             pad.getEvents().add(overheatingEvent);
 
             //Declare the availability of a target action characterized by a Key, an action type
