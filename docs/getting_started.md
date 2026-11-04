@@ -462,6 +462,21 @@ Through the following method we implement the following behaviour:
 - Start observing target Physical Event in order to receive notification callback about physical event generation through the method ```observePhysicalAssetEvent(event);```
 - Check available Physical Action and enable them on the DT's State. Enabled Digital Action are automatically observed by the `DigitalTwinModel` in order to receive action requests from active Digital Adapters
 
+**`type` and `contentType`.** Properties, events and actions are described by two separate fields, both in the
+Physical Asset Description (`PhysicalAssetProperty`, `PhysicalAssetEvent`, `PhysicalAssetAction`) and in the Digital Twin State
+(`DigitalTwinStateProperty`, `DigitalTwinStateEvent`, `DigitalTwinStateAction`):
+
+| Field | Meaning | Example |
+|-------|---------|---------|
+| `type` | **Semantic** type: what the resource represents (ontology / application domain) | `iot.demo.accelerometer` |
+| `contentType` | **Format** used to represent the value or the payload | `string`, `application/json`, `java.lang.Double` |
+
+For example, a string coming from the accelerometer of a specific device has `type = "iot.demo.accelerometer"` and `contentType = "string"`.
+When they are not provided, the `contentType` of a property defaults to the name of the Class of its value, while the
+`type` of a State Property keeps defaulting to the same Class name for backward compatibility. From version 0.8.1 the
+constructors that set only the `type` are deprecated and **will not be supported anymore from version 0.9.0**
+(see `docs/changelogs/v0.8.1.md`).
+
 The possibility to manually observe Physical Properties and Event has been introduced to allow the `DigitalTwinModel` to decide what
 to do according to the nature of the property or of the target event. For example in some cases with static properties it will not be necessary
 to observe any variation and it will be enough to read the initial resource to build the digital replica of that specific property.
@@ -480,8 +495,9 @@ protected void onDigitalTwinBound(Map<String, PhysicalAssetDescription> adapters
                 pad.getProperties().forEach(property -> {
                 try {
                     
-                    //Create and write the property on the DT's State
-                    this.digitalTwinState.createProperty(new DigitalTwinStateProperty<>(property.getKey(),(Double) property.getInitialValue()));
+                    //Create and write the property on the DT's State keeping the semantic type (e.g., "iot.demo.temperature")
+                    //and the content type (the format of the value) declared by the Physical Adapter
+                    this.digitalTwinState.createProperty(new DigitalTwinStateProperty<>(property.getKey(), (Double) property.getInitialValue(), property.getType(), property.getContentType()));
             
                     //Start observing the variation of the physical property in order to receive notifications
                     //Without this call the `DigitalTwinModel` will not receive any notifications or callback about
@@ -497,8 +513,8 @@ protected void onDigitalTwinBound(Map<String, PhysicalAssetDescription> adapters
             pad.getEvents().forEach(event -> {
                 try {
 
-                    //Instantiate a new DT State Event with the same key and type
-                    DigitalTwinStateEvent dtStateEvent = new DigitalTwinStateEvent(event.getKey(), event.getType());
+                    //Instantiate a new DT State Event with the same key, semantic type and content type
+                    DigitalTwinStateEvent dtStateEvent = new DigitalTwinStateEvent(event.getKey(), event.getType(), event.getContentType());
 
                     //Create and write the event on the DT's State
                     this.digitalTwinState.registerEvent(dtStateEvent);
@@ -517,7 +533,7 @@ protected void onDigitalTwinBound(Map<String, PhysicalAssetDescription> adapters
             pad.getActions().forEach(action -> {
                 try {
 
-                    //Instantiate a new DT State Action with the same key and type
+                    //Instantiate a new DT State Action with the same key, semantic type and content type
                     DigitalTwinStateAction dtStateAction = new DigitalTwinStateAction(action.getKey(), action.getType(), action.getContentType());
 
                     //Enable the action on the DT's State
@@ -571,8 +587,8 @@ pad.getProperties().forEach(property -> {
                 && property.getInitialValue() != null
                 &&  property.getInitialValue() instanceof Double) {
 
-            //Instantiate a new DT State Property of the right type, the same key and initial resource
-            DigitalTwinStateProperty<Double> dtStateProperty = new DigitalTwinStateProperty<Double>(property.getKey(),(Double) property.getInitialValue());
+            //Instantiate a new DT State Property with the same key, initial resource, semantic type and content type
+            DigitalTwinStateProperty<Double> dtStateProperty = new DigitalTwinStateProperty<Double>(property.getKey(), (Double) property.getInitialValue(), property.getType(), property.getContentType());
 
             //Create and write the property on the DT's State
             this.digitalTwinState.createProperty(dtStateProperty);
@@ -609,7 +625,9 @@ into the corresponding DT'State property can be implemented as follows:
 @Override
 protected void onPhysicalAssetPropertyVariation(PhysicalAssetPropertyWldtEvent<?> physicalPropertyEventMessage) {
     try {
-        this.digitalTwinState.updateProperty(new DigitalTwinStateProperty<>(physicalPropertyEventMessage.getPhysicalPropertyId(), physicalPropertyEventMessage.getBody()));
+        //Only the value changes: updatePropertyValue() keeps the type and the contentType of the existing State Property
+        //(updateProperty() would replace the whole property, including its type and contentType)
+        this.digitalTwinState.updatePropertyValue(new DigitalTwinStateProperty<>(physicalPropertyEventMessage.getPhysicalPropertyId(), physicalPropertyEventMessage.getBody()));
     } catch (WldtDigitalTwinStatePropertyException | WldtDigitalTwinStatePropertyBadRequestException | WldtDigitalTwinStatePropertyNotFoundException | WldtDigitalTwinStateException e) {
         e.printStackTrace();
     }

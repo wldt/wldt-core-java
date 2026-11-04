@@ -33,10 +33,15 @@ import java.util.Objects;
  * Project: White Label Digital Twin Java Framework - (whitelabel-digitaltwin)
  *
  * This class define a generic property associated to the Digital Twin State.
- * Each property is associated to a Key and a Value. Furthermore, it can also be associated to a type
- * to identify its nature and data structure. By default, it is associated to the type of the
- * Class (e.g., java.lang.String) but it can be directly changed by the developer
- * to associate it to a specific ontology or data type.
+ * Each property is associated to a Key and a Value. Furthermore, it is described by two separate fields:
+ * <ul>
+ *     <li><b>type</b>: the semantic type of the property, i.e. what the property represents
+ *     (e.g., "iot.demo.accelerometer" or "iot.demo.temperature"), typically taken from an ontology or from
+ *     the application domain;</li>
+ *     <li><b>contentType</b>: the format used to represent the value (e.g., "string", "application/json"
+ *     or "java.lang.Double"). By default, it is the name of the Class of the value (e.g., java.lang.String).</li>
+ * </ul>
+ * The same pair is available in the {@code PhysicalAssetProperty} of the Physical Asset Description.
  *
  * @param <T> the type of the value associated to the property
  */
@@ -55,13 +60,19 @@ public class DigitalTwinStateProperty<T> extends DigitalTwinStateResource {
     private T value;
 
     /**
-     * Type of the Property. By default, it is associated to the type of the Class (e.g., java.lang.String) but it
-     * can be directly changed by the developer to associate it to a specific ontology or data type.
-     * Furthermore, it can be useful if the event management system will be extended to the event-base communication
-     * between DTs over the network. In that case, the field can be used to de-serialize the object and understand
-     * the property type
+     * Semantic type of the Property: what the property represents (e.g., "iot.demo.accelerometer"), typically associated
+     * to a specific ontology or application domain. It does not describe how the value is represented, that is the
+     * role of the contentType. If it is not provided, it is set to the name of the Class of the value
+     * (e.g., java.lang.String) for backward compatibility.
      */
     private String type = null;
+
+    /**
+     * Content-Type of the Property: the format used to represent its value (e.g., "string", "application/json").
+     * If it is not provided, it is set to the name of the Class of the value (e.g., java.lang.String), like in
+     * the PhysicalAssetProperty.
+     */
+    private String contentType = null;
 
     /**
      * Identify if the property is readable by external modules
@@ -81,41 +92,73 @@ public class DigitalTwinStateProperty<T> extends DigitalTwinStateResource {
     private DigitalTwinStateProperty() {
     }
 
+    /**
+     * Creates a property with the default type and contentType, both set to the name of the Class of the value.
+     * @param key uniquely identifying the property in the Digital Twin State
+     * @param value current value of the property
+     * @throws WldtDigitalTwinStateException if key or value are null
+     */
     public DigitalTwinStateProperty(String key, T value) throws WldtDigitalTwinStateException {
+        this(key, value, null, null, true, true, true);
+    }
+
+    /**
+     * Creates a property with a semantic type and a content type.
+     * @param key uniquely identifying the property in the Digital Twin State
+     * @param value current value of the property
+     * @param type semantic type of the property (e.g., "iot.demo.accelerometer"). If null, the Class name of the value is used
+     * @param contentType format of the value (e.g., "string"). If null, the Class name of the value is used
+     * @throws WldtDigitalTwinStateException if key or value are null
+     */
+    public DigitalTwinStateProperty(String key, T value, String type, String contentType) throws WldtDigitalTwinStateException {
+        this(key, value, type, contentType, true, true, true);
+    }
+
+    /**
+     * Creates a property with a semantic type and a content type and with all the access flags.
+     * @param key uniquely identifying the property in the Digital Twin State
+     * @param value current value of the property
+     * @param type semantic type of the property (e.g., "iot.demo.accelerometer"). If null, the Class name of the value is used
+     * @param contentType format of the value (e.g., "string"). If null, the Class name of the value is used
+     * @param readable true if the property is readable by external modules
+     * @param writable true if the property is writable by external modules
+     * @param exposed true if the property is exposed to external modules
+     * @throws WldtDigitalTwinStateException if key or value are null
+     */
+    public DigitalTwinStateProperty(String key, T value, String type, String contentType, boolean readable, boolean writable, boolean exposed) throws WldtDigitalTwinStateException {
 
         if(key == null || value == null)
             throw new WldtDigitalTwinStateException("Error creating DigitalTwinStateProperty ! Key or Value = Null !");
 
         this.key = key;
         this.value = value;
-        this.type = value.getClass().getName();
-    }
-
-    public DigitalTwinStateProperty(String key, T value, String type) throws WldtDigitalTwinStateException {
-
-        if(key == null || value == null)
-            throw new WldtDigitalTwinStateException("Error creating DigitalTwinStateProperty ! Key or Value = Null !");
-
-        this.key = key;
-        this.value = value;
-
-        if(type == null)
-            this.type = value.getClass().getName();
-        else
-            this.type = type;
-    }
-
-    public DigitalTwinStateProperty(String key, T value, boolean readable, boolean writable) throws WldtDigitalTwinStateException {
-        this(key, value);
-        this.readable = readable;
-        this.writable = writable;
-    }
-
-    public DigitalTwinStateProperty(String key, T value, boolean readable, boolean writable, boolean exposed) throws WldtDigitalTwinStateException {
-        this(key, value);
+        this.type = type != null ? type : value.getClass().getName();
+        this.contentType = contentType != null ? contentType : value.getClass().getName();
         this.readable = readable;
         this.writable = writable;
         this.exposed = exposed;
+    }
+
+    /**
+     * Creates a property with only the type. The contentType is set to the Class name of the value.
+     * @param key uniquely identifying the property in the Digital Twin State
+     * @param value current value of the property
+     * @param type type of the property
+     * @throws WldtDigitalTwinStateException if key or value are null
+     * @deprecated the constructor with only the type will not be supported anymore from version 0.9.0.
+     * Use {@link #DigitalTwinStateProperty(String, Object, String, String)} to set both the semantic type and the contentType.
+     */
+    @Deprecated
+    public DigitalTwinStateProperty(String key, T value, String type) throws WldtDigitalTwinStateException {
+        this(key, value, type, null, true, true, true);
+    }
+
+    public DigitalTwinStateProperty(String key, T value, boolean readable, boolean writable) throws WldtDigitalTwinStateException {
+        this(key, value, null, null, readable, writable, true);
+    }
+
+    public DigitalTwinStateProperty(String key, T value, boolean readable, boolean writable, boolean exposed) throws WldtDigitalTwinStateException {
+        this(key, value, null, null, readable, writable, exposed);
     }
 
     public String getKey() {
@@ -163,12 +206,32 @@ public class DigitalTwinStateProperty<T> extends DigitalTwinStateResource {
         this.exposed = exposed;
     }
 
+    /**
+     * @return the semantic type of the property
+     */
     public String getType(){
         return this.type;
     }
 
+    /**
+     * @param type the semantic type of the property (e.g., "iot.demo.accelerometer")
+     */
     public void setType(String type) {
         this.type = type;
+    }
+
+    /**
+     * @return the content type of the property, i.e. the format used to represent its value
+     */
+    public String getContentType() {
+        return contentType;
+    }
+
+    /**
+     * @param contentType the content type of the property (e.g., "string")
+     */
+    public void setContentType(String contentType) {
+        this.contentType = contentType;
     }
 
     @Override
@@ -176,12 +239,12 @@ public class DigitalTwinStateProperty<T> extends DigitalTwinStateResource {
         if (this == o) return true;
         if (!(o instanceof DigitalTwinStateProperty)) return false;
         DigitalTwinStateProperty<?> that = (DigitalTwinStateProperty<?>) o;
-        return readable == that.readable && writable == that.writable && exposed == that.exposed && Objects.equals(key, that.key) && Objects.equals(value, that.value) && Objects.equals(type, that.type);
+        return readable == that.readable && writable == that.writable && exposed == that.exposed && Objects.equals(key, that.key) && Objects.equals(value, that.value) && Objects.equals(type, that.type) && Objects.equals(contentType, that.contentType);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(key, value, readable, writable, exposed);
+        return Objects.hash(key, value, type, contentType, readable, writable, exposed);
     }
 
     @Override
@@ -190,6 +253,7 @@ public class DigitalTwinStateProperty<T> extends DigitalTwinStateResource {
         sb.append("key='").append(key).append('\'');
         sb.append(", value=").append(value);
         sb.append(", type='").append(type).append('\'');
+        sb.append(", contentType='").append(contentType).append('\'');
         sb.append(", readable=").append(readable);
         sb.append(", writable=").append(writable);
         sb.append(", exposed=").append(exposed);

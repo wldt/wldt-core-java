@@ -17,6 +17,7 @@ public class DigitalTwinStateEventCRUDTester {
     private final static String EVENT_TYPE = "testEventType";
 
     private final static String EVENT_TYPE_2 = "testEventType2";
+    private final static String EVENT_CONTENT_TYPE = "string";
 
     private DigitalTwinStateManager digitalTwinStateManager;
 
@@ -33,7 +34,7 @@ public class DigitalTwinStateEventCRUDTester {
 
         createDigitalTwinStateManager();
 
-        DigitalTwinStateEvent newEvent = new DigitalTwinStateEvent(EVENT_KEY_1, EVENT_TYPE);
+        DigitalTwinStateEvent newEvent = new DigitalTwinStateEvent(EVENT_KEY_1, EVENT_TYPE, EVENT_CONTENT_TYPE);
 
         digitalTwinStateManager.startStateTransaction();
         digitalTwinStateManager.registerEvent(newEvent);
@@ -42,11 +43,13 @@ public class DigitalTwinStateEventCRUDTester {
         assertTrue(digitalTwinStateManager.getDigitalTwinState().containsEvent(EVENT_KEY_1));
         assertTrue(digitalTwinStateManager.getDigitalTwinState().getEvent(EVENT_KEY_1).isPresent());
         assertEquals(EVENT_TYPE, digitalTwinStateManager.getDigitalTwinState().getEvent(EVENT_KEY_1).get().getType());
+        assertEquals(EVENT_CONTENT_TYPE, digitalTwinStateManager.getDigitalTwinState().getEvent(EVENT_KEY_1).get().getContentType());
         assertTrue(digitalTwinStateManager.getDigitalTwinState().getEventList().isPresent());
         assertEquals(1, digitalTwinStateManager.getDigitalTwinState().getEventList().get().size());
     }
 
     @Test
+    @SuppressWarnings("deprecation") // the constructor with only the type must keep working until 0.9.0
     public void updateRegisteredEvent() throws WldtDigitalTwinStateException, WldtDigitalTwinStateEventException {
 
         registerEvent();

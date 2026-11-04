@@ -32,8 +32,13 @@ import java.util.Objects;
  * Project: White Label Digital Twin Java Framework - (whitelabel-digitaltwin)
  *
  * This class define a generic property action associated to the physical asset.
- * Each action is by a key, an action type and a content type used to identify the expected input required by the action.
- * The type of the action can be directly changed by the developer to associate it to a specific ontology or data type.
+ * Each action is identified by a key and described by two separate fields:
+ * <ul>
+ *     <li><b>type</b>: the semantic type of the action, i.e. what the action does, associated to a specific
+ *     ontology or data type of the application domain;</li>
+ *     <li><b>contentType</b>: the format of the input required by the action (e.g., "string" or "application/json").</li>
+ * </ul>
+ * The same pair is available in the {@code DigitalTwinStateAction} of the Digital Twin State.
  *
  */
 public class PhysicalAssetAction {
@@ -107,7 +112,7 @@ public class PhysicalAssetAction {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         PhysicalAssetAction that = (PhysicalAssetAction) o;
-        return key.equals(that.key) && type.equals(that.type) && contentType.equals(that.contentType);
+        return Objects.equals(key, that.key) && Objects.equals(type, that.type) && Objects.equals(contentType, that.contentType);
     }
 
     @Override

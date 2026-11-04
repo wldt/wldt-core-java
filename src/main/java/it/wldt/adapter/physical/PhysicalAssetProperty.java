@@ -32,10 +32,15 @@ import java.util.Objects;
  * Project: White Label Digital Twin Java Framework - (whitelabel-digitaltwin)
  *
  * This class define a generic property associated to the Physical Asset.
- * Each property is associated to a Key and a Value. Furthermore, it can also be associated to a type
- * to identify its nature and data structure. By default, it is associated to the type of the
- * Class (e.g., java.lang.String) but it can be directly changed by the developer
- * to associate it to a specific ontology or data type.
+ * Each property is associated to a Key and a Value. Furthermore, it is described by two separate fields:
+ * <ul>
+ *     <li><b>type</b>: the semantic type of the property, i.e. what it represents
+ *     (e.g., "iot.demo.accelerometer"), typically taken from an ontology or from the application domain.
+ *     By default, it is equal to the key;</li>
+ *     <li><b>contentType</b>: the format used to represent the value (e.g., "string", "application/json").
+ *     By default, it is the name of the Class of the initial value (e.g., java.lang.String).</li>
+ * </ul>
+ * The same pair is available in the {@code DigitalTwinStateProperty} of the Digital Twin State.
  *
  * @param <T> the type of the value associated to the property
  */
@@ -55,14 +60,16 @@ public class PhysicalAssetProperty<T> {
     private T initialValue;
 
     /**
-     * Type of the Property and can be directly set by the developer to associate it to a specific ontology or data type
+     * Semantic type of the Property: what the property represents, associated to a specific ontology or data type
      * within the application domain (e.g., "iot.demo.temperature" or "iot.demo.humidity").
+     * It does not describe how the value is represented, that is the role of the contentType.
      */
     private String type = null;
 
     /**
-     * Content-Type of the Property. By default, it is associated to the type of the Class (e.g., java.lang.String) but it
-     * can be directly changed by the developer to associate it to a specific content-type.
+     * Content-Type of the Property: the format used to represent its value. By default, it is associated to the
+     * name of the Class of the initial value (e.g., java.lang.String) but it can be directly changed by the
+     * developer to associate it to a specific content-type (e.g., "application/json").
      */
     private String contentType;
 
@@ -111,6 +118,15 @@ public class PhysicalAssetProperty<T> {
 
     }
 
+    /**
+     * Constructor with only the semantic type. The contentType is set to the name of the Class of the initial value.
+     * @param key uniquely identifying the property on the Physical Twin.
+     * @param type Semantic type of the property.
+     * @param initialValue Initial value of the property.
+     * @deprecated the constructor with only the type will not be supported anymore from version 0.9.0.
+     * Use {@link #PhysicalAssetProperty(String, String, String, Object)} to set both the semantic type and the contentType.
+     */
+    @Deprecated
     public PhysicalAssetProperty(String key,
                                  String type,
                                  T initialValue) {
@@ -196,12 +212,13 @@ public class PhysicalAssetProperty<T> {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         PhysicalAssetProperty<?> that = (PhysicalAssetProperty<?>) o;
-        return immutable == that.immutable && writable == that.writable && key.equals(that.key) && initialValue.equals(that.initialValue);
+        return immutable == that.immutable && writable == that.writable && Objects.equals(key, that.key) && Objects.equals(initialValue, that.initialValue)
+                && Objects.equals(type, that.type) && Objects.equals(contentType, that.contentType);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(key, initialValue, immutable, writable);
+        return Objects.hash(key, initialValue, type, contentType, immutable, writable);
     }
 
     public String getContentType() {

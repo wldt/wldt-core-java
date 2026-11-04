@@ -22,6 +22,7 @@ public class DigitalTwinStatePropertyCRUDTester {
     public static final String TEST_VALUE_0001_UPDATED = "TEST-STRING-UPDATED";
 
     public static final String TEST_PROPERTY_TYPE = "test_type";
+    public static final String TEST_PROPERTY_CONTENT_TYPE = "string";
 
     public DigitalTwinStateManager digitalTwinStateManager = null;
 
@@ -226,7 +227,7 @@ public class DigitalTwinStatePropertyCRUDTester {
         //Init DigitaTwin State
         initTestDtState();
 
-        testProperty1 = new DigitalTwinStateProperty<>(TEST_KEY_0001, TEST_VALUE_0001, TEST_PROPERTY_TYPE);
+        testProperty1 = new DigitalTwinStateProperty<>(TEST_KEY_0001, TEST_VALUE_0001, TEST_PROPERTY_TYPE, TEST_PROPERTY_CONTENT_TYPE);
         testProperty1.setKey(TEST_KEY_0001);
         testProperty1.setReadable(true);
         testProperty1.setWritable(true);
@@ -239,6 +240,33 @@ public class DigitalTwinStatePropertyCRUDTester {
         assertEquals(testProperty1, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).get());
         assertEquals(TEST_VALUE_0001, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).get().getValue());
         assertEquals(TEST_PROPERTY_TYPE, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).get().getType());
+        assertEquals(TEST_PROPERTY_CONTENT_TYPE, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).get().getContentType());
+
+    }
+
+    /**
+     * The constructor with only the type is deprecated (not supported from 0.9.0) but it must keep working in 0.8.x
+     */
+    @Test
+    @SuppressWarnings("deprecation")
+    public void propertyTypeValidationWithDeprecatedConstructor() throws WldtDigitalTwinStatePropertyException, WldtDigitalTwinStatePropertyBadRequestException, WldtDigitalTwinStateException, WldtDigitalTwinStatePropertyNotFoundException {
+
+        //Init DigitaTwin State
+        initTestDtState();
+
+        testProperty1 = new DigitalTwinStateProperty<>(TEST_KEY_0001, TEST_VALUE_0001, TEST_PROPERTY_TYPE);
+        testProperty1.setKey(TEST_KEY_0001);
+        testProperty1.setReadable(true);
+        testProperty1.setWritable(true);
+
+        digitalTwinStateManager.startStateTransaction();
+        digitalTwinStateManager.createProperty(testProperty1);
+        digitalTwinStateManager.commitStateTransaction();
+
+        assertTrue(digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).isPresent());
+        assertEquals(testProperty1, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).get());
+        assertEquals(TEST_PROPERTY_TYPE, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).get().getType());
+        assertEquals(String.class.getName(), digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).get().getContentType());
 
     }
 

@@ -33,8 +33,13 @@ import java.util.Objects;
  * Project: White Label Digital Twin Java Framework - (whitelabel-digitaltwin)
  *
  * This class define a generic action associated to the Digital Twin State.
- * Each action is by a key, an action type and a content type used to identify the expected input required by the action.
- * The type of the can be directly changed by the developer to associate it to a specific ontology or data type.
+ * Each action is identified by a key and described by two separate fields:
+ * <ul>
+ *     <li><b>type</b>: the semantic type of the action, i.e. what the action does
+ *     (e.g., "iot.demo.set-sampling-rate"), typically taken from an ontology or from the application domain;</li>
+ *     <li><b>contentType</b>: the format of the input required by the action (e.g., "string" or "application/json").</li>
+ * </ul>
+ * The same pair is available in the {@code PhysicalAssetAction} of the Physical Asset Description.
  */
 public class DigitalTwinStateAction extends DigitalTwinStateResource{
 
@@ -46,16 +51,16 @@ public class DigitalTwinStateAction extends DigitalTwinStateResource{
     private String key;
 
     /**
-     * Type of the Action. By default, it is associated to the type of the Class T (e.g., java.lang.String) but it
-     * can be directly changed by the developer to associate it to a specific ontology or data type.
+     * Semantic type of the Action: what the action does (e.g., "iot.demo.set-sampling-rate"), typically associated to
+     * a specific ontology or application domain. It does not describe the format of the input, that is the role
+     * of the contentType.
      * Furthermore, it can be useful if the event management system will be extended to the event-base communication
-     * between DTs over the network. In that case, the field can be used to de-serialize the object and understand
-     * the property type
+     * between DTs over the network.
      */
     private String type = null;
 
     /**
-     * Identify the expected contentType for the Action Input
+     * Content-Type of the Action: the format of the expected input (e.g., "string", "application/json")
      */
     private String contentType = null;
 
@@ -125,7 +130,7 @@ public class DigitalTwinStateAction extends DigitalTwinStateResource{
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         DigitalTwinStateAction that = (DigitalTwinStateAction) o;
-        return key.equals(that.key) && type.equals(that.type) && contentType.equals(that.contentType);
+        return Objects.equals(key, that.key) && Objects.equals(type, that.type) && Objects.equals(contentType, that.contentType);
     }
 
     @Override
