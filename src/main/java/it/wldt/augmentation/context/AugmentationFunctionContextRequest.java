@@ -22,6 +22,9 @@ package it.wldt.augmentation.context;
 
 import it.wldt.storage.query.Query;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -49,26 +52,35 @@ public class AugmentationFunctionContextRequest {
     */
     private boolean observeEventNotifications;
 
-    // TODO At the moment this filter are not used but in the future they can be used to filter the observed
-    //  state, event and relationship by name or type
+    // Content filters: select which part of the Digital Twin State is delivered to the function.
+    // For each category null = no filter (everything is delivered), an empty list = nothing is delivered.
 
     /**
-     * List of property names to filter the observed state of the system.
-     * If the list is empty or null, all the properties are observed.
+     * Names of the properties delivered to the function. Null (default) = all the properties.
      */
     private List<String> propertyNameFilter = null;
 
     /**
-     * List of event notifications names to filter the observed event notifications.
-     * If the list is empty or null, all the event notifications are observed.
+     * Names of the actions delivered to the function. Null (default) = all the actions.
+     */
+    private List<String> actionNameFilter = null;
+
+    /**
+     * Names of the events delivered to the function, both in the state and as event notifications.
+     * Null (default) = all the events and notifications.
      */
     private List<String> eventNameFilter = null;
 
     /**
-     * List of relationship names to filter the observed relationships.
-     * If the list is empty or null, all the relationships are observed.
+     * Names of the relationships delivered to the function. Null (default) = all the relationships.
      */
     private List<String> relationshipNameFilter = null;
+
+    /**
+     * Trigger filter (stateful functions only): a state update is notified to the function only if at least one of
+     * its changes matches at least one of these rules. Null or empty (default) = every state update is notified.
+     */
+    private List<StateChangeFilter> stateChangeFilters = null;
 
     /**
      * The Query associate to the augmentation function context,
@@ -146,7 +158,7 @@ public class AugmentationFunctionContextRequest {
     public AugmentationFunctionContextRequest(boolean observeState,
                                               boolean observeEventNotifications,
                                               Query query){
-        this(true, true, null, null, null, query);
+        this(observeState, observeEventNotifications, null, null, null, query);
     }
 
     /**
@@ -215,30 +227,109 @@ public class AugmentationFunctionContextRequest {
     }
 
     /**
-     * Get the list of property names to filter the observed state of the system.
-     * If the list is empty or null, all the properties are observed.
-     * @return The list of property names to filter the observed state of the system.
+     * @return the names of the properties delivered to the function (null = all)
      */
     public List<String> getPropertyNameFilter() {
         return propertyNameFilter;
     }
 
     /**
-     * Get the list of event notifications names to filter the observed event notifications.
-     * If the list is empty or null, all the event notifications are observed.
-     * @return The list of event notifications names to filter the observed event notifications.
+     * @return the names of the actions delivered to the function (null = all)
+     */
+    public List<String> getActionNameFilter() {
+        return actionNameFilter;
+    }
+
+    /**
+     * @return the names of the events / event notifications delivered to the function (null = all)
      */
     public List<String> getEventNameFilter() {
         return eventNameFilter;
     }
 
     /**
-     * Get the list of relationship names to filter the observed relationships.
-     * If the list is empty or null, all the relationships are observed.
-     * @return The list of relationship names to filter the observed relationships.
+     * @return the names of the relationships delivered to the function (null = all)
      */
     public List<String> getRelationshipNameFilter() {
         return relationshipNameFilter;
+    }
+
+    /**
+     * @return the trigger rules (null or empty = every state update is notified)
+     */
+    public List<StateChangeFilter> getStateChangeFilters() {
+        return stateChangeFilters;
+    }
+
+    /**
+     * Restrict the properties delivered to the function.
+     * @param propertyNames the property names, null to remove the filter, empty to deliver no property
+     * @return this request
+     */
+    public AugmentationFunctionContextRequest withPropertyNameFilter(String... propertyNames) {
+        this.propertyNameFilter = copyNames(propertyNames);
+        return this;
+    }
+
+    /**
+     * Restrict the actions delivered to the function.
+     * @param actionNames the action names, null to remove the filter, empty to deliver no action
+     * @return this request
+     */
+    public AugmentationFunctionContextRequest withActionNameFilter(String... actionNames) {
+        this.actionNameFilter = copyNames(actionNames);
+        return this;
+    }
+
+    /**
+     * Restrict the events (and the event notifications) delivered to the function.
+     * @param eventNames the event names, null to remove the filter, empty to deliver no event
+     * @return this request
+     */
+    public AugmentationFunctionContextRequest withEventNameFilter(String... eventNames) {
+        this.eventNameFilter = copyNames(eventNames);
+        return this;
+    }
+
+    /**
+     * Restrict the relationships delivered to the function.
+     * @param relationshipNames the relationship names, null to remove the filter, empty to deliver no relationship
+     * @return this request
+     */
+    public AugmentationFunctionContextRequest withRelationshipNameFilter(String... relationshipNames) {
+        this.relationshipNameFilter = copyNames(relationshipNames);
+        return this;
+    }
+
+    /**
+     * Set the trigger rules: the function is notified only of state updates containing a change matching
+     * at least one rule. Calling it without rules removes the filter.
+     * @param rules the trigger rules
+     * @return this request
+     */
+    public AugmentationFunctionContextRequest withStateChangeFilters(StateChangeFilter... rules) {
+        this.stateChangeFilters = (rules == null || rules.length == 0) ? null
+                : Collections.unmodifiableList(new ArrayList<>(Arrays.asList(rules)));
+        return this;
+    }
+
+    /**
+     * @return true if at least one content filter (property, action, event, relationship names) is defined
+     */
+    public boolean hasContentFilter() {
+        return propertyNameFilter != null || actionNameFilter != null
+                || eventNameFilter != null || relationshipNameFilter != null;
+    }
+
+    /**
+     * @return true if a trigger filter is defined
+     */
+    public boolean hasTriggerFilter() {
+        return stateChangeFilters != null && !stateChangeFilters.isEmpty();
+    }
+
+    private static List<String> copyNames(String[] names) {
+        return names == null ? null : Collections.unmodifiableList(new ArrayList<>(Arrays.asList(names)));
     }
 
     @Override
@@ -246,8 +337,10 @@ public class AugmentationFunctionContextRequest {
         return "AugmentationFunctionContextRequest{" + "observeState=" + observeState +
                 ", observeEventNotifications=" + observeEventNotifications +
                 ", propertyNameFilter=" + propertyNameFilter +
+                ", actionNameFilter=" + actionNameFilter +
                 ", eventNameFilter=" + eventNameFilter +
                 ", relationshipNameFilter=" + relationshipNameFilter +
+                ", stateChangeFilters=" + stateChangeFilters +
                 ", query=" + query +
                 ", refreshQueryOnStateUpdate=" + refreshQueryOnStateUpdate +
                 '}';

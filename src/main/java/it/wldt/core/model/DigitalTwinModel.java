@@ -26,6 +26,7 @@ import it.wldt.adapter.physical.PhysicalAssetEvent;
 import it.wldt.adapter.physical.PhysicalAssetProperty;
 import it.wldt.adapter.physical.PhysicalAssetRelationship;
 import it.wldt.augmentation.*;
+import it.wldt.augmentation.context.DigitalTwinStateFilterUtils;
 import it.wldt.augmentation.error.AugmentationFunctionError;
 import it.wldt.augmentation.event.*;
 import it.wldt.augmentation.function.AugmentationFunction;
@@ -1131,9 +1132,9 @@ public abstract class DigitalTwinModel implements WldtEventListener {
         AugmentationFunctionRequest augmentationFunctionRequest = new AugmentationFunctionRequest(augmentationFunctionRequestId, new AugmentationFunctionContext(), AugmentationFunctionRequestType.EXECUTE);
 
         // If the Context Request requires the Digital Twin State, retrieve it and set it in the context
+        // The content filters of the Context Request (if any) restrict the state delivered to the function
         if(contextRequest.isObserveState())
-            // TODO ... Check if the state to observe is the entire Digital Twin State or just a subset of it (e.g., specific properties or relationships) and retrieve only the required state information to set in the context
-            augmentationFunctionRequest.getContext().setDigitalTwinState(this.digitalTwinStateManager.getDigitalTwinState());
+            augmentationFunctionRequest.getContext().setDigitalTwinState(DigitalTwinStateFilterUtils.filterState(this.digitalTwinStateManager.getDigitalTwinState(), contextRequest));
 
         AugmentationFunctionExecuteWldtEvent augmentationFunctionExecuteWldtEvent = new AugmentationFunctionExecuteWldtEvent(augmentationFunctionHandlerId, augmentationFunctionId, augmentationFunctionRequest);
 
@@ -1268,9 +1269,9 @@ public abstract class DigitalTwinModel implements WldtEventListener {
         AugmentationFunctionRequest augmentationFunctionRequest = new AugmentationFunctionRequest(augmentationFunctionRequestId, new AugmentationFunctionContext(), AugmentationFunctionRequestType.START);
 
         // If the Context Request requires the Digital Twin State, retrieve it and set it in the context
+        // The content filters of the Context Request (if any) restrict the state delivered to the function
         if(contextRequest.isObserveState())
-            // TODO ... Check if the state to observe is the entire Digital Twin State or just a subset of it (e.g., specific properties or relationships) and retrieve only the required state information to set in the context
-            augmentationFunctionRequest.getContext().setDigitalTwinState(this.digitalTwinStateManager.getDigitalTwinState());
+            augmentationFunctionRequest.getContext().setDigitalTwinState(DigitalTwinStateFilterUtils.filterState(this.digitalTwinStateManager.getDigitalTwinState(), contextRequest));
 
         AugmentationFunctionStartWldtEvent augmentationFunctionStartWldtEvent = new AugmentationFunctionStartWldtEvent(augmentationFunctionHandlerId, augmentationFunctionId, augmentationFunctionRequest);
 
@@ -1409,9 +1410,9 @@ public abstract class DigitalTwinModel implements WldtEventListener {
         AugmentationFunctionRequest augmentationFunctionRequest = new AugmentationFunctionRequest(augmentationFunctionRequestId, new AugmentationFunctionContext(), AugmentationFunctionRequestType.STOP);
 
         // If the Context Request requires the Digital Twin State, retrieve it and set it in the context
+        // The content filters of the Context Request (if any) restrict the state delivered to the function
         if(contextRequest.isObserveState())
-            // TODO ... Check if the state to observe is the entire Digital Twin State or just a subset of it (e.g., specific properties or relationships) and retrieve only the required state information to set in the context
-            augmentationFunctionRequest.getContext().setDigitalTwinState(this.digitalTwinStateManager.getDigitalTwinState());
+            augmentationFunctionRequest.getContext().setDigitalTwinState(DigitalTwinStateFilterUtils.filterState(this.digitalTwinStateManager.getDigitalTwinState(), contextRequest));
 
         AugmentationFunctionStopWldtEvent augmentationFunctionStopWldtEvent = new AugmentationFunctionStopWldtEvent(augmentationFunctionHandlerId, augmentationFunctionId, augmentationFunctionRequest);
 

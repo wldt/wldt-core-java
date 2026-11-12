@@ -31,6 +31,7 @@ import it.wldt.exception.AugmentationFunctionException;
 import it.wldt.log.WldtLogger;
 import it.wldt.log.WldtLoggerProvider;
 import it.wldt.augmentation.context.AugmentationFunctionContextRequest;
+import it.wldt.augmentation.context.DigitalTwinStateFilterUtils;
 import it.wldt.storage.query.Query;
 import it.wldt.storage.query.QueryResult;
 
@@ -172,10 +173,17 @@ public class DefaultAugmentationFunctionHandler extends AugmentationFunctionHand
             try {
                 // Opt-in: refresh the query result of the function before notifying the state update
                 AugmentationFunctionContextRequest contextRequest = statefulAugmentationFunction.getContextRequest();
+
+                // The function may not observe the state, or may be interested only in specific state changes
+                if (contextRequest != null && !contextRequest.isObserveState())
+                    continue;
+                if (!DigitalTwinStateFilterUtils.shouldTrigger(contextRequest, digitalTwinStateChangeList))
+                    continue;
+
                 if (contextRequest != null && contextRequest.isRefreshQueryOnStateUpdate() && contextRequest.getQuery() != null)
                     onStatefulAugmentationFunctionQueryResultRefresh(statefulAugmentationFunction.getId(), contextRequest.getQuery());
 
-                statefulAugmentationFunction.handleStateUpdate(newDigitalTwinState);
+                statefulAugmentationFunction.handleStateUpdate(DigitalTwinStateFilterUtils.filterState(newDigitalTwinState, contextRequest));
             } catch (AugmentationFunctionException e) {
                 // Log the error and continue with the next augmentation function
                logger.error(String.format("Error while notifying state update to augmentation function with id %s: %s", statefulAugmentationFunction.getId(), e.getMessage()));
@@ -195,6 +203,12 @@ public class DefaultAugmentationFunctionHandler extends AugmentationFunctionHand
         // so that they can update their internal state and generate new results if needed
         for(StatefulAugmentationFunction statefulAugmentationFunction : statefulAugmentationFunctions) {
             try {
+                AugmentationFunctionContextRequest contextRequest = statefulAugmentationFunction.getContextRequest();
+                if (contextRequest != null && !contextRequest.isObserveEventNotifications())
+                    continue;
+                if (!DigitalTwinStateFilterUtils.shouldDeliverEventNotification(contextRequest, digitalTwinStateEventNotification))
+                    continue;
+
                 statefulAugmentationFunction.onEventNotificationReceived(digitalTwinStateEventNotification);
             } catch (AugmentationFunctionException e) {
                 // Log the error and continue with the next augmentation function

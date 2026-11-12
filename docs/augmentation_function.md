@@ -255,7 +255,9 @@ protected abstract void handleAugmentationFunctionQueryResultRefresh(
 `DefaultAugmentationFunctionHandler` is the **ready-to-use concrete implementation** of
 `AugmentationFunctionHandler`. It provides standard handling for all lifecycle operations—registration,
 unregistration, stateless execution, and stateful start/stop—and automatically forwards DT state updates
-and event notifications to all running stateful functions.
+and event notifications to the running stateful functions, applying the optional trigger and content filters
+defined in each function's `AugmentationFunctionContextRequest` (see [State Filters](#state-filters)); without filters every
+update is forwarded with the complete state.
 
 Developers can use it directly **without writing any custom handler code**:
 
@@ -523,7 +525,7 @@ public class AugmentationFunctionContext {
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `digitalTwinState` | `DigitalTwinState` | The current Digital Twin State at the time of execution |
+| `digitalTwinState` | `DigitalTwinState` | The Digital Twin State at the time of execution: the complete state, or only the resources selected by the content filters of the context request (see [State Filters](#state-filters)) |
 | `queryResult` | `QueryResult<?>` | Results from storage queries defined in the `AugmentationFunctionContextRequest` (optional) |
 
 #### Constructors
@@ -561,9 +563,11 @@ to prepare the appropriate context.
 public class AugmentationFunctionContextRequest {
     private boolean observeState;
     private boolean observeEventNotifications;
-    private List<String> propertyNameFilter;
-    private List<String> eventNameFilter;
-    private List<String> relationshipNameFilter;
+    private List<String> propertyNameFilter;        // content filter, null = all
+    private List<String> actionNameFilter;          // content filter, null = all
+    private List<String> eventNameFilter;           // content filter, null = all
+    private List<String> relationshipNameFilter;    // content filter, null = all
+    private List<StateChangeFilter> stateChangeFilters;   // trigger filter, null/empty = every update
     private Query query;
     private boolean refreshQueryOnStateUpdate;   // default false
 }
@@ -575,16 +579,48 @@ public class AugmentationFunctionContextRequest {
 |-------|------|---------|-------------|
 | `observeState` | `boolean` | `true` | Whether the function wants to observe DT state changes |
 | `observeEventNotifications` | `boolean` | `true` | Whether the function wants to observe DT event notifications |
-| `propertyNameFilter` | `List<String>` | `null` | Filter for specific property names (null = observe all) |
-| `eventNameFilter` | `List<String>` | `null` | Filter for specific event names (null = observe all) |
-| `relationshipNameFilter` | `List<String>` | `null` | Filter for specific relationship names (null = observe all) |
+| `propertyNameFilter` | `List<String>` | `null` | Content filter: properties delivered to the function (null = all, empty = none) |
+| `actionNameFilter` | `List<String>` | `null` | Content filter: actions delivered to the function (null = all, empty = none) |
+| `eventNameFilter` | `List<String>` | `null` | Content filter: events in the state **and** event notifications delivered (null = all, empty = none) |
+| `relationshipNameFilter` | `List<String>` | `null` | Content filter: relationships delivered to the function (null = all, empty = none) |
+| `stateChangeFilters` | `List<StateChangeFilter>` | `null` | Trigger filter (stateful only): a state update is pushed only if one of its changes matches one of the rules (null/empty = every update) |
 | `query` | `Query` | `null` | Query to execute on DT storage for historical data (see [Storage & Query System](storage_query_system.md#query-system)) |
 | `refreshQueryOnStateUpdate` | `boolean` | `false` | If `true` the query is executed and its result delivered to the function before every state update (stateful functions only, see [below](#query-refresh-on-every-state-update-opt-in)) |
 
-> **⚠️ Warning**: `propertyNameFilter`, `eventNameFilter`, and `relationshipNameFilter` are declared in the
-> class but are **currently not read by the framework** — configuring them has no effect.
-> Use `observeState: false` or `observeEventNotifications: false` to suppress the corresponding
-> notifications entirely.
+`observeState: false` stops state updates being pushed to a stateful function and leaves the state out of the
+start/stop/execute context; `observeEventNotifications: false` stops event notifications being pushed.
+
+#### State Filters
+
+Both filters are optional and **disabled by default**: with no filter the function receives every state update
+with the complete state.
+
+**1. Trigger filter** (`stateChangeFilters`, stateful functions only) — decides *when* a state update is pushed.
+Each `StateChangeFilter` rule has optional criteria on operation, resource type and resource name (empty criterion =
+wildcard, non-empty criteria are AND-ed). The update is pushed if **any** change of the update matches **any** rule.
+
+**2. Content filter** (`propertyNameFilter`, `actionNameFilter`, `eventNameFilter`, `relationshipNameFilter`,
+stateful and stateless) — decides *what* is delivered. The function receives a partial `DigitalTwinState` copy
+containing only the listed resources (same `onStateUpdate(DigitalTwinState)` signature). Each category is
+independent: `null` keeps it all, an empty list removes it. `eventNameFilter` also drops the event notifications
+whose name is not listed.
+
+```java
+AugmentationFunctionContextRequest request = new AugmentationFunctionContextRequest()
+        // push only when the value of "temperature" or "humidity" is updated...
+        .withStateChangeFilters(
+                StateChangeFilter.onPropertyValueUpdate("temperature", "humidity"),
+                StateChangeFilter.builder()
+                        .operations(DigitalTwinStateChange.Operation.OPERATION_REMOVE)
+                        .resourceTypes(DigitalTwinStateChange.ResourceType.RELATIONSHIP_INSTANCE)
+                        .build())
+        // ...and receive only those two properties and no action
+        .withPropertyNameFilter("temperature", "humidity")
+        .withActionNameFilter();
+```
+
+Notes: the partial state has a new `evaluationInstant`; the trigger filter does not apply to event notifications
+(use `eventNameFilter`) nor to stateless functions, which are request-driven.
 
 #### Constructors
 
@@ -600,6 +636,10 @@ public AugmentationFunctionContextRequest(boolean observeState,
                                          boolean observeEventNotifications,
                                          Query query)
 ```
+
+Filters are set with the fluent methods `withStateChangeFilters(...)`, `withPropertyNameFilter(...)`,
+`withActionNameFilter(...)`, `withEventNameFilter(...)` and `withRelationshipNameFilter(...)`, and can be
+inspected with `hasTriggerFilter()` / `hasContentFilter()`.
 
 #### Usage in Function Constructors
 
@@ -827,7 +867,7 @@ For **stateful functions**, the context lifecycle is more complex:
 1. **Context Request Definition**: The function defines its initial context requirements
 2. **Start Invocation**: When `startAugmentationFunction()` is called
 3. **Initial Context**: The `start()` method receives an initial context built from the context request
-4. **Runtime Updates**: The function automatically receives `onStateUpdate()` and `onEventNotificationReceived()` callbacks with fresh state/events
+4. **Runtime Updates**: The function automatically receives `onStateUpdate()` and `onEventNotificationReceived()` callbacks with fresh state/events. By default every update is pushed with the complete state; the optional [State Filters](#state-filters) of the context request restrict when updates are pushed and which part of the state is delivered (the same content filters also shape the initial context)
 5. **Context Update Request**: The function can explicitly request context updates when needed
 6. **Stop**: The `stop()` method may receive a final context
 
@@ -976,8 +1016,8 @@ directly to `refreshQueryResult(Query)` when the query parameters need to change
 | **Context Frequency** | Once per `execute()` call | Initial context + runtime updates |
 | **Context Source** | Built fresh each execution | Initial + push notifications or polling requests |
 | **Context Request** | Defines single execution needs | Defines initial setup + observation preferences |
-| **State Observation** | Not applicable (no lifecycle) | Via `onStateUpdate()` if `observeState = true` |
-| **Event Observation** | Not applicable (no lifecycle) | Via `onEventNotificationReceived()` if `observeEventNotifications = true` |
+| **State Observation** | Initial/execution context contains the state if `observeState = true` (optionally narrowed by content filters) | Via `onStateUpdate()` if `observeState = true`, only for updates matching the trigger filter (if any), with the state narrowed by the content filters (if any) |
+| **Event Observation** | Not applicable (no lifecycle) | Via `onEventNotificationReceived()` if `observeEventNotifications = true`, only for events listed in `eventNameFilter` (if set) |
 | **Context Updates** | Not possible (stateless) | Automatic (push) or explicit (polling) |
 | **Query Execution** | Once per execution | Initial + can be refreshed on request |
 
