@@ -240,7 +240,7 @@ public class AdaptersTest {
                                         physicalAssetAction.getContentType()));
 
                             for(PhysicalAssetEvent physicalAssetEvent: physicalAssetDescription.getEvents())
-                                this.digitalTwinStateManager.registerEvent(new DigitalTwinStateEvent(physicalAssetEvent.getKey(), physicalAssetEvent.getType()));
+                                this.digitalTwinStateManager.registerEvent(new DigitalTwinStateEvent(physicalAssetEvent.getKey(), physicalAssetEvent.getType(), physicalAssetEvent.getContentType()));
                         }
 
                         this.digitalTwinStateManager.commitStateTransaction();

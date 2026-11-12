@@ -139,20 +139,6 @@ public class DigitalTwinStateProperty<T> extends DigitalTwinStateResource {
         this.exposed = exposed;
     }
 
-    /**
-     * Creates a property with only the type. The contentType is set to the Class name of the value.
-     * @param key uniquely identifying the property in the Digital Twin State
-     * @param value current value of the property
-     * @param type type of the property
-     * @throws WldtDigitalTwinStateException if key or value are null
-     * @deprecated the constructor with only the type will not be supported anymore from version 0.9.0.
-     * Use {@link #DigitalTwinStateProperty(String, Object, String, String)} to set both the semantic type and the contentType.
-     */
-    @Deprecated
-    public DigitalTwinStateProperty(String key, T value, String type) throws WldtDigitalTwinStateException {
-        this(key, value, type, null, true, true, true);
-    }
-
     public DigitalTwinStateProperty(String key, T value, boolean readable, boolean writable) throws WldtDigitalTwinStateException {
         this(key, value, null, null, readable, writable, true);
     }

@@ -254,7 +254,7 @@ public class DigitalTwinStatePropertyCRUDTester {
         //Init DigitaTwin State
         initTestDtState();
 
-        testProperty1 = new DigitalTwinStateProperty<>(TEST_KEY_0001, TEST_VALUE_0001, TEST_PROPERTY_TYPE);
+        testProperty1 = new DigitalTwinStateProperty<>(TEST_KEY_0001, TEST_VALUE_0001, TEST_PROPERTY_TYPE, TEST_PROPERTY_TYPE);
         testProperty1.setKey(TEST_KEY_0001);
         testProperty1.setReadable(true);
         testProperty1.setWritable(true);

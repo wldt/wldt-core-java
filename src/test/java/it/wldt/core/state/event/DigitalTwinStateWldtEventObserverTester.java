@@ -58,7 +58,7 @@ public class DigitalTwinStateWldtEventObserverTester {
 
     private void registerEvent() throws WldtDigitalTwinStateException {
 
-        testNewEvent1 = new DigitalTwinStateEvent(EVENT_KEY_1, EVENT_TYPE);
+        testNewEvent1 = new DigitalTwinStateEvent(EVENT_KEY_1, EVENT_TYPE, EVENT_TYPE);
 
         digitalTwinStateManager.startStateTransaction();
         digitalTwinStateManager.registerEvent(testNewEvent1);
@@ -195,7 +195,7 @@ public class DigitalTwinStateWldtEventObserverTester {
 
         //Update Event
         digitalTwinStateManager.startStateTransaction();
-        DigitalTwinStateEvent updatedEvent = new DigitalTwinStateEvent(EVENT_KEY_1, EVENT_TYPE_2);
+        DigitalTwinStateEvent updatedEvent = new DigitalTwinStateEvent(EVENT_KEY_1, EVENT_TYPE_2, EVENT_TYPE_2);
         digitalTwinStateManager.updateRegisteredEvent(updatedEvent);
         digitalTwinStateManager.commitStateTransaction();
 

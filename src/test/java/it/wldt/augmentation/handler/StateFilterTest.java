@@ -86,8 +86,8 @@ public class StateFilterTest {
         actions.put("on", new DigitalTwinStateAction("on", "t", "c"));
         actions.put("off", new DigitalTwinStateAction("off", "t", "c"));
         Map<String, DigitalTwinStateEvent> events = new HashMap<>();
-        events.put("alarm", new DigitalTwinStateEvent("alarm", "t"));
-        events.put("info", new DigitalTwinStateEvent("info", "t"));
+        events.put("alarm", new DigitalTwinStateEvent("alarm", "t", "string"));
+        events.put("info", new DigitalTwinStateEvent("info", "t", "string"));
         Map<String, DigitalTwinStateRelationship<?>> rels = new HashMap<>();
         rels.put("near", new DigitalTwinStateRelationship<>("near", "t"));
         rels.put("inside", new DigitalTwinStateRelationship<>("inside", "t"));

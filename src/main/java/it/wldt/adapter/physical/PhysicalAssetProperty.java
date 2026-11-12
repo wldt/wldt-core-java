@@ -119,32 +119,6 @@ public class PhysicalAssetProperty<T> {
     }
 
     /**
-     * Constructor with only the semantic type. The contentType is set to the name of the Class of the initial value.
-     * @param key uniquely identifying the property on the Physical Twin.
-     * @param type Semantic type of the property.
-     * @param initialValue Initial value of the property.
-     * @deprecated the constructor with only the type will not be supported anymore from version 0.9.0.
-     * Use {@link #PhysicalAssetProperty(String, String, String, Object)} to set both the semantic type and the contentType.
-     */
-    @Deprecated
-    public PhysicalAssetProperty(String key,
-                                 String type,
-                                 T initialValue) {
-
-        this.key = key;
-        this.initialValue = initialValue;
-        this.type = type;
-
-        if(initialValue == null){
-            logger.error("InitialValue is null ! Content is set to null");
-            this.contentType = null;
-        }
-        else
-            this.contentType = initialValue.getClass().getName();
-
-    }
-
-    /**
      * Constructor for PhysicalAssetProperty with the possibility to set all the field.
      * @param key uniquely identifying the property on the Physical Twin.
      * @param type Type of the property associated to a specific ontology or data type.

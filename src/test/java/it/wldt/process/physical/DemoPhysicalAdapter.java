@@ -145,7 +145,7 @@ public class DemoPhysicalAdapter extends ConfigurablePhysicalAdapter<DemoPhysica
             }});
 
             physicalAssetDescription.setEvents(new ArrayList<PhysicalAssetEvent>() {{
-                add(new PhysicalAssetEvent(OVERHEATING_EVENT_KEY,"text/plain"));
+                add(new PhysicalAssetEvent(OVERHEATING_EVENT_KEY,"text/plain","text/plain"));
             }});
 
             // Create Relationship if the associated flag is true

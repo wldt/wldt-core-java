@@ -79,7 +79,7 @@ public class StatefulGenericResultAugmentationDigitalTwinModel extends DigitalTw
 
                     // Add Events to the DT State
                     for(PhysicalAssetEvent physicalAssetEvent: physicalAssetDescription.getEvents())
-                        this.digitalTwinStateManager.registerEvent(new DigitalTwinStateEvent(physicalAssetEvent.getKey(), physicalAssetEvent.getType()));
+                        this.digitalTwinStateManager.registerEvent(new DigitalTwinStateEvent(physicalAssetEvent.getKey(), physicalAssetEvent.getType(), physicalAssetEvent.getContentType()));
 
                     // Add Relationships to the DT State & Observe
                     for(PhysicalAssetRelationship<?> physicalAssetRelationship : physicalAssetDescription.getRelationships()) {

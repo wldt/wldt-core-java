@@ -58,7 +58,7 @@ public class DigitalTwinStateEventCRUDTester {
         assertEquals(EVENT_TYPE, digitalTwinStateManager.getDigitalTwinState().getEvent(EVENT_KEY_1).get().getType());
 
         digitalTwinStateManager.startStateTransaction();
-        digitalTwinStateManager.updateRegisteredEvent(new DigitalTwinStateEvent(EVENT_KEY_1, EVENT_TYPE_2));
+        digitalTwinStateManager.updateRegisteredEvent(new DigitalTwinStateEvent(EVENT_KEY_1, EVENT_TYPE_2, EVENT_TYPE_2));
         digitalTwinStateManager.commitStateTransaction();
 
         assertEquals(EVENT_TYPE_2, digitalTwinStateManager.getDigitalTwinState().getEvent(EVENT_KEY_1).get().getType());

@@ -65,21 +65,6 @@ public class PhysicalAssetEvent {
     }
 
     /**
-     * Constructor for creating a PhysicalAssetEvent with a key and type. The contentType is not set (null).
-     *
-     * @param key The key uniquely identifying the Physical Event on the Physical Twin
-     * @param type The type of the Event, which can be directly assigned by the developer to associate it to a specific ontology or data type.
-     * @deprecated the constructor with only the type will not be supported anymore from version 0.9.0.
-     * Use {@link #PhysicalAssetEvent(String, String, String)} to set both the semantic type and the contentType.
-     */
-    @Deprecated
-    public PhysicalAssetEvent(String key, String type) {
-        this.key = key;
-        this.type = type;
-        this.contentType = null;
-    }
-
-    /**
      * Constructor for creating a PhysicalAssetEvent with a key, type, and content type.
      *
      * @param key The key uniquely identifying the Physical Event on the Physical Twin

@@ -66,15 +66,6 @@ public class TypeAndContentTypeTester {
     }
 
     @Test
-    @SuppressWarnings("deprecation")
-    public void deprecatedStatePropertyConstructorKeepsWorking() throws WldtDigitalTwinStateException {
-        DigitalTwinStateProperty<String> property = new DigitalTwinStateProperty<>(KEY, "x", SEMANTIC_TYPE);
-
-        assertEquals(SEMANTIC_TYPE, property.getType());
-        assertEquals(String.class.getName(), property.getContentType());
-    }
-
-    @Test
     public void statePropertySettersChangeBothFields() throws WldtDigitalTwinStateException {
         DigitalTwinStateProperty<String> property = new DigitalTwinStateProperty<>(KEY, "x");
 
@@ -124,15 +115,6 @@ public class TypeAndContentTypeTester {
     }
 
     @Test
-    @SuppressWarnings("deprecation")
-    public void deprecatedStateEventConstructorLeavesContentTypeNull() {
-        DigitalTwinStateEvent event = new DigitalTwinStateEvent("overheating", "iot.demo.overheating");
-
-        assertEquals("iot.demo.overheating", event.getType());
-        assertNull(event.getContentType());
-    }
-
-    @Test
     public void stateEventEqualsHandlesNullsAndIncludesContentType() {
         DigitalTwinStateEvent a = new DigitalTwinStateEvent("k", "t", "string");
         DigitalTwinStateEvent same = new DigitalTwinStateEvent("k", "t", "string");
@@ -174,19 +156,9 @@ public class TypeAndContentTypeTester {
     }
 
     @Test
-    @SuppressWarnings("deprecation")
-    public void deprecatedPhysicalAssetPropertyConstructorKeepsWorking() {
-        PhysicalAssetProperty<String> property = new PhysicalAssetProperty<>(KEY, SEMANTIC_TYPE, "x");
-
-        assertEquals(SEMANTIC_TYPE, property.getType());
-        assertEquals(String.class.getName(), property.getContentType());
-    }
-
-    @Test
-    @SuppressWarnings("deprecation")
     public void physicalAssetEventEqualsDoesNotFailWithoutContentType() {
-        PhysicalAssetEvent legacy = new PhysicalAssetEvent("overheating", "iot.demo.overheating");
-        PhysicalAssetEvent legacySame = new PhysicalAssetEvent("overheating", "iot.demo.overheating");
+        PhysicalAssetEvent legacy = new PhysicalAssetEvent("overheating", "iot.demo.overheating", null);
+        PhysicalAssetEvent legacySame = new PhysicalAssetEvent("overheating", "iot.demo.overheating", null);
         PhysicalAssetEvent full = new PhysicalAssetEvent("overheating", "iot.demo.overheating", "string");
 
         assertNull(legacy.getContentType());

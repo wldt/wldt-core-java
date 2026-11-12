@@ -67,18 +67,6 @@ public class DigitalTwinStateEvent extends DigitalTwinStateResource {
     }
 
     /**
-     * Creates an event with only the semantic type. The contentType is not set (null).
-     * @param key uniquely identifying the event in the Digital Twin State
-     * @param type type of the event
-     * @deprecated the constructor with only the type will not be supported anymore from version 0.9.0.
-     * Use {@link #DigitalTwinStateEvent(String, String, String)} to set both the semantic type and the contentType.
-     */
-    @Deprecated
-    public DigitalTwinStateEvent(String key, String type) {
-        this(key, type, null);
-    }
-
-    /**
      * Creates an event with a semantic type and a content type.
      * @param key uniquely identifying the event in the Digital Twin State
      * @param type semantic type of the event (e.g., "iot.demo.overheating")

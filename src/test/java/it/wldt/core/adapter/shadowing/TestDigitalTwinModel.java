@@ -77,7 +77,7 @@ public class TestDigitalTwinModel extends DigitalTwinModel {
                                 physicalAssetAction.getContentType()));
 
                     for(PhysicalAssetEvent physicalAssetEvent: physicalAssetDescription.getEvents())
-                        this.digitalTwinStateManager.registerEvent(new DigitalTwinStateEvent(physicalAssetEvent.getKey(), physicalAssetEvent.getType()));
+                        this.digitalTwinStateManager.registerEvent(new DigitalTwinStateEvent(physicalAssetEvent.getKey(), physicalAssetEvent.getType(), physicalAssetEvent.getContentType()));
                 }
 
                 //Commit DT State Change Transaction to apply the changes on the DT State and notify about the change

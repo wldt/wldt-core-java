@@ -474,8 +474,8 @@ Physical Asset Description (`PhysicalAssetProperty`, `PhysicalAssetEvent`, `Phys
 For example, a string coming from the accelerometer of a specific device has `type = "iot.demo.accelerometer"` and `contentType = "string"`.
 When they are not provided, the `contentType` of a property defaults to the name of the Class of its value, while the
 `type` of a State Property keeps defaulting to the same Class name for backward compatibility. From version 0.8.1 the
-constructors that set only the `type` are deprecated and **will not be supported anymore from version 0.9.0**
-(see `docs/changelogs/v0.8.1.md`).
+constructors that set only the `type` were deprecated and have been **removed in version 0.9.0**: always provide both
+`type` and `contentType` (see `docs/changelogs/v0.8.1.md` and `docs/changelogs/v0.9.0.md`).
 
 The possibility to manually observe Physical Properties and Event has been introduced to allow the `DigitalTwinModel` to decide what
 to do according to the nature of the property or of the target event. For example in some cases with static properties it will not be necessary

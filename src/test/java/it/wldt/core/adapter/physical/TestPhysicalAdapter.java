@@ -94,7 +94,7 @@ public class TestPhysicalAdapter extends ConfigurablePhysicalAdapter<TestPhysica
             }});
 
             physicalAssetDescription.setEvents(new ArrayList<PhysicalAssetEvent>() {{
-                add(new PhysicalAssetEvent(OVERHEATING_EVENT_KEY,"text/plain"));
+                add(new PhysicalAssetEvent(OVERHEATING_EVENT_KEY,"text/plain","text/plain"));
             }});
 
             this.notifyPhysicalAdapterBound(physicalAssetDescription);
