@@ -102,7 +102,7 @@ public class DemoDigitalAdapter extends DigitalAdapter<DemoDigitalAdapterConfigu
      * @param queryRequest - The query request
      * @return - The query result
      */
-    public QueryResult<?> testSyncQuery(QueryRequest queryRequest){
+    public QueryResult<?> testSyncQuery(Query queryRequest){
         if(this.queryExecutor != null){
             return this.queryExecutor.syncQueryExecute(queryRequest);
         }
@@ -115,7 +115,7 @@ public class DemoDigitalAdapter extends DigitalAdapter<DemoDigitalAdapterConfigu
      * @param queryRequest - The query request
      * @param queryResultListener - The query result listener
      */
-    public void testAsyncQuery(QueryRequest queryRequest, IQueryResultListener queryResultListener){
+    public void testAsyncQuery(Query queryRequest, IQueryResultListener queryResultListener){
         if(this.queryExecutor != null){
             this.queryExecutor.asyncQueryExecute(queryRequest, queryResultListener);
         }

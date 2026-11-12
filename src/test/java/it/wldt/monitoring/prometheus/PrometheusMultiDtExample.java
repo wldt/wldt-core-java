@@ -15,8 +15,12 @@ import it.wldt.process.physical.DemoPhysicalAdapterConfiguration;
 import it.wldt.storage.DefaultWldtStorage;
 import it.wldt.storage.augmentation.function.StorageTestErrorStatefulAugmentationFunction;
 import it.wldt.storage.augmentation.function.StorageTestStatefulAugmentationFunction;
-import it.wldt.storage.query.QueryRequest;
-import it.wldt.storage.query.QueryRequestType;
+import it.wldt.storage.query.Query;
+import it.wldt.storage.query.QueryFieldNames;
+import it.wldt.storage.query.filter.FilterFactory;
+import it.wldt.storage.query.SortCriterion;
+import it.wldt.storage.query.aggregation.AggregationFactory;
+import it.wldt.storage.model.AggregationRecord;
 import it.wldt.storage.query.QueryResourceType;
 import it.wldt.storage.query.QueryResult;
 import it.wldt.utils.SharedTestMetrics;
@@ -247,12 +251,10 @@ public class PrometheusMultiDtExample {
 
         private void runStorageQuery(DemoDigitalAdapter digitalAdapter) {
             try {
-                QueryRequest query = new QueryRequest();
-                query.setResourceType(QueryResourceType.DIGITAL_TWIN_STATE);
-                query.setRequestType(QueryRequestType.LAST_VALUE);
+                Query query = Query.on(QueryResourceType.DIGITAL_TWIN_STATE).orderBy(QueryFieldNames.TIMESTAMP, SortCriterion.Direction.DESC).limit(1).build();
                 QueryResult<?> result = digitalAdapter.testSyncQuery(query);
                 if (result != null && result.isSuccessful())
-                    System.out.println("[" + dtId + "] Storage query OK — results: " + result.getTotalResults());
+                    System.out.println("[" + dtId + "] Storage query OK — results: " + result.getItems().size());
                 else
                     System.out.println("[" + dtId + "] Storage query failed: " +
                             (result != null ? result.getErrorMessage() : "null result"));

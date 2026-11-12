@@ -48,7 +48,7 @@ import it.wldt.monitoring.metrics.WldtMetricComponent;
 import it.wldt.monitoring.metrics.WldtTimer;
 import it.wldt.monitoring.metrics.WldtUpDownCounter;
 import it.wldt.storage.query.QueryExecutor;
-import it.wldt.storage.query.QueryRequest;
+import it.wldt.storage.query.Query;
 import it.wldt.storage.query.QueryResult;
 
 import java.util.*;
@@ -858,10 +858,10 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
      * handler for the refresh of the result of the Augmentation Function to allow the implementation of any specific
      * logic for the refresh of the result of the Augmentation Function.
      * @param augmentationFunctionId the id of the Augmentation Function to be refreshed
-     * @param queryRequest the request associated to the refresh of the execution of the Augmentation Function, containing all the necessary information for the refresh of the result of the function.
+     * @param query the request associated to the refresh of the execution of the Augmentation Function, containing all the necessary information for the refresh of the result of the function.
      * @param queryResult the result associated to the refresh of the execution of the Augmentation Function, containing all the necessary information for the refresh of the result of the function.
      */
-    public void executeAugmentationFunctionQueryResultRefresh(String augmentationFunctionId, QueryRequest queryRequest, QueryResult<?> queryResult) {
+    public void executeAugmentationFunctionQueryResultRefresh(String augmentationFunctionId, Query query, QueryResult<?> queryResult) {
         try {
             StatefulAugmentationFunction statefulAugmentationFunction = null;
             if (augmentationFunctionHashMap.containsKey(augmentationFunctionId) && augmentationFunctionHashMap.get(augmentationFunctionId).getType() == AugmentationFunctionType.STATEFUL && augmentationFunctionHashMap.get(augmentationFunctionId) instanceof StatefulAugmentationFunction) {
@@ -871,7 +871,7 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
                 return;
             }
 
-            handleAugmentationFunctionQueryResultRefresh(statefulAugmentationFunction, queryRequest, queryResult);
+            handleAugmentationFunctionQueryResultRefresh(statefulAugmentationFunction, query, queryResult);
         } catch (AugmentationFunctionException e) {
             throw new RuntimeException(e);
         }
@@ -883,11 +883,11 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
      * method after checking the registration and the type of the Augmentation Function, allowing to implement any specific
      * logic for the refresh of the result of the Augmentation Function.
      * @param statefulAugmentationFunction the Stateful Augmentation Function to be refreshed, encapsulated in an instance of {@link StatefulAugmentationFunction}
-     * @param queryRequest the request associated to the refresh of the execution of the Augmentation Function, containing all the necessary information for the refresh of the result of the function.
+     * @param query the request associated to the refresh of the execution of the Augmentation Function, containing all the necessary information for the refresh of the result of the function.
      * @param queryResult the result associated to the refresh of the execution of the Augmentation Function, containing all the necessary information for the refresh of the result of the function.
      * @throws AugmentationFunctionException Thrown if there is an error during the handling of the refresh of the result of the Augmentation Function.
      */
-    abstract protected void handleAugmentationFunctionQueryResultRefresh(StatefulAugmentationFunction statefulAugmentationFunction, QueryRequest queryRequest, QueryResult<?> queryResult) throws AugmentationFunctionException;
+    abstract protected void handleAugmentationFunctionQueryResultRefresh(StatefulAugmentationFunction statefulAugmentationFunction, Query query, QueryResult<?> queryResult) throws AugmentationFunctionException;
 
     /**
      * This method is responsible for handling the specific logic for the update of the state of a Stateful Augmentation Function that
@@ -1200,17 +1200,15 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
             if(!augmentationFunctionOptional.isPresent()){
                 logger.warn(String.format("Error executing Augmentation Function with id %s: Augmentation Function not found !", augmentationFunctionId));
             } else {
-                if(augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest() != null && augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQueryRequest() != null) {
+                if(augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest() != null && augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQuery() != null) {
                     try {
-                        augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQueryRequest().setRequestTimestampMs(System.currentTimeMillis());
-                        augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQueryRequest().setRequestId(UUID.randomUUID().toString());
-                        QueryResult<?> queryResult = this.queryExecutor.syncQueryExecute(augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQueryRequest());
+                        QueryResult<?> queryResult = this.queryExecutor.syncQueryExecute(augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQuery());
                         augmentationFunctionRequest.getContext().setQueryResult(queryResult);
                     } catch (Exception e) {
                         logger.error("Error executing query for Augmentation Function with id {}: {}", augmentationFunctionId, e.getLocalizedMessage());
                     }
                 } else {
-                    logger.debug(String.format("Not executing query for Augmentation Function with id %s: Augmentation Function Query Request not available in the context !", augmentationFunctionId));
+                    logger.debug(String.format("Not executing query for Augmentation Function with id %s: Augmentation Function Query not available in the context !", augmentationFunctionId));
                 }
                 try {
                     // Check if the Augmentation Function is Stateless since it is an execution request, if not log the error and skip the execution
@@ -1249,13 +1247,11 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
             if(!augmentationFunctionOptional.isPresent()){
                 logger.warn(String.format("Error starting Augmentation Function with id %s: Augmentation Function not found !", augmentationFunctionId));
             } else {
-                if(augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest() != null && augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQueryRequest() != null) {
+                if(augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest() != null && augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQuery() != null) {
                     long queryStartMs = System.currentTimeMillis();
                     boolean querySuccess = false;
                     try {
-                        augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQueryRequest().setRequestTimestampMs(System.currentTimeMillis());
-                        augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQueryRequest().setRequestId(UUID.randomUUID().toString());
-                        QueryResult<?> queryResult = this.queryExecutor.syncQueryExecute(augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQueryRequest());
+                        QueryResult<?> queryResult = this.queryExecutor.syncQueryExecute(augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQuery());
                         augmentationFunctionRequest.getContext().setQueryResult(queryResult);
                         querySuccess = true;
                     } catch (Exception e) {
@@ -1265,7 +1261,7 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
                             ((StatefulAugmentationFunction) augmentationFunctionHashMap.get(augmentationFunctionId)).notifyQueryExecution(querySuccess, queryStartMs);
                     }
                 } else {
-                    logger.debug(String.format("Not executing query for Augmentation Function with id %s: Augmentation Function Query Request not available in the context !", augmentationFunctionId));
+                    logger.debug(String.format("Not executing query for Augmentation Function with id %s: Augmentation Function Query not available in the context !", augmentationFunctionId));
                 }
                 try {
                     // Check if the Augmentation Function is Stateful since it is an execution request, if not log the error and skip the execution
@@ -1304,13 +1300,11 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
             if(!augmentationFunctionOptional.isPresent()){
                 logger.warn(String.format("Error stopping Augmentation Function with id %s: Augmentation Function not found !", augmentationFunctionId));
             } else {
-                if(augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest() != null && augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQueryRequest() != null) {
+                if(augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest() != null && augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQuery() != null) {
                     long queryStartMs = System.currentTimeMillis();
                     boolean querySuccess = false;
                     try {
-                        augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQueryRequest().setRequestTimestampMs(System.currentTimeMillis());
-                        augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQueryRequest().setRequestId(UUID.randomUUID().toString());
-                        QueryResult<?> queryResult = this.queryExecutor.syncQueryExecute(augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQueryRequest());
+                        QueryResult<?> queryResult = this.queryExecutor.syncQueryExecute(augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQuery());
                         augmentationFunctionRequest.getContext().setQueryResult(queryResult);
                         querySuccess = true;
                     } catch (Exception e) {
@@ -1320,7 +1314,7 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
                             ((StatefulAugmentationFunction) augmentationFunctionHashMap.get(augmentationFunctionId)).notifyQueryExecution(querySuccess, queryStartMs);
                     }
                 } else {
-                    logger.debug(String.format("Not executing query for Augmentation Function with id %s: Augmentation Function Query Request not available in the context !", augmentationFunctionId));
+                    logger.debug(String.format("Not executing query for Augmentation Function with id %s: Augmentation Function Query not available in the context !", augmentationFunctionId));
                 }
                 try {
 
@@ -1340,33 +1334,29 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
         ////////// STATEFUL AUGMENTATION FUNCTION QUERY EXECUTION EVENTS MANAGEMENT ///////////
         if(wldtEvent != null
                 && wldtEvent.getType() != null
-                && (wldtEvent.getType().startsWith(WldtEventTypes.AUGMENTATION_FUNCTION_QUERY_EXECUTION_BASE_TYPE))
-                && wldtEvent.getBody() != null
-                && wldtEvent.getBody() == null) {
+                && (wldtEvent.getType().startsWith(WldtEventTypes.AUGMENTATION_FUNCTION_QUERY_EXECUTION_BASE_TYPE))) {
 
 
             // Extract the Augmentation Function Id from the Event Type after the base type and the handler id
             // Substring after the base type and the handler id considering the '.' as separator
             String augmentationFunctionId = wldtEvent.getType().substring(buildHandlerEventType(WldtEventTypes.AUGMENTATION_FUNCTION_QUERY_EXECUTION_BASE_TYPE).length() + 1);
 
-            logger.info("Received Augmentation Function Execution of Query Request Event for function with id {}", augmentationFunctionId);
+            logger.info("Received Augmentation Function Execution of Query Event for function with id {}", augmentationFunctionId);
 
             // Retrieve the Augmentation Function associated to the received id
             Optional<AugmentationFunction> augmentationFunctionOptional = this.getAugmentationFunction(augmentationFunctionId);
 
             // If the Augmentation Function is not present log the error and skip the execution
             if(!augmentationFunctionOptional.isPresent()){
-                logger.warn(String.format("Error executing Query Request on Augmentation Function with id %s: Augmentation Function not found !", augmentationFunctionId));
+                logger.warn(String.format("Error executing Query on Augmentation Function with id %s: Augmentation Function not found !", augmentationFunctionId));
             } else {
                 QueryResult<?> queryResult = null;
 
-                if(augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest() != null && augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQueryRequest() != null) {
+                if(augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest() != null && augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQuery() != null) {
                     long queryStartMs = System.currentTimeMillis();
                     boolean querySuccess = false;
                     try {
-                        augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQueryRequest().setRequestTimestampMs(System.currentTimeMillis());
-                        augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQueryRequest().setRequestId(UUID.randomUUID().toString());
-                        queryResult = this.queryExecutor.syncQueryExecute(augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQueryRequest());
+                        queryResult = this.queryExecutor.syncQueryExecute(augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQuery());
                         querySuccess = true;
                     } catch (Exception e) {
                         logger.error("Error executing query for Augmentation Function with id {}: {}", augmentationFunctionId, e.getLocalizedMessage());
@@ -1375,11 +1365,11 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
                             ((StatefulAugmentationFunction) augmentationFunctionHashMap.get(augmentationFunctionId)).notifyQueryExecution(querySuccess, queryStartMs);
                     }
                 } else {
-                    logger.warn(String.format("Error executing query for Augmentation Function with id %s: Augmentation Function Query Request not available in the context !", augmentationFunctionId));
+                    logger.warn(String.format("Error executing query for Augmentation Function with id %s: Augmentation Function Query not available in the context !", augmentationFunctionId));
                     return;
                 }
                 logger.info("Executing Query Result Update on Augmentation Function with id {} ...", augmentationFunctionId);
-                executeAugmentationFunctionQueryResultRefresh(augmentationFunctionId, augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQueryRequest(), queryResult);
+                executeAugmentationFunctionQueryResultRefresh(augmentationFunctionId, augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQuery(), queryResult);
             }
         }
     }
@@ -1462,26 +1452,26 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
     /**
      * Called when a Stateful Augmentation Function requests a refresh of its query result context. Executes the
      * provided query request synchronously and delegates the result to
-     * {@link #executeAugmentationFunctionQueryResultRefresh(String, QueryRequest, QueryResult)}.
+     * {@link #executeAugmentationFunctionQueryResultRefresh(String, Query, QueryResult)}.
      * @param augmentationFunctionId the id of the Stateful Augmentation Function requesting the query refresh
-     * @param queryRequest the query request to be executed for refreshing the context of the Augmentation Function
+     * @param query the query request to be executed for refreshing the context of the Augmentation Function
      */
     @Override
-    public void onStatefulAugmentationFunctionQueryResultRefresh(String augmentationFunctionId, QueryRequest queryRequest) {
+    public void onStatefulAugmentationFunctionQueryResultRefresh(String augmentationFunctionId, Query query) {
         try{
-            logger.info("Received query result refresh request for Stateful Augmentation Function with id {} and query request: {}", augmentationFunctionId, queryRequest);
+            logger.info("Received query result refresh request for Stateful Augmentation Function with id {} and query request: {}", augmentationFunctionId, query);
 
             if(augmentationFunctionHashMap.containsKey(augmentationFunctionId) && augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest() != null &&
-                    augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQueryRequest() != null) {
+                    augmentationFunctionHashMap.get(augmentationFunctionId).getContextRequest().getQuery() != null) {
                 try {
-                    QueryResult<?> queryResult = this.queryExecutor.syncQueryExecute(queryRequest);
-                    executeAugmentationFunctionQueryResultRefresh(augmentationFunctionId, queryRequest, queryResult);
+                    QueryResult<?> queryResult = this.queryExecutor.syncQueryExecute(query);
+                    executeAugmentationFunctionQueryResultRefresh(augmentationFunctionId, query, queryResult);
                 } catch (Exception e) {
                     logger.error("Error executing query for Augmentation Function with id {}: {}", augmentationFunctionId, e.getLocalizedMessage());
                 }
             }
              else {
-                logger.warn(String.format("Error refreshing query result of Stateful Augmentation Function with id %s: Augmentation Function not found or Query Request not available in the context !", augmentationFunctionId));
+                logger.warn(String.format("Error refreshing query result of Stateful Augmentation Function with id %s: Augmentation Function not found or Query not available in the context !", augmentationFunctionId));
             }
         } catch (Exception e){
             logger.error(String.format("Error while notifying query result refresh for Stateful Augmentation Function with id %s: %s", augmentationFunctionId, e.getLocalizedMessage()));

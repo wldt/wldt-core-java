@@ -1,5 +1,7 @@
 package it.wldt.storage;
 
+import it.wldt.storage.query.aggregation.AggregationFactory;
+import it.wldt.storage.query.filter.FilterFactory;
 import it.wldt.augmentation.error.AugmentationFunctionErrorType;
 import it.wldt.augmentation.handler.AugmentationFunctionHandler;
 import it.wldt.augmentation.handler.DefaultAugmentationFunctionHandler;
@@ -20,6 +22,7 @@ import it.wldt.storage.augmentation.function.StorageTestErrorStatelessAugmentati
 import it.wldt.storage.augmentation.function.StorageTestStatefulAugmentationFunction;
 import it.wldt.storage.augmentation.function.StorageTestStatelessAugmentationFunction;
 import it.wldt.storage.model.augmentation.*;
+import it.wldt.storage.model.AggregationRecord;
 import it.wldt.storage.query.*;
 import org.junit.jupiter.api.*;
 
@@ -152,55 +155,42 @@ public class AugmentationStorageQueryTester {
 
         /////////////////// COUNT query //////////////////////
 
-        QueryRequest queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.AUGMENTATION_FUNCTION_REGISTRATION);
-        queryRequest.setRequestType(QueryRequestType.COUNT);
+        Query queryRequest = Query.on(QueryResourceType.AUGMENTATION_FUNCTION_REGISTRATION).aggregate(AggregationFactory.count().as("count")).build();
 
         QueryResult<?> queryResult = queryExecutor.syncQueryExecute(queryRequest);
 
         assertNotNull(queryResult);
-        assertEquals(QueryRequestType.COUNT, queryResult.getOriginalRequest().getRequestType());
-        assertEquals(QueryResourceType.AUGMENTATION_FUNCTION_REGISTRATION, queryResult.getOriginalRequest().getResourceType());
+        assertEquals(QueryResourceType.AUGMENTATION_FUNCTION_REGISTRATION, queryResult.getOriginalQuery().getResource());
 
-        List<?> resultList = queryResult.getResults();
+        List<?> resultList = queryResult.getItems();
         assertTrue(resultList != null && !resultList.isEmpty());
-        assertTrue(resultList.stream().allMatch(item -> item instanceof Integer));
-        assertEquals(4, (int) resultList.get(0));
+        assertTrue(resultList.stream().allMatch(item -> item instanceof AggregationRecord));
+        assertEquals(4, (int) ((AggregationRecord) resultList.get(0)).getLong("count"));
 
         /////////////////// TIME_RANGE query //////////////////////
 
-        queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.AUGMENTATION_FUNCTION_REGISTRATION);
-        queryRequest.setRequestType(QueryRequestType.TIME_RANGE);
-        queryRequest.setStartTimestampMs(startTimeStamp);
-        queryRequest.setEndTimestampMs(System.currentTimeMillis());
+        queryRequest = Query.on(QueryResourceType.AUGMENTATION_FUNCTION_REGISTRATION).where(FilterFactory.and(FilterFactory.gte(QueryFieldNames.TIMESTAMP, startTimeStamp), FilterFactory.lte(QueryFieldNames.TIMESTAMP, System.currentTimeMillis()))).build();
 
         queryResult = queryExecutor.syncQueryExecute(queryRequest);
 
         assertNotNull(queryResult);
-        assertEquals(QueryRequestType.TIME_RANGE, queryResult.getOriginalRequest().getRequestType());
-        assertEquals(QueryResourceType.AUGMENTATION_FUNCTION_REGISTRATION, queryResult.getOriginalRequest().getResourceType());
+        assertEquals(QueryResourceType.AUGMENTATION_FUNCTION_REGISTRATION, queryResult.getOriginalQuery().getResource());
 
-        resultList = queryResult.getResults();
+        resultList = queryResult.getItems();
         assertTrue(resultList != null && !resultList.isEmpty());
         assertEquals(4, resultList.size());
         assertTrue(resultList.stream().allMatch(item -> item instanceof AugmentationFunctionRegistrationRecord));
 
         /////////////////// SAMPLE_RANGE query //////////////////////
 
-        queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.AUGMENTATION_FUNCTION_REGISTRATION);
-        queryRequest.setRequestType(QueryRequestType.SAMPLE_RANGE);
-        queryRequest.setStartIndex(0);
-        queryRequest.setEndIndex(3);
+        queryRequest = Query.on(QueryResourceType.AUGMENTATION_FUNCTION_REGISTRATION).offset(0).limit((3) - (0) + 1).build();
 
         queryResult = queryExecutor.syncQueryExecute(queryRequest);
 
         assertNotNull(queryResult);
-        assertEquals(QueryRequestType.SAMPLE_RANGE, queryResult.getOriginalRequest().getRequestType());
-        assertEquals(QueryResourceType.AUGMENTATION_FUNCTION_REGISTRATION, queryResult.getOriginalRequest().getResourceType());
+        assertEquals(QueryResourceType.AUGMENTATION_FUNCTION_REGISTRATION, queryResult.getOriginalQuery().getResource());
 
-        resultList = queryResult.getResults();
+        resultList = queryResult.getItems();
         assertTrue(resultList != null && !resultList.isEmpty());
         assertEquals(4, resultList.size());
         assertTrue(resultList.stream().allMatch(item -> item instanceof AugmentationFunctionRegistrationRecord));
@@ -219,48 +209,37 @@ public class AugmentationStorageQueryTester {
 
         /////////////////// COUNT query //////////////////////
 
-        QueryRequest queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.AUGMENTATION_FUNCTION_REQUEST);
-        queryRequest.setRequestType(QueryRequestType.COUNT);
+        Query queryRequest = Query.on(QueryResourceType.AUGMENTATION_FUNCTION_REQUEST).aggregate(AggregationFactory.count().as("count")).build();
 
         QueryResult<?> queryResult = queryExecutor.syncQueryExecute(queryRequest);
 
         assertNotNull(queryResult);
-        assertEquals(QueryRequestType.COUNT, queryResult.getOriginalRequest().getRequestType());
-        assertEquals(QueryResourceType.AUGMENTATION_FUNCTION_REQUEST, queryResult.getOriginalRequest().getResourceType());
+        assertEquals(QueryResourceType.AUGMENTATION_FUNCTION_REQUEST, queryResult.getOriginalQuery().getResource());
 
-        List<?> resultList = queryResult.getResults();
+        List<?> resultList = queryResult.getItems();
         assertTrue(resultList != null && !resultList.isEmpty());
-        int count = (int) resultList.get(0);
+        int count = (int) ((AggregationRecord) resultList.get(0)).getLong("count");
         assertTrue(count >= 2, "Expected at least 2 augmentation function requests, got: " + count);
 
         /////////////////// TIME_RANGE query //////////////////////
 
-        queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.AUGMENTATION_FUNCTION_REQUEST);
-        queryRequest.setRequestType(QueryRequestType.TIME_RANGE);
-        queryRequest.setStartTimestampMs(startTimeStamp);
-        queryRequest.setEndTimestampMs(System.currentTimeMillis());
+        queryRequest = Query.on(QueryResourceType.AUGMENTATION_FUNCTION_REQUEST).where(FilterFactory.and(FilterFactory.gte(QueryFieldNames.TIMESTAMP, startTimeStamp), FilterFactory.lte(QueryFieldNames.TIMESTAMP, System.currentTimeMillis()))).build();
 
         queryResult = queryExecutor.syncQueryExecute(queryRequest);
 
         assertNotNull(queryResult);
-        resultList = queryResult.getResults();
+        resultList = queryResult.getItems();
         assertTrue(resultList != null && !resultList.isEmpty());
         assertTrue(resultList.stream().allMatch(item -> item instanceof AugmentationFunctionRequestRecord));
 
         /////////////////// SAMPLE_RANGE query //////////////////////
 
-        queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.AUGMENTATION_FUNCTION_REQUEST);
-        queryRequest.setRequestType(QueryRequestType.SAMPLE_RANGE);
-        queryRequest.setStartIndex(0);
-        queryRequest.setEndIndex(count - 1);
+        queryRequest = Query.on(QueryResourceType.AUGMENTATION_FUNCTION_REQUEST).offset(0).limit((count - 1) - (0) + 1).build();
 
         queryResult = queryExecutor.syncQueryExecute(queryRequest);
 
         assertNotNull(queryResult);
-        resultList = queryResult.getResults();
+        resultList = queryResult.getItems();
         assertTrue(resultList != null && !resultList.isEmpty());
         assertEquals(count, resultList.size());
         assertTrue(resultList.stream().allMatch(item -> item instanceof AugmentationFunctionRequestRecord));
@@ -282,32 +261,25 @@ public class AugmentationStorageQueryTester {
 
         /////////////////// COUNT query //////////////////////
 
-        QueryRequest queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.AUGMENTATION_FUNCTION_RESULT);
-        queryRequest.setRequestType(QueryRequestType.COUNT);
+        Query queryRequest = Query.on(QueryResourceType.AUGMENTATION_FUNCTION_RESULT).aggregate(AggregationFactory.count().as("count")).build();
 
         QueryResult<?> queryResult = queryExecutor.syncQueryExecute(queryRequest);
 
         assertNotNull(queryResult);
-        assertEquals(QueryRequestType.COUNT, queryResult.getOriginalRequest().getRequestType());
-        assertEquals(QueryResourceType.AUGMENTATION_FUNCTION_RESULT, queryResult.getOriginalRequest().getResourceType());
+        assertEquals(QueryResourceType.AUGMENTATION_FUNCTION_RESULT, queryResult.getOriginalQuery().getResource());
 
-        List<?> resultList = queryResult.getResults();
+        List<?> resultList = queryResult.getItems();
         assertTrue(resultList != null && !resultList.isEmpty());
-        assertEquals(expectedResultCount, (int) resultList.get(0));
+        assertEquals(expectedResultCount, (int) ((AggregationRecord) resultList.get(0)).getLong("count"));
 
         /////////////////// TIME_RANGE query //////////////////////
 
-        queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.AUGMENTATION_FUNCTION_RESULT);
-        queryRequest.setRequestType(QueryRequestType.TIME_RANGE);
-        queryRequest.setStartTimestampMs(startTimeStamp);
-        queryRequest.setEndTimestampMs(System.currentTimeMillis());
+        queryRequest = Query.on(QueryResourceType.AUGMENTATION_FUNCTION_RESULT).where(FilterFactory.and(FilterFactory.gte(QueryFieldNames.TIMESTAMP, startTimeStamp), FilterFactory.lte(QueryFieldNames.TIMESTAMP, System.currentTimeMillis()))).build();
 
         queryResult = queryExecutor.syncQueryExecute(queryRequest);
 
         assertNotNull(queryResult);
-        resultList = queryResult.getResults();
+        resultList = queryResult.getItems();
         assertTrue(resultList != null && !resultList.isEmpty());
         assertEquals(expectedResultCount, resultList.size());
         assertTrue(resultList.stream().allMatch(item -> item instanceof AugmentationFunctionResultRecord));
@@ -325,16 +297,12 @@ public class AugmentationStorageQueryTester {
 
         /////////////////// SAMPLE_RANGE query //////////////////////
 
-        queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.AUGMENTATION_FUNCTION_RESULT);
-        queryRequest.setRequestType(QueryRequestType.SAMPLE_RANGE);
-        queryRequest.setStartIndex(0);
-        queryRequest.setEndIndex(expectedResultCount - 1);
+        queryRequest = Query.on(QueryResourceType.AUGMENTATION_FUNCTION_RESULT).offset(0).limit((expectedResultCount - 1) - (0) + 1).build();
 
         queryResult = queryExecutor.syncQueryExecute(queryRequest);
 
         assertNotNull(queryResult);
-        resultList = queryResult.getResults();
+        resultList = queryResult.getItems();
         assertTrue(resultList != null && !resultList.isEmpty());
         assertEquals(expectedResultCount, resultList.size());
         assertTrue(resultList.stream().allMatch(item -> item instanceof AugmentationFunctionResultRecord));
@@ -356,32 +324,25 @@ public class AugmentationStorageQueryTester {
 
         /////////////////// COUNT query //////////////////////
 
-        QueryRequest queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.AUGMENTATION_FUNCTION_ERROR);
-        queryRequest.setRequestType(QueryRequestType.COUNT);
+        Query queryRequest = Query.on(QueryResourceType.AUGMENTATION_FUNCTION_ERROR).aggregate(AggregationFactory.count().as("count")).build();
 
         QueryResult<?> queryResult = queryExecutor.syncQueryExecute(queryRequest);
 
         assertNotNull(queryResult);
-        assertEquals(QueryRequestType.COUNT, queryResult.getOriginalRequest().getRequestType());
-        assertEquals(QueryResourceType.AUGMENTATION_FUNCTION_ERROR, queryResult.getOriginalRequest().getResourceType());
+        assertEquals(QueryResourceType.AUGMENTATION_FUNCTION_ERROR, queryResult.getOriginalQuery().getResource());
 
-        List<?> resultList = queryResult.getResults();
+        List<?> resultList = queryResult.getItems();
         assertTrue(resultList != null && !resultList.isEmpty());
-        assertEquals(expectedErrorCount, (int) resultList.get(0));
+        assertEquals(expectedErrorCount, (int) ((AggregationRecord) resultList.get(0)).getLong("count"));
 
         /////////////////// TIME_RANGE query //////////////////////
 
-        queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.AUGMENTATION_FUNCTION_ERROR);
-        queryRequest.setRequestType(QueryRequestType.TIME_RANGE);
-        queryRequest.setStartTimestampMs(startTimeStamp);
-        queryRequest.setEndTimestampMs(System.currentTimeMillis());
+        queryRequest = Query.on(QueryResourceType.AUGMENTATION_FUNCTION_ERROR).where(FilterFactory.and(FilterFactory.gte(QueryFieldNames.TIMESTAMP, startTimeStamp), FilterFactory.lte(QueryFieldNames.TIMESTAMP, System.currentTimeMillis()))).build();
 
         queryResult = queryExecutor.syncQueryExecute(queryRequest);
 
         assertNotNull(queryResult);
-        resultList = queryResult.getResults();
+        resultList = queryResult.getItems();
         assertTrue(resultList != null && !resultList.isEmpty());
         assertEquals(expectedErrorCount, resultList.size());
         assertTrue(resultList.stream().allMatch(item -> item instanceof AugmentationFunctionErrorRecord));
@@ -403,16 +364,12 @@ public class AugmentationStorageQueryTester {
 
         /////////////////// SAMPLE_RANGE query //////////////////////
 
-        queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.AUGMENTATION_FUNCTION_ERROR);
-        queryRequest.setRequestType(QueryRequestType.SAMPLE_RANGE);
-        queryRequest.setStartIndex(0);
-        queryRequest.setEndIndex(expectedErrorCount - 1);
+        queryRequest = Query.on(QueryResourceType.AUGMENTATION_FUNCTION_ERROR).offset(0).limit((expectedErrorCount - 1) - (0) + 1).build();
 
         queryResult = queryExecutor.syncQueryExecute(queryRequest);
 
         assertNotNull(queryResult);
-        resultList = queryResult.getResults();
+        resultList = queryResult.getItems();
         assertTrue(resultList != null && !resultList.isEmpty());
         assertEquals(expectedErrorCount, resultList.size());
         assertTrue(resultList.stream().allMatch(item -> item instanceof AugmentationFunctionErrorRecord));
@@ -449,32 +406,25 @@ public class AugmentationStorageQueryTester {
 
         /////////////////// COUNT query //////////////////////
 
-        QueryRequest queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.AUGMENTATION_FUNCTION_UNREGISTRATION);
-        queryRequest.setRequestType(QueryRequestType.COUNT);
+        Query queryRequest = Query.on(QueryResourceType.AUGMENTATION_FUNCTION_UNREGISTRATION).aggregate(AggregationFactory.count().as("count")).build();
 
         QueryResult<?> queryResult = queryExecutor.syncQueryExecute(queryRequest);
 
         assertNotNull(queryResult);
-        assertEquals(QueryRequestType.COUNT, queryResult.getOriginalRequest().getRequestType());
-        assertEquals(QueryResourceType.AUGMENTATION_FUNCTION_UNREGISTRATION, queryResult.getOriginalRequest().getResourceType());
+        assertEquals(QueryResourceType.AUGMENTATION_FUNCTION_UNREGISTRATION, queryResult.getOriginalQuery().getResource());
 
-        List<?> resultList = queryResult.getResults();
+        List<?> resultList = queryResult.getItems();
         assertTrue(resultList != null && !resultList.isEmpty());
-        assertEquals(4, (int) resultList.get(0));
+        assertEquals(4, (int) ((AggregationRecord) resultList.get(0)).getLong("count"));
 
         /////////////////// SAMPLE_RANGE query //////////////////////
 
-        queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.AUGMENTATION_FUNCTION_UNREGISTRATION);
-        queryRequest.setRequestType(QueryRequestType.SAMPLE_RANGE);
-        queryRequest.setStartIndex(0);
-        queryRequest.setEndIndex(3);
+        queryRequest = Query.on(QueryResourceType.AUGMENTATION_FUNCTION_UNREGISTRATION).offset(0).limit((3) - (0) + 1).build();
 
         queryResult = queryExecutor.syncQueryExecute(queryRequest);
 
         assertNotNull(queryResult);
-        resultList = queryResult.getResults();
+        resultList = queryResult.getItems();
         assertTrue(resultList != null && !resultList.isEmpty());
         assertEquals(4, resultList.size());
         assertTrue(resultList.stream().allMatch(item -> item instanceof AugmentationFunctionUnregistrationRecord));
@@ -494,9 +444,7 @@ public class AugmentationStorageQueryTester {
         // Expected result count: 1 (stateless) + EXECUTION_COUNT (stateful)
         int expectedResultCount = 1 + StorageTestStatefulAugmentationFunction.EXECUTION_COUNT;
 
-        QueryRequest queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.AUGMENTATION_FUNCTION_RESULT);
-        queryRequest.setRequestType(QueryRequestType.COUNT);
+        Query queryRequest = Query.on(QueryResourceType.AUGMENTATION_FUNCTION_RESULT).aggregate(AggregationFactory.count().as("count")).build();
 
         final QueryResult<?>[] received = {null};
 
@@ -510,12 +458,11 @@ public class AugmentationStorageQueryTester {
         Thread.sleep(3000);
 
         assertNotNull(received[0]);
-        assertEquals(QueryRequestType.COUNT, received[0].getOriginalRequest().getRequestType());
-        assertEquals(QueryResourceType.AUGMENTATION_FUNCTION_RESULT, received[0].getOriginalRequest().getResourceType());
+        assertEquals(QueryResourceType.AUGMENTATION_FUNCTION_RESULT, received[0].getOriginalQuery().getResource());
 
-        List<?> resultList = received[0].getResults();
+        List<?> resultList = received[0].getItems();
         assertTrue(resultList != null && !resultList.isEmpty());
-        assertEquals(expectedResultCount, (int) resultList.get(0));
+        assertEquals(expectedResultCount, (int) ((AggregationRecord) resultList.get(0)).getLong("count"));
     }
 }
 

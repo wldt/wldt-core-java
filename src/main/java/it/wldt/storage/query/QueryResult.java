@@ -20,148 +20,138 @@
  */
 package it.wldt.storage.query;
 
+import it.wldt.storage.model.StorageRecord;
+
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
  * Authors:
  *          Marco Picone, Ph.D. (picone.m@gmail.com)
  * Date: 25/07/2024
- * This class represents the Query Result returned by the Query Executor
- * containing the query results and the query status (successful or not) and error message (if any)
- * together with also the original request.
+ * Result of a {@link Query}. The output of a query is always a list of record classes
+ * (the {@link StorageRecord} hierarchy): the concrete records of the queried resource for a plain fetch,
+ * {@code AggregationRecord} instances for an aggregation.
+ *
+ * @param <T> the record type contained in the result
  */
-public class QueryResult<T> {
+public class QueryResult<T extends StorageRecord> {
 
-    private QueryRequest originalRequest;
+    private final Query originalQuery;
 
-    private boolean isSuccessful;
+    private final boolean successful;
 
-    private String errorMessage;
+    private final String errorMessage;
 
-    private List<T> results;
+    private final List<T> items;
 
-    private int totalResults;
+    private final Long total;
 
-    public QueryResult() {
-    }
-
-    /**
-     * Constructor used to create a Query Result with the query status and error message
-     * @param originalRequest the original request
-     * @param isSuccessful the query status
-     * @param errorMessage the error message (if any)
-     */
-    public QueryResult(QueryRequest originalRequest, boolean isSuccessful, String errorMessage) {
-        this.originalRequest = originalRequest;
-        this.isSuccessful = isSuccessful;
+    private QueryResult(Query originalQuery, boolean successful, String errorMessage, List<T> items, Long total) {
+        this.originalQuery = originalQuery;
+        this.successful = successful;
         this.errorMessage = errorMessage;
+        this.items = items == null ? Collections.<T>emptyList() : Collections.unmodifiableList(items);
+        this.total = total;
     }
 
     /**
-     * Constructor used to create a Query Result with the query status, error message, results and total results
-     * @param originalRequest the original request
-     * @param isSuccessful the query status
-     * @param errorMessage the error message (if any)
-     * @param results the query results
-     * @param totalResults the total number of results
+     * Create a successful result
+     * @param query the original query
+     * @param items the result records
+     * @param <T> the record type
+     * @return the query result
      */
-    public QueryResult(QueryRequest originalRequest, boolean isSuccessful, String errorMessage, List<T> results, int totalResults) {
-        this.originalRequest = originalRequest;
-        this.isSuccessful = isSuccessful;
-        this.errorMessage = errorMessage;
-        this.results = results;
-        this.totalResults = totalResults;
+    public static <T extends StorageRecord> QueryResult<T> success(Query query, List<T> items) {
+        return new QueryResult<>(query, true, null, items, null);
     }
 
     /**
-     * Method used to check if the query was successful
-     * @return true if the query was successful, false otherwise
+     * Create a successful result carrying the total number of matches ignoring limit and offset
+     * @param query the original query
+     * @param items the result records
+     * @param total the total number of matches
+     * @param <T> the record type
+     * @return the query result
      */
+    public static <T extends StorageRecord> QueryResult<T> success(Query query, List<T> items, long total) {
+        return new QueryResult<>(query, true, null, items, total);
+    }
+
+    /**
+     * Create a failed result
+     * @param query the original query
+     * @param errorMessage the error message
+     * @param <T> the record type
+     * @return the query result
+     */
+    public static <T extends StorageRecord> QueryResult<T> failure(Query query, String errorMessage) {
+        return new QueryResult<>(query, false, errorMessage, null, null);
+    }
+
     public boolean isSuccessful() {
-        return isSuccessful;
+        return successful;
     }
 
-    /**
-     * Method used to set the query status
-     * @param successful the query status
-     */
-    public void setSuccessful(boolean successful) {
-        isSuccessful = successful;
-    }
-
-    /**
-     * Method used to get the error message
-     * @return the error message
-     */
     public String getErrorMessage() {
         return errorMessage;
     }
 
-    /**
-     * Method used to set the error message
-     * @param errorMessage the error message
-     */
-    public void setErrorMessage(String errorMessage) {
-        this.errorMessage = errorMessage;
+    public Query getOriginalQuery() {
+        return originalQuery;
     }
 
     /**
-     * Method used to get the query results
-     * @return the query results
+     * @return the result records (empty if the query failed or nothing matched)
      */
-    public List<T> getResults() {
-        return results;
+    public List<T> getItems() {
+        return items;
     }
 
     /**
-     * Method used to set the query results
-     * @param results the query results
+     * @return the number of matches ignoring limit and offset, null if not requested through {@link Query.Builder#withTotal()}
      */
-    public void setResults(List<T> results) {
-        this.results = results;
+    public Long getTotal() {
+        return total;
     }
 
     /**
-     * Method used to get the total number of results
-     * @return the total number of results
+     * @return the first record, null if the result is empty
      */
-    public int getTotalResults() {
-        return totalResults;
+    public T first() {
+        return items.isEmpty() ? null : items.get(0);
     }
 
     /**
-     * Method used to set the total number of results
-     * @param totalResults the total number of results
+     * @return the last record, null if the result is empty
      */
-    public void setTotalResults(int totalResults) {
-        this.totalResults = totalResults;
+    public T last() {
+        return items.isEmpty() ? null : items.get(items.size() - 1);
     }
 
     /**
-     * Method used to get the original request
-     * @return the original request
+     * Typed view of the result, checking every record against the given class
+     * @param recordClass the expected record class
+     * @param <R> the expected record type
+     * @return the same result typed with the expected record class
+     * @throws ClassCastException if a record is not an instance of the given class
      */
-    public QueryRequest getOriginalRequest() {
-        return originalRequest;
-    }
-
-    /**
-     * Method used to set the original request
-     * @param originalRequest the original request
-     */
-    public void setOriginalRequest(QueryRequest originalRequest) {
-        this.originalRequest = originalRequest;
+    public <R extends StorageRecord> QueryResult<R> as(Class<R> recordClass) {
+        List<R> typed = new ArrayList<>(items.size());
+        for (T item : items)
+            typed.add(recordClass.cast(item));
+        return new QueryResult<>(originalQuery, successful, errorMessage, typed, total);
     }
 
     @Override
     public String toString() {
-        final StringBuilder sb = new StringBuilder("QueryResult{");
-        sb.append("originalRequest=").append(originalRequest);
-        sb.append(", isSuccessful=").append(isSuccessful);
-        sb.append(", errorMessage='").append(errorMessage).append('\'');
-        sb.append(", results=").append(results);
-        sb.append(", totalResults=").append(totalResults);
-        sb.append('}');
-        return sb.toString();
+        return "QueryResult{" +
+                "originalQuery=" + originalQuery +
+                ", successful=" + successful +
+                ", errorMessage='" + errorMessage + '\'' +
+                ", items=" + items +
+                ", total=" + total +
+                '}';
     }
 }

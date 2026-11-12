@@ -1019,7 +1019,7 @@ public abstract class DigitalTwinModel implements WldtEventListener {
             return;
         }
 
-        if(contextRequest.getQueryRequest() == null) {
+        if(contextRequest.getQuery() == null) {
             logger.warn("Augmentation Function with id {} does not have a Query Request defined in the Context Request ! Nothing to execute ...", augmentationFunctionId);
             return;
         }
@@ -1993,7 +1993,7 @@ public abstract class DigitalTwinModel implements WldtEventListener {
 
         logger.info("Shadowing Function -> Received Event: {} Class: {}", wldtEvent, wldtEvent.getClass());
 
-        // TODO Re-write all the following checks with Event Filters & Wildcard instead of Class Instances
+        // TODO Re-write all the following checks with Event FilterFactory & Wildcard instead of Class Instances
 
         if(wldtEvent instanceof PhysicalAssetPropertyWldtEvent)
             handlePhysicalAssetPropertyVariation((PhysicalAssetPropertyWldtEvent<?>) wldtEvent);

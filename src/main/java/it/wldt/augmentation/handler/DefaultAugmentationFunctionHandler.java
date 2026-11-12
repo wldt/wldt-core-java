@@ -30,7 +30,8 @@ import it.wldt.core.state.DigitalTwinStateEventNotification;
 import it.wldt.exception.AugmentationFunctionException;
 import it.wldt.log.WldtLogger;
 import it.wldt.log.WldtLoggerProvider;
-import it.wldt.storage.query.QueryRequest;
+import it.wldt.augmentation.context.AugmentationFunctionContextRequest;
+import it.wldt.storage.query.Query;
 import it.wldt.storage.query.QueryResult;
 
 import java.util.ArrayList;
@@ -140,16 +141,16 @@ public class DefaultAugmentationFunctionHandler extends AugmentationFunctionHand
 
     /**
      * Handles the refresh of the query result context for a Stateful Augmentation Function by delegating to
-     * {@link StatefulAugmentationFunction#onQueryResultRefresh(QueryRequest, QueryResult)}.
+     * {@link StatefulAugmentationFunction#onQueryResultRefresh(Query, QueryResult)}.
      * @param statefulAugmentationFunction the Stateful Augmentation Function whose context needs to be refreshed
-     * @param queryRequest the query request that was executed to obtain the new result
+     * @param query the query request that was executed to obtain the new result
      * @param queryResult the result of the query execution to pass to the augmentation function
      * @throws AugmentationFunctionException Thrown if an error occurs while refreshing the query result
      */
     @Override
-    protected void handleAugmentationFunctionQueryResultRefresh(StatefulAugmentationFunction statefulAugmentationFunction, QueryRequest queryRequest, QueryResult<?> queryResult) throws AugmentationFunctionException {
+    protected void handleAugmentationFunctionQueryResultRefresh(StatefulAugmentationFunction statefulAugmentationFunction, Query query, QueryResult<?> queryResult) throws AugmentationFunctionException {
         try {
-            statefulAugmentationFunction.onQueryResultRefresh(queryRequest, queryResult);
+            statefulAugmentationFunction.onQueryResultRefresh(query, queryResult);
         } catch (AugmentationFunctionException e) {
             throw new AugmentationFunctionException(String.format("Error while refreshing query result to augmentation function with id %s: %s", statefulAugmentationFunction.getId(), e.getMessage()));
         }
@@ -169,6 +170,11 @@ public class DefaultAugmentationFunctionHandler extends AugmentationFunctionHand
         // so that they can update their internal state and generate new results if needed
         for(StatefulAugmentationFunction statefulAugmentationFunction : statefulAugmentationFunctions) {
             try {
+                // Opt-in: refresh the query result of the function before notifying the state update
+                AugmentationFunctionContextRequest contextRequest = statefulAugmentationFunction.getContextRequest();
+                if (contextRequest != null && contextRequest.isRefreshQueryOnStateUpdate() && contextRequest.getQuery() != null)
+                    onStatefulAugmentationFunctionQueryResultRefresh(statefulAugmentationFunction.getId(), contextRequest.getQuery());
+
                 statefulAugmentationFunction.handleStateUpdate(newDigitalTwinState);
             } catch (AugmentationFunctionException e) {
                 // Log the error and continue with the next augmentation function

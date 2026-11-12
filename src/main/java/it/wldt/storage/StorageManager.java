@@ -52,7 +52,7 @@ import it.wldt.monitoring.CoreMonitoringUtils;
 import it.wldt.monitoring.MonitoringInterface;
 import it.wldt.storage.query.DefaultQueryManager;
 import it.wldt.storage.query.QueryManager;
-import it.wldt.storage.query.QueryRequest;
+import it.wldt.storage.query.Query;
 import it.wldt.storage.query.QueryResult;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -668,26 +668,37 @@ public class StorageManager extends DigitalTwinWorker implements IWldtEventObser
 
     /**
      * Method to be implemented by subclasses.
-     * Defines the logic to be executed when a QueryRequest is received.
+     * Defines the logic to be executed when a Query is received.
      *
-     * @param wldtEvent The QueryRequest received by the observer.
+     * @param wldtEvent The Query event received by the observer.
      */
     @Override
     public void onQueryRequestEvent(WldtEvent<?> wldtEvent) {
         try{
-            // Check if the event is a QueryRequest
-            if(wldtEvent != null && wldtEvent.getBody() != null && wldtEvent.getBody() instanceof QueryRequest) {
-                QueryRequest queryRequest = (QueryRequest) wldtEvent.getBody();
-                logger.info("Query Request Event Received ! Request: {}", queryRequest);
+            // Check if the event is a Query
+            if(wldtEvent != null && wldtEvent.getBody() != null && wldtEvent.getBody() instanceof Query) {
+                Query query = (Query) wldtEvent.getBody();
 
-                if (this.queryManager != null) {
-                    QueryResult<?> queryResult = this.queryManager.handleQuery(queryRequest, this.storageMap);
-                    EventManager.publishStorageQueryResult(this.digitalTwinId, STORAGE_MANAGER_EVENTBUS_CLIENT_ID, queryResult);
-                } else
-                    logger.error("Error handling the QueryRequest Event ! The QueryManager is not set !");
+                // Nobody is waiting for the result of a query older than its timeout: skip it, so a backlog of
+                // abandoned (possibly heavy) queries does not delay the writes and the other queries
+                if (query.getTimeoutMs() > 0 && System.currentTimeMillis() - query.getRequestTimestampMs() > query.getTimeoutMs()) {
+                    logger.warn("Query skipped, its timeout ({} ms) already expired ! Query: {}", query.getTimeoutMs(), query);
+                    return;
+                }
+
+                logger.info("Query Event Received ! Query: {}", query);
+
+                QueryResult<?> queryResult;
+                if (this.queryManager != null)
+                    queryResult = this.queryManager.handleQuery(query, this.storageMap);
+                else {
+                    logger.error("Error handling the Query Event ! The QueryManager is not set !");
+                    queryResult = QueryResult.failure(query, "The QueryManager is not set !");
+                }
+                EventManager.publishStorageQueryResult(this.digitalTwinId, STORAGE_MANAGER_EVENTBUS_CLIENT_ID, queryResult);
             }
             else
-                logger.error("Error handling the QueryRequest Event ! The event body is not a QueryRequest !");
+                logger.error("Error handling the Query Event ! The event body is not a Query !");
         }catch (Exception e){
             logger.error("Error handling the QueryRequest Event ! Error: {}", e.getLocalizedMessage());
         }

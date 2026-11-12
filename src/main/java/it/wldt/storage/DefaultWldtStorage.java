@@ -43,6 +43,9 @@ import it.wldt.storage.model.lifecycle.LifeCycleVariationRecord;
 import it.wldt.storage.model.physical.*;
 import it.wldt.storage.model.state.DigitalTwinStateEventNotificationRecord;
 import it.wldt.storage.model.state.DigitalTwinStateRecord;
+import it.wldt.storage.query.inmemory.InMemoryQueryEvaluator;
+import it.wldt.storage.query.Query;
+import it.wldt.storage.query.QueryResult;
 import java.util.*;
 
 /**
@@ -59,22 +62,22 @@ public class DefaultWldtStorage extends WldtStorage {
     private static final WldtLogger logger = WldtLoggerProvider.getLogger(StorageManager.class);
 
     // Instance variables for storing digital twin states, state changes, physical asset events, and digital twin events
-    private Map<Long, DigitalTwinStateRecord> digitalTwinStateMap;
-    private Map<Long, DigitalTwinStateEventNotificationRecord> digitalStateEventNotificationMap;
-    private Map<Long, PhysicalAssetActionRequestRecord> physicalActionRequestMap;
-    private Map<Long, PhysicalAssetEventNotificationRecord> physicalEventNotificationsMap;
-    private Map<Long, DigitalActionRequestRecord> digitalActionRequestMap;
-    private Map<Long, PhysicalAssetDescriptionNotificationRecord> newPhysicalAssetDescriptionNotificationMap;
-    private Map<Long, PhysicalAssetDescriptionNotificationRecord> updatedPhysicalAssetDescriptionNotificationMap;
-    private Map<Long, PhysicalAssetPropertyVariationRecord> physicalAssetPropertyVariationMap;
-    private Map<Long, PhysicalRelationshipInstanceVariationRecord> physicalRelationshipInstanceCreatedMap;
-    private Map<Long, PhysicalRelationshipInstanceVariationRecord> physicalRelationshipInstanceDeletedMap;
-    private Map<Long, LifeCycleVariationRecord> lifeCycleStateMap;
-    private Map<Long, AugmentationFunctionErrorRecord> augmentationFunctionErrorMap;
-    private Map<Long, AugmentationFunctionRegistrationRecord> augmentationFunctionRegistrationMap;
-    private Map<Long, AugmentationFunctionUnregistrationRecord> augmentationFunctionUnregistrationMap;
-    private Map<Long, AugmentationFunctionRequestRecord> augmentationFunctionRequestMap;
-    private Map<Long, AugmentationFunctionResultRecord> augmentationFunctionResultMap;
+    private final List<Map.Entry<Long, DigitalTwinStateRecord>> digitalTwinStateList = Collections.synchronizedList(new ArrayList<>());
+    private final List<Map.Entry<Long, DigitalTwinStateEventNotificationRecord>> digitalStateEventNotificationList = Collections.synchronizedList(new ArrayList<>());
+    private final List<Map.Entry<Long, PhysicalAssetActionRequestRecord>> physicalActionRequestList = Collections.synchronizedList(new ArrayList<>());
+    private final List<Map.Entry<Long, PhysicalAssetEventNotificationRecord>> physicalEventNotificationsList = Collections.synchronizedList(new ArrayList<>());
+    private final List<Map.Entry<Long, DigitalActionRequestRecord>> digitalActionRequestList = Collections.synchronizedList(new ArrayList<>());
+    private final List<Map.Entry<Long, PhysicalAssetDescriptionNotificationRecord>> newPhysicalAssetDescriptionNotificationList = Collections.synchronizedList(new ArrayList<>());
+    private final List<Map.Entry<Long, PhysicalAssetDescriptionNotificationRecord>> updatedPhysicalAssetDescriptionNotificationList = Collections.synchronizedList(new ArrayList<>());
+    private final List<Map.Entry<Long, PhysicalAssetPropertyVariationRecord>> physicalAssetPropertyVariationList = Collections.synchronizedList(new ArrayList<>());
+    private final List<Map.Entry<Long, PhysicalRelationshipInstanceVariationRecord>> physicalRelationshipInstanceCreatedList = Collections.synchronizedList(new ArrayList<>());
+    private final List<Map.Entry<Long, PhysicalRelationshipInstanceVariationRecord>> physicalRelationshipInstanceDeletedList = Collections.synchronizedList(new ArrayList<>());
+    private final List<Map.Entry<Long, LifeCycleVariationRecord>> lifeCycleStateList = Collections.synchronizedList(new ArrayList<>());
+    private final List<Map.Entry<Long, AugmentationFunctionErrorRecord>> augmentationFunctionErrorList = Collections.synchronizedList(new ArrayList<>());
+    private final List<Map.Entry<Long, AugmentationFunctionRegistrationRecord>> augmentationFunctionRegistrationList = Collections.synchronizedList(new ArrayList<>());
+    private final List<Map.Entry<Long, AugmentationFunctionUnregistrationRecord>> augmentationFunctionUnregistrationList = Collections.synchronizedList(new ArrayList<>());
+    private final List<Map.Entry<Long, AugmentationFunctionRequestRecord>> augmentationFunctionRequestList = Collections.synchronizedList(new ArrayList<>());
+    private final List<Map.Entry<Long, AugmentationFunctionResultRecord>> augmentationFunctionResultList = Collections.synchronizedList(new ArrayList<>());
 
     /**
      * Default Constructor
@@ -146,22 +149,21 @@ public class DefaultWldtStorage extends WldtStorage {
 
         logger.info("Initializing Default WLDT Storage...");
 
-        this.digitalTwinStateMap = new HashMap<>();
-        this.digitalStateEventNotificationMap= new HashMap<>();
-        this.physicalActionRequestMap = new HashMap<>();
-        this.physicalEventNotificationsMap = new HashMap<>();
-        this.digitalActionRequestMap = new HashMap<>();
-        this.newPhysicalAssetDescriptionNotificationMap = new HashMap<>();
-        this.updatedPhysicalAssetDescriptionNotificationMap = new HashMap<>();
-        this.physicalAssetPropertyVariationMap = new HashMap<>();
-        this.physicalRelationshipInstanceCreatedMap = new HashMap<>();
-        this.physicalRelationshipInstanceDeletedMap = new HashMap<>();
-        this.lifeCycleStateMap = new HashMap<>();
-        this.augmentationFunctionErrorMap = new HashMap<>();
-        this.augmentationFunctionRequestMap = new HashMap<>();
-        this.augmentationFunctionResultMap = new HashMap<>();
-        this.augmentationFunctionRegistrationMap = new HashMap<>();
-        this.augmentationFunctionUnregistrationMap = new HashMap<>();
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
     }
 
     /**
@@ -172,22 +174,22 @@ public class DefaultWldtStorage extends WldtStorage {
 
         logger.info("Clearing Default WLDT Storage...");
 
-        this.digitalTwinStateMap.clear();
-        this.digitalStateEventNotificationMap.clear();
-        this.physicalActionRequestMap.clear();
-        this.physicalEventNotificationsMap.clear();
-        this.digitalActionRequestMap.clear();
-        this.newPhysicalAssetDescriptionNotificationMap.clear();
-        this.updatedPhysicalAssetDescriptionNotificationMap.clear();
-        this.physicalAssetPropertyVariationMap.clear();
-        this.physicalRelationshipInstanceCreatedMap.clear();
-        this.physicalRelationshipInstanceDeletedMap.clear();
-        this.lifeCycleStateMap.clear();
-        this.augmentationFunctionErrorMap.clear();
-        this.augmentationFunctionRequestMap.clear();
-        this.augmentationFunctionResultMap.clear();
-        this.augmentationFunctionRegistrationMap.clear();
-        this.augmentationFunctionUnregistrationMap.clear();
+        this.digitalTwinStateList.clear();
+        this.digitalStateEventNotificationList.clear();
+        this.physicalActionRequestList.clear();
+        this.physicalEventNotificationsList.clear();
+        this.digitalActionRequestList.clear();
+        this.newPhysicalAssetDescriptionNotificationList.clear();
+        this.updatedPhysicalAssetDescriptionNotificationList.clear();
+        this.physicalAssetPropertyVariationList.clear();
+        this.physicalRelationshipInstanceCreatedList.clear();
+        this.physicalRelationshipInstanceDeletedList.clear();
+        this.lifeCycleStateList.clear();
+        this.augmentationFunctionErrorList.clear();
+        this.augmentationFunctionRequestList.clear();
+        this.augmentationFunctionResultList.clear();
+        this.augmentationFunctionRegistrationList.clear();
+        this.augmentationFunctionUnregistrationList.clear();
     }
 
     /**
@@ -202,78 +204,7 @@ public class DefaultWldtStorage extends WldtStorage {
         if (digitalTwinState == null) {
             throw new IllegalArgumentException("Digital twin state cannot be null.");
         }
-        digitalTwinStateMap.put(digitalTwinState.getEvaluationInstant().toEpochMilli(), new DigitalTwinStateRecord(digitalTwinState, digitalTwinStateChangeList));
-    }
-
-    /**
-     * Returns the latest computed Digital Twin State of the target Digital Twin instance
-     * @return the latest computed Digital Twin State
-     */
-    @Override
-    public Optional<DigitalTwinStateRecord> getLastDigitalTwinState() {
-
-        if (digitalTwinStateMap.isEmpty()) {
-            return Optional.empty();
-        }
-        long lastTimestamp = Collections.max(digitalTwinStateMap.keySet());
-        return Optional.ofNullable(digitalTwinStateMap.get(lastTimestamp));
-    }
-
-    /**
-     * Returns the number of computed and stored Digital Twin States
-     * @return The number of computed Digital Twin States
-     */
-    @Override
-    public int getDigitalTwinStateCount() {
-        return digitalTwinStateMap.size();
-    }
-
-    /**
-     * Retrieves a list of DigitalTwinState objects within the specified time range.
-     *
-     * @param startTimestampMs The start timestamp (in milliseconds) of the time range.
-     * @param endTimestampMs   The end timestamp (in milliseconds) of the time range.
-     * @return A list of DigitalTwinState objects representing the state of the digital twin within the specified time range.
-     * @throws IllegalArgumentException If the start timestamp is greater than the end timestamp.
-     */
-    @Override
-    public List<DigitalTwinStateRecord> getDigitalTwinStateInTimeRange(long startTimestampMs, long endTimestampMs) throws IllegalArgumentException {
-        if (startTimestampMs > endTimestampMs) {
-            throw new IllegalArgumentException("Start timestamp cannot be greater than end timestamp.");
-        }
-        List<DigitalTwinStateRecord> result = new ArrayList<>();
-        for (Map.Entry<Long, DigitalTwinStateRecord> entry : digitalTwinStateMap.entrySet()) {
-            long timestamp = entry.getKey();
-            if (timestamp >= startTimestampMs && timestamp <= endTimestampMs) {
-                result.add(entry.getValue());
-            }
-        }
-        return result;
-    }
-
-    /**
-     * Retrieves a list of Digital Twin states within the specified range of indices.
-     *
-     * @param startIndex the index of the first digital twin state to retrieve (inclusive). Starting index is 0.
-     * @param endIndex   the index of the last digital twin state to retrieve (inclusive)
-     * @return a list of digital twin states within the specified index range
-     * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
-     * @throws IllegalArgumentException  if startIndex is greater than endIndex
-     */
-    @Override
-    public List<DigitalTwinStateRecord> getDigitalTwinStateInRange(int startIndex, int endIndex) throws IndexOutOfBoundsException, IllegalArgumentException {
-        if (startIndex < 0 || endIndex < 0 || startIndex > endIndex) {
-            throw new IllegalArgumentException("Invalid index range.");
-        }
-        if (endIndex >= digitalTwinStateMap.size()) {
-            throw new IndexOutOfBoundsException("End index out of bounds.");
-        }
-        List<DigitalTwinStateRecord> result = new ArrayList<>();
-        List<Long> timestamps = new ArrayList<>(digitalTwinStateMap.keySet());
-        for (int i = startIndex; i <= endIndex; i++) {
-            result.add(digitalTwinStateMap.get(timestamps.get(i)));
-        }
-        return result;
+        add(digitalTwinStateList, digitalTwinState.getEvaluationInstant().toEpochMilli(), new DigitalTwinStateRecord(digitalTwinState, digitalTwinStateChangeList));
     }
 
     /**
@@ -287,66 +218,11 @@ public class DefaultWldtStorage extends WldtStorage {
             throw new StorageException("Digital Twin State Event Notification cannot be null.");
 
         // Save the Digital Twin State Event Notification
-        this.digitalStateEventNotificationMap.put(digitalTwinStateEventNotification.getTimestamp(),
+        add(digitalStateEventNotificationList, digitalTwinStateEventNotification.getTimestamp(),
                 new DigitalTwinStateEventNotificationRecord(
                         digitalTwinStateEventNotification.getDigitalEventKey(),
                         digitalTwinStateEventNotification.getBody(),
                         digitalTwinStateEventNotification.getTimestamp()));
-    }
-
-    /**
-     * Get the number of Digital Twin State Event Notification
-     *
-     * @return the number of Digital Twin State Event Notification
-     */
-    @Override
-    public int getDigitalTwinStateEventNotificationCount() throws StorageException {
-        return this.digitalStateEventNotificationMap.size();
-    }
-
-    /**
-     * Get the Digital Twin State Event Notification in the specified time range
-     *
-     * @param startTimestampMs the start timestamp of the time range
-     * @param endTimestampMs   the end timestamp of the time range
-     * @return the list of Digital Twin State Event Notification in the specified time range
-     */
-    @Override
-    public List<DigitalTwinStateEventNotificationRecord> getDigitalTwinStateEventNotificationInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException {
-        List<DigitalTwinStateEventNotificationRecord> result = new ArrayList<>();
-        for (Map.Entry<Long, DigitalTwinStateEventNotificationRecord> entry : digitalStateEventNotificationMap.entrySet()) {
-            long timestamp = entry.getKey();
-            if (timestamp >= startTimestampMs && timestamp <= endTimestampMs) {
-                result.add(entry.getValue());
-            }
-        }
-        return result;
-    }
-
-    /**
-     * Get the Digital Twin State Event Notification in the specified range of indices
-     *
-     * @param startIndex the index of the first Digital Twin State Event Notification to retrieve (inclusive). Starting index is 0.
-     * @param endIndex   the index of the last Digital Twin State Event Notification to retrieve (inclusive)
-     * @return a list of Digital Twin State Event Notification within the specified index range
-     * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
-     * @throws IllegalArgumentException  if startIndex is greater than endIndex
-     */
-    @Override
-    public List<DigitalTwinStateEventNotificationRecord> getDigitalTwinStateEventNotificationInRange(int startIndex, int endIndex) throws StorageException, IllegalArgumentException {
-        if (startIndex < 0 || endIndex < 0 || startIndex > endIndex) {
-            throw new IllegalArgumentException("Invalid index range.");
-        }
-        if (endIndex >= digitalStateEventNotificationMap.size()) {
-            throw new IndexOutOfBoundsException("End index out of bounds.");
-        }
-
-        List<DigitalTwinStateEventNotificationRecord> result = new ArrayList<>();
-        List<Long> timestamps = new ArrayList<>(digitalStateEventNotificationMap.keySet());
-        for (int i = startIndex; i <= endIndex; i++) {
-            result.add(digitalStateEventNotificationMap.get(timestamps.get(i)));
-        }
-        return result;
     }
 
     /**
@@ -355,74 +231,11 @@ public class DefaultWldtStorage extends WldtStorage {
      */
     @Override
     public void saveLifeCycleState(LifeCycleStateVariation lifeCycleStateVariation) {
-        // Implement this method using the variable lifeCycleStateMap
-        lifeCycleStateMap.put(lifeCycleStateVariation.getTimestamp(),
+        // Implement this method using the variable lifeCycleStateList
+        add(lifeCycleStateList, lifeCycleStateVariation.getTimestamp(),
                 new LifeCycleVariationRecord(lifeCycleStateVariation.getLifeCycleState(),
                         lifeCycleStateVariation.getTimestamp()));
 
-    }
-
-    /**
-     * Get the last LifeCycleState of the Digital Twin
-     *
-     * @return the last LifeCycleState of the Digital Twin
-     */
-    @Override
-    public LifeCycleVariationRecord getLastLifeCycleState() throws StorageException {
-        return lifeCycleStateMap.isEmpty() ? null : lifeCycleStateMap.get(Collections.max(lifeCycleStateMap.keySet()));
-    }
-
-    /**
-     * Get the number of LifeCycleState of the Digital Twin
-     * @return the number of LifeCycleState of the Digital Twin
-     */
-    @Override
-    public int getLifeCycleStateCount() {
-        return lifeCycleStateMap.size();
-    }
-
-    /**
-     * Get the last LifeCycleState of the Digital Twin
-     * @param startTimestampMs
-     * @param endTimestampMs
-     * @return the last LifeCycleState of the Digital Twin
-     */
-    @Override
-    public List<LifeCycleVariationRecord> getLifeCycleStateInTimeRange(long startTimestampMs, long endTimestampMs) throws IllegalArgumentException {
-        List<LifeCycleVariationRecord> result = new ArrayList<>();
-        for (Map.Entry<Long, LifeCycleVariationRecord> entry : lifeCycleStateMap.entrySet()) {
-            long timestamp = entry.getKey();
-            if (timestamp >= startTimestampMs && timestamp <= endTimestampMs) {
-                result.add(entry.getValue());
-            }
-        }
-        return result;
-    }
-
-    /**
-     * Get the LifeCycleState of the Digital Twin in the specified range of indices
-     *
-     * @param startIndex the index of the first LifeCycleState to retrieve (inclusive). Starting index is 0.
-     * @param endIndex   the index of the last LifeCycleState to retrieve (inclusive)
-     * @return a list of LifeCycleState within the specified index range
-     * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
-     * @throws IllegalArgumentException  if startIndex is greater than endIndex
-     */
-    @Override
-    public List<LifeCycleVariationRecord> getLifeCycleStateInRange(int startIndex, int endIndex) throws IndexOutOfBoundsException, IllegalArgumentException {
-        if (startIndex < 0 || endIndex < 0 || startIndex > endIndex) {
-            throw new IllegalArgumentException("Invalid index range.");
-        }
-        if (endIndex >= lifeCycleStateMap.size()) {
-            throw new IndexOutOfBoundsException("End index out of bounds.");
-        }
-
-        List<LifeCycleVariationRecord> result = new ArrayList<>();
-        List<Long> timestamps = new ArrayList<>(lifeCycleStateMap.keySet());
-        for (int i = startIndex; i <= endIndex; i++) {
-            result.add(lifeCycleStateMap.get(timestamps.get(i)));
-        }
-        return result;
     }
 
     /**
@@ -435,67 +248,12 @@ public class DefaultWldtStorage extends WldtStorage {
         if(physicalAssetEventNotification == null)
             throw new StorageException("Physical Asset Event Notification cannot be null.");
 
-        this.physicalEventNotificationsMap.put(physicalAssetEventNotification.getTimestamp(),
+        add(physicalEventNotificationsList, physicalAssetEventNotification.getTimestamp(),
                 new PhysicalAssetEventNotificationRecord(
                         physicalAssetEventNotification.getTimestamp(),
                         physicalAssetEventNotification.getEventkey(),
                         physicalAssetEventNotification.getBody(),
                         physicalAssetEventNotification.getMetadata()));
-    }
-
-    /**
-     * Get the number of Physical Asset Event Notification
-     *
-     * @return the number of Physical Asset Event Notification
-     */
-    @Override
-    public int getPhysicalAssetEventNotificationCount() throws StorageException {
-        return this.physicalEventNotificationsMap.size();
-    }
-
-    /**
-     * Get the Physical Asset Event Notification in the specified time range
-     *
-     * @param startTimestampMs the start timestamp of the time range
-     * @param endTimestampMs   the end timestamp of the time range
-     * @return the list of Physical Asset Event Notification in the specified time range
-     */
-    @Override
-    public List<PhysicalAssetEventNotificationRecord> getPhysicalAssetEventNotificationInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException {
-        List<PhysicalAssetEventNotificationRecord> result = new ArrayList<>();
-        for (Map.Entry<Long, PhysicalAssetEventNotificationRecord> entry : physicalEventNotificationsMap.entrySet()) {
-            long timestamp = entry.getKey();
-            if (timestamp >= startTimestampMs && timestamp <= endTimestampMs) {
-                result.add(entry.getValue());
-            }
-        }
-        return result;
-    }
-
-    /**
-     * Get the Physical Asset Event Notification in the specified range of indices
-     *
-     * @param startIndex the index of the first Physical Asset Event Notification to retrieve (inclusive). Starting index is 0.
-     * @param endIndex   the index of the last Physical Asset Event Notification to retrieve (inclusive)
-     * @return a list of Physical Asset Event Notification within the specified index range
-     * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
-     * @throws IllegalArgumentException  if startIndex is greater than endIndex
-     */
-    @Override
-    public List<PhysicalAssetEventNotificationRecord> getPhysicalAssetEventNotificationInRange(int startIndex, int endIndex) throws StorageException, IndexOutOfBoundsException, IllegalArgumentException {
-        if (startIndex < 0 || endIndex < 0 || startIndex > endIndex) {
-            throw new IllegalArgumentException("Invalid index range.");
-        }
-        if (endIndex >= physicalEventNotificationsMap.size()) {
-            throw new IndexOutOfBoundsException("End index out of bounds.");
-        }
-
-        List<PhysicalAssetEventNotificationRecord> result = new ArrayList<>();
-        List<Long> timestamps = new ArrayList<>(physicalEventNotificationsMap.keySet());
-        for (int i = startIndex; i <= endIndex; i++) {
-            result.add(physicalEventNotificationsMap.get(timestamps.get(i)));
-        }
-        return result;
     }
 
     /**
@@ -508,66 +266,12 @@ public class DefaultWldtStorage extends WldtStorage {
         if(physicalAssetActionRequest == null)
             throw new StorageException("Physical Asset Action Request cannot be null.");
 
-        this.physicalActionRequestMap.put(physicalAssetActionRequest.getRequestTimestamp(),
+        add(physicalActionRequestList, physicalAssetActionRequest.getRequestTimestamp(),
                 new PhysicalAssetActionRequestRecord(
                         physicalAssetActionRequest.getRequestTimestamp(),
                         physicalAssetActionRequest.getActionkey(),
                         physicalAssetActionRequest.getRequestBody(),
                         physicalAssetActionRequest.getRequestMetadata()));
-    }
-
-    /**
-     * Get the number of Physical Asset Action Request
-     * @return the number of Physical Asset Action Request
-     */
-    @Override
-    public int getPhysicalAssetActionRequestCount() {
-        return this.physicalActionRequestMap.size();
-    }
-
-    /**
-     * Get the Physical Asset Action Request in the specified time range
-     *
-     * @param startTimestampMs the start timestamp of the time range
-     * @param endTimestampMs   the end timestamp of the time range
-     * @return the list of Physical Asset Action Request in the specified time range
-     */
-    @Override
-    public List<PhysicalAssetActionRequestRecord> getPhysicalAssetActionRequestInTimeRange(long startTimestampMs, long endTimestampMs) throws IllegalArgumentException {
-        List<PhysicalAssetActionRequestRecord> result = new ArrayList<>();
-        for (Map.Entry<Long, PhysicalAssetActionRequestRecord> entry : physicalActionRequestMap.entrySet()) {
-            long timestamp = entry.getKey();
-            if (timestamp >= startTimestampMs && timestamp <= endTimestampMs) {
-                result.add(entry.getValue());
-            }
-        }
-        return result;
-    }
-
-    /**
-     * Get the Physical Asset Action Request in the specified range of indices
-     *
-     * @param startIndex the index of the first Physical Asset Action Request to retrieve (inclusive). Starting index is 0.
-     * @param endIndex   the index of the last Physical Asset Action Request to retrieve (inclusive)
-     * @return a list of Physical Asset Action Request within the specified index range
-     * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
-     * @throws IllegalArgumentException  if startIndex is greater than endIndex
-     */
-    @Override
-    public List<PhysicalAssetActionRequestRecord> getPhysicalAssetActionRequestInRange(int startIndex, int endIndex) throws IndexOutOfBoundsException, IllegalArgumentException {
-        if (startIndex < 0 || endIndex < 0 || startIndex > endIndex) {
-            throw new IllegalArgumentException("Invalid index range.");
-        }
-        if (endIndex >= physicalActionRequestMap.size()) {
-            throw new IndexOutOfBoundsException("End index out of bounds.");
-        }
-
-        List<PhysicalAssetActionRequestRecord> result = new ArrayList<>();
-        List<Long> timestamps = new ArrayList<>(physicalActionRequestMap.keySet());
-        for (int i = startIndex; i <= endIndex; i++) {
-            result.add(physicalActionRequestMap.get(timestamps.get(i)));
-        }
-        return result;
     }
 
     /**
@@ -580,67 +284,12 @@ public class DefaultWldtStorage extends WldtStorage {
         if(digitalActionRequest == null)
             throw new StorageException("Digital Action Request cannot be null.");
 
-        this.digitalActionRequestMap.put(digitalActionRequest.getRequestTimestamp(),
+        add(digitalActionRequestList, digitalActionRequest.getRequestTimestamp(),
                 new DigitalActionRequestRecord(
                         digitalActionRequest.getRequestTimestamp(),
                         digitalActionRequest.getActionkey(),
                         digitalActionRequest.getRequestBody(),
                         digitalActionRequest.getRequestMetadata()));
-    }
-
-    /**
-     * Get the number of Digital Action Request Stored
-     *
-     * @return the number of Digital Action Request
-     */
-    @Override
-    public int getDigitalActionRequestCount() {
-        return this.digitalActionRequestMap.size();
-    }
-
-    /**
-     * Get the Digital Action Request in the specified time range
-     *
-     * @param startTimestampMs the start timestamp of the time range
-     * @param endTimestampMs   the end timestamp of the time range
-     * @return the list of Digital Action Request in the specified time range
-     */
-    @Override
-    public List<DigitalActionRequestRecord> getDigitalActionRequestInTimeRange(long startTimestampMs, long endTimestampMs) throws IllegalArgumentException {
-        List<DigitalActionRequestRecord> result = new ArrayList<>();
-        for (Map.Entry<Long, DigitalActionRequestRecord> entry : digitalActionRequestMap.entrySet()) {
-            long timestamp = entry.getKey();
-            if (timestamp >= startTimestampMs && timestamp <= endTimestampMs) {
-                result.add(entry.getValue());
-            }
-        }
-        return result;
-    }
-
-    /**
-     * Get the Digital Action Request in the specified range of indices
-     *
-     * @param startIndex the index of the first Digital Action Request to retrieve (inclusive). Starting index is 0.
-     * @param endIndex   the index of the last Digital Action Request to retrieve (inclusive)
-     * @return a list of Digital Action Request within the specified index range
-     * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
-     * @throws IllegalArgumentException  if startIndex is greater than endIndex
-     */
-    @Override
-    public List<DigitalActionRequestRecord> getDigitalActionRequestInRange(int startIndex, int endIndex) throws IndexOutOfBoundsException, IllegalArgumentException {
-        if (startIndex < 0 || endIndex < 0 || startIndex > endIndex) {
-            throw new IllegalArgumentException("Invalid index range.");
-        }
-        if (endIndex >= digitalActionRequestMap.size()) {
-            throw new IndexOutOfBoundsException("End index out of bounds.");
-        }
-
-        List<DigitalActionRequestRecord> result = new ArrayList<>();
-        List<Long> timestamps = new ArrayList<>(digitalActionRequestMap.keySet());
-        for (int i = startIndex; i <= endIndex; i++) {
-            result.add(digitalActionRequestMap.get(timestamps.get(i)));
-        }
-        return result;
     }
 
     /**
@@ -653,66 +302,11 @@ public class DefaultWldtStorage extends WldtStorage {
         if(physicalAssetDescriptionNotification == null)
             throw new StorageException("Physical Asset Description Notification cannot be null.");
 
-        this.newPhysicalAssetDescriptionNotificationMap.put(physicalAssetDescriptionNotification.getNotificationTimestamp(),
+        add(newPhysicalAssetDescriptionNotificationList, physicalAssetDescriptionNotification.getNotificationTimestamp(),
                 new PhysicalAssetDescriptionNotificationRecord(
                         physicalAssetDescriptionNotification.getNotificationTimestamp(),
                         physicalAssetDescriptionNotification.getAdapterId(),
                         physicalAssetDescriptionNotification.getPhysicalAssetDescription()));
-    }
-
-    /**
-     * Get the number of New Physical Asset Description Notifications available
-     *
-     * @return the number of Physical Asset Description Notifications available
-     */
-    @Override
-    public int getNewPhysicalAssetDescriptionNotificationCount() {
-        return this.newPhysicalAssetDescriptionNotificationMap.size();
-    }
-
-    /**
-     * Get the New Physical Asset Description Available in the specified time range
-     *
-     * @param startTimestampMs the start timestamp of the time range
-     * @param endTimestampMs   the end timestamp of the time range
-     * @return the list of New Physical Asset Description Available in the specified time range
-     */
-    @Override
-    public List<PhysicalAssetDescriptionNotificationRecord> getNewPhysicalAssetDescriptionNotificationInTimeRange(long startTimestampMs, long endTimestampMs) throws IllegalArgumentException {
-        List<PhysicalAssetDescriptionNotificationRecord> result = new ArrayList<>();
-        for (Map.Entry<Long, PhysicalAssetDescriptionNotificationRecord> entry : newPhysicalAssetDescriptionNotificationMap.entrySet()) {
-            long timestamp = entry.getKey();
-            if (timestamp >= startTimestampMs && timestamp <= endTimestampMs) {
-                result.add(entry.getValue());
-            }
-        }
-        return result;
-    }
-
-    /**
-     * Get the New Physical Asset Description Available in the specified range of indices
-     *
-     * @param startIndex the index of the first New Physical Asset Description to retrieve (inclusive). Starting index is 0.
-     * @param endIndex   the index of the last New Physical Asset Description to retrieve (inclusive)
-     * @return a list of New Physical Asset Description within the specified index range
-     * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
-     * @throws IllegalArgumentException  if startIndex is greater than endIndex
-     */
-    @Override
-    public List<PhysicalAssetDescriptionNotificationRecord> getNewPhysicalAssetDescriptionNotificationInRange(int startIndex, int endIndex) throws IndexOutOfBoundsException, IllegalArgumentException {
-        if (startIndex < 0 || endIndex < 0 || startIndex > endIndex) {
-            throw new IllegalArgumentException("Invalid index range.");
-        }
-        if (endIndex >= newPhysicalAssetDescriptionNotificationMap.size()) {
-            throw new IndexOutOfBoundsException("End index out of bounds.");
-        }
-
-        List<PhysicalAssetDescriptionNotificationRecord> result = new ArrayList<>();
-        List<Long> timestamps = new ArrayList<>(newPhysicalAssetDescriptionNotificationMap.keySet());
-        for (int i = startIndex; i <= endIndex; i++) {
-            result.add(newPhysicalAssetDescriptionNotificationMap.get(timestamps.get(i)));
-        }
-        return result;
     }
 
     /**
@@ -724,66 +318,11 @@ public class DefaultWldtStorage extends WldtStorage {
         if(physicalAssetDescriptionNotification == null)
             throw new StorageException("Physical Asset Description Notification cannot be null.");
 
-        this.updatedPhysicalAssetDescriptionNotificationMap.put(physicalAssetDescriptionNotification.getNotificationTimestamp(),
+        add(updatedPhysicalAssetDescriptionNotificationList, physicalAssetDescriptionNotification.getNotificationTimestamp(),
                 new PhysicalAssetDescriptionNotificationRecord(
                         physicalAssetDescriptionNotification.getNotificationTimestamp(),
                         physicalAssetDescriptionNotification.getAdapterId(),
                         physicalAssetDescriptionNotification.getPhysicalAssetDescription()));
-    }
-
-    /**
-     * Get the number of Updated Physical Asset Description
-     *
-     * @return the number of Updated Physical Asset Description
-     */
-    @Override
-    public int getUpdatedPhysicalAssetDescriptionNotificationCount() {
-        return this.updatedPhysicalAssetDescriptionNotificationMap.size();
-    }
-
-    /**
-     * Get the Updated Physical Asset Description in the specified time range
-     *
-     * @param startTimestampMs the start timestamp of the time range
-     * @param endTimestampMs   the end timestamp of the time range
-     * @return the list of Updated Physical Asset Description in the specified time range
-     */
-    @Override
-    public List<PhysicalAssetDescriptionNotificationRecord> getUpdatedPhysicalAssetDescriptionNotificationInTimeRange(long startTimestampMs, long endTimestampMs) throws IllegalArgumentException {
-        List<PhysicalAssetDescriptionNotificationRecord> result = new ArrayList<>();
-        for (Map.Entry<Long, PhysicalAssetDescriptionNotificationRecord> entry : updatedPhysicalAssetDescriptionNotificationMap.entrySet()) {
-            long timestamp = entry.getKey();
-            if (timestamp >= startTimestampMs && timestamp <= endTimestampMs) {
-                result.add(entry.getValue());
-            }
-        }
-        return result;
-    }
-
-    /**
-     * Get the Updated Physical Asset Description in the specified range of indices
-     *
-     * @param startIndex the index of the first Updated Physical Asset Description to retrieve (inclusive). Starting index is 0.
-     * @param endIndex   the index of the last Updated Physical Asset Description to retrieve (inclusive)
-     * @return a list of Updated Physical Asset Description within the specified index range
-     * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
-     * @throws IllegalArgumentException  if startIndex is greater than endIndex
-     */
-    @Override
-    public List<PhysicalAssetDescriptionNotificationRecord> getUpdatedPhysicalAssetDescriptionNotificationInRange(int startIndex, int endIndex) throws IndexOutOfBoundsException, IllegalArgumentException {
-        if (startIndex < 0 || endIndex < 0 || startIndex > endIndex) {
-            throw new IllegalArgumentException("Invalid index range.");
-        }
-        if (endIndex >= updatedPhysicalAssetDescriptionNotificationMap.size()) {
-            throw new IndexOutOfBoundsException("End index out of bounds.");
-        }
-
-        List<PhysicalAssetDescriptionNotificationRecord> result = new ArrayList<>();
-        List<Long> timestamps = new ArrayList<>(updatedPhysicalAssetDescriptionNotificationMap.keySet());
-        for (int i = startIndex; i <= endIndex; i++) {
-            result.add(updatedPhysicalAssetDescriptionNotificationMap.get(timestamps.get(i)));
-        }
-        return result;
     }
 
     /**
@@ -796,67 +335,12 @@ public class DefaultWldtStorage extends WldtStorage {
         if(physicalAssetPropertyVariation == null)
             throw new StorageException("Physical Asset Property Variation cannot be null.");
 
-        this.physicalAssetPropertyVariationMap.put(physicalAssetPropertyVariation.getTimestamp(),
+        add(physicalAssetPropertyVariationList, physicalAssetPropertyVariation.getTimestamp(),
                 new PhysicalAssetPropertyVariationRecord(
                         physicalAssetPropertyVariation.getTimestamp(),
                         physicalAssetPropertyVariation.getPropertykey(),
                         physicalAssetPropertyVariation.getBody(),
                         physicalAssetPropertyVariation.getVariationMetadata()));
-    }
-
-    /**
-     * Get the number of Physical Asset Property Variation
-     *
-     * @return the number of Physical Asset Property Variation
-     */
-    @Override
-    public int getPhysicalAssetPropertyVariationCount() throws StorageException{
-        return this.physicalAssetPropertyVariationMap.size();
-    }
-
-    /**
-     * Get the Physical Asset Property Variation in the specified time range
-     *
-     * @param startTimestampMs the start timestamp of the time range
-     * @param endTimestampMs   the end timestamp of the time range
-     * @return the list of Physical Asset Property Variation in the specified time range
-     */
-    @Override
-    public List<PhysicalAssetPropertyVariationRecord> getPhysicalAssetPropertyVariationInTimeRange(long startTimestampMs, long endTimestampMs) throws IllegalArgumentException {
-        List<PhysicalAssetPropertyVariationRecord> result = new ArrayList<>();
-        for (Map.Entry<Long, PhysicalAssetPropertyVariationRecord> entry : physicalAssetPropertyVariationMap.entrySet()) {
-            long timestamp = entry.getKey();
-            if (timestamp >= startTimestampMs && timestamp <= endTimestampMs) {
-                result.add(entry.getValue());
-            }
-        }
-        return result;
-    }
-
-    /**
-     * Get the Physical Asset Property Variation in the specified range of indices
-     *
-     * @param startIndex the index of the first Physical Asset Property Variation to retrieve (inclusive). Starting index is 0.
-     * @param endIndex   the index of the last Physical Asset Property Variation to retrieve (inclusive)
-     * @return a list of Physical Asset Property Variation within the specified index range
-     * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
-     * @throws IllegalArgumentException  if startIndex is greater than endIndex
-     */
-    @Override
-    public List<PhysicalAssetPropertyVariationRecord> getPhysicalAssetPropertyVariationInRange(int startIndex, int endIndex) throws IndexOutOfBoundsException, IllegalArgumentException {
-        if (startIndex < 0 || endIndex < 0 || startIndex > endIndex) {
-            throw new IllegalArgumentException("Invalid index range.");
-        }
-        if (endIndex >= physicalAssetPropertyVariationMap.size()) {
-            throw new IndexOutOfBoundsException("End index out of bounds.");
-        }
-
-        List<PhysicalAssetPropertyVariationRecord> result = new ArrayList<>();
-        List<Long> timestamps = new ArrayList<>(physicalAssetPropertyVariationMap.keySet());
-        for (int i = startIndex; i <= endIndex; i++) {
-            result.add(physicalAssetPropertyVariationMap.get(timestamps.get(i)));
-        }
-        return result;
     }
 
     /**
@@ -873,7 +357,7 @@ public class DefaultWldtStorage extends WldtStorage {
         if(physicalRelationshipInstanceVariation.getPhysicalAssetRelationshipInstance().getMetadata().isPresent())
             metadata = physicalRelationshipInstanceVariation.getPhysicalAssetRelationshipInstance().getMetadata().get();
 
-        this.physicalRelationshipInstanceCreatedMap.put(physicalRelationshipInstanceVariation.getNotificationTimestamp(),
+        add(physicalRelationshipInstanceCreatedList, physicalRelationshipInstanceVariation.getNotificationTimestamp(),
                 new PhysicalRelationshipInstanceVariationRecord(
                         physicalRelationshipInstanceVariation.getNotificationTimestamp(),
                         physicalRelationshipInstanceVariation.getPhysicalAssetRelationshipInstance().getKey(),
@@ -881,61 +365,6 @@ public class DefaultWldtStorage extends WldtStorage {
                         physicalRelationshipInstanceVariation.getPhysicalAssetRelationshipInstance().getRelationship().getName(),
                         physicalRelationshipInstanceVariation.getPhysicalAssetRelationshipInstance().getRelationship().getType(),
                         metadata));
-    }
-
-    /**
-     * Get the number of Physical Asset Relationship Instance Created Event
-     *
-     * @return the number of Physical Asset Relationship Instance Created Event
-     */
-    @Override
-    public int getPhysicalAssetRelationshipInstanceCreatedNotificationCount() {
-        return this.physicalRelationshipInstanceCreatedMap.size();
-    }
-
-    /**
-     * Get the Physical Asset Relationship Instance Created Event in the specified time range
-     *
-     * @param startTimestampMs the start timestamp of the time range
-     * @param endTimestampMs   the end timestamp of the time range
-     * @return the list of Physical Asset Relationship Instance Created Event in the specified time range
-     */
-    @Override
-    public List<PhysicalRelationshipInstanceVariationRecord> getPhysicalAssetRelationshipInstanceCreatedNotificationInTimeRange(long startTimestampMs, long endTimestampMs) throws IllegalArgumentException {
-        List<PhysicalRelationshipInstanceVariationRecord> result = new ArrayList<>();
-        for (Map.Entry<Long, PhysicalRelationshipInstanceVariationRecord> entry : physicalRelationshipInstanceCreatedMap.entrySet()) {
-            long timestamp = entry.getKey();
-            if (timestamp >= startTimestampMs && timestamp <= endTimestampMs) {
-                result.add(entry.getValue());
-            }
-        }
-        return result;
-    }
-
-    /**
-     * Get the Physical Asset Relationship Instance Created Event in the specified range of indices
-     *
-     * @param startIndex the index of the first Physical Asset Property Variation to retrieve (inclusive). Starting index is 0.
-     * @param endIndex   the index of the last Physical Asset Property Variation to retrieve (inclusive)
-     * @return a list of Physical Asset Relationship Instance Created Event within the specified index range
-     * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
-     * @throws IllegalArgumentException  if startIndex is greater than endIndex
-     */
-    @Override
-    public List<PhysicalRelationshipInstanceVariationRecord> getPhysicalAssetRelationshipInstanceCreatedNotificationInRange(int startIndex, int endIndex) throws IllegalArgumentException {
-        if (startIndex < 0 || endIndex < 0 || startIndex > endIndex) {
-            throw new IllegalArgumentException("Invalid index range.");
-        }
-        if (endIndex >= physicalRelationshipInstanceCreatedMap.size()) {
-            throw new IndexOutOfBoundsException("End index out of bounds.");
-        }
-
-        List<PhysicalRelationshipInstanceVariationRecord> result = new ArrayList<>();
-        List<Long> timestamps = new ArrayList<>(physicalRelationshipInstanceCreatedMap.keySet());
-        for (int i = startIndex; i <= endIndex; i++) {
-            result.add(physicalRelationshipInstanceCreatedMap.get(timestamps.get(i)));
-        }
-        return result;
     }
 
     /**
@@ -952,7 +381,7 @@ public class DefaultWldtStorage extends WldtStorage {
         if(physicalRelationshipInstanceVariation.getPhysicalAssetRelationshipInstance().getMetadata().isPresent())
             metadata = physicalRelationshipInstanceVariation.getPhysicalAssetRelationshipInstance().getMetadata().get();
 
-        this.physicalRelationshipInstanceDeletedMap.put(physicalRelationshipInstanceVariation.getNotificationTimestamp(),
+        add(physicalRelationshipInstanceDeletedList, physicalRelationshipInstanceVariation.getNotificationTimestamp(),
                 new PhysicalRelationshipInstanceVariationRecord(
                     physicalRelationshipInstanceVariation.getNotificationTimestamp(),
                     physicalRelationshipInstanceVariation.getPhysicalAssetRelationshipInstance().getKey(),
@@ -962,76 +391,26 @@ public class DefaultWldtStorage extends WldtStorage {
                     metadata));
         }
 
-    /**
-     * Get the number of Physical Asset Relationship Instance Updated Event
-     *
-     * @return the number of Physical Asset Relationship Instance Updated Event
-     */
-    @Override
-    public int getPhysicalAssetRelationshipInstanceDeletedNotificationCount() {
-        return this.physicalRelationshipInstanceDeletedMap.size();
+    // Records are kept in insertion order together with their storage timestamp. A list is used instead of a map keyed
+    // by timestamp because several events can share the same millisecond and none of them must be lost.
+    private static <T extends StorageRecord> void add(List<Map.Entry<Long, T>> target, long timestamp, T record) {
+        target.add(new AbstractMap.SimpleImmutableEntry<>(timestamp, record));
     }
 
-    /**
-     * Get the Physical Asset Relationship Instance Updated Event in the specified time range
-     *
-     * @param startTimestampMs the start timestamp of the time range
-     * @param endTimestampMs   the end timestamp of the time range
-     * @return the list of Physical Asset Relationship Instance Updated Event in the specified time range
-     */
-    @Override
-    public List<PhysicalRelationshipInstanceVariationRecord> getPhysicalAssetRelationshipInstanceDeletedNotificationInTimeRange(long startTimestampMs, long endTimestampMs) throws IllegalArgumentException {
-        List<PhysicalRelationshipInstanceVariationRecord> result = new ArrayList<>();
-        for (Map.Entry<Long, PhysicalRelationshipInstanceVariationRecord> entry : physicalRelationshipInstanceDeletedMap.entrySet()) {
-            long timestamp = entry.getKey();
-            if (timestamp >= startTimestampMs && timestamp <= endTimestampMs) {
-                result.add(entry.getValue());
+    private StorageStatsRecord getStorageStatsFromList(List<? extends Map.Entry<Long, ? extends StorageRecord>> target){
+        StorageStatsRecord storageStatsRecord = new StorageStatsRecord();
+        synchronized (target) {
+            storageStatsRecord.setRecordCount(target.size());
+            long min = Long.MAX_VALUE, max = Long.MIN_VALUE;
+            for (Map.Entry<Long, ? extends StorageRecord> entry : target) {
+                min = Math.min(min, entry.getKey());
+                max = Math.max(max, entry.getKey());
+            }
+            if (!target.isEmpty()) {
+                storageStatsRecord.setRecordStartTimestampMs(min);
+                storageStatsRecord.setRecordEndTimestampMs(max);
             }
         }
-        return result;
-    }
-
-    /**
-     * Get the Physical Asset Relationship Instance Updated Event in the specified range of indices
-     *
-     * @param startIndex the index of the first Physical Asset Relationship Instance Updated Event to retrieve (inclusive). Starting index is 0.
-     * @param endIndex   the index of the last Physical Asset Relationship Instance Updated Event to retrieve (inclusive)
-     * @return a list of Physical Asset Relationship Instance Updated Event within the specified index range
-     * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
-     * @throws IllegalArgumentException  if startIndex is greater than endIndex
-     */
-    @Override
-    public List<PhysicalRelationshipInstanceVariationRecord> getPhysicalAssetRelationshipInstanceDeletedNotificationInRange(int startIndex, int endIndex) throws IndexOutOfBoundsException, IllegalArgumentException {
-        if (startIndex < 0 || endIndex < 0 || startIndex > endIndex) {
-            throw new IllegalArgumentException("Invalid index range.");
-        }
-        if (endIndex >= physicalRelationshipInstanceDeletedMap.size()) {
-            throw new IndexOutOfBoundsException("End index out of bounds.");
-        }
-
-        List<PhysicalRelationshipInstanceVariationRecord> result = new ArrayList<>();
-        List<Long> timestamps = new ArrayList<>(physicalRelationshipInstanceDeletedMap.keySet());
-        for (int i = startIndex; i <= endIndex; i++) {
-            result.add(physicalRelationshipInstanceDeletedMap.get(timestamps.get(i)));
-        }
-        return result;
-    }
-
-    /**
-     * Get the number stored information of the target Map
-     * @return th StorageStatsRecord associated to the target Map
-     */
-    private StorageStatsRecord getStorageStatsFromMap(Map<Long, ? extends StorageRecord> targetMap){
-
-        StorageStatsRecord storageStatsRecord = new StorageStatsRecord();
-        storageStatsRecord.setRecordCount(targetMap.size());
-
-        if(!targetMap.isEmpty()){
-            List<Long> timestamps = new ArrayList<>(targetMap.keySet());
-            storageStatsRecord.setRecordStartTimestampMs(Collections.min(timestamps));
-            storageStatsRecord.setRecordEndTimestampMs(Collections.max(timestamps));
-        }
-
         return storageStatsRecord;
     }
 
@@ -1047,7 +426,7 @@ public class DefaultWldtStorage extends WldtStorage {
         if(augmentationFunctionError == null)
             throw new StorageException("Augmentation Function Error cannot be null.");
 
-        this.augmentationFunctionErrorMap.put(augmentationFunctionError.getTimestamp(),
+        add(augmentationFunctionErrorList, augmentationFunctionError.getTimestamp(),
                 new AugmentationFunctionErrorRecord(
                         augmentationFunctionId,
                         augmentationFunctionHandlerId,
@@ -1057,59 +436,6 @@ public class DefaultWldtStorage extends WldtStorage {
                         augmentationFunctionError.getMessage(),
                         augmentationFunctionError.getMetadata()));
 
-    }
-
-    /**
-     * Get the number of stored Augmentation Function Error
-     * @return the number of stored Augmentation Function Error
-     */
-    @Override
-    public int getAugmentationFunctionErrorCount() {
-        return this.augmentationFunctionErrorMap.size();
-    }
-
-    /**
-     * Get the Augmentation Function Error in the specified time range
-     * @param startTimestampMs the start timestamp of the time range
-     * @param endTimestampMs the end timestamp of the time range
-     * @return the list of Augmentation Function Error in the specified time range
-     * @throws IllegalArgumentException if the start timestamp is greater than the end timestamp
-     */
-    @Override
-    public List<AugmentationFunctionErrorRecord> getAugmentationFunctionErrorsInTimeRange(long startTimestampMs, long endTimestampMs) throws IllegalArgumentException {
-        List<AugmentationFunctionErrorRecord> result = new ArrayList<>();
-        for (Map.Entry<Long, AugmentationFunctionErrorRecord> entry : augmentationFunctionErrorMap.entrySet()) {
-            long timestamp = entry.getKey();
-            if (timestamp >= startTimestampMs && timestamp <= endTimestampMs) {
-                result.add(entry.getValue());
-            }
-        }
-        return result;
-    }
-
-    /**
-     * Get the Augmentation Function Error in the specified range of indices
-     * @param startIndex the index of the first error occurred during the execution of the Augmentation Functions to retrieve (inclusive). Starting index is 0.
-     * @param endIndex the index of the last error occurred during the execution of the Augmentation Functions to retrieve (inclusive)
-     * @return a list of Augmentation Function Error within the specified index range
-     * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
-     * @throws IllegalArgumentException if startIndex is greater than endIndex
-     */
-    @Override
-    public List<AugmentationFunctionErrorRecord> getAugmentationFunctionErrorsInRange(int startIndex, int endIndex) throws IndexOutOfBoundsException, IllegalArgumentException {
-        if (startIndex < 0 || endIndex < 0 || startIndex > endIndex) {
-            throw new IllegalArgumentException("Invalid index range.");
-        }
-        if (endIndex >= augmentationFunctionErrorMap.size()) {
-            throw new IndexOutOfBoundsException("End index out of bounds.");
-        }
-
-        List<AugmentationFunctionErrorRecord> result = new ArrayList<>();
-        List<Long> timestamps = new ArrayList<>(augmentationFunctionErrorMap.keySet());
-        for (int i = startIndex; i <= endIndex; i++) {
-            result.add(augmentationFunctionErrorMap.get(timestamps.get(i)));
-        }
-        return result;
     }
 
     /**
@@ -1124,66 +450,13 @@ public class DefaultWldtStorage extends WldtStorage {
         if(augmentationFunctionRequest == null)
             throw new StorageException("Augmentation Function Request cannot be null.");
 
-        this.augmentationFunctionRequestMap.put(augmentationFunctionRequest.getTimestamp(),
+        add(augmentationFunctionRequestList, augmentationFunctionRequest.getTimestamp(),
                 new AugmentationFunctionRequestRecord(
                         augmentationFunctionId,
                         augmentationFunctionHandlerId,
                         augmentationFunctionRequest.getRequestId(),
                         augmentationFunctionRequest.getContext(),
                         augmentationFunctionRequest.getType()));
-    }
-
-    /**
-     * Get the number of stored Augmentation Function Request
-     * @return the number of stored Augmentation Function Request
-     */
-    @Override
-    public int getAugmentationFunctionRequestCount() {
-        return this.augmentationFunctionRequestMap.size();
-    }
-
-    /**
-     * Get the Augmentation Function Request in the specified time range
-     * @param startTimestampMs the start timestamp of the time range
-     * @param endTimestampMs the end timestamp of the time range
-     * @return the list of Augmentation Function Request in the specified time range
-     * @throws IllegalArgumentException if the start timestamp is greater than the end timestamp
-     */
-    @Override
-    public List<AugmentationFunctionRequestRecord> getAugmentationFunctionRequestInTimeRange(long startTimestampMs, long endTimestampMs) throws IllegalArgumentException {
-        List<AugmentationFunctionRequestRecord> result = new ArrayList<>();
-        for (Map.Entry<Long, AugmentationFunctionRequestRecord> entry : augmentationFunctionRequestMap.entrySet()) {
-            long timestamp = entry.getKey();
-            if (timestamp >= startTimestampMs && timestamp <= endTimestampMs) {
-                result.add(entry.getValue());
-            }
-        }
-        return result;
-    }
-
-    /**
-     * Get the Augmentation Function Request in the specified range of indices
-     * @param startIndex the index of the first Augmentation Function Request to retrieve (inclusive). Starting index is 0.
-     * @param endIndex the index of the last Augmentation Function Request to retrieve (inclusive)
-     * @return a list of Augmentation Function Request within the specified index range
-     * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
-     * @throws IllegalArgumentException if startIndex is greater than endIndex
-     */
-    @Override
-    public List<AugmentationFunctionRequestRecord> getAugmentationFunctionRequestInRange(int startIndex, int endIndex) throws IndexOutOfBoundsException, IllegalArgumentException {
-        if (startIndex < 0 || endIndex < 0 || startIndex > endIndex) {
-            throw new IllegalArgumentException("Invalid index range.");
-        }
-        if (endIndex >= augmentationFunctionRequestMap.size()) {
-            throw new IndexOutOfBoundsException("End index out of bounds.");
-        }
-
-        List<AugmentationFunctionRequestRecord> result = new ArrayList<>();
-        List<Long> timestamps = new ArrayList<>(augmentationFunctionRequestMap.keySet());
-        for (int i = startIndex; i <= endIndex; i++) {
-            result.add(augmentationFunctionRequestMap.get(timestamps.get(i)));
-        }
-        return result;
     }
 
     /**
@@ -1198,7 +471,7 @@ public class DefaultWldtStorage extends WldtStorage {
         if(augmentationFunctionResult == null)
             throw new StorageException("Augmentation Function Result cannot be null.");
 
-        this.augmentationFunctionResultMap.put(augmentationFunctionResult.getTimestamp(),
+        add(augmentationFunctionResultList, augmentationFunctionResult.getTimestamp(),
                 new AugmentationFunctionResultRecord(
                         augmentationFunctionId,
                         augmentationFunctionHandlerId,
@@ -1208,59 +481,6 @@ public class DefaultWldtStorage extends WldtStorage {
                         augmentationFunctionResult.getValue(),
                         augmentationFunctionResult.getAugmentationFunctionResultMetrics(),
                         augmentationFunctionResult.getMetadata()));
-    }
-
-    /**
-     * Get the number of stored Augmentation Function Result
-     * @return the number of stored Augmentation Function Result
-     */
-    @Override
-    public int getAugmentationFunctionResultCount() {
-        return this.augmentationFunctionResultMap.size();
-    }
-
-    /**
-     * Get the Augmentation Function Result in the specified time range
-     * @param startTimestampMs the start timestamp of the time range
-     * @param endTimestampMs the end timestamp of the time range
-     * @return the list of Augmentation Function Result in the specified time range
-     * @throws IllegalArgumentException if the start timestamp is greater than the end timestamp
-     */
-    @Override
-    public List<AugmentationFunctionResultRecord> getAugmentationFunctionResultInTimeRange(long startTimestampMs, long endTimestampMs) throws IllegalArgumentException {
-        List<AugmentationFunctionResultRecord> result = new ArrayList<>();
-        for (Map.Entry<Long, AugmentationFunctionResultRecord> entry : augmentationFunctionResultMap.entrySet()) {
-            long timestamp = entry.getKey();
-            if (timestamp >= startTimestampMs && timestamp <= endTimestampMs) {
-                result.add(entry.getValue());
-            }
-        }
-        return result;
-    }
-
-    /**
-     * Get the Augmentation Function Result in the specified range of indices
-     * @param startIndex the index of the first Augmentation Function Result to retrieve (inclusive). Starting index is 0.
-     * @param endIndex the index of the last Augmentation Function Result to retrieve (inclusive)
-     * @return a list of Augmentation Function Result within the specified index range
-     * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
-     * @throws IllegalArgumentException if startIndex is greater than endIndex
-     */
-    @Override
-    public List<AugmentationFunctionResultRecord> getAugmentationFunctionResultInRange(int startIndex, int endIndex) throws IndexOutOfBoundsException, IllegalArgumentException {
-        if (startIndex < 0 || endIndex < 0 || startIndex > endIndex) {
-            throw new IllegalArgumentException("Invalid index range.");
-        }
-        if (endIndex >= augmentationFunctionResultMap.size()) {
-            throw new IndexOutOfBoundsException("End index out of bounds.");
-        }
-
-        List<AugmentationFunctionResultRecord> result = new ArrayList<>();
-        List<Long> timestamps = new ArrayList<>(augmentationFunctionResultMap.keySet());
-        for (int i = startIndex; i <= endIndex; i++) {
-            result.add(augmentationFunctionResultMap.get(timestamps.get(i)));
-        }
-        return result;
     }
 
     /**
@@ -1275,64 +495,11 @@ public class DefaultWldtStorage extends WldtStorage {
         if(augmentationFunctionId == null || augmentationFunctionHandlerId == null || augmentationFunctionType == null)
             throw new StorageException("Augmentation Function Registration parameters cannot be null.");
 
-        this.augmentationFunctionRegistrationMap.put(System.currentTimeMillis(),
+        add(augmentationFunctionRegistrationList, System.currentTimeMillis(),
                 new AugmentationFunctionRegistrationRecord(
                         augmentationFunctionId,
                         augmentationFunctionHandlerId,
                         augmentationFunctionType));
-    }
-
-    /**
-     * Get the number of stored Augmentation Function Registration
-     * @return the number of stored Augmentation Function Registration
-     */
-    @Override
-    public int getAugmentationFunctionRegistrationCount() {
-        return this.augmentationFunctionRegistrationMap.size();
-    }
-
-    /**
-     * Get the Augmentation Function Registration in the specified time range
-     * @param startTimestampMs the start timestamp of the time range
-     * @param endTimestampMs the end timestamp of the time range
-     * @return the list of Augmentation Function Registration in the specified time range
-     * @throws IllegalArgumentException if the start timestamp is greater than the end timestamp
-     */
-    @Override
-    public List<AugmentationFunctionRegistrationRecord> getAugmentationFunctionRegistrationInTimeRange(long startTimestampMs, long endTimestampMs) throws IllegalArgumentException {
-        List<AugmentationFunctionRegistrationRecord> result = new ArrayList<>();
-        for (Map.Entry<Long, AugmentationFunctionRegistrationRecord> entry : augmentationFunctionRegistrationMap.entrySet()) {
-            long timestamp = entry.getKey();
-            if (timestamp >= startTimestampMs && timestamp <= endTimestampMs) {
-                result.add(entry.getValue());
-            }
-        }
-        return result;
-    }
-
-    /**
-     * Get the Augmentation Function Registration in the specified range of indices
-     * @param startIndex the index of the first Augmentation Function Registration to retrieve (inclusive). Starting index is 0.
-     * @param endIndex the index of the last Augmentation Function Registration to retrieve (inclusive)
-     * @return a list of Augmentation Function Registration within the specified index range
-     * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
-     * @throws IllegalArgumentException if startIndex is greater than endIndex
-     */
-    @Override
-    public List<AugmentationFunctionRegistrationRecord> getAugmentationFunctionRegistrationInRange(int startIndex, int endIndex) throws IndexOutOfBoundsException, IllegalArgumentException {
-        if (startIndex < 0 || endIndex < 0 || startIndex > endIndex) {
-            throw new IllegalArgumentException("Invalid index range.");
-        }
-        if (endIndex >= augmentationFunctionRegistrationMap.size()) {
-            throw new IndexOutOfBoundsException("End index out of bounds.");
-        }
-
-        List<AugmentationFunctionRegistrationRecord> result = new ArrayList<>();
-        List<Long> timestamps = new ArrayList<>(augmentationFunctionRegistrationMap.keySet());
-        for (int i = startIndex; i <= endIndex; i++) {
-            result.add(augmentationFunctionRegistrationMap.get(timestamps.get(i)));
-        }
-        return result;
     }
 
     /**
@@ -1347,7 +514,7 @@ public class DefaultWldtStorage extends WldtStorage {
         if(augmentationFunctionId == null || augmentationFunctionHandlerId == null || augmentationFunctionType == null)
             throw new StorageException("Augmentation Function Unregistration parameters cannot be null.");
 
-        this.augmentationFunctionUnregistrationMap.put(System.currentTimeMillis(),
+        add(augmentationFunctionUnregistrationList, System.currentTimeMillis(),
                 new AugmentationFunctionUnregistrationRecord(
                         augmentationFunctionId,
                         augmentationFunctionHandlerId,
@@ -1355,56 +522,57 @@ public class DefaultWldtStorage extends WldtStorage {
     }
 
     /**
-     * Get the number of stored Augmentation Function Unregistration
-     * @return the number of stored Augmentation Function Unregistration
+     * Execute the query over the in-memory records through the {@link InMemoryQueryEvaluator}
+     * @param query the query to execute
+     * @return the query result
      */
     @Override
-    public int getAugmentationFunctionUnregistrationCount() {
-        return this.augmentationFunctionUnregistrationMap.size();
-    }
+    public QueryResult<?> execute(Query query) throws StorageException {
 
-    /**
-     * Get the Augmentation Function Unregistration in the specified time range
-     * @param startTimestampMs the start timestamp of the time range
-     * @param endTimestampMs the end timestamp of the time range
-     * @return the list of Augmentation Function Unregistration in the specified time range
-     * @throws IllegalArgumentException if the start timestamp is greater than the end timestamp
-     */
-    @Override
-    public List<AugmentationFunctionUnregistrationRecord> getAugmentationFunctionUnregistrationInTimeRange(long startTimestampMs, long endTimestampMs) throws IllegalArgumentException {
-        List<AugmentationFunctionUnregistrationRecord> result = new ArrayList<>();
-        for (Map.Entry<Long, AugmentationFunctionUnregistrationRecord> entry : augmentationFunctionUnregistrationMap.entrySet()) {
-            long timestamp = entry.getKey();
-            if (timestamp >= startTimestampMs && timestamp <= endTimestampMs) {
-                result.add(entry.getValue());
+        try {
+
+            switch (query.getResource()) {
+                case DIGITAL_TWIN_STATE:
+                    return InMemoryQueryEvaluator.evaluate(query, digitalTwinStateList);
+                case DIGITAL_TWIN_STATE_EVENT_NOTIFICATION:
+                    return InMemoryQueryEvaluator.evaluate(query, digitalStateEventNotificationList);
+                case PHYSICAL_ASSET_PROPERTY_VARIATION:
+                    return InMemoryQueryEvaluator.evaluate(query, physicalAssetPropertyVariationList);
+                case PHYSICAL_ASSET_EVENT_NOTIFICATION:
+                    return InMemoryQueryEvaluator.evaluate(query, physicalEventNotificationsList);
+                case PHYSICAL_ACTION_REQUEST:
+                    return InMemoryQueryEvaluator.evaluate(query, physicalActionRequestList);
+                case DIGITAL_ACTION_REQUEST:
+                    return InMemoryQueryEvaluator.evaluate(query, digitalActionRequestList);
+                case NEW_PAD_NOTIFICATION:
+                    return InMemoryQueryEvaluator.evaluate(query, newPhysicalAssetDescriptionNotificationList);
+                case UPDATED_PAD_NOTIFICATION:
+                    return InMemoryQueryEvaluator.evaluate(query, updatedPhysicalAssetDescriptionNotificationList);
+                case PHYSICAL_RELATIONSHIP_INSTANCE_CREATED_NOTIFICATION:
+                    return InMemoryQueryEvaluator.evaluate(query, physicalRelationshipInstanceCreatedList);
+                case PHYSICAL_RELATIONSHIP_INSTANCE_DELETED_NOTIFICATION:
+                    return InMemoryQueryEvaluator.evaluate(query, physicalRelationshipInstanceDeletedList);
+                case AUGMENTATION_FUNCTION_ERROR:
+                    return InMemoryQueryEvaluator.evaluate(query, augmentationFunctionErrorList);
+                case AUGMENTATION_FUNCTION_REQUEST:
+                    return InMemoryQueryEvaluator.evaluate(query, augmentationFunctionRequestList);
+                case AUGMENTATION_FUNCTION_RESULT:
+                    return InMemoryQueryEvaluator.evaluate(query, augmentationFunctionResultList);
+                case AUGMENTATION_FUNCTION_REGISTRATION:
+                    return InMemoryQueryEvaluator.evaluate(query, augmentationFunctionRegistrationList);
+                case AUGMENTATION_FUNCTION_UNREGISTRATION:
+                    return InMemoryQueryEvaluator.evaluate(query, augmentationFunctionUnregistrationList);
+                case LIFE_CYCLE_EVENT:
+                    return InMemoryQueryEvaluator.evaluate(query, lifeCycleStateList);
+                case STORAGE_STATS:
+                    return QueryResult.success(query, Collections.singletonList(getStorageStats()));
+                default:
+                    return QueryResult.failure(query, "Unsupported query resource: " + query.getResource());
             }
-        }
-        return result;
-    }
 
-    /**
-     * Get the Augmentation Function Unregistration in the specified range of indices
-     * @param startIndex the index of the first Augmentation Function Unregistration to retrieve (inclusive). Starting index is 0.
-     * @param endIndex the index of the last Augmentation Function Unregistration to retrieve (inclusive)
-     * @return a list of Augmentation Function Unregistration within the specified index range
-     * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
-     * @throws IllegalArgumentException if startIndex is greater than endIndex
-     */
-    @Override
-    public List<AugmentationFunctionUnregistrationRecord> getAugmentationFunctionUnregistrationInRange(int startIndex, int endIndex) throws IndexOutOfBoundsException, IllegalArgumentException {
-        if (startIndex < 0 || endIndex < 0 || startIndex > endIndex) {
-            throw new IllegalArgumentException("Invalid index range.");
+        } catch (Exception e) {
+            return QueryResult.failure(query, e.getMessage());
         }
-        if (endIndex >= augmentationFunctionUnregistrationMap.size()) {
-            throw new IndexOutOfBoundsException("End index out of bounds.");
-        }
-
-        List<AugmentationFunctionUnregistrationRecord> result = new ArrayList<>();
-        List<Long> timestamps = new ArrayList<>(augmentationFunctionUnregistrationMap.keySet());
-        for (int i = startIndex; i <= endIndex; i++) {
-            result.add(augmentationFunctionUnregistrationMap.get(timestamps.get(i)));
-        }
-        return result;
     }
 
     /**
@@ -1418,21 +586,21 @@ public class DefaultWldtStorage extends WldtStorage {
         try {
             // Set the StorageStateRecords in the final class
             StorageStats storageStats = new StorageStats();
-            storageStats.setStateVariationStats(getStorageStatsFromMap(digitalTwinStateMap));
-            storageStats.setLifeCycleVariationStats(getStorageStatsFromMap(lifeCycleStateMap));
-            storageStats.setPhysicalAssetPropertyVariationStats(getStorageStatsFromMap(physicalAssetPropertyVariationMap));
-            storageStats.setPhysicalAssetEventNotificationStats(getStorageStatsFromMap(physicalEventNotificationsMap));
-            storageStats.setPhysicalAssetActionRequestStats(getStorageStatsFromMap(physicalActionRequestMap));
-            storageStats.setDigitalActionRequestStats(getStorageStatsFromMap(digitalActionRequestMap));
-            storageStats.setNewPhysicalAssetDescriptionNotificationStats(getStorageStatsFromMap(newPhysicalAssetDescriptionNotificationMap));
-            storageStats.setUpdatedPhysicalAssetDescriptionNotificationStats(getStorageStatsFromMap(updatedPhysicalAssetDescriptionNotificationMap));
-            storageStats.setPhysicalRelationshipInstanceCreatedNotificationStats(getStorageStatsFromMap(physicalRelationshipInstanceCreatedMap));
-            storageStats.setPhysicalRelationshipInstanceDeletedNotificationStats(getStorageStatsFromMap(physicalRelationshipInstanceDeletedMap));
-            storageStats.setAugmentationFunctionErrorStats(getStorageStatsFromMap(augmentationFunctionErrorMap));
-            storageStats.setAugmentationFunctionRequestStats(getStorageStatsFromMap(augmentationFunctionRequestMap));
-            storageStats.setAugmentationFunctionResultStats(getStorageStatsFromMap(augmentationFunctionResultMap));
-            storageStats.setAugmentationFunctionRegistrationStats(getStorageStatsFromMap(augmentationFunctionRegistrationMap));
-            storageStats.setAugmentationFunctionUnregistrationStats(getStorageStatsFromMap(augmentationFunctionUnregistrationMap));
+            storageStats.setStateVariationStats(getStorageStatsFromList(digitalTwinStateList));
+            storageStats.setLifeCycleVariationStats(getStorageStatsFromList(lifeCycleStateList));
+            storageStats.setPhysicalAssetPropertyVariationStats(getStorageStatsFromList(physicalAssetPropertyVariationList));
+            storageStats.setPhysicalAssetEventNotificationStats(getStorageStatsFromList(physicalEventNotificationsList));
+            storageStats.setPhysicalAssetActionRequestStats(getStorageStatsFromList(physicalActionRequestList));
+            storageStats.setDigitalActionRequestStats(getStorageStatsFromList(digitalActionRequestList));
+            storageStats.setNewPhysicalAssetDescriptionNotificationStats(getStorageStatsFromList(newPhysicalAssetDescriptionNotificationList));
+            storageStats.setUpdatedPhysicalAssetDescriptionNotificationStats(getStorageStatsFromList(updatedPhysicalAssetDescriptionNotificationList));
+            storageStats.setPhysicalRelationshipInstanceCreatedNotificationStats(getStorageStatsFromList(physicalRelationshipInstanceCreatedList));
+            storageStats.setPhysicalRelationshipInstanceDeletedNotificationStats(getStorageStatsFromList(physicalRelationshipInstanceDeletedList));
+            storageStats.setAugmentationFunctionErrorStats(getStorageStatsFromList(augmentationFunctionErrorList));
+            storageStats.setAugmentationFunctionRequestStats(getStorageStatsFromList(augmentationFunctionRequestList));
+            storageStats.setAugmentationFunctionResultStats(getStorageStatsFromList(augmentationFunctionResultList));
+            storageStats.setAugmentationFunctionRegistrationStats(getStorageStatsFromList(augmentationFunctionRegistrationList));
+            storageStats.setAugmentationFunctionUnregistrationStats(getStorageStatsFromList(augmentationFunctionUnregistrationList));
 
             return storageStats;
         }catch (Exception e){

@@ -25,7 +25,7 @@ import it.wldt.core.engine.LifeCycleState;
 import it.wldt.exception.EventBusException;
 import it.wldt.log.WldtLogger;
 import it.wldt.log.WldtLoggerProvider;
-import it.wldt.storage.query.QueryRequest;
+import it.wldt.storage.query.Query;
 import it.wldt.storage.query.QueryResult;
 import java.util.HashMap;
 
@@ -154,19 +154,19 @@ public class EventManager {
      * Publishes a Storage Query Request Event
      * @param digitalTwinId Digital Twin Id
      * @param publisherId Publisher Id
-     * @param request Query Request
+     * @param query Query
      */
     public static void publishStorageQueryRequest(String digitalTwinId,
                                                   String publisherId,
-                                                  QueryRequest request){
+                                                  Query query){
 
         String targetEventType = WldtEventTypes.STORAGE_QUERY_REQUEST_EVENT_TYPE;
 
         try {
 
-            WldtEvent<QueryRequest> event = new WldtEvent<>(
+            WldtEvent<Query> event = new WldtEvent<>(
                     targetEventType,
-                    request);
+                    query);
 
             publishEvent(digitalTwinId, publisherId, event);
 
@@ -190,7 +190,7 @@ public class EventManager {
 
         String targetEventType = String.format("%s.%s",
                 WldtEventTypes.STORAGE_QUERY_RESULT_EVENT_TYPE,
-                result.getOriginalRequest().getRequestId());
+                result.getOriginalQuery().getRequestId());
 
         try {
 

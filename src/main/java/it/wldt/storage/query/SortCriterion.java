@@ -21,30 +21,32 @@
 package it.wldt.storage.query;
 
 /**
- * Authors:
- *          Marco Picone, Ph.D. (picone.m@gmail.com)
- * Date: 25/07/2024
- * This Enum represents the Query Request Type used to specify the type of query to be performed
- * on the storage system (e.g., Time Range Query, Sample Range Query, Last Value Query, Count Query)
+ * Sort criterion: a field and a direction.
  */
-public enum QueryRequestType {
+public final class SortCriterion {
 
-    TIME_RANGE("TIME_RANGE"),
-    SAMPLE_RANGE("SAMPLE_RANGE"),
-    LAST_VALUE("LAST_VALUE"),
-    COUNT("COUNT");
+    public enum Direction { ASC, DESC }
 
-    private String value;
+    private final String field;
+    private final Direction direction;
 
-    private QueryRequestType(String value) {
-        this.value = value;
+    public SortCriterion(String field, Direction direction) {
+        if (field == null || field.isEmpty())
+            throw new IllegalArgumentException("Sort field cannot be null or empty");
+        this.field = field;
+        this.direction = direction == null ? Direction.ASC : direction;
     }
 
-    public String getValue() {
-        return value;
+    public String getField() {
+        return field;
     }
 
-    public void setValue(String value) {
-        this.value = value;
+    public Direction getDirection() {
+        return direction;
+    }
+
+    @Override
+    public String toString() {
+        return field + " " + direction;
     }
 }

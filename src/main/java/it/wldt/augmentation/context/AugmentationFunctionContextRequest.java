@@ -20,7 +20,7 @@
  */
 package it.wldt.augmentation.context;
 
-import it.wldt.storage.query.QueryRequest;
+import it.wldt.storage.query.Query;
 
 import java.util.List;
 
@@ -28,7 +28,7 @@ import java.util.List;
  * This class represents the request for the context of an Augmentation Function execution, allowing the specification
  * of observation preferences and query requests.
  * It provides options to observe the state of the system and event notifications, as well as filters for properties,
- * events, and relationships. Additionally, it allows the inclusion of a QueryRequest to retrieve necessary data from
+ * events, and relationships. Additionally, it allows the inclusion of a Query to retrieve necessary data from
  * the storage system during the execution of the augmentation function.
  * The class is designed to be flexible, enabling augmentation functions to customize their context based on their
  * specific needs and requirements.
@@ -71,11 +71,21 @@ public class AugmentationFunctionContextRequest {
     private List<String> relationshipNameFilter = null;
 
     /**
-     * The Query Request associate to the augmentation function context,
+     * The Query associate to the augmentation function context,
      * it can be used by the augmentation function to query the storage system and retrieve the
      * data needed for the execution of the augmentation function.
      */
-    private QueryRequest queryRequest = null;
+    private Query query = null;
+
+    /**
+     * If true, the handler executes the {@link #query} and delivers its result to the function
+     * ({@code onQueryResultRefresh}) before every Digital Twin state update notified to the function.
+     * It is disabled by default: it runs a synchronous query on the handler thread for each state update,
+     * which can be expensive for heavy queries, and a function whose results modify the Digital Twin state can
+     * end up in a feedback loop. When disabled, the function decides when to refresh the query result
+     * by calling {@code refreshQueryResult()} itself.
+     */
+    private boolean refreshQueryOnStateUpdate = false;
 
     /**
      * Default constructor of the AugmentationFunctionContextRequest class.
@@ -96,20 +106,20 @@ public class AugmentationFunctionContextRequest {
      * @param propertyNameFilter List of property names to filter the observed state of the system. If the list is empty or null, all the properties are observed.
      * @param eventNameFilter List of event notifications names to filter the observed event notifications. If the list is empty or null, all the event notifications are observed.
      * @param relationshipNameFilter List of relationship names to filter the observed relationships. If the list is empty or null, all the relationships are observed.
-     * @param queryRequest The Query Request associate to the augmentation function context, it can be used by the augmentation function to query the storage system and retrieve the data needed for the execution of the augmentation function.
+     * @param query The Query associate to the augmentation function context, it can be used by the augmentation function to query the storage system and retrieve the data needed for the execution of the augmentation function.
      */
     private AugmentationFunctionContextRequest(boolean observeState,
                                               boolean observeEventNotifications,
                                               List<String> propertyNameFilter,
                                               List<String> eventNameFilter,
                                               List<String> relationshipNameFilter,
-                                              QueryRequest queryRequest){
+                                              Query query){
         this.observeState = observeState;
         this.observeEventNotifications = observeEventNotifications;
         this.propertyNameFilter = propertyNameFilter;
         this.eventNameFilter = eventNameFilter;
         this.relationshipNameFilter = relationshipNameFilter;
-        this.queryRequest = queryRequest;
+        this.query = query;
     }
 
     /**
@@ -118,10 +128,10 @@ public class AugmentationFunctionContextRequest {
      * and it will not apply any filter on the observed state, event notifications and relationships.
      * The query request is set to the value passed as parameter, so the augmentation function will
      * be able to query the storage system during the execution using the specified query request.
-     * @param queryRequest The Query Request associate to the augmentation function context.
+     * @param query The Query associate to the augmentation function context.
      */
-    public AugmentationFunctionContextRequest(QueryRequest queryRequest){
-        this(true, true, null, null, null, queryRequest);
+    public AugmentationFunctionContextRequest(Query query){
+        this(true, true, null, null, null, query);
     }
 
     /**
@@ -131,28 +141,45 @@ public class AugmentationFunctionContextRequest {
      * The query request allows the augmentation function to query the storage system during the execution using the specified query request.
      * @param observeState Boolean flag to specify if the augmentation function want to observe the state of the system during the execution.
      * @param observeEventNotifications Boolean flag to specify if the augmentation function want to observe the event notifications during the execution.
-     * @param queryRequest The Query Request associate to the augmentation function context.
+     * @param query The Query associate to the augmentation function context.
      */
     public AugmentationFunctionContextRequest(boolean observeState,
                                               boolean observeEventNotifications,
-                                              QueryRequest queryRequest){
-        this(true, true, null, null, null, queryRequest);
+                                              Query query){
+        this(true, true, null, null, null, query);
     }
 
     /**
-     * Get the Query Request associate to the augmentation function context.
-     * @return The Query Request associate to the augmentation function context.
+     * @return true if the query is executed and its result delivered to the function before every state update
+     * (default false)
      */
-    public QueryRequest getQueryRequest() {
-        return queryRequest;
+    public boolean isRefreshQueryOnStateUpdate() {
+        return refreshQueryOnStateUpdate;
     }
 
     /**
-     * Set the Query Request associate to the augmentation function context.
-     * @param queryRequest The Query Request associate to the augmentation function context.
+     * Enable or disable the automatic execution of the query before every state update (disabled by default).
+     * Only has effect if a query is set in this context request.
+     * @param refreshQueryOnStateUpdate true to refresh the query result on every state update
      */
-    public void setQueryRequest(QueryRequest queryRequest) {
-        this.queryRequest = queryRequest;
+    public void setRefreshQueryOnStateUpdate(boolean refreshQueryOnStateUpdate) {
+        this.refreshQueryOnStateUpdate = refreshQueryOnStateUpdate;
+    }
+
+    /**
+     * Get the Query associate to the augmentation function context.
+     * @return The Query associate to the augmentation function context.
+     */
+    public Query getQuery() {
+        return query;
+    }
+
+    /**
+     * Set the Query associate to the augmentation function context.
+     * @param query The Query associate to the augmentation function context.
+     */
+    public void setQuery(Query query) {
+        this.query = query;
     }
 
     /**
@@ -221,7 +248,8 @@ public class AugmentationFunctionContextRequest {
                 ", propertyNameFilter=" + propertyNameFilter +
                 ", eventNameFilter=" + eventNameFilter +
                 ", relationshipNameFilter=" + relationshipNameFilter +
-                ", queryRequest=" + queryRequest +
+                ", query=" + query +
+                ", refreshQueryOnStateUpdate=" + refreshQueryOnStateUpdate +
                 '}';
     }
 }

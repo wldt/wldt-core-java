@@ -12,8 +12,12 @@ import it.wldt.augmentation.stateful.function.StatefulPeriodicRandomNumberAugmen
 import it.wldt.augmentation.stateful.generic.StatefulAutoStopAugmentationDigitalTwinModel;
 import it.wldt.augmentation.stateful.generic.StatefulGenericResultAugmentationDigitalTwinModel;
 import it.wldt.storage.DefaultWldtStorage;
-import it.wldt.storage.query.QueryRequest;
-import it.wldt.storage.query.QueryRequestType;
+import it.wldt.storage.query.Query;
+import it.wldt.storage.query.QueryFieldNames;
+import it.wldt.storage.query.filter.FilterFactory;
+import it.wldt.storage.query.SortCriterion;
+import it.wldt.storage.query.aggregation.AggregationFactory;
+import it.wldt.storage.model.AggregationRecord;
 import it.wldt.storage.query.QueryResourceType;
 import it.wldt.core.engine.DigitalTwin;
 import it.wldt.core.engine.DigitalTwinEngine;
@@ -1395,9 +1399,8 @@ public class DigitalTwinProcessMetricsTests {
                 // Configure function with a queryRequest so handler executes a query on start
                 StatefulPeriodicRandomNumberAugmentationFunction function =
                         new StatefulPeriodicRandomNumberAugmentationFunction();
-                QueryRequest queryRequest = new QueryRequest();
-                queryRequest.setResourceType(QueryResourceType.DIGITAL_TWIN_STATE);
-                function.getContextRequest().setQueryRequest(queryRequest);
+                Query queryRequest = Query.on(QueryResourceType.DIGITAL_TWIN_STATE).build();
+                function.getContextRequest().setQuery(queryRequest);
                 augDigitalTwin.getAugmentationManager().getAugmentationFunctionHandler(HANDLER_ID)
                         .get()
                         .registerAugmentationFunction(function);
@@ -2153,9 +2156,7 @@ public class DigitalTwinProcessMetricsTests {
         public void testStorageQuerySuccessMetrics() throws InterruptedException {
             Thread.sleep(DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS * 2);
 
-            QueryRequest queryRequest = new QueryRequest();
-            queryRequest.setResourceType(QueryResourceType.DIGITAL_TWIN_STATE);
-            queryRequest.setRequestType(QueryRequestType.LAST_VALUE);
+            Query queryRequest = Query.on(QueryResourceType.DIGITAL_TWIN_STATE).orderBy(QueryFieldNames.TIMESTAMP, SortCriterion.Direction.DESC).limit(1).build();
             EventManager.publishStorageQueryRequest(STORAGE_DT_ID, "test-storage-query-publisher", queryRequest);
 
             Thread.sleep(500);
@@ -2183,9 +2184,7 @@ public class DigitalTwinProcessMetricsTests {
             Thread.sleep(DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS * 2);
 
             // Null requestType → NullPointerException in handleStateQuery → caught → isSuccessful()=false
-            QueryRequest queryRequest = new QueryRequest();
-            queryRequest.setResourceType(QueryResourceType.DIGITAL_TWIN_STATE);
-            queryRequest.setRequestType(null);
+            Query queryRequest = Query.on(QueryResourceType.DIGITAL_TWIN_STATE).build();
             EventManager.publishStorageQueryRequest(STORAGE_DT_ID, "test-storage-error-publisher", queryRequest);
 
             Thread.sleep(500);

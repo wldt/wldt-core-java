@@ -1,5 +1,7 @@
 package it.wldt.storage;
 
+import it.wldt.storage.query.aggregation.AggregationFactory;
+import it.wldt.storage.query.filter.FilterFactory;
 import it.wldt.core.adapter.physical.TestPhysicalAdapter;
 import it.wldt.core.engine.DigitalTwin;
 import it.wldt.core.engine.DigitalTwinEngine;
@@ -25,6 +27,7 @@ import it.wldt.storage.model.lifecycle.LifeCycleVariationRecord;
 import it.wldt.storage.model.physical.*;
 import it.wldt.storage.model.state.DigitalTwinStateEventNotificationRecord;
 import it.wldt.storage.model.state.DigitalTwinStateRecord;
+import it.wldt.storage.model.AggregationRecord;
 import it.wldt.storage.query.*;
 import org.junit.jupiter.api.*;
 import java.util.List;
@@ -187,9 +190,7 @@ public class StorageQueryTester {
         queryResultObserver.observeStorageQueryResultEvents();
 
         // Create Query Request to the Storage Manager for the Last Digital Twin State
-        QueryRequest queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.DIGITAL_TWIN_STATE);
-        queryRequest.setRequestType(QueryRequestType.LAST_VALUE);
+        Query queryRequest = Query.on(QueryResourceType.DIGITAL_TWIN_STATE).orderBy(QueryFieldNames.TIMESTAMP, SortCriterion.Direction.DESC).limit(1).build();
 
         // Send the Query Request to the Storage Manager for the target DT
         EventManager.publishStorageQueryRequest(TEST_DIGITAL_TWIN_ID, "tester_publisher_id", queryRequest);
@@ -212,16 +213,13 @@ public class StorageQueryTester {
         QueryExecutor queryExecutor = new QueryExecutor(TEST_DIGITAL_TWIN_ID, "query-executor");
 
         // Create Query Request to the Storage Manager for the Last Digital Twin State
-        QueryRequest queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.DIGITAL_TWIN_STATE);
-        queryRequest.setRequestType(QueryRequestType.LAST_VALUE);
+        Query queryRequest = Query.on(QueryResourceType.DIGITAL_TWIN_STATE).orderBy(QueryFieldNames.TIMESTAMP, SortCriterion.Direction.DESC).limit(1).build();
 
         // Send the Query Request to the Storage Manager for the target DT
         QueryResult<?> queryResult = queryExecutor.syncQueryExecute(queryRequest);
 
         assertNotNull(queryResult);
-        assertEquals(queryResult.getOriginalRequest().getRequestType(), QueryRequestType.LAST_VALUE);
-        assertEquals(queryResult.getOriginalRequest().getResourceType(), QueryResourceType.DIGITAL_TWIN_STATE);
+        assertEquals(queryResult.getOriginalQuery().getResource(), QueryResourceType.DIGITAL_TWIN_STATE);
 
     }
 
@@ -240,9 +238,7 @@ public class StorageQueryTester {
         QueryExecutor queryExecutor = new QueryExecutor(TEST_DIGITAL_TWIN_ID, "query-executor");
 
         // Create Query Request to the Storage Manager for the Last Digital Twin State
-        QueryRequest queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.DIGITAL_TWIN_STATE);
-        queryRequest.setRequestType(QueryRequestType.LAST_VALUE);
+        Query queryRequest = Query.on(QueryResourceType.DIGITAL_TWIN_STATE).orderBy(QueryFieldNames.TIMESTAMP, SortCriterion.Direction.DESC).limit(1).build();
 
         final QueryResult<?>[] receivedQueryResult = {null};
 
@@ -254,9 +250,12 @@ public class StorageQueryTester {
             }
         });
 
+        // The result is delivered asynchronously
+        for (int i = 0; i < 50 && receivedQueryResult[0] == null; i++)
+            Thread.sleep(100);
+
         assertNotNull(receivedQueryResult[0]);
-        assertEquals(receivedQueryResult[0].getOriginalRequest().getRequestType(), QueryRequestType.LAST_VALUE);
-        assertEquals(receivedQueryResult[0].getOriginalRequest().getResourceType(), QueryResourceType.DIGITAL_TWIN_STATE);
+        assertEquals(receivedQueryResult[0].getOriginalQuery().getResource(), QueryResourceType.DIGITAL_TWIN_STATE);
 
         Thread.sleep(10000);
     }
@@ -276,16 +275,13 @@ public class StorageQueryTester {
         QueryExecutor queryExecutor = new QueryExecutor(TEST_DIGITAL_TWIN_ID, "query-executor");
 
         // Create Query Request to the Storage Manager for the Last Digital Twin State
-        QueryRequest queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.DIGITAL_TWIN_STATE);
-        queryRequest.setRequestType(QueryRequestType.LAST_VALUE);
+        Query queryRequest = Query.on(QueryResourceType.DIGITAL_TWIN_STATE).orderBy(QueryFieldNames.TIMESTAMP, SortCriterion.Direction.DESC).limit(1).build();
 
         // Send the Query Request to the Storage Manager for the target DT
         QueryResult<?> queryResult = queryExecutor.syncQueryExecute(queryRequest);
 
         assertNotNull(queryResult);
-        assertEquals(queryResult.getOriginalRequest().getRequestType(), QueryRequestType.LAST_VALUE);
-        assertEquals(queryResult.getOriginalRequest().getResourceType(), QueryResourceType.DIGITAL_TWIN_STATE);
+        assertEquals(queryResult.getOriginalQuery().getResource(), QueryResourceType.DIGITAL_TWIN_STATE);
 
         //Thread.sleep(10000);
     }
@@ -310,20 +306,15 @@ public class StorageQueryTester {
         /////////////////// Query in Time Range //////////////////////
 
         // Create Query Request to the Storage Manager for the Last Digital Twin State
-        QueryRequest queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.DIGITAL_TWIN_STATE);
-        queryRequest.setRequestType(QueryRequestType.TIME_RANGE);
-        queryRequest.setStartTimestampMs(startTimeStamp);
-        queryRequest.setEndTimestampMs(endTimeStamp);
+        Query queryRequest = Query.on(QueryResourceType.DIGITAL_TWIN_STATE).where(FilterFactory.and(FilterFactory.gte(QueryFieldNames.TIMESTAMP, startTimeStamp), FilterFactory.lte(QueryFieldNames.TIMESTAMP, endTimeStamp))).build();
 
         // Send the Query Request to the Storage Manager for the target DT
         QueryResult<?> queryResult = queryExecutor.syncQueryExecute(queryRequest);
 
         assertNotNull(queryResult);
-        assertEquals(queryResult.getOriginalRequest().getRequestType(), QueryRequestType.TIME_RANGE);
-        assertEquals(queryResult.getOriginalRequest().getResourceType(), QueryResourceType.DIGITAL_TWIN_STATE);
+        assertEquals(queryResult.getOriginalQuery().getResource(), QueryResourceType.DIGITAL_TWIN_STATE);
 
-        List<?> resultList =  queryResult.getResults();
+        List<?> resultList =  queryResult.getItems();
 
         // Check the result list is not null and contains only DigitalTwinStateRecord
         assertTrue(resultList != null && !resultList.isEmpty());
@@ -336,45 +327,37 @@ public class StorageQueryTester {
         ///////////////// Query in Sample Range //////////////////////
 
         // Query to get the number of collectes samples
-        queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.DIGITAL_TWIN_STATE);
-        queryRequest.setRequestType(QueryRequestType.COUNT);
+        queryRequest = Query.on(QueryResourceType.DIGITAL_TWIN_STATE).aggregate(AggregationFactory.count().as("count")).build();
 
         // Send the Query Request to the Storage Manager for the target DT
         queryResult = queryExecutor.syncQueryExecute(queryRequest);
 
         // Extract the number of collected samples
-        resultList =  queryResult.getResults();
+        resultList =  queryResult.getItems();
 
         assertNotNull(queryResult);
-        assertEquals(queryResult.getOriginalRequest().getRequestType(), QueryRequestType.COUNT);
-        assertEquals(queryResult.getOriginalRequest().getResourceType(), QueryResourceType.DIGITAL_TWIN_STATE);
+        assertEquals(queryResult.getOriginalQuery().getResource(), QueryResourceType.DIGITAL_TWIN_STATE);
 
         // Check the result list is not null and contains only DigitalTwinStateRecord
         assertTrue(resultList != null && !resultList.isEmpty());
-        assertTrue(resultList.stream().allMatch(item -> item instanceof Integer));
+        assertTrue(resultList.stream().allMatch(item -> item instanceof AggregationRecord));
 
         // Get the State Count from the Query Result
-        int availableStateCount = (int)resultList.get(0);
+        int availableStateCount = (int) ((AggregationRecord) resultList.get(0)).getLong("count");
 
         // Check the number of collected samples
         assertEquals(targetStateUpdates, availableStateCount);
 
         // Create Query Request to the Storage Manager for the Last Digital Twin State
-        queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.DIGITAL_TWIN_STATE);
-        queryRequest.setRequestType(QueryRequestType.SAMPLE_RANGE);
-        queryRequest.setStartIndex(0);
-        queryRequest.setEndIndex(availableStateCount-1);
+        queryRequest = Query.on(QueryResourceType.DIGITAL_TWIN_STATE).offset(0).limit((availableStateCount-1) - (0) + 1).build();
 
         // Send the Query Request to the Storage Manager for the target DT
         queryResult = queryExecutor.syncQueryExecute(queryRequest);
 
         assertNotNull(queryResult);
-        assertEquals(queryResult.getOriginalRequest().getRequestType(), QueryRequestType.SAMPLE_RANGE);
-        assertEquals(queryResult.getOriginalRequest().getResourceType(), QueryResourceType.DIGITAL_TWIN_STATE);
+        assertEquals(queryResult.getOriginalQuery().getResource(), QueryResourceType.DIGITAL_TWIN_STATE);
 
-        resultList =  queryResult.getResults();
+        resultList =  queryResult.getItems();
 
         // Check the result list is not null and contains only DigitalTwinStateRecord
         assertTrue(resultList != null && !resultList.isEmpty());
@@ -405,20 +388,15 @@ public class StorageQueryTester {
         /////////////////// Query in Time Range //////////////////////
 
         // Create Query Request to the Storage Manager
-        QueryRequest queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.PHYSICAL_ASSET_PROPERTY_VARIATION);
-        queryRequest.setRequestType(QueryRequestType.TIME_RANGE);
-        queryRequest.setStartTimestampMs(startTimeStamp);
-        queryRequest.setEndTimestampMs(endTimeStamp);
+        Query queryRequest = Query.on(QueryResourceType.PHYSICAL_ASSET_PROPERTY_VARIATION).where(FilterFactory.and(FilterFactory.gte(QueryFieldNames.TIMESTAMP, startTimeStamp), FilterFactory.lte(QueryFieldNames.TIMESTAMP, endTimeStamp))).build();
 
         // Send the Query Request to the Storage Manager for the target DT
         QueryResult<?> queryResult = queryExecutor.syncQueryExecute(queryRequest);
 
         assertNotNull(queryResult);
-        assertEquals(queryResult.getOriginalRequest().getRequestType(), QueryRequestType.TIME_RANGE);
-        assertEquals(queryResult.getOriginalRequest().getResourceType(), QueryResourceType.PHYSICAL_ASSET_PROPERTY_VARIATION);
+        assertEquals(queryResult.getOriginalQuery().getResource(), QueryResourceType.PHYSICAL_ASSET_PROPERTY_VARIATION);
 
-        List<?> resultList =  queryResult.getResults();
+        List<?> resultList =  queryResult.getItems();
 
         // Check the result list is not null and contains only the correct instance type
         assertTrue(resultList != null && !resultList.isEmpty());
@@ -431,45 +409,37 @@ public class StorageQueryTester {
         ///////////////// Query in Sample Range //////////////////////
 
         // Query to get the number of collectes samples
-        queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.PHYSICAL_ASSET_PROPERTY_VARIATION);
-        queryRequest.setRequestType(QueryRequestType.COUNT);
+        queryRequest = Query.on(QueryResourceType.PHYSICAL_ASSET_PROPERTY_VARIATION).aggregate(AggregationFactory.count().as("count")).build();
 
         // Send the Query Request to the Storage Manager for the target DT
         queryResult = queryExecutor.syncQueryExecute(queryRequest);
 
         // Extract the number of collected samples
-        resultList =  queryResult.getResults();
+        resultList =  queryResult.getItems();
 
         assertNotNull(queryResult);
-        assertEquals(queryResult.getOriginalRequest().getRequestType(), QueryRequestType.COUNT);
-        assertEquals(queryResult.getOriginalRequest().getResourceType(), QueryResourceType.PHYSICAL_ASSET_PROPERTY_VARIATION);
+        assertEquals(queryResult.getOriginalQuery().getResource(), QueryResourceType.PHYSICAL_ASSET_PROPERTY_VARIATION);
 
         // Check the result list is not null and contains only the correct Type
         assertTrue(resultList != null && !resultList.isEmpty());
-        assertTrue(resultList.stream().allMatch(item -> item instanceof Integer));
+        assertTrue(resultList.stream().allMatch(item -> item instanceof AggregationRecord));
 
         // Get the State Count from the Query Result
-        int availableStateCount = (int)resultList.get(0);
+        int availableStateCount = (int) ((AggregationRecord) resultList.get(0)).getLong("count");
 
         // Check the number of collected samples
         assertEquals(targetStateUpdates, availableStateCount);
 
         // Create Query Request to the Storage Manager for the Last Digital Twin State
-        queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.PHYSICAL_ASSET_PROPERTY_VARIATION);
-        queryRequest.setRequestType(QueryRequestType.SAMPLE_RANGE);
-        queryRequest.setStartIndex(0);
-        queryRequest.setEndIndex(availableStateCount-1);
+        queryRequest = Query.on(QueryResourceType.PHYSICAL_ASSET_PROPERTY_VARIATION).offset(0).limit((availableStateCount-1) - (0) + 1).build();
 
         // Send the Query Request to the Storage Manager for the target DT
         queryResult = queryExecutor.syncQueryExecute(queryRequest);
 
         assertNotNull(queryResult);
-        assertEquals(queryResult.getOriginalRequest().getRequestType(), QueryRequestType.SAMPLE_RANGE);
-        assertEquals(queryResult.getOriginalRequest().getResourceType(), QueryResourceType.PHYSICAL_ASSET_PROPERTY_VARIATION);
+        assertEquals(queryResult.getOriginalQuery().getResource(), QueryResourceType.PHYSICAL_ASSET_PROPERTY_VARIATION);
 
-        resultList =  queryResult.getResults();
+        resultList =  queryResult.getItems();
 
         // Check the result list is not null and contains only DigitalTwinStateRecord
         assertTrue(resultList != null && !resultList.isEmpty());
@@ -500,20 +470,15 @@ public class StorageQueryTester {
         /////////////////// Query in Time Range //////////////////////
 
         // Create Query Request to the Storage Manager
-        QueryRequest queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.PHYSICAL_ASSET_EVENT_NOTIFICATION);
-        queryRequest.setRequestType(QueryRequestType.TIME_RANGE);
-        queryRequest.setStartTimestampMs(startTimeStamp);
-        queryRequest.setEndTimestampMs(endTimeStamp);
+        Query queryRequest = Query.on(QueryResourceType.PHYSICAL_ASSET_EVENT_NOTIFICATION).where(FilterFactory.and(FilterFactory.gte(QueryFieldNames.TIMESTAMP, startTimeStamp), FilterFactory.lte(QueryFieldNames.TIMESTAMP, endTimeStamp))).build();
 
         // Send the Query Request to the Storage Manager for the target DT
         QueryResult<?> queryResult = queryExecutor.syncQueryExecute(queryRequest);
 
         assertNotNull(queryResult);
-        assertEquals(queryResult.getOriginalRequest().getRequestType(), QueryRequestType.TIME_RANGE);
-        assertEquals(queryResult.getOriginalRequest().getResourceType(), QueryResourceType.PHYSICAL_ASSET_EVENT_NOTIFICATION);
+        assertEquals(queryResult.getOriginalQuery().getResource(), QueryResourceType.PHYSICAL_ASSET_EVENT_NOTIFICATION);
 
-        List<?> resultList =  queryResult.getResults();
+        List<?> resultList =  queryResult.getItems();
 
         // Check the result list is not null and contains only the correct instance type
         assertTrue(resultList != null && !resultList.isEmpty());
@@ -526,45 +491,37 @@ public class StorageQueryTester {
         ///////////////// Query in Sample Range //////////////////////
 
         // Query to get the number of collectes samples
-        queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.PHYSICAL_ASSET_EVENT_NOTIFICATION);
-        queryRequest.setRequestType(QueryRequestType.COUNT);
+        queryRequest = Query.on(QueryResourceType.PHYSICAL_ASSET_EVENT_NOTIFICATION).aggregate(AggregationFactory.count().as("count")).build();
 
         // Send the Query Request to the Storage Manager for the target DT
         queryResult = queryExecutor.syncQueryExecute(queryRequest);
 
         // Extract the number of collected samples
-        resultList =  queryResult.getResults();
+        resultList =  queryResult.getItems();
 
         assertNotNull(queryResult);
-        assertEquals(queryResult.getOriginalRequest().getRequestType(), QueryRequestType.COUNT);
-        assertEquals(queryResult.getOriginalRequest().getResourceType(), QueryResourceType.PHYSICAL_ASSET_EVENT_NOTIFICATION);
+        assertEquals(queryResult.getOriginalQuery().getResource(), QueryResourceType.PHYSICAL_ASSET_EVENT_NOTIFICATION);
 
         // Check the result list is not null and contains only the correct Type
         assertTrue(resultList != null && !resultList.isEmpty());
-        assertTrue(resultList.stream().allMatch(item -> item instanceof Integer));
+        assertTrue(resultList.stream().allMatch(item -> item instanceof AggregationRecord));
 
         // Get the State Count from the Query Result
-        int availableStateCount = (int)resultList.get(0);
+        int availableStateCount = (int) ((AggregationRecord) resultList.get(0)).getLong("count");
 
         // Check the number of collected samples
         assertEquals(targetStateUpdates, availableStateCount);
 
         // Create Query Request to the Storage Manager for the Last Digital Twin State
-        queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.PHYSICAL_ASSET_EVENT_NOTIFICATION);
-        queryRequest.setRequestType(QueryRequestType.SAMPLE_RANGE);
-        queryRequest.setStartIndex(0);
-        queryRequest.setEndIndex(availableStateCount-1);
+        queryRequest = Query.on(QueryResourceType.PHYSICAL_ASSET_EVENT_NOTIFICATION).offset(0).limit((availableStateCount-1) - (0) + 1).build();
 
         // Send the Query Request to the Storage Manager for the target DT
         queryResult = queryExecutor.syncQueryExecute(queryRequest);
 
         assertNotNull(queryResult);
-        assertEquals(queryResult.getOriginalRequest().getRequestType(), QueryRequestType.SAMPLE_RANGE);
-        assertEquals(queryResult.getOriginalRequest().getResourceType(), QueryResourceType.PHYSICAL_ASSET_EVENT_NOTIFICATION);
+        assertEquals(queryResult.getOriginalQuery().getResource(), QueryResourceType.PHYSICAL_ASSET_EVENT_NOTIFICATION);
 
-        resultList =  queryResult.getResults();
+        resultList =  queryResult.getItems();
 
         // Check the result list is not null and contains only DigitalTwinStateRecord
         assertTrue(resultList != null && !resultList.isEmpty());
@@ -605,20 +562,15 @@ public class StorageQueryTester {
         /////////////////// Query in Time Range //////////////////////
 
         // Create Query Request to the Storage Manager
-        QueryRequest queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.PHYSICAL_ACTION_REQUEST);
-        queryRequest.setRequestType(QueryRequestType.TIME_RANGE);
-        queryRequest.setStartTimestampMs(startTimeStamp);
-        queryRequest.setEndTimestampMs(endTimeStamp);
+        Query queryRequest = Query.on(QueryResourceType.PHYSICAL_ACTION_REQUEST).where(FilterFactory.and(FilterFactory.gte(QueryFieldNames.TIMESTAMP, startTimeStamp), FilterFactory.lte(QueryFieldNames.TIMESTAMP, endTimeStamp))).build();
 
         // Send the Query Request to the Storage Manager for the target DT
         QueryResult<?> queryResult = queryExecutor.syncQueryExecute(queryRequest);
 
         assertNotNull(queryResult);
-        assertEquals(queryResult.getOriginalRequest().getRequestType(), QueryRequestType.TIME_RANGE);
-        assertEquals(queryResult.getOriginalRequest().getResourceType(), QueryResourceType.PHYSICAL_ACTION_REQUEST);
+        assertEquals(queryResult.getOriginalQuery().getResource(), QueryResourceType.PHYSICAL_ACTION_REQUEST);
 
-        List<?> resultList =  queryResult.getResults();
+        List<?> resultList =  queryResult.getItems();
 
         // Check the result list is not null and contains only the correct instance type
         assertTrue(resultList != null && !resultList.isEmpty());
@@ -631,45 +583,37 @@ public class StorageQueryTester {
         ///////////////// Query in Sample Range //////////////////////
 
         // Query to get the number of collectes samples
-        queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.PHYSICAL_ACTION_REQUEST);
-        queryRequest.setRequestType(QueryRequestType.COUNT);
+        queryRequest = Query.on(QueryResourceType.PHYSICAL_ACTION_REQUEST).aggregate(AggregationFactory.count().as("count")).build();
 
         // Send the Query Request to the Storage Manager for the target DT
         queryResult = queryExecutor.syncQueryExecute(queryRequest);
 
         // Extract the number of collected samples
-        resultList =  queryResult.getResults();
+        resultList =  queryResult.getItems();
 
         assertNotNull(queryResult);
-        assertEquals(queryResult.getOriginalRequest().getRequestType(), QueryRequestType.COUNT);
-        assertEquals(queryResult.getOriginalRequest().getResourceType(), QueryResourceType.PHYSICAL_ACTION_REQUEST);
+        assertEquals(queryResult.getOriginalQuery().getResource(), QueryResourceType.PHYSICAL_ACTION_REQUEST);
 
         // Check the result list is not null and contains only the correct Type
         assertTrue(resultList != null && !resultList.isEmpty());
-        assertTrue(resultList.stream().allMatch(item -> item instanceof Integer));
+        assertTrue(resultList.stream().allMatch(item -> item instanceof AggregationRecord));
 
         // Get the State Count from the Query Result
-        int availableStateCount = (int)resultList.get(0);
+        int availableStateCount = (int) ((AggregationRecord) resultList.get(0)).getLong("count");
 
         // Check the number of collected samples
         assertEquals(targetStateUpdates, availableStateCount);
 
         // Create Query Request to the Storage Manager for the Last Digital Twin State
-        queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.PHYSICAL_ACTION_REQUEST);
-        queryRequest.setRequestType(QueryRequestType.SAMPLE_RANGE);
-        queryRequest.setStartIndex(0);
-        queryRequest.setEndIndex(availableStateCount-1);
+        queryRequest = Query.on(QueryResourceType.PHYSICAL_ACTION_REQUEST).offset(0).limit((availableStateCount-1) - (0) + 1).build();
 
         // Send the Query Request to the Storage Manager for the target DT
         queryResult = queryExecutor.syncQueryExecute(queryRequest);
 
         assertNotNull(queryResult);
-        assertEquals(queryResult.getOriginalRequest().getRequestType(), QueryRequestType.SAMPLE_RANGE);
-        assertEquals(queryResult.getOriginalRequest().getResourceType(), QueryResourceType.PHYSICAL_ACTION_REQUEST);
+        assertEquals(queryResult.getOriginalQuery().getResource(), QueryResourceType.PHYSICAL_ACTION_REQUEST);
 
-        resultList =  queryResult.getResults();
+        resultList =  queryResult.getItems();
 
         // Check the result list is not null and contains only DigitalTwinStateRecord
         assertTrue(resultList != null && !resultList.isEmpty());
@@ -709,20 +653,15 @@ public class StorageQueryTester {
         /////////////////// Query in Time Range //////////////////////
 
         // Create Query Request to the Storage Manager
-        QueryRequest queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.DIGITAL_ACTION_REQUEST);
-        queryRequest.setRequestType(QueryRequestType.TIME_RANGE);
-        queryRequest.setStartTimestampMs(startTimeStamp);
-        queryRequest.setEndTimestampMs(endTimeStamp);
+        Query queryRequest = Query.on(QueryResourceType.DIGITAL_ACTION_REQUEST).where(FilterFactory.and(FilterFactory.gte(QueryFieldNames.TIMESTAMP, startTimeStamp), FilterFactory.lte(QueryFieldNames.TIMESTAMP, endTimeStamp))).build();
 
         // Send the Query Request to the Storage Manager for the target DT
         QueryResult<?> queryResult = queryExecutor.syncQueryExecute(queryRequest);
 
         assertNotNull(queryResult);
-        assertEquals(queryResult.getOriginalRequest().getRequestType(), QueryRequestType.TIME_RANGE);
-        assertEquals(queryResult.getOriginalRequest().getResourceType(), QueryResourceType.DIGITAL_ACTION_REQUEST);
+        assertEquals(queryResult.getOriginalQuery().getResource(), QueryResourceType.DIGITAL_ACTION_REQUEST);
 
-        List<?> resultList =  queryResult.getResults();
+        List<?> resultList =  queryResult.getItems();
 
         // Check the result list is not null and contains only the correct instance type
         assertTrue(resultList != null && !resultList.isEmpty());
@@ -735,45 +674,37 @@ public class StorageQueryTester {
         ///////////////// Query in Sample Range //////////////////////
 
         // Query to get the number of collectes samples
-        queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.DIGITAL_ACTION_REQUEST);
-        queryRequest.setRequestType(QueryRequestType.COUNT);
+        queryRequest = Query.on(QueryResourceType.DIGITAL_ACTION_REQUEST).aggregate(AggregationFactory.count().as("count")).build();
 
         // Send the Query Request to the Storage Manager for the target DT
         queryResult = queryExecutor.syncQueryExecute(queryRequest);
 
         // Extract the number of collected samples
-        resultList =  queryResult.getResults();
+        resultList =  queryResult.getItems();
 
         assertNotNull(queryResult);
-        assertEquals(queryResult.getOriginalRequest().getRequestType(), QueryRequestType.COUNT);
-        assertEquals(queryResult.getOriginalRequest().getResourceType(), QueryResourceType.DIGITAL_ACTION_REQUEST);
+        assertEquals(queryResult.getOriginalQuery().getResource(), QueryResourceType.DIGITAL_ACTION_REQUEST);
 
         // Check the result list is not null and contains only the correct Type
         assertTrue(resultList != null && !resultList.isEmpty());
-        assertTrue(resultList.stream().allMatch(item -> item instanceof Integer));
+        assertTrue(resultList.stream().allMatch(item -> item instanceof AggregationRecord));
 
         // Get the State Count from the Query Result
-        int availableStateCount = (int)resultList.get(0);
+        int availableStateCount = (int) ((AggregationRecord) resultList.get(0)).getLong("count");
 
         // Check the number of collected samples
         assertEquals(targetStateUpdates, availableStateCount);
 
         // Create Query Request to the Storage Manager for the Last Digital Twin State
-        queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.DIGITAL_ACTION_REQUEST);
-        queryRequest.setRequestType(QueryRequestType.SAMPLE_RANGE);
-        queryRequest.setStartIndex(0);
-        queryRequest.setEndIndex(availableStateCount-1);
+        queryRequest = Query.on(QueryResourceType.DIGITAL_ACTION_REQUEST).offset(0).limit((availableStateCount-1) - (0) + 1).build();
 
         // Send the Query Request to the Storage Manager for the target DT
         queryResult = queryExecutor.syncQueryExecute(queryRequest);
 
         assertNotNull(queryResult);
-        assertEquals(queryResult.getOriginalRequest().getRequestType(), QueryRequestType.SAMPLE_RANGE);
-        assertEquals(queryResult.getOriginalRequest().getResourceType(), QueryResourceType.DIGITAL_ACTION_REQUEST);
+        assertEquals(queryResult.getOriginalQuery().getResource(), QueryResourceType.DIGITAL_ACTION_REQUEST);
 
-        resultList =  queryResult.getResults();
+        resultList =  queryResult.getItems();
 
         // Check the result list is not null and contains only DigitalTwinStateRecord
         assertTrue(resultList != null && !resultList.isEmpty());
@@ -803,20 +734,15 @@ public class StorageQueryTester {
         /////////////////// Query in Time Range //////////////////////
 
         // Create Query Request to the Storage Manager
-        QueryRequest queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.NEW_PAD_NOTIFICATION);
-        queryRequest.setRequestType(QueryRequestType.TIME_RANGE);
-        queryRequest.setStartTimestampMs(startTimeStamp);
-        queryRequest.setEndTimestampMs(endTimeStamp);
+        Query queryRequest = Query.on(QueryResourceType.NEW_PAD_NOTIFICATION).where(FilterFactory.and(FilterFactory.gte(QueryFieldNames.TIMESTAMP, startTimeStamp), FilterFactory.lte(QueryFieldNames.TIMESTAMP, endTimeStamp))).build();
 
         // Send the Query Request to the Storage Manager for the target DT
         QueryResult<?> queryResult = queryExecutor.syncQueryExecute(queryRequest);
 
         assertNotNull(queryResult);
-        assertEquals(queryResult.getOriginalRequest().getRequestType(), QueryRequestType.TIME_RANGE);
-        assertEquals(queryResult.getOriginalRequest().getResourceType(), QueryResourceType.NEW_PAD_NOTIFICATION);
+        assertEquals(queryResult.getOriginalQuery().getResource(), QueryResourceType.NEW_PAD_NOTIFICATION);
 
-        List<?> resultList =  queryResult.getResults();
+        List<?> resultList =  queryResult.getItems();
 
         // Check the result list is not null and contains only the correct instance type
         assertTrue(resultList != null && !resultList.isEmpty());
@@ -829,45 +755,37 @@ public class StorageQueryTester {
         ///////////////// Query in Sample Range //////////////////////
 
         // Query to get the number of collectes samples
-        queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.NEW_PAD_NOTIFICATION);
-        queryRequest.setRequestType(QueryRequestType.COUNT);
+        queryRequest = Query.on(QueryResourceType.NEW_PAD_NOTIFICATION).aggregate(AggregationFactory.count().as("count")).build();
 
         // Send the Query Request to the Storage Manager for the target DT
         queryResult = queryExecutor.syncQueryExecute(queryRequest);
 
         // Extract the number of collected samples
-        resultList =  queryResult.getResults();
+        resultList =  queryResult.getItems();
 
         assertNotNull(queryResult);
-        assertEquals(queryResult.getOriginalRequest().getRequestType(), QueryRequestType.COUNT);
-        assertEquals(queryResult.getOriginalRequest().getResourceType(), QueryResourceType.NEW_PAD_NOTIFICATION);
+        assertEquals(queryResult.getOriginalQuery().getResource(), QueryResourceType.NEW_PAD_NOTIFICATION);
 
         // Check the result list is not null and contains only the correct Type
         assertTrue(resultList != null && !resultList.isEmpty());
-        assertTrue(resultList.stream().allMatch(item -> item instanceof Integer));
+        assertTrue(resultList.stream().allMatch(item -> item instanceof AggregationRecord));
 
         // Get the State Count from the Query Result
-        int availableStateCount = (int)resultList.get(0);
+        int availableStateCount = (int) ((AggregationRecord) resultList.get(0)).getLong("count");
 
         // Check the number of collected samples
         assertEquals(targetStateUpdates, availableStateCount);
 
         // Create Query Request to the Storage Manager for the Last Digital Twin State
-        queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.NEW_PAD_NOTIFICATION);
-        queryRequest.setRequestType(QueryRequestType.SAMPLE_RANGE);
-        queryRequest.setStartIndex(0);
-        queryRequest.setEndIndex(availableStateCount-1);
+        queryRequest = Query.on(QueryResourceType.NEW_PAD_NOTIFICATION).offset(0).limit((availableStateCount-1) - (0) + 1).build();
 
         // Send the Query Request to the Storage Manager for the target DT
         queryResult = queryExecutor.syncQueryExecute(queryRequest);
 
         assertNotNull(queryResult);
-        assertEquals(queryResult.getOriginalRequest().getRequestType(), QueryRequestType.SAMPLE_RANGE);
-        assertEquals(queryResult.getOriginalRequest().getResourceType(), QueryResourceType.NEW_PAD_NOTIFICATION);
+        assertEquals(queryResult.getOriginalQuery().getResource(), QueryResourceType.NEW_PAD_NOTIFICATION);
 
-        resultList =  queryResult.getResults();
+        resultList =  queryResult.getItems();
 
         // Check the result list is not null and contains only DigitalTwinStateRecord
         assertTrue(resultList != null && !resultList.isEmpty());
@@ -897,20 +815,15 @@ public class StorageQueryTester {
         /////////////////// Query in Time Range //////////////////////
 
         // Create Query Request to the Storage Manager
-        QueryRequest queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.PHYSICAL_RELATIONSHIP_INSTANCE_CREATED_NOTIFICATION);
-        queryRequest.setRequestType(QueryRequestType.TIME_RANGE);
-        queryRequest.setStartTimestampMs(startTimeStamp);
-        queryRequest.setEndTimestampMs(endTimeStamp);
+        Query queryRequest = Query.on(QueryResourceType.PHYSICAL_RELATIONSHIP_INSTANCE_CREATED_NOTIFICATION).where(FilterFactory.and(FilterFactory.gte(QueryFieldNames.TIMESTAMP, startTimeStamp), FilterFactory.lte(QueryFieldNames.TIMESTAMP, endTimeStamp))).build();
 
         // Send the Query Request to the Storage Manager for the target DT
         QueryResult<?> queryResult = queryExecutor.syncQueryExecute(queryRequest);
 
         assertNotNull(queryResult);
-        assertEquals(queryResult.getOriginalRequest().getRequestType(), QueryRequestType.TIME_RANGE);
-        assertEquals(queryResult.getOriginalRequest().getResourceType(), QueryResourceType.PHYSICAL_RELATIONSHIP_INSTANCE_CREATED_NOTIFICATION);
+        assertEquals(queryResult.getOriginalQuery().getResource(), QueryResourceType.PHYSICAL_RELATIONSHIP_INSTANCE_CREATED_NOTIFICATION);
 
-        List<?> resultList =  queryResult.getResults();
+        List<?> resultList =  queryResult.getItems();
 
         // Check the result list is not null and contains only the correct instance type
         assertTrue(resultList != null && !resultList.isEmpty());
@@ -923,45 +836,37 @@ public class StorageQueryTester {
         ///////////////// Query in Sample Range //////////////////////
 
         // Query to get the number of collectes samples
-        queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.PHYSICAL_RELATIONSHIP_INSTANCE_CREATED_NOTIFICATION);
-        queryRequest.setRequestType(QueryRequestType.COUNT);
+        queryRequest = Query.on(QueryResourceType.PHYSICAL_RELATIONSHIP_INSTANCE_CREATED_NOTIFICATION).aggregate(AggregationFactory.count().as("count")).build();
 
         // Send the Query Request to the Storage Manager for the target DT
         queryResult = queryExecutor.syncQueryExecute(queryRequest);
 
         // Extract the number of collected samples
-        resultList =  queryResult.getResults();
+        resultList =  queryResult.getItems();
 
         assertNotNull(queryResult);
-        assertEquals(queryResult.getOriginalRequest().getRequestType(), QueryRequestType.COUNT);
-        assertEquals(queryResult.getOriginalRequest().getResourceType(), QueryResourceType.PHYSICAL_RELATIONSHIP_INSTANCE_CREATED_NOTIFICATION);
+        assertEquals(queryResult.getOriginalQuery().getResource(), QueryResourceType.PHYSICAL_RELATIONSHIP_INSTANCE_CREATED_NOTIFICATION);
 
         // Check the result list is not null and contains only the correct Type
         assertTrue(resultList != null && !resultList.isEmpty());
-        assertTrue(resultList.stream().allMatch(item -> item instanceof Integer));
+        assertTrue(resultList.stream().allMatch(item -> item instanceof AggregationRecord));
 
         // Get the State Count from the Query Result
-        int availableStateCount = (int)resultList.get(0);
+        int availableStateCount = (int) ((AggregationRecord) resultList.get(0)).getLong("count");
 
         // Check the number of collected samples
         assertEquals(targetStateUpdates, availableStateCount);
 
         // Create Query Request to the Storage Manager for the Last Digital Twin State
-        queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.PHYSICAL_RELATIONSHIP_INSTANCE_CREATED_NOTIFICATION);
-        queryRequest.setRequestType(QueryRequestType.SAMPLE_RANGE);
-        queryRequest.setStartIndex(0);
-        queryRequest.setEndIndex(availableStateCount-1);
+        queryRequest = Query.on(QueryResourceType.PHYSICAL_RELATIONSHIP_INSTANCE_CREATED_NOTIFICATION).offset(0).limit((availableStateCount-1) - (0) + 1).build();
 
         // Send the Query Request to the Storage Manager for the target DT
         queryResult = queryExecutor.syncQueryExecute(queryRequest);
 
         assertNotNull(queryResult);
-        assertEquals(queryResult.getOriginalRequest().getRequestType(), QueryRequestType.SAMPLE_RANGE);
-        assertEquals(queryResult.getOriginalRequest().getResourceType(), QueryResourceType.PHYSICAL_RELATIONSHIP_INSTANCE_CREATED_NOTIFICATION);
+        assertEquals(queryResult.getOriginalQuery().getResource(), QueryResourceType.PHYSICAL_RELATIONSHIP_INSTANCE_CREATED_NOTIFICATION);
 
-        resultList =  queryResult.getResults();
+        resultList =  queryResult.getItems();
 
         // Check the result list is not null and contains only DigitalTwinStateRecord
         assertTrue(resultList != null && !resultList.isEmpty());
@@ -991,20 +896,15 @@ public class StorageQueryTester {
         /////////////////// Query in Time Range //////////////////////
 
         // Create Query Request to the Storage Manager
-        QueryRequest queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.PHYSICAL_RELATIONSHIP_INSTANCE_DELETED_NOTIFICATION);
-        queryRequest.setRequestType(QueryRequestType.TIME_RANGE);
-        queryRequest.setStartTimestampMs(startTimeStamp);
-        queryRequest.setEndTimestampMs(endTimeStamp);
+        Query queryRequest = Query.on(QueryResourceType.PHYSICAL_RELATIONSHIP_INSTANCE_DELETED_NOTIFICATION).where(FilterFactory.and(FilterFactory.gte(QueryFieldNames.TIMESTAMP, startTimeStamp), FilterFactory.lte(QueryFieldNames.TIMESTAMP, endTimeStamp))).build();
 
         // Send the Query Request to the Storage Manager for the target DT
         QueryResult<?> queryResult = queryExecutor.syncQueryExecute(queryRequest);
 
         assertNotNull(queryResult);
-        assertEquals(queryResult.getOriginalRequest().getRequestType(), QueryRequestType.TIME_RANGE);
-        assertEquals(queryResult.getOriginalRequest().getResourceType(), QueryResourceType.PHYSICAL_RELATIONSHIP_INSTANCE_DELETED_NOTIFICATION);
+        assertEquals(queryResult.getOriginalQuery().getResource(), QueryResourceType.PHYSICAL_RELATIONSHIP_INSTANCE_DELETED_NOTIFICATION);
 
-        List<?> resultList =  queryResult.getResults();
+        List<?> resultList =  queryResult.getItems();
 
         // Check the result list is not null and contains only the correct instance type
         assertTrue(resultList != null && !resultList.isEmpty());
@@ -1017,45 +917,37 @@ public class StorageQueryTester {
         ///////////////// Query in Sample Range //////////////////////
 
         // Query to get the number of collectes samples
-        queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.PHYSICAL_RELATIONSHIP_INSTANCE_DELETED_NOTIFICATION);
-        queryRequest.setRequestType(QueryRequestType.COUNT);
+        queryRequest = Query.on(QueryResourceType.PHYSICAL_RELATIONSHIP_INSTANCE_DELETED_NOTIFICATION).aggregate(AggregationFactory.count().as("count")).build();
 
         // Send the Query Request to the Storage Manager for the target DT
         queryResult = queryExecutor.syncQueryExecute(queryRequest);
 
         // Extract the number of collected samples
-        resultList =  queryResult.getResults();
+        resultList =  queryResult.getItems();
 
         assertNotNull(queryResult);
-        assertEquals(queryResult.getOriginalRequest().getRequestType(), QueryRequestType.COUNT);
-        assertEquals(queryResult.getOriginalRequest().getResourceType(), QueryResourceType.PHYSICAL_RELATIONSHIP_INSTANCE_DELETED_NOTIFICATION);
+        assertEquals(queryResult.getOriginalQuery().getResource(), QueryResourceType.PHYSICAL_RELATIONSHIP_INSTANCE_DELETED_NOTIFICATION);
 
         // Check the result list is not null and contains only the correct Type
         assertTrue(resultList != null && !resultList.isEmpty());
-        assertTrue(resultList.stream().allMatch(item -> item instanceof Integer));
+        assertTrue(resultList.stream().allMatch(item -> item instanceof AggregationRecord));
 
         // Get the State Count from the Query Result
-        int availableStateCount = (int)resultList.get(0);
+        int availableStateCount = (int) ((AggregationRecord) resultList.get(0)).getLong("count");
 
         // Check the number of collected samples
         assertEquals(targetStateUpdates, availableStateCount);
 
         // Create Query Request to the Storage Manager for the Last Digital Twin State
-        queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.PHYSICAL_RELATIONSHIP_INSTANCE_DELETED_NOTIFICATION);
-        queryRequest.setRequestType(QueryRequestType.SAMPLE_RANGE);
-        queryRequest.setStartIndex(0);
-        queryRequest.setEndIndex(availableStateCount-1);
+        queryRequest = Query.on(QueryResourceType.PHYSICAL_RELATIONSHIP_INSTANCE_DELETED_NOTIFICATION).offset(0).limit((availableStateCount-1) - (0) + 1).build();
 
         // Send the Query Request to the Storage Manager for the target DT
         queryResult = queryExecutor.syncQueryExecute(queryRequest);
 
         assertNotNull(queryResult);
-        assertEquals(queryResult.getOriginalRequest().getRequestType(), QueryRequestType.SAMPLE_RANGE);
-        assertEquals(queryResult.getOriginalRequest().getResourceType(), QueryResourceType.PHYSICAL_RELATIONSHIP_INSTANCE_DELETED_NOTIFICATION);
+        assertEquals(queryResult.getOriginalQuery().getResource(), QueryResourceType.PHYSICAL_RELATIONSHIP_INSTANCE_DELETED_NOTIFICATION);
 
-        resultList =  queryResult.getResults();
+        resultList =  queryResult.getItems();
 
         // Check the result list is not null and contains only DigitalTwinStateRecord
         assertTrue(resultList != null && !resultList.isEmpty());
@@ -1085,20 +977,15 @@ public class StorageQueryTester {
         /////////////////// Query in Time Range //////////////////////
 
         // Create Query Request to the Storage Manager
-        QueryRequest queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.LIFE_CYCLE_EVENT);
-        queryRequest.setRequestType(QueryRequestType.TIME_RANGE);
-        queryRequest.setStartTimestampMs(startTimeStamp);
-        queryRequest.setEndTimestampMs(endTimeStamp);
+        Query queryRequest = Query.on(QueryResourceType.LIFE_CYCLE_EVENT).where(FilterFactory.and(FilterFactory.gte(QueryFieldNames.TIMESTAMP, startTimeStamp), FilterFactory.lte(QueryFieldNames.TIMESTAMP, endTimeStamp))).build();
 
         // Send the Query Request to the Storage Manager for the target DT
         QueryResult<?> queryResult = queryExecutor.syncQueryExecute(queryRequest);
 
         assertNotNull(queryResult);
-        assertEquals(queryResult.getOriginalRequest().getRequestType(), QueryRequestType.TIME_RANGE);
-        assertEquals(queryResult.getOriginalRequest().getResourceType(), QueryResourceType.LIFE_CYCLE_EVENT);
+        assertEquals(queryResult.getOriginalQuery().getResource(), QueryResourceType.LIFE_CYCLE_EVENT);
 
-        List<?> resultList =  queryResult.getResults();
+        List<?> resultList =  queryResult.getItems();
 
         // Check the result list is not null and contains only the correct instance type
         assertTrue(resultList != null && !resultList.isEmpty());
@@ -1111,45 +998,37 @@ public class StorageQueryTester {
         ///////////////// Query in Sample Range //////////////////////
 
         // Query to get the number of collectes samples
-        queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.LIFE_CYCLE_EVENT);
-        queryRequest.setRequestType(QueryRequestType.COUNT);
+        queryRequest = Query.on(QueryResourceType.LIFE_CYCLE_EVENT).aggregate(AggregationFactory.count().as("count")).build();
 
         // Send the Query Request to the Storage Manager for the target DT
         queryResult = queryExecutor.syncQueryExecute(queryRequest);
 
         // Extract the number of collected samples
-        resultList =  queryResult.getResults();
+        resultList =  queryResult.getItems();
 
         assertNotNull(queryResult);
-        assertEquals(queryResult.getOriginalRequest().getRequestType(), QueryRequestType.COUNT);
-        assertEquals(queryResult.getOriginalRequest().getResourceType(), QueryResourceType.LIFE_CYCLE_EVENT);
+        assertEquals(queryResult.getOriginalQuery().getResource(), QueryResourceType.LIFE_CYCLE_EVENT);
 
         // Check the result list is not null and contains only the correct Type
         assertTrue(resultList != null && !resultList.isEmpty());
-        assertTrue(resultList.stream().allMatch(item -> item instanceof Integer));
+        assertTrue(resultList.stream().allMatch(item -> item instanceof AggregationRecord));
 
         // Get the State Count from the Query Result
-        int availableStateCount = (int)resultList.get(0);
+        int availableStateCount = (int) ((AggregationRecord) resultList.get(0)).getLong("count");
 
         // Check the number of collected samples
         assertEquals(targetStateUpdates, availableStateCount);
 
         // Create Query Request to the Storage Manager for the Last Digital Twin State
-        queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.LIFE_CYCLE_EVENT);
-        queryRequest.setRequestType(QueryRequestType.SAMPLE_RANGE);
-        queryRequest.setStartIndex(0);
-        queryRequest.setEndIndex(availableStateCount-1);
+        queryRequest = Query.on(QueryResourceType.LIFE_CYCLE_EVENT).offset(0).limit((availableStateCount-1) - (0) + 1).build();
 
         // Send the Query Request to the Storage Manager for the target DT
         queryResult = queryExecutor.syncQueryExecute(queryRequest);
 
         assertNotNull(queryResult);
-        assertEquals(queryResult.getOriginalRequest().getRequestType(), QueryRequestType.SAMPLE_RANGE);
-        assertEquals(queryResult.getOriginalRequest().getResourceType(), QueryResourceType.LIFE_CYCLE_EVENT);
+        assertEquals(queryResult.getOriginalQuery().getResource(), QueryResourceType.LIFE_CYCLE_EVENT);
 
-        resultList =  queryResult.getResults();
+        resultList =  queryResult.getItems();
 
         // Check the result list is not null and contains only LifeCycleVariationRecord
         assertTrue(resultList != null && !resultList.isEmpty());
@@ -1158,19 +1037,16 @@ public class StorageQueryTester {
         assertEquals(targetStateUpdates, resultList.size());
 
         ///////////////// Query in Last Life Cycle State //////////////////////
-        queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.LIFE_CYCLE_EVENT);
-        queryRequest.setRequestType(QueryRequestType.LAST_VALUE);
+        queryRequest = Query.on(QueryResourceType.LIFE_CYCLE_EVENT).orderBy(QueryFieldNames.TIMESTAMP, SortCriterion.Direction.DESC).limit(1).build();
 
         // Send the Query Request to the Storage Manager for the target DT
         queryResult = queryExecutor.syncQueryExecute(queryRequest);
 
         assertNotNull(queryResult);
-        assertEquals(queryResult.getOriginalRequest().getRequestType(), QueryRequestType.LAST_VALUE);
-        assertEquals(queryResult.getOriginalRequest().getResourceType(), QueryResourceType.LIFE_CYCLE_EVENT);
+        assertEquals(queryResult.getOriginalQuery().getResource(), QueryResourceType.LIFE_CYCLE_EVENT);
 
         // Extract the number of collected samples
-        resultList =  queryResult.getResults();
+        resultList =  queryResult.getItems();
 
         // Check the result list is not null and contains only LifeCycleVariationRecord
         assertTrue(resultList != null && !resultList.isEmpty());
@@ -1193,16 +1069,13 @@ public class StorageQueryTester {
         Thread.sleep(5000);
 
         // Create Query Request to the Storage Manager for the Last Digital Twin State
-        QueryRequest queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.DIGITAL_TWIN_STATE);
-        queryRequest.setRequestType(QueryRequestType.LAST_VALUE);
+        Query queryRequest = Query.on(QueryResourceType.DIGITAL_TWIN_STATE).orderBy(QueryFieldNames.TIMESTAMP, SortCriterion.Direction.DESC).limit(1).build();
 
         // Send the Query Request to the Storage Manager for the target DT
         QueryResult<?> queryResult = digitalAdapter.testSyncQuery(queryRequest);
 
         assertNotNull(queryResult);
-        assertEquals(queryResult.getOriginalRequest().getRequestType(), QueryRequestType.LAST_VALUE);
-        assertEquals(queryResult.getOriginalRequest().getResourceType(), QueryResourceType.DIGITAL_TWIN_STATE);
+        assertEquals(queryResult.getOriginalQuery().getResource(), QueryResourceType.DIGITAL_TWIN_STATE);
 
     }
 
@@ -1219,9 +1092,7 @@ public class StorageQueryTester {
         Thread.sleep(5000);
 
         // Create Query Request to the Storage Manager for the Last Digital Twin State
-        QueryRequest queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.DIGITAL_TWIN_STATE);
-        queryRequest.setRequestType(QueryRequestType.LAST_VALUE);
+        Query queryRequest = Query.on(QueryResourceType.DIGITAL_TWIN_STATE).orderBy(QueryFieldNames.TIMESTAMP, SortCriterion.Direction.DESC).limit(1).build();
 
         final QueryResult<?>[] receivedQueryResult = {null};
 
@@ -1236,8 +1107,7 @@ public class StorageQueryTester {
         Thread.sleep(5000);
 
         assertNotNull(receivedQueryResult[0]);
-        assertEquals(receivedQueryResult[0].getOriginalRequest().getRequestType(), QueryRequestType.LAST_VALUE);
-        assertEquals(receivedQueryResult[0].getOriginalRequest().getResourceType(), QueryResourceType.DIGITAL_TWIN_STATE);
+        assertEquals(receivedQueryResult[0].getOriginalQuery().getResource(), QueryResourceType.DIGITAL_TWIN_STATE);
 
         Thread.sleep(10000);
     }
@@ -1262,18 +1132,15 @@ public class StorageQueryTester {
         /////////////////// Query in Time Range //////////////////////
 
         // Create Query Request to the Storage Manager
-        QueryRequest queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.STORAGE_STATS);
-        queryRequest.setRequestType(QueryRequestType.LAST_VALUE);
+        Query queryRequest = Query.on(QueryResourceType.STORAGE_STATS).orderBy(QueryFieldNames.TIMESTAMP, SortCriterion.Direction.DESC).limit(1).build();
 
         // Send the Query Request to the Storage Manager for the target DT
         QueryResult<?> queryResult = queryExecutor.syncQueryExecute(queryRequest);
 
         assertNotNull(queryResult);
-        assertEquals(queryResult.getOriginalRequest().getRequestType(), QueryRequestType.LAST_VALUE);
-        assertEquals(queryResult.getOriginalRequest().getResourceType(), QueryResourceType.STORAGE_STATS);
+        assertEquals(queryResult.getOriginalQuery().getResource(), QueryResourceType.STORAGE_STATS);
 
-        List<?> resultList =  queryResult.getResults();
+        List<?> resultList =  queryResult.getItems();
 
         // Check the result list is not null and contains only the correct instance type
         assertTrue(resultList != null && !resultList.isEmpty());
@@ -1301,20 +1168,15 @@ public class StorageQueryTester {
         /////////////////// Query in Time Range //////////////////////
 
         // Create Query Request to the Storage Manager for the Last Digital Twin State
-        QueryRequest queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.DIGITAL_TWIN_STATE_EVENT_NOTIFICATION);
-        queryRequest.setRequestType(QueryRequestType.TIME_RANGE);
-        queryRequest.setStartTimestampMs(startTimeStamp);
-        queryRequest.setEndTimestampMs(endTimeStamp);
+        Query queryRequest = Query.on(QueryResourceType.DIGITAL_TWIN_STATE_EVENT_NOTIFICATION).where(FilterFactory.and(FilterFactory.gte(QueryFieldNames.TIMESTAMP, startTimeStamp), FilterFactory.lte(QueryFieldNames.TIMESTAMP, endTimeStamp))).build();
 
         // Send the Query Request to the Storage Manager for the target DT
         QueryResult<?> queryResult = queryExecutor.syncQueryExecute(queryRequest);
 
         assertNotNull(queryResult);
-        assertEquals(queryResult.getOriginalRequest().getRequestType(), QueryRequestType.TIME_RANGE);
-        assertEquals(queryResult.getOriginalRequest().getResourceType(), QueryResourceType.DIGITAL_TWIN_STATE_EVENT_NOTIFICATION);
+        assertEquals(queryResult.getOriginalQuery().getResource(), QueryResourceType.DIGITAL_TWIN_STATE_EVENT_NOTIFICATION);
 
-        List<?> resultList =  queryResult.getResults();
+        List<?> resultList =  queryResult.getItems();
 
         // Check the result list is not null and contains only DigitalTwinStateEventNotificationRecord
         assertTrue(resultList != null && !resultList.isEmpty());
@@ -1327,45 +1189,37 @@ public class StorageQueryTester {
         ///////////////// Query in Sample Range //////////////////////
 
         // Query to get the number of collectes samples
-        queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.DIGITAL_TWIN_STATE_EVENT_NOTIFICATION);
-        queryRequest.setRequestType(QueryRequestType.COUNT);
+        queryRequest = Query.on(QueryResourceType.DIGITAL_TWIN_STATE_EVENT_NOTIFICATION).aggregate(AggregationFactory.count().as("count")).build();
 
         // Send the Query Request to the Storage Manager for the target DT
         queryResult = queryExecutor.syncQueryExecute(queryRequest);
 
         // Extract the number of collected samples
-        resultList =  queryResult.getResults();
+        resultList =  queryResult.getItems();
 
         assertNotNull(queryResult);
-        assertEquals(queryResult.getOriginalRequest().getRequestType(), QueryRequestType.COUNT);
-        assertEquals(queryResult.getOriginalRequest().getResourceType(), QueryResourceType.DIGITAL_TWIN_STATE_EVENT_NOTIFICATION);
+        assertEquals(queryResult.getOriginalQuery().getResource(), QueryResourceType.DIGITAL_TWIN_STATE_EVENT_NOTIFICATION);
 
         // Check the result list is not null and contains only Integer
         assertTrue(resultList != null && !resultList.isEmpty());
-        assertTrue(resultList.stream().allMatch(item -> item instanceof Integer));
+        assertTrue(resultList.stream().allMatch(item -> item instanceof AggregationRecord));
 
         // Get the State Count from the Query Result
-        int availableStateCount = (int)resultList.get(0);
+        int availableStateCount = (int) ((AggregationRecord) resultList.get(0)).getLong("count");
 
         // Check the number of collected samples
         assertEquals(targetStateUpdates, availableStateCount);
 
         // Create Query Request to the Storage Manager for the Last Digital Twin State
-        queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.DIGITAL_TWIN_STATE_EVENT_NOTIFICATION);
-        queryRequest.setRequestType(QueryRequestType.SAMPLE_RANGE);
-        queryRequest.setStartIndex(0);
-        queryRequest.setEndIndex(availableStateCount-1);
+        queryRequest = Query.on(QueryResourceType.DIGITAL_TWIN_STATE_EVENT_NOTIFICATION).offset(0).limit((availableStateCount-1) - (0) + 1).build();
 
         // Send the Query Request to the Storage Manager for the target DT
         queryResult = queryExecutor.syncQueryExecute(queryRequest);
 
         assertNotNull(queryResult);
-        assertEquals(queryResult.getOriginalRequest().getRequestType(), QueryRequestType.SAMPLE_RANGE);
-        assertEquals(queryResult.getOriginalRequest().getResourceType(), QueryResourceType.DIGITAL_TWIN_STATE_EVENT_NOTIFICATION);
+        assertEquals(queryResult.getOriginalQuery().getResource(), QueryResourceType.DIGITAL_TWIN_STATE_EVENT_NOTIFICATION);
 
-        resultList =  queryResult.getResults();
+        resultList =  queryResult.getItems();
 
         // Check the result list is not null and contains only DigitalTwinStateEventNotificationRecord
         assertTrue(resultList != null && !resultList.isEmpty());

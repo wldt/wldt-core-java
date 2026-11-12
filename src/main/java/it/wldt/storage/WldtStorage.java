@@ -39,6 +39,8 @@ import it.wldt.monitoring.metrics.WldtCounter;
 import it.wldt.monitoring.metrics.WldtMetricComponent;
 import it.wldt.monitoring.metrics.WldtTimer;
 import it.wldt.storage.model.StorageStats;
+import it.wldt.storage.query.Query;
+import it.wldt.storage.query.QueryResult;
 import it.wldt.storage.model.augmentation.*;
 import it.wldt.storage.model.digital.DigitalActionRequestRecord;
 import it.wldt.storage.model.lifecycle.LifeCycleVariationRecord;
@@ -282,67 +284,10 @@ public abstract class WldtStorage {
     public abstract void saveDigitalTwinState(DigitalTwinState digitalTwinState, List<DigitalTwinStateChange> digitalTwinStateChangeList) throws StorageException, IllegalArgumentException;
 
     /**
-     * Returns the latest computed Digital Twin State of the target Digital Twin instance
-     * @return the latest computed Digital Twin State
-     */
-    public abstract Optional<DigitalTwinStateRecord> getLastDigitalTwinState() throws StorageException;
-
-    /**
-     * Returns the number of computed and stored Digital Twin States
-     * @return The number of computed Digital Twin States
-     */
-    public abstract int getDigitalTwinStateCount() throws StorageException;
-
-    /**
-     * Retrieves a list of DigitalTwinState objects within the specified time range.
-     *
-     * @param startTimestampMs The start timestamp (in milliseconds) of the time range.
-     * @param endTimestampMs   The end timestamp (in milliseconds) of the time range.
-     * @return A list of DigitalTwinState objects representing the state of the digital twin within the specified time range.
-     * @throws IllegalArgumentException If the start timestamp is greater than the end timestamp.
-     */
-    public abstract List<DigitalTwinStateRecord> getDigitalTwinStateInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException;
-
-    /**
-     * Retrieves a list of Digital Twin states within the specified range of indices.
-     *
-     * @param startIndex the index of the first digital twin state to retrieve (inclusive). Starting index is 0.
-     * @param endIndex   the index of the last digital twin state to retrieve (inclusive)
-     * @return a list of digital twin states within the specified index range
-     * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
-     * @throws IllegalArgumentException  if startIndex is greater than endIndex
-     */
-    public abstract List<DigitalTwinStateRecord> getDigitalTwinStateInRange(int startIndex, int endIndex) throws StorageException, IndexOutOfBoundsException, IllegalArgumentException;
-
-    /**
      * Save the Digital Twin State Event Notification
      * @param digitalTwinStateEventNotification the Digital Twin State Event Notification to be saved
      */
     public abstract void saveDigitalTwinStateEventNotification(DigitalTwinStateEventNotification<?> digitalTwinStateEventNotification) throws StorageException;
-
-    /**
-     * Get the number of Digital Twin State Event Notification
-     * @return the number of Digital Twin State Event Notification
-     */
-    public abstract int getDigitalTwinStateEventNotificationCount() throws StorageException;
-
-    /**
-     * Get the Digital Twin State Event Notification in the specified time range
-     * @param startTimestampMs the start timestamp of the time range
-     * @param endTimestampMs the end timestamp of the time range
-     * @return the list of Digital Twin State Event Notification in the specified time range
-     */
-    public abstract List<DigitalTwinStateEventNotificationRecord> getDigitalTwinStateEventNotificationInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException;
-
-    /**
-     * Get the Digital Twin State Event Notification in the specified range of indices
-     * @param startIndex the index of the first Digital Twin State Event Notification to retrieve (inclusive). Starting index is 0.
-     * @param endIndex the index of the last Digital Twin State Event Notification to retrieve (inclusive)
-     * @return a list of Digital Twin State Event Notification within the specified index range
-     * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
-     * @throws IllegalArgumentException if startIndex is greater than endIndex
-     */
-    public abstract List<DigitalTwinStateEventNotificationRecord> getDigitalTwinStateEventNotificationInRange(int startIndex, int endIndex) throws StorageException, IllegalArgumentException;
 
     /**
      * Save the LifeCycleState of the Digital Twin
@@ -351,62 +296,10 @@ public abstract class WldtStorage {
     public abstract void saveLifeCycleState(LifeCycleStateVariation lifeCycleStateVariation) throws StorageException;
 
     /**
-     * Get the last LifeCycleState of the Digital Twin
-     * @return the last LifeCycleState of the Digital Twin
-     */
-    public abstract LifeCycleVariationRecord getLastLifeCycleState() throws StorageException;
-
-    /**
-     * Get the number of LifeCycleState of the Digital Twin
-     * @return the number of LifeCycleState of the Digital Twin
-     */
-    public abstract int getLifeCycleStateCount() throws StorageException;
-
-    /**
-     * Get the last LifeCycleState of the Digital Twin
-     * @return the last LifeCycleState of the Digital Twin
-     */
-    public abstract List<LifeCycleVariationRecord> getLifeCycleStateInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException;
-
-    /**
-     * Get the LifeCycleState of the Digital Twin in the specified range of indices
-     * @param startIndex the index of the first LifeCycleState to retrieve (inclusive). Starting index is 0.
-     * @param endIndex the index of the last LifeCycleState to retrieve (inclusive)
-     * @return a list of LifeCycleState within the specified index range
-     * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
-     * @throws IllegalArgumentException if startIndex is greater than endIndex
-     */
-    public abstract List<LifeCycleVariationRecord> getLifeCycleStateInRange(int startIndex, int endIndex) throws StorageException, IndexOutOfBoundsException, IllegalArgumentException;
-
-    /**
      * Save the Physical Asset Event Notification
      * @param physicalAssetEventNotification the Physical Asset Event Notification to be saved
      */
     public abstract void savePhysicalAssetEventNotification(PhysicalAssetEventNotification physicalAssetEventNotification) throws StorageException;
-
-    /**
-     * Get the number of Physical Asset Event Notification
-     * @return the number of Physical Asset Event Notification
-     */
-    public abstract int getPhysicalAssetEventNotificationCount() throws StorageException;
-
-    /**
-     * Get the Physical Asset Event Notification in the specified time range
-     * @param startTimestampMs the start timestamp of the time range
-     * @param endTimestampMs the end timestamp of the time range
-     * @return the list of Physical Asset Event Notification in the specified time range
-     */
-    public abstract List<PhysicalAssetEventNotificationRecord> getPhysicalAssetEventNotificationInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException;
-
-    /**
-     * Get the Physical Asset Event Notification in the specified range of indices
-     * @param startIndex the index of the first Physical Asset Event Notification to retrieve (inclusive). Starting index is 0.
-     * @param endIndex the index of the last Physical Asset Event Notification to retrieve (inclusive)
-     * @return a list of Physical Asset Event Notification within the specified index range
-     * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
-     * @throws IllegalArgumentException if startIndex is greater than endIndex
-     */
-    public abstract List<PhysicalAssetEventNotificationRecord> getPhysicalAssetEventNotificationInRange(int startIndex, int endIndex) throws StorageException, IndexOutOfBoundsException, IllegalArgumentException;
 
     /**
      * Save Physical Asset Action Request
@@ -415,58 +308,10 @@ public abstract class WldtStorage {
     public abstract void savePhysicalAssetActionRequest(PhysicalAssetActionRequest physicalAssetActionRequest) throws StorageException;
 
     /**
-     * Get the number of Physical Asset Action Request
-     * @return the number of Physical Asset Action Request
-     */
-    public abstract int getPhysicalAssetActionRequestCount() throws StorageException;
-
-    /**
-     * Get the Physical Asset Action Request in the specified time range
-     * @param startTimestampMs the start timestamp of the time range
-     * @param endTimestampMs the end timestamp of the time range
-     * @return the list of Physical Asset Action Request in the specified time range
-     */
-    public abstract List<PhysicalAssetActionRequestRecord> getPhysicalAssetActionRequestInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException;
-
-    /**
-     * Get the Physical Asset Action Request in the specified range of indices
-     * @param startIndex the index of the first Physical Asset Action Request to retrieve (inclusive). Starting index is 0.
-     * @param endIndex the index of the last Physical Asset Action Request to retrieve (inclusive)
-     * @return a list of Physical Asset Action Request within the specified index range
-     * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
-     * @throws IllegalArgumentException if startIndex is greater than endIndex
-     */
-    public abstract List<PhysicalAssetActionRequestRecord> getPhysicalAssetActionRequestInRange(int startIndex, int endIndex) throws StorageException, IndexOutOfBoundsException, IllegalArgumentException;
-
-    /**
      * Save a Digital Action Request
      * @param digitalActionRequest the Digital Action Request to be saved
      */
     public abstract void saveDigitalActionRequest(DigitalActionRequest digitalActionRequest) throws StorageException;
-
-    /**
-     * Get the number of Digital Action Request Stored
-     * @return the number of Digital Action Request
-     */
-    public abstract int getDigitalActionRequestCount() throws StorageException;
-
-    /**
-     * Get the Digital Action Request in the specified time range
-     * @param startTimestampMs the start timestamp of the time range
-     * @param endTimestampMs the end timestamp of the time range
-     * @return the list of Digital Action Request in the specified time range
-     */
-    public abstract List<DigitalActionRequestRecord> getDigitalActionRequestInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException;
-
-    /**
-     * Get the Digital Action Request in the specified range of indices
-     * @param startIndex the index of the first Digital Action Request to retrieve (inclusive). Starting index is 0.
-     * @param endIndex the index of the last Digital Action Request to retrieve (inclusive)
-     * @return a list of Digital Action Request within the specified index range
-     * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
-     * @throws IllegalArgumentException if startIndex is greater than endIndex
-     */
-    public abstract List<DigitalActionRequestRecord> getDigitalActionRequestInRange(int startIndex, int endIndex) throws StorageException, IndexOutOfBoundsException, IllegalArgumentException;
 
     /**
      * Save a new Physical Asset Description Available
@@ -475,57 +320,9 @@ public abstract class WldtStorage {
     public abstract void saveNewPhysicalAssetDescriptionNotification(PhysicalAssetDescriptionNotification physicalAssetDescriptionNotification) throws StorageException;
 
     /**
-     * Get the number of New Physical Asset Description Notifications available
-     * @return the number of Physical Asset Description Notifications available
-     */
-    public abstract int getNewPhysicalAssetDescriptionNotificationCount() throws StorageException;
-
-    /**
-     * Get the New Physical Asset Description Available in the specified time range
-     * @param startTimestampMs the start timestamp of the time range
-     * @param endTimestampMs the end timestamp of the time range
-     * @return the list of New Physical Asset Description Available in the specified time range
-     */
-    public abstract List<PhysicalAssetDescriptionNotificationRecord> getNewPhysicalAssetDescriptionNotificationInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException;
-
-    /**
-     * Get the New Physical Asset Description Available in the specified range of indices
-     * @param startIndex the index of the first New Physical Asset Description to retrieve (inclusive). Starting index is 0.
-     * @param endIndex the index of the last New Physical Asset Description to retrieve (inclusive)
-     * @return a list of New Physical Asset Description within the specified index range
-     * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
-     * @throws IllegalArgumentException if startIndex is greater than endIndex
-     */
-    public abstract List<PhysicalAssetDescriptionNotificationRecord> getNewPhysicalAssetDescriptionNotificationInRange(int startIndex, int endIndex) throws StorageException, IndexOutOfBoundsException, IllegalArgumentException;
-
-    /**
      * Save the updated Physical Asset Description
      */
     public abstract void saveUpdatedPhysicalAssetDescriptionNotification(PhysicalAssetDescriptionNotification physicalAssetDescriptionNotification) throws StorageException;
-
-    /**
-     * Get the number of Updated Physical Asset Description
-     * @return the number of Updated Physical Asset Description
-     */
-    public abstract int getUpdatedPhysicalAssetDescriptionNotificationCount() throws StorageException;
-
-    /**
-     * Get the Updated Physical Asset Description in the specified time range
-     * @param startTimestampMs the start timestamp of the time range
-     * @param endTimestampMs the end timestamp of the time range
-     * @return the list of Updated Physical Asset Description in the specified time range
-     */
-    public abstract List<PhysicalAssetDescriptionNotificationRecord> getUpdatedPhysicalAssetDescriptionNotificationInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException;
-
-    /**
-     * Get the Updated Physical Asset Description in the specified range of indices
-     * @param startIndex the index of the first Updated Physical Asset Description to retrieve (inclusive). Starting index is 0.
-     * @param endIndex the index of the last Updated Physical Asset Description to retrieve (inclusive)
-     * @return a list of Updated Physical Asset Description within the specified index range
-     * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
-     * @throws IllegalArgumentException if startIndex is greater than endIndex
-     */
-    public abstract List<PhysicalAssetDescriptionNotificationRecord> getUpdatedPhysicalAssetDescriptionNotificationInRange(int startIndex, int endIndex) throws StorageException, IndexOutOfBoundsException, IllegalArgumentException;
 
     /**
      * Save the Physical Asset Property Variation
@@ -534,88 +331,16 @@ public abstract class WldtStorage {
     public abstract void savePhysicalAssetPropertyVariation(PhysicalAssetPropertyVariation physicalAssetPropertyVariation) throws StorageException;
 
     /**
-     * Get the number of Physical Asset Property Variation
-     * @return the number of Physical Asset Property Variation
-     */
-    public abstract int getPhysicalAssetPropertyVariationCount() throws StorageException;
-
-    /**
-     * Get the Physical Asset Property Variation in the specified time range
-     * @param startTimestampMs the start timestamp of the time range
-     * @param endTimestampMs the end timestamp of the time range
-     * @return the list of Physical Asset Property Variation in the specified time range
-     */
-    public abstract List<PhysicalAssetPropertyVariationRecord> getPhysicalAssetPropertyVariationInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException;
-
-    /**
-     * Get the Physical Asset Property Variation in the specified range of indices
-     * @param startIndex the index of the first Physical Asset Property Variation to retrieve (inclusive). Starting index is 0.
-     * @param endIndex the index of the last Physical Asset Property Variation to retrieve (inclusive)
-     * @return a list of Physical Asset Property Variation within the specified index range
-     * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
-     * @throws IllegalArgumentException if startIndex is greater than endIndex
-     */
-    public abstract List<PhysicalAssetPropertyVariationRecord> getPhysicalAssetPropertyVariationInRange(int startIndex, int endIndex) throws StorageException, IndexOutOfBoundsException, IllegalArgumentException;
-
-    /**
      * Save the Physical Asset Relationship Instance Created Event
      * @param physicalRelationshipInstanceVariation the Physical Relationship Instance Variation to be saved
      */
     public abstract void savePhysicalAssetRelationshipInstanceCreatedNotification(PhysicalRelationshipInstanceVariation physicalRelationshipInstanceVariation) throws StorageException;
 
     /**
-     * Get the number of Physical Asset Relationship Instance Created Event
-     * @return the number of Physical Asset Relationship Instance Created Event
-     */
-    public abstract int getPhysicalAssetRelationshipInstanceCreatedNotificationCount() throws StorageException;
-
-    /**
-     * Get the Physical Asset Relationship Instance Created Event in the specified time range
-     * @param startTimestampMs the start timestamp of the time range
-     * @param endTimestampMs the end timestamp of the time range
-     * @return the list of Physical Asset Relationship Instance Created Event in the specified time range
-     */
-    public abstract List<PhysicalRelationshipInstanceVariationRecord> getPhysicalAssetRelationshipInstanceCreatedNotificationInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException;
-
-    /**
-     * Get the Physical Asset Relationship Instance Created Event in the specified range of indices
-     * @param startIndex the index of the first Physical Asset Property Variation to retrieve (inclusive). Starting index is 0.
-     * @param endIndex the index of the last Physical Asset Property Variation to retrieve (inclusive)
-     * @return a list of Physical Asset Relationship Instance Created Event within the specified index range
-     * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
-     * @throws IllegalArgumentException if startIndex is greater than endIndex
-     */
-    public abstract List<PhysicalRelationshipInstanceVariationRecord> getPhysicalAssetRelationshipInstanceCreatedNotificationInRange(int startIndex, int endIndex) throws StorageException, IllegalArgumentException;
-
-    /**
      * Save the Physical Asset Relationship Instance Updated Event
      * @param physicalRelationshipInstanceVariation the Physical Relationship Instance Variation to be saved
      */
     public abstract void savePhysicalAssetRelationshipInstanceDeletedNotification(PhysicalRelationshipInstanceVariation physicalRelationshipInstanceVariation) throws StorageException;
-
-    /**
-     * Get the number of Physical Asset Relationship Instance Updated Event
-     * @return the number of Physical Asset Relationship Instance Updated Event
-     */
-    public abstract int getPhysicalAssetRelationshipInstanceDeletedNotificationCount() throws StorageException;
-
-    /**
-     * Get the Physical Asset Relationship Instance Updated Event in the specified time range
-     * @param startTimestampMs the start timestamp of the time range
-     * @param endTimestampMs the end timestamp of the time range
-     * @return the list of Physical Asset Relationship Instance Updated Event in the specified time range
-     */
-    public abstract List<PhysicalRelationshipInstanceVariationRecord> getPhysicalAssetRelationshipInstanceDeletedNotificationInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException;
-
-    /**
-     * Get the Physical Asset Relationship Instance Updated Event in the specified range of indices
-     * @param startIndex the index of the first Physical Asset Relationship Instance Updated Event to retrieve (inclusive). Starting index is 0.
-     * @param endIndex the index of the last Physical Asset Relationship Instance Updated Event to retrieve (inclusive)
-     * @return a list of Physical Asset Relationship Instance Updated Event within the specified index range
-     * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
-     * @throws IllegalArgumentException if startIndex is greater than endIndex
-     */
-    public abstract List<PhysicalRelationshipInstanceVariationRecord> getPhysicalAssetRelationshipInstanceDeletedNotificationInRange(int startIndex, int endIndex) throws StorageException, IndexOutOfBoundsException, IllegalArgumentException;
 
     /**
      * Save the Augmentation Function Error
@@ -627,34 +352,6 @@ public abstract class WldtStorage {
     public abstract void saveAugmentationFunctionError(String augmentationFunctionId, String augmentationFunctionHandlerId, AugmentationFunctionError augmentationFunctionError) throws StorageException;
 
     /**
-     * Get the number of errors occurred during the execution of the Augmentation Functions
-     * @return the number of errors occurred during the execution of the Augmentation Functions
-     * @throws StorageException if an error occurs while retrieving the number of errors occurred during the execution of the Augmentation Functions
-     */
-    public abstract int getAugmentationFunctionErrorCount() throws StorageException;
-
-    /**
-     * Get the errors occurred during the execution of the Augmentation Functions in the specified time range
-     * @param startTimestampMs the start timestamp of the time range
-     * @param endTimestampMs the end timestamp of the time range
-     * @return the list of errors occurred during the execution of the Augmentation Functions in the specified time range
-     * @throws StorageException if an error occurs while retrieving the errors occurred during the execution of the Augmentation Functions in the specified time range
-     * @throws IllegalArgumentException if startTimestampMs is greater than endTimestampMs
-     */
-    public abstract List<AugmentationFunctionErrorRecord> getAugmentationFunctionErrorsInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException;
-
-    /**
-     * Get the errors occurred during the execution of the Augmentation Functions in the specified range of indices
-     * @param startIndex the index of the first error occurred during the execution of the Augmentation Functions to retrieve (inclusive). Starting index is 0.
-     * @param endIndex the index of the last error occurred during the execution of the Augmentation Functions to retrieve (inclusive)
-     * @return a list of errors occurred during the execution of the Augmentation Functions within the specified index range
-     * @throws StorageException if an error occurs while retrieving the errors occurred during the execution of the Augmentation Functions in the specified range of indices
-     * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
-     * @throws IllegalArgumentException if startIndex is greater than endIndex
-     */
-    public abstract List<AugmentationFunctionErrorRecord> getAugmentationFunctionErrorsInRange(int startIndex, int endIndex) throws StorageException, IndexOutOfBoundsException, IllegalArgumentException;
-
-    /**
      * Save the Augmentation Function Request
      * @param augmentationFunctionId the id of the Augmentation Function associated to the request
      * @param augmentationFunctionHandlerId the id of the handler of the Augmentation Function associated to the request
@@ -662,34 +359,6 @@ public abstract class WldtStorage {
      * @throws StorageException if any error occurs during the storage of the Augmentation Function Request
      */
     public abstract void saveAugmentationFunctionRequest(String augmentationFunctionId, String augmentationFunctionHandlerId, AugmentationFunctionRequest augmentationFunctionRequest) throws StorageException;
-
-    /**
-     * Get the number of Augmentation Function Requests stored in the storage
-     * @return the number of Augmentation Function Requests stored in the storage
-     * @throws StorageException if an error occurs while retrieving the number of Augmentation Function Requests stored in the storage
-     */
-    public abstract int getAugmentationFunctionRequestCount() throws StorageException;
-
-    /**
-     * Get the Augmentation Function Requests stored in the storage in the specified time range
-     * @param startTimestampMs the start timestamp of the time range
-     * @param endTimestampMs the end timestamp of the time range
-     * @return the list of Augmentation Function Requests stored in the storage in the specified time range
-     * @throws StorageException if an error occurs while retrieving the Augmentation Function Requests stored in the storage in the specified time range
-     * @throws IllegalArgumentException if startTimestampMs is greater than endTimestampMs
-     */
-    public abstract List<AugmentationFunctionRequestRecord> getAugmentationFunctionRequestInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException;
-
-    /**
-     * Get the Augmentation Function Requests stored in the storage in the specified range of indices
-     * @param startIndex the index of the first Augmentation Function Request to retrieve (inclusive). Starting index is 0.
-     * @param endIndex the index of the last Augmentation Function Request to retrieve (inclusive)
-     * @return a list of Augmentation Function Requests stored in the storage within the specified index range
-     * @throws StorageException if an error occurs while retrieving the Augmentation Function Requests stored in the storage in the specified range of indices
-     * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
-     * @throws IllegalArgumentException if startIndex is greater than endIndex
-     */
-    public abstract List<AugmentationFunctionRequestRecord> getAugmentationFunctionRequestInRange(int startIndex, int endIndex) throws StorageException, IndexOutOfBoundsException, IllegalArgumentException;
 
     /**
      * Save the Augmentation Function Result
@@ -701,34 +370,6 @@ public abstract class WldtStorage {
     public abstract void saveAugmentationFunctionResult(String augmentationFunctionId, String augmentationFunctionHandlerId, AugmentationFunctionResult<?> augmentationFunctionResult) throws StorageException;
 
     /**
-     * Get the number of Augmentation Function Results stored in the storage
-     * @return the number of Augmentation Function Results stored in the storage
-     * @throws StorageException if an error occurs while retrieving the number of Augmentation Function Results stored in the storage
-     */
-    public abstract int getAugmentationFunctionResultCount() throws StorageException;
-
-    /**
-     * Get the Augmentation Function Results stored in the storage in the specified time range
-     * @param startTimestampMs the start timestamp of the time range
-     * @param endTimestampMs the end timestamp of the time range
-     * @return the list of Augmentation Function Results stored in the storage in the specified time range
-     * @throws StorageException if an error occurs while retrieving the Augmentation Function Results stored in the storage in the specified time range
-     * @throws IllegalArgumentException if startTimestampMs is greater than endTimestampMs
-     */
-    public abstract List<AugmentationFunctionResultRecord> getAugmentationFunctionResultInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException;
-
-    /**
-     * Get the Augmentation Function Results stored in the storage in the specified range of indices
-     * @param startIndex the index of the first Augmentation Function Result to retrieve (inclusive). Starting index is 0.
-     * @param endIndex the index of the last Augmentation Function Result to retrieve (inclusive)
-     * @return a list of Augmentation Function Results stored in the storage within the specified index range
-     * @throws StorageException if an error occurs while retrieving the Augmentation Function Results stored in the storage in the specified range of indices
-     * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
-     * @throws IllegalArgumentException if startIndex is greater than endIndex
-     */
-    public abstract List<AugmentationFunctionResultRecord> getAugmentationFunctionResultInRange(int startIndex, int endIndex) throws StorageException, IndexOutOfBoundsException, IllegalArgumentException;
-
-    /**
      * Save the Augmentation Function Registration
      * @param augmentationFunctionId the id of the Augmentation Function associated to the registration
      * @param augmentationFunctionHandlerId the id of the handler of the Augmentation Function associated to the registration
@@ -736,34 +377,6 @@ public abstract class WldtStorage {
      * @throws StorageException if any error occurs during the storage of the Augmentation Function Registration
      */
     public abstract void saveAugmentationFunctionRegistration(String augmentationFunctionId, String augmentationFunctionHandlerId, AugmentationFunctionType augmentationFunctionType) throws StorageException;
-
-    /**
-     * Get the number of Augmentation Function Registrations stored in the storage
-     * @return the number of Augmentation Function Registrations stored in the storage
-     * @throws StorageException if an error occurs while retrieving the number of Augmentation Function Registrations stored in the storage
-     */
-    public abstract int getAugmentationFunctionRegistrationCount() throws StorageException;
-
-    /**
-     * Get the Augmentation Function Registrations stored in the storage in the specified time range
-     * @param startTimestampMs the start timestamp of the time range
-     * @param endTimestampMs the end timestamp of the time range
-     * @return the list of Augmentation Function Registrations stored in the storage in the specified time range
-     * @throws StorageException if an error occurs while retrieving the Augmentation Function Registrations stored in the storage in the specified time range
-     * @throws IllegalArgumentException if startTimestampMs is greater than endTimestampMs
-     */
-    public abstract List<AugmentationFunctionRegistrationRecord> getAugmentationFunctionRegistrationInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException;
-
-    /**
-     * Get the Augmentation Function Registrations stored in the storage in the specified range of indices
-     * @param startIndex the index of the first Augmentation Function Registration to retrieve (inclusive). Starting index is 0.
-     * @param endIndex the index of the last Augmentation Function Registration to retrieve (inclusive)
-     * @return a list of Augmentation Function Registrations stored in the storage within the specified index range
-     * @throws StorageException if an error occurs while retrieving the Augmentation Function Registrations stored in the storage in the specified range of indices
-     * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
-     * @throws IllegalArgumentException if startIndex is greater than endIndex
-     */
-    public abstract List<AugmentationFunctionRegistrationRecord> getAugmentationFunctionRegistrationInRange(int startIndex, int endIndex) throws StorageException, IndexOutOfBoundsException, IllegalArgumentException;
 
     /**
      * Save the Augmentation Function Unregistration
@@ -775,32 +388,22 @@ public abstract class WldtStorage {
     public abstract void saveAugmentationFunctionUnregistration(String augmentationFunctionId, String augmentationFunctionHandlerId, AugmentationFunctionType augmentationFunctionType) throws StorageException;
 
     /**
-     * Get the number of Augmentation Function Unregistrations stored in the storage
-     * @return the number of Augmentation Function Unregistrations stored in the storage
-     * @throws StorageException if an error occurs while retrieving the number of Augmentation Function Unregistrations stored in the storage
+     * Single entry point to read data from the storage. The backend must execute the query natively
+     * (translating filter, sort, offset/limit and aggregation to its own query language) and return record classes:
+     * the records of the queried resource for a plain fetch, {@link it.wldt.storage.model.AggregationRecord} items
+     * for an aggregation, a single {@link StorageStats} item for {@link it.wldt.storage.query.QueryResourceType#STORAGE_STATS}.
+     * Storages without a query engine can delegate to {@link it.wldt.storage.query.inmemory.InMemoryQueryEvaluator}.
+     * Query failures must be reported through {@code QueryResult.failure(...)}, not thrown.
+     * <p>
+     * Threading: this method is called on the single event thread of the {@code StorageManager}, serialized with all
+     * the {@code save*} calls, so a slow or blocking implementation delays the storing of the new data. A storage that
+     * needs concurrent or asynchronous reads has to manage its own threading internally (read replica, own executor, ...).
+     *
+     * @param query the query to execute
+     * @return the query result
+     * @throws StorageException if an unexpected error occurs while accessing the storage
      */
-    public abstract int getAugmentationFunctionUnregistrationCount() throws StorageException;
-
-    /**
-     * Get the Augmentation Function Unregistrations stored in the storage in the specified time range
-     * @param startTimestampMs the start timestamp of the time range
-     * @param endTimestampMs the end timestamp of the time range
-     * @return the list of Augmentation Function Unregistrations stored in the storage in the specified time range
-     * @throws StorageException if an error occurs while retrieving the Augmentation Function Unregistrations stored in the storage in the specified time range
-     * @throws IllegalArgumentException if startTimestampMs is greater than endTimestampMs
-     */
-    public abstract List<AugmentationFunctionUnregistrationRecord> getAugmentationFunctionUnregistrationInTimeRange(long startTimestampMs, long endTimestampMs) throws StorageException, IllegalArgumentException;
-
-    /**
-     * Get the Augmentation Function Unregistrations stored in the storage in the specified range of indices
-     * @param startIndex the index of the first Augmentation Function Unregistration to retrieve (inclusive). Starting index is 0.
-     * @param endIndex the index of the last Augmentation Function Unregistration to retrieve (inclusive)
-     * @return a list of Augmentation Function Unregistrations stored in the storage within the specified index range
-     * @throws StorageException if an error occurs while retrieving the Augmentation Function Unregistrations stored in the storage in the specified range of indices
-     * @throws IndexOutOfBoundsException if the startIndex or endIndex is out of bounds
-     * @throws IllegalArgumentException if startIndex is greater than endIndex
-     */
-    public abstract List<AugmentationFunctionUnregistrationRecord> getAugmentationFunctionUnregistrationInRange(int startIndex, int endIndex) throws StorageException, IndexOutOfBoundsException, IllegalArgumentException;
+    public abstract QueryResult<?> execute(Query query) throws StorageException;
 
     /**
      * Retrieve and returns storage statistics in terms of the number of stored records for each type and the

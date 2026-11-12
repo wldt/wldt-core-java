@@ -1,5 +1,7 @@
 package it.wldt.storage;
 
+import it.wldt.storage.query.QueryResourceType;
+
 import it.wldt.augmentation.error.AugmentationFunctionErrorType;
 import it.wldt.augmentation.function.AugmentationFunctionType;
 import it.wldt.augmentation.handler.AugmentationFunctionHandler;
@@ -153,10 +155,10 @@ public class AugmentationStorageManagerTester {
         assertNotNull(defaultWldtStorage);
 
         // All 4 functions registered
-        assertEquals(4, defaultWldtStorage.getAugmentationFunctionRegistrationCount());
+        assertEquals(4, StorageTestUtils.count(defaultWldtStorage, QueryResourceType.AUGMENTATION_FUNCTION_REGISTRATION));
 
         // Check that the registration records contain both STATELESS and STATEFUL types
-        List<AugmentationFunctionRegistrationRecord> registrations = defaultWldtStorage.getAugmentationFunctionRegistrationInRange(0, 3);
+        List<AugmentationFunctionRegistrationRecord> registrations = StorageTestUtils.inRange(defaultWldtStorage, QueryResourceType.AUGMENTATION_FUNCTION_REGISTRATION, 0, 3);
         assertNotNull(registrations);
         assertEquals(4, registrations.size());
 
@@ -203,14 +205,14 @@ public class AugmentationStorageManagerTester {
         assertNotNull(defaultWldtStorage);
 
         // At least 2 requests (at least 1 per stateless function executed)
-        assertTrue(defaultWldtStorage.getAugmentationFunctionRequestCount() >= 2);
+        assertTrue(StorageTestUtils.count(defaultWldtStorage, QueryResourceType.AUGMENTATION_FUNCTION_REQUEST) >= 2);
 
         // Total expected results: 1 (stateless) + EXECUTION_COUNT (stateful) = 6
         int expectedResultCount = 1 + StorageTestStatefulAugmentationFunction.EXECUTION_COUNT;
-        assertEquals(expectedResultCount, defaultWldtStorage.getAugmentationFunctionResultCount());
+        assertEquals(expectedResultCount, StorageTestUtils.count(defaultWldtStorage, QueryResourceType.AUGMENTATION_FUNCTION_RESULT));
 
         // Validate result records
-        List<AugmentationFunctionResultRecord> results = defaultWldtStorage.getAugmentationFunctionResultInRange(0, expectedResultCount - 1);
+        List<AugmentationFunctionResultRecord> results = StorageTestUtils.inRange(defaultWldtStorage, QueryResourceType.AUGMENTATION_FUNCTION_RESULT, 0, expectedResultCount - 1);
         assertNotNull(results);
         assertEquals(expectedResultCount, results.size());
 
@@ -248,10 +250,10 @@ public class AugmentationStorageManagerTester {
 
         // Expected error count: 1 (stateless error) + ERROR_COUNT (stateful errors) = 4
         int expectedErrorCount = 1 + StorageTestErrorStatefulAugmentationFunction.ERROR_COUNT;
-        assertEquals(expectedErrorCount, defaultWldtStorage.getAugmentationFunctionErrorCount());
+        assertEquals(expectedErrorCount, StorageTestUtils.count(defaultWldtStorage, QueryResourceType.AUGMENTATION_FUNCTION_ERROR));
 
         // Validate error records
-        List<AugmentationFunctionErrorRecord> errors = defaultWldtStorage.getAugmentationFunctionErrorsInRange(0, expectedErrorCount - 1);
+        List<AugmentationFunctionErrorRecord> errors = StorageTestUtils.inRange(defaultWldtStorage, QueryResourceType.AUGMENTATION_FUNCTION_ERROR, 0, expectedErrorCount - 1);
         assertNotNull(errors);
         assertEquals(expectedErrorCount, errors.size());
 
@@ -312,10 +314,10 @@ public class AugmentationStorageManagerTester {
         Thread.sleep(5000);
 
         // All 4 functions unregistered
-        assertEquals(4, defaultWldtStorage.getAugmentationFunctionUnregistrationCount());
+        assertEquals(4, StorageTestUtils.count(defaultWldtStorage, QueryResourceType.AUGMENTATION_FUNCTION_UNREGISTRATION));
 
         // Validate unregistration records
-        List<AugmentationFunctionUnregistrationRecord> unregistrations = defaultWldtStorage.getAugmentationFunctionUnregistrationInRange(0, 3);
+        List<AugmentationFunctionUnregistrationRecord> unregistrations = StorageTestUtils.inRange(defaultWldtStorage, QueryResourceType.AUGMENTATION_FUNCTION_UNREGISTRATION, 0, 3);
         assertNotNull(unregistrations);
         assertEquals(4, unregistrations.size());
 

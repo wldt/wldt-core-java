@@ -1,5 +1,7 @@
 package it.wldt.storage;
 
+import it.wldt.storage.query.QueryResourceType;
+
 import it.wldt.augmentation.context.AugmentationFunctionContext;
 import it.wldt.augmentation.error.AugmentationFunctionError;
 import it.wldt.augmentation.error.AugmentationFunctionErrorType;
@@ -49,12 +51,12 @@ public class AugmentationDefaultStorageTest {
             Thread.sleep(50);
         }
 
-        assertEquals(50, wldtStorage.getAugmentationFunctionRegistrationCount());
+        assertEquals(50, StorageTestUtils.count(wldtStorage, QueryResourceType.AUGMENTATION_FUNCTION_REGISTRATION));
 
         long endTimeStamp = System.currentTimeMillis();
 
         // Time range query
-        List<AugmentationFunctionRegistrationRecord> timeRangeResult = wldtStorage.getAugmentationFunctionRegistrationInTimeRange(startTimeStamp, endTimeStamp);
+        List<AugmentationFunctionRegistrationRecord> timeRangeResult = StorageTestUtils.inTimeRange(wldtStorage, QueryResourceType.AUGMENTATION_FUNCTION_REGISTRATION, startTimeStamp, endTimeStamp);
         assertNotNull(timeRangeResult);
         assertFalse(timeRangeResult.isEmpty());
         assertEquals(50, timeRangeResult.size());
@@ -66,7 +68,7 @@ public class AugmentationDefaultStorageTest {
         }
 
         // Index range query - full
-        List<AugmentationFunctionRegistrationRecord> indexRangeResult = wldtStorage.getAugmentationFunctionRegistrationInRange(0, 49);
+        List<AugmentationFunctionRegistrationRecord> indexRangeResult = StorageTestUtils.inRange(wldtStorage, QueryResourceType.AUGMENTATION_FUNCTION_REGISTRATION, 0, 49);
         assertNotNull(indexRangeResult);
         assertEquals(50, indexRangeResult.size());
 
@@ -77,11 +79,11 @@ public class AugmentationDefaultStorageTest {
         }
 
         // Sub-range first half
-        List<AugmentationFunctionRegistrationRecord> firstHalf = wldtStorage.getAugmentationFunctionRegistrationInRange(0, 24);
+        List<AugmentationFunctionRegistrationRecord> firstHalf = StorageTestUtils.inRange(wldtStorage, QueryResourceType.AUGMENTATION_FUNCTION_REGISTRATION, 0, 24);
         assertEquals(25, firstHalf.size());
 
         // Sub-range second half
-        List<AugmentationFunctionRegistrationRecord> secondHalf = wldtStorage.getAugmentationFunctionRegistrationInRange(25, 49);
+        List<AugmentationFunctionRegistrationRecord> secondHalf = StorageTestUtils.inRange(wldtStorage, QueryResourceType.AUGMENTATION_FUNCTION_REGISTRATION, 25, 49);
         assertEquals(25, secondHalf.size());
     }
 
@@ -97,12 +99,12 @@ public class AugmentationDefaultStorageTest {
             Thread.sleep(50);
         }
 
-        assertEquals(50, wldtStorage.getAugmentationFunctionUnregistrationCount());
+        assertEquals(50, StorageTestUtils.count(wldtStorage, QueryResourceType.AUGMENTATION_FUNCTION_UNREGISTRATION));
 
         long endTimeStamp = System.currentTimeMillis();
 
         // Time range query
-        List<AugmentationFunctionUnregistrationRecord> timeRangeResult = wldtStorage.getAugmentationFunctionUnregistrationInTimeRange(startTimeStamp, endTimeStamp);
+        List<AugmentationFunctionUnregistrationRecord> timeRangeResult = StorageTestUtils.inTimeRange(wldtStorage, QueryResourceType.AUGMENTATION_FUNCTION_UNREGISTRATION, startTimeStamp, endTimeStamp);
         assertNotNull(timeRangeResult);
         assertFalse(timeRangeResult.isEmpty());
         assertEquals(50, timeRangeResult.size());
@@ -114,7 +116,7 @@ public class AugmentationDefaultStorageTest {
         }
 
         // Index range query - full
-        List<AugmentationFunctionUnregistrationRecord> indexRangeResult = wldtStorage.getAugmentationFunctionUnregistrationInRange(0, 49);
+        List<AugmentationFunctionUnregistrationRecord> indexRangeResult = StorageTestUtils.inRange(wldtStorage, QueryResourceType.AUGMENTATION_FUNCTION_UNREGISTRATION, 0, 49);
         assertNotNull(indexRangeResult);
         assertEquals(50, indexRangeResult.size());
 
@@ -125,11 +127,11 @@ public class AugmentationDefaultStorageTest {
         }
 
         // Sub-range first half
-        List<AugmentationFunctionUnregistrationRecord> firstHalf = wldtStorage.getAugmentationFunctionUnregistrationInRange(0, 24);
+        List<AugmentationFunctionUnregistrationRecord> firstHalf = StorageTestUtils.inRange(wldtStorage, QueryResourceType.AUGMENTATION_FUNCTION_UNREGISTRATION, 0, 24);
         assertEquals(25, firstHalf.size());
 
         // Sub-range second half
-        List<AugmentationFunctionUnregistrationRecord> secondHalf = wldtStorage.getAugmentationFunctionUnregistrationInRange(25, 49);
+        List<AugmentationFunctionUnregistrationRecord> secondHalf = StorageTestUtils.inRange(wldtStorage, QueryResourceType.AUGMENTATION_FUNCTION_UNREGISTRATION, 25, 49);
         assertEquals(25, secondHalf.size());
     }
 
@@ -147,12 +149,12 @@ public class AugmentationDefaultStorageTest {
             Thread.sleep(50);
         }
 
-        assertEquals(50, wldtStorage.getAugmentationFunctionRequestCount());
+        assertEquals(50, StorageTestUtils.count(wldtStorage, QueryResourceType.AUGMENTATION_FUNCTION_REQUEST));
 
         long endTimeStamp = System.currentTimeMillis();
 
         // Time range query
-        List<AugmentationFunctionRequestRecord> timeRangeResult = wldtStorage.getAugmentationFunctionRequestInTimeRange(startTimeStamp, endTimeStamp);
+        List<AugmentationFunctionRequestRecord> timeRangeResult = StorageTestUtils.inTimeRange(wldtStorage, QueryResourceType.AUGMENTATION_FUNCTION_REQUEST, startTimeStamp, endTimeStamp);
         assertNotNull(timeRangeResult);
         assertFalse(timeRangeResult.isEmpty());
         assertEquals(50, timeRangeResult.size());
@@ -165,7 +167,7 @@ public class AugmentationDefaultStorageTest {
         }
 
         // Index range query - full
-        List<AugmentationFunctionRequestRecord> indexRangeResult = wldtStorage.getAugmentationFunctionRequestInRange(0, 49);
+        List<AugmentationFunctionRequestRecord> indexRangeResult = StorageTestUtils.inRange(wldtStorage, QueryResourceType.AUGMENTATION_FUNCTION_REQUEST, 0, 49);
         assertNotNull(indexRangeResult);
         assertEquals(50, indexRangeResult.size());
 
@@ -177,11 +179,11 @@ public class AugmentationDefaultStorageTest {
         }
 
         // Sub-range first half
-        List<AugmentationFunctionRequestRecord> firstHalf = wldtStorage.getAugmentationFunctionRequestInRange(0, 24);
+        List<AugmentationFunctionRequestRecord> firstHalf = StorageTestUtils.inRange(wldtStorage, QueryResourceType.AUGMENTATION_FUNCTION_REQUEST, 0, 24);
         assertEquals(25, firstHalf.size());
 
         // Sub-range second half
-        List<AugmentationFunctionRequestRecord> secondHalf = wldtStorage.getAugmentationFunctionRequestInRange(25, 49);
+        List<AugmentationFunctionRequestRecord> secondHalf = StorageTestUtils.inRange(wldtStorage, QueryResourceType.AUGMENTATION_FUNCTION_REQUEST, 25, 49);
         assertEquals(25, secondHalf.size());
     }
 
@@ -219,12 +221,12 @@ public class AugmentationDefaultStorageTest {
             Thread.sleep(50);
         }
 
-        assertEquals(50, wldtStorage.getAugmentationFunctionResultCount());
+        assertEquals(50, StorageTestUtils.count(wldtStorage, QueryResourceType.AUGMENTATION_FUNCTION_RESULT));
 
         long endTimeStamp = System.currentTimeMillis();
 
         // Time range query
-        List<AugmentationFunctionResultRecord> timeRangeResult = wldtStorage.getAugmentationFunctionResultInTimeRange(startTimeStamp, endTimeStamp);
+        List<AugmentationFunctionResultRecord> timeRangeResult = StorageTestUtils.inTimeRange(wldtStorage, QueryResourceType.AUGMENTATION_FUNCTION_RESULT, startTimeStamp, endTimeStamp);
         assertNotNull(timeRangeResult);
         assertFalse(timeRangeResult.isEmpty());
         assertEquals(50, timeRangeResult.size());
@@ -238,7 +240,7 @@ public class AugmentationDefaultStorageTest {
         }
 
         // Index range query - full
-        List<AugmentationFunctionResultRecord> indexRangeResult = wldtStorage.getAugmentationFunctionResultInRange(0, 49);
+        List<AugmentationFunctionResultRecord> indexRangeResult = StorageTestUtils.inRange(wldtStorage, QueryResourceType.AUGMENTATION_FUNCTION_RESULT, 0, 49);
         assertNotNull(indexRangeResult);
         assertEquals(50, indexRangeResult.size());
 
@@ -251,11 +253,11 @@ public class AugmentationDefaultStorageTest {
         }
 
         // Sub-range first half
-        List<AugmentationFunctionResultRecord> firstHalf = wldtStorage.getAugmentationFunctionResultInRange(0, 24);
+        List<AugmentationFunctionResultRecord> firstHalf = StorageTestUtils.inRange(wldtStorage, QueryResourceType.AUGMENTATION_FUNCTION_RESULT, 0, 24);
         assertEquals(25, firstHalf.size());
 
         // Sub-range second half
-        List<AugmentationFunctionResultRecord> secondHalf = wldtStorage.getAugmentationFunctionResultInRange(25, 49);
+        List<AugmentationFunctionResultRecord> secondHalf = StorageTestUtils.inRange(wldtStorage, QueryResourceType.AUGMENTATION_FUNCTION_RESULT, 25, 49);
         assertEquals(25, secondHalf.size());
     }
 
@@ -271,12 +273,12 @@ public class AugmentationDefaultStorageTest {
             Thread.sleep(50);
         }
 
-        assertEquals(50, wldtStorage.getAugmentationFunctionErrorCount());
+        assertEquals(50, StorageTestUtils.count(wldtStorage, QueryResourceType.AUGMENTATION_FUNCTION_ERROR));
 
         long endTimeStamp = System.currentTimeMillis();
 
         // Time range query
-        List<AugmentationFunctionErrorRecord> timeRangeResult = wldtStorage.getAugmentationFunctionErrorsInTimeRange(startTimeStamp, endTimeStamp);
+        List<AugmentationFunctionErrorRecord> timeRangeResult = StorageTestUtils.inTimeRange(wldtStorage, QueryResourceType.AUGMENTATION_FUNCTION_ERROR, startTimeStamp, endTimeStamp);
         assertNotNull(timeRangeResult);
         assertFalse(timeRangeResult.isEmpty());
         assertEquals(50, timeRangeResult.size());
@@ -290,7 +292,7 @@ public class AugmentationDefaultStorageTest {
         }
 
         // Index range query - full
-        List<AugmentationFunctionErrorRecord> indexRangeResult = wldtStorage.getAugmentationFunctionErrorsInRange(0, 49);
+        List<AugmentationFunctionErrorRecord> indexRangeResult = StorageTestUtils.inRange(wldtStorage, QueryResourceType.AUGMENTATION_FUNCTION_ERROR, 0, 49);
         assertNotNull(indexRangeResult);
         assertEquals(50, indexRangeResult.size());
 
@@ -303,11 +305,11 @@ public class AugmentationDefaultStorageTest {
         }
 
         // Sub-range first half
-        List<AugmentationFunctionErrorRecord> firstHalf = wldtStorage.getAugmentationFunctionErrorsInRange(0, 24);
+        List<AugmentationFunctionErrorRecord> firstHalf = StorageTestUtils.inRange(wldtStorage, QueryResourceType.AUGMENTATION_FUNCTION_ERROR, 0, 24);
         assertEquals(25, firstHalf.size());
 
         // Sub-range second half
-        List<AugmentationFunctionErrorRecord> secondHalf = wldtStorage.getAugmentationFunctionErrorsInRange(25, 49);
+        List<AugmentationFunctionErrorRecord> secondHalf = StorageTestUtils.inRange(wldtStorage, QueryResourceType.AUGMENTATION_FUNCTION_ERROR, 25, 49);
         assertEquals(25, secondHalf.size());
     }
 
@@ -328,17 +330,17 @@ public class AugmentationDefaultStorageTest {
             }
         }
 
-        assertEquals(40, wldtStorage.getAugmentationFunctionErrorCount());
+        assertEquals(40, StorageTestUtils.count(wldtStorage, QueryResourceType.AUGMENTATION_FUNCTION_ERROR));
 
         long endTimeStamp = System.currentTimeMillis();
 
         // Time range retrieval
-        List<AugmentationFunctionErrorRecord> timeRangeResult = wldtStorage.getAugmentationFunctionErrorsInTimeRange(startTimeStamp, endTimeStamp);
+        List<AugmentationFunctionErrorRecord> timeRangeResult = StorageTestUtils.inTimeRange(wldtStorage, QueryResourceType.AUGMENTATION_FUNCTION_ERROR, startTimeStamp, endTimeStamp);
         assertNotNull(timeRangeResult);
         assertEquals(40, timeRangeResult.size());
 
         // Index range retrieval
-        List<AugmentationFunctionErrorRecord> indexRangeResult = wldtStorage.getAugmentationFunctionErrorsInRange(0, 39);
+        List<AugmentationFunctionErrorRecord> indexRangeResult = StorageTestUtils.inRange(wldtStorage, QueryResourceType.AUGMENTATION_FUNCTION_ERROR, 0, 39);
         assertNotNull(indexRangeResult);
         assertEquals(40, indexRangeResult.size());
 

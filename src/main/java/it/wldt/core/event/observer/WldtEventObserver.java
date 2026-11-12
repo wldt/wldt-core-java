@@ -94,7 +94,7 @@ public class WldtEventObserver implements WldtEventListener {
         if(observerListener == null)
             throw new WldtRuntimeException("Observer Listener = Null in WldtEventObserver !");
 
-        // Init Wldt Event Filters:
+        // Init Wldt Event FilterFactory:
         this.dtStateEventFilter = new WldtEventFilter();
         this.physicalAssetEventFilter = new WldtEventFilter();
         this.physicalAssetActionEventFilter = new WldtEventFilter();

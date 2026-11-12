@@ -35,7 +35,7 @@ import it.wldt.monitoring.CoreMonitoringUtils;
 import it.wldt.monitoring.metrics.WldtCounter;
 import it.wldt.monitoring.metrics.WldtMetricComponent;
 import it.wldt.monitoring.metrics.WldtTimer;
-import it.wldt.storage.query.QueryRequest;
+import it.wldt.storage.query.Query;
 import it.wldt.storage.query.QueryResult;
 
 import java.util.HashMap;
@@ -265,11 +265,11 @@ public abstract class StatefulAugmentationFunction extends AugmentationFunction{
 
     /**
      * Method to notify the running Stateful Augmentation Function of a new query result refresh from the digital twin.
-     * @param queryRequest the query request associated with the query result refresh to notify to the function
+     * @param query the query request associated with the query result refresh to notify to the function
      * @param queryResult the new query result to notify to the function
      * @throws AugmentationFunctionException if any error occurs during the notification of the query result refresh to the function
      */
-    public abstract void onQueryResultRefresh(QueryRequest queryRequest, QueryResult<?> queryResult) throws AugmentationFunctionException;
+    public abstract void onQueryResultRefresh(Query query, QueryResult<?> queryResult) throws AugmentationFunctionException;
 
     /**
      * Method to notify the running Stateful Augmentation Function of a new event notification of the digital twin.
@@ -320,10 +320,8 @@ public abstract class StatefulAugmentationFunction extends AugmentationFunction{
      * Refreshes the query result of the stateful augmentation function by notifying the listener with the updated query request.
      */
     protected void refreshQueryResult() {
-        if(super.getContextRequest().getQueryRequest() != null) {
-            super.getContextRequest().getQueryRequest().setRequestTimestampMs(System.currentTimeMillis());
-            super.getContextRequest().getQueryRequest().setRequestId(UUID.randomUUID().toString());
-            refreshQueryResult(super.getContextRequest().getQueryRequest());
+        if(super.getContextRequest().getQuery() != null) {
+            refreshQueryResult(super.getContextRequest().getQuery());
         }
         else
             logger.warn("Cannot refresh query result of the Stateful Augmentation Function with id {}: query request is null in the context request.", this.getId());
@@ -331,12 +329,12 @@ public abstract class StatefulAugmentationFunction extends AugmentationFunction{
 
     /**
      * Refreshes the query result of the stateful augmentation function by notifying the listener with the updated query request.
-     * @param queryRequest the updated query request to notify to the listener for refreshing the query result of the stateful augmentation function
+     * @param query the updated query request to notify to the listener for refreshing the query result of the stateful augmentation function
      */
-    protected void refreshQueryResult(QueryRequest queryRequest) {
-        super.getContextRequest().setQueryRequest(queryRequest);
+    protected void refreshQueryResult(Query query) {
+        super.getContextRequest().setQuery(query);
         if(statefulAugmentationListener != null) {
-            statefulAugmentationListener.onStatefulAugmentationFunctionQueryResultRefresh(this.getId(), queryRequest);
+            statefulAugmentationListener.onStatefulAugmentationFunctionQueryResultRefresh(this.getId(), query);
         }
         else
             logger.error("Cannot refresh query result of the Stateful Augmentation Function with id {}: result listener is null.", this.getId());

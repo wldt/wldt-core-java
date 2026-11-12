@@ -21,17 +21,17 @@
 package it.wldt.storage.query;
 
 import it.wldt.core.event.*;
-import it.wldt.core.event.observer.WldtEventObserver;
-import it.wldt.exception.EventBusException;
 import it.wldt.log.WldtLogger;
 import it.wldt.log.WldtLoggerProvider;
 
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 /**
  * Authors:
@@ -39,23 +39,37 @@ import java.util.concurrent.TimeoutException;
  * Date: 25/07/2024
  * This class represents the Query Executor used to execute queries on the storage system
  * supporting both synchronous and asynchronous query execution. Internally is implemented through
- * an event-based mechanism to handle the query request and response.
+ * an event-based mechanism to handle the query and its result: a single long-lived subscription receives all the
+ * query results and each one completes the pending request with the same request id.
  */
 public class QueryExecutor implements WldtEventListener {
 
-    private static final WldtLogger logger = WldtLoggerProvider.getLogger(WldtEventObserver.class);
+    private static final WldtLogger logger = WldtLoggerProvider.getLogger(QueryExecutor.class);
 
-    private static final TimeUnit QUERY_TIMEOUT_UNIT = TimeUnit.MILLISECONDS;
+    /** Default time (ms) to wait for a query result */
+    public static final long DEFAULT_QUERY_TIMEOUT_MS = 5000;
 
-    private static final long QUERY_TIMEOUT_VALUE = 5000;
+    // Shared scheduler used to fail the queries that do not receive a result in time
+    private static final ScheduledExecutorService TIMEOUT_SCHEDULER = Executors.newSingleThreadScheduledExecutor(runnable -> {
+        Thread thread = new Thread(runnable, "wldt-query-timeout");
+        thread.setDaemon(true);
+        return thread;
+    });
 
     // Digital Twin Id
-    private String digitalTwinId = null;
+    private final String digitalTwinId;
 
-    // Query Executor Id to identify the Query Executor on the Event Bus
-    private String queryExecutorId = null;
+    // Query Executor Id to identify the Query Executor on the Event Bus. A unique suffix is added because the event bus
+    // keeps a single listener per subscriber id, and several executors can be created with the same configured id.
+    private final String queryExecutorId;
 
-    private Map<String, IQueryResultListener> queryResultListenerMap = null;
+    // Time (ms) to wait for a result when the query does not define its own timeout
+    private final long defaultTimeoutMs;
+
+    // Pending queries: request id -> future completed when the result arrives (or the timeout expires)
+    private final Map<String, CompletableFuture<QueryResult<?>>> pendingQueries = new ConcurrentHashMap<>();
+
+    private boolean subscribed = false;
 
     /**
      * Default Constructor
@@ -63,196 +77,119 @@ public class QueryExecutor implements WldtEventListener {
      * @param queryExecutorId Query Executor Id
      */
     public QueryExecutor(String digitalTwinId, String queryExecutorId) {
-        // Set the Digital Twin Id and the Query Executor Id and create the Query Result Filter
+        this(digitalTwinId, queryExecutorId, DEFAULT_QUERY_TIMEOUT_MS);
+    }
+
+    /**
+     * Constructor with a custom default timeout, useful when heavy queries are expected.
+     * A query can still override it with {@link Query.Builder#timeout(long)}.
+     * @param digitalTwinId Digital Twin Id
+     * @param queryExecutorId Query Executor Id
+     * @param defaultTimeoutMs time (ms) to wait for a query result, must be positive
+     */
+    public QueryExecutor(String digitalTwinId, String queryExecutorId, long defaultTimeoutMs) {
+        if (defaultTimeoutMs <= 0)
+            throw new IllegalArgumentException("Query timeout must be positive");
+        this.defaultTimeoutMs = defaultTimeoutMs;
         this.digitalTwinId = digitalTwinId;
-        this.queryExecutorId = queryExecutorId;
-        this.queryResultListenerMap = new HashMap<>();
+        this.queryExecutorId = queryExecutorId + "-" + UUID.randomUUID();
     }
 
     /**
-     * Observe Query Result Events
-     * @param targetFilter Filter to be used to observe the events
-     * @param wldtEventListener Observer Listener to be used to receive the events
-     * @param eventTypeList List of Event Types to be observed
+     * Subscribe once to all the query result events
      */
-    private void observeEventsWithFilter(WldtEventListener wldtEventListener, WldtEventFilter targetFilter, String... eventTypeList) {
-        try{
-            if(eventTypeList == null || eventTypeList.length == 0)
-                logger.error("Error Observing Events ! Error: Empty/Null Filter or List ...");
-            else {
-
-                // If the filter has been already used cancel observation and clean the filter
-                if(targetFilter != null)
-                    unObserveEventsWithFilter(wldtEventListener, targetFilter);
-
-                // Add target Event Types to the Filter
-                if(targetFilter.addAll(Arrays.asList(eventTypeList)))
-                    WldtEventBus.getInstance().subscribe(this.digitalTwinId, this.queryExecutorId, targetFilter, wldtEventListener);
-                else
-                    logger.error("Error Observing Events ! Impossible to add event to the Filter ...");
-            }
-
-        }catch (Exception e){
-            logger.error("Error Observing Events ! Error: {}, EventTypeList: {}", e.getLocalizedMessage(), eventTypeList);
-        }
+    private synchronized void ensureSubscribed() throws Exception {
+        if (subscribed)
+            return;
+        WldtEventFilter filter = new WldtEventFilter();
+        filter.add(WldtEventTypes.ALL_STORAGE_QUERY_RESULT_EVENT_TYPE);
+        WldtEventBus.getInstance().subscribe(this.digitalTwinId, this.queryExecutorId, filter, this);
+        subscribed = true;
     }
 
     /**
-     * Cancel Observation for the Events
-     * @param wldtEventListener Observer Listener to be used to receive the events
-     * @param targetFilter Filter to be used to observe the events
-     * @throws EventBusException Exception thrown in case of error during the event bus operation
+     * Send the query and return the future that completes with its result. The future always completes normally:
+     * errors and timeouts are reported as failed query results.
      */
-    private void unObserveEventsWithFilter(WldtEventListener wldtEventListener, WldtEventFilter targetFilter) throws EventBusException {
-        try{
-            if (targetFilter != null && !targetFilter.isEmpty()) {
-                WldtEventBus.getInstance().unSubscribe(this.digitalTwinId, this.queryExecutorId, targetFilter, wldtEventListener);
-                targetFilter.clear();
-                targetFilter = new WldtEventFilter();
-            }
-            //else
-            //    logger.warn("Warning Canceling Observation Observing Events ! Empty/Null Filter or List ...");
-        }catch (Exception e){
-            logger.error("Error Canceling Observation for Events ! Error: {}, Filter: {}", e.getLocalizedMessage(), targetFilter);
+    private CompletableFuture<QueryResult<?>> submit(Query originalQuery) {
+
+        // Each execution gets its own request id, so the same query can be executed many times
+        final Query query = originalQuery.refresh(defaultTimeoutMs);
+
+        CompletableFuture<QueryResult<?>> future = new CompletableFuture<>();
+
+        try {
+            ensureSubscribed();
+
+            pendingQueries.put(query.getRequestId(), future);
+
+            ScheduledFuture<?> timeout = TIMEOUT_SCHEDULER.schedule(
+                    () -> future.complete(QueryResult.failure(query, "Timeout waiting for the query result")),
+                    query.getTimeoutMs(),
+                    TimeUnit.MILLISECONDS);
+
+            future.whenComplete((result, error) -> {
+                pendingQueries.remove(query.getRequestId());
+                timeout.cancel(false);
+            });
+
+            EventManager.publishStorageQueryRequest(this.digitalTwinId, this.queryExecutorId, query);
+
+        } catch (Exception e) {
+            logger.error("Error sending the Query ! Error: {}", e.getMessage());
+            future.complete(QueryResult.failure(query, e.getMessage()));
         }
+
+        return future;
     }
 
     /**
      * Synchronous Query Execution
-     * @param queryRequest Query Request Object
-     * @return Query Result Object containing the query result
+     * @param query Query Object
+     * @return Query Result Object containing the query result, a failed result in case of error or timeout
      */
-    public QueryResult<?> syncQueryExecute(QueryRequest queryRequest) {
-
-        try{
-
-            CountDownLatch latch = new CountDownLatch(1);
-            final Object[] responseHolder = new Object[1];
-
-            // Create Query Result Event Filter
-            WldtEventFilter localQueryResultFilter = new WldtEventFilter();
-
-            WldtEventListener queryResultListener = new WldtEventListener() {
-                @Override
-                public void onEventSubscribed(String eventType) {
-                    logger.info("Correctly Subscribed to the Event Type: {}", eventType);
-                }
-
-                @Override
-                public void onEventUnSubscribed(String eventType) {
-                    logger.info("Correctly UnSubscribed from the Event Type: {}", eventType);
-                }
-
-                @Override
-                public void onEvent(WldtEvent<?> wldtEvent) {
-
-                    // Check if the Event Body is a Query Result
-                    if(wldtEvent != null && wldtEvent.getBody() != null && wldtEvent.getBody() instanceof QueryResult<?>) {
-                        QueryResult<?> queryResult = (QueryResult<?>) wldtEvent.getBody();
-                        responseHolder[0] = queryResult;
-                        latch.countDown();
-                    }
-                    else {
-                        logger.error("Error handling the QueryRequest Event ! The event body is not a QueryRequest !");
-                        responseHolder[0] = new QueryResult<>(queryRequest, false, "Error handling the QueryRequest Event ! The event body is not a QueryRequest !");
-                        latch.countDown();
-                    }
-                }
-            };
-
-            // Target Event Type for the Query Result
-            String targetEventType = String.format("%s.%s",
-                    WldtEventTypes.STORAGE_QUERY_RESULT_EVENT_TYPE,
-                    queryRequest.getRequestId());
-
-            // Observe the Query Result Events
-            observeEventsWithFilter(queryResultListener, localQueryResultFilter, targetEventType);
-
-            // Send the Query Request
-            EventManager.publishStorageQueryRequest(this.digitalTwinId, this.queryExecutorId, queryRequest);
-
-            // Wait for the response or timeout
-            if (!latch.await(QUERY_TIMEOUT_VALUE, QUERY_TIMEOUT_UNIT)) {
-                throw new TimeoutException("Timeout waiting for response to event: " + targetEventType);
-            }
-
-            // UnObserve the Query Result Events
-            unObserveEventsWithFilter(queryResultListener, localQueryResultFilter);
-
-            // Return the Query Result
-            return (QueryResult<?>) responseHolder[0];
-
-        }catch (Exception e){
-            return new QueryResult<>(queryRequest, false, e.getMessage());
-        }
+    public QueryResult<?> syncQueryExecute(Query query) {
+        return submit(query).join();
     }
 
     /**
      * Asynchronous Query Execution
-     * @param queryRequest Query Request Object
-     * @param queryResultListener Query Result Listener to be used to receive the query result
+     * @param query Query Object
+     * @param queryResultListener Query Result Listener to be used to receive the query result, a failed result
+     *                            is notified in case of error or timeout
      */
-    public void asyncQueryExecute(QueryRequest queryRequest, IQueryResultListener queryResultListener) {
-        try{
-
-            // Target Event Type for the Query Result
-            String targetEventType = String.format("%s.%s",
-                    WldtEventTypes.STORAGE_QUERY_RESULT_EVENT_TYPE,
-                    queryRequest.getRequestId());
-
-            // Subscribe to the Query Result Event
-            WldtEventFilter wldtEventFilter = new WldtEventFilter();
-            wldtEventFilter.add(targetEventType);
-            WldtEventBus.getInstance().subscribe(this.digitalTwinId, this.queryExecutorId, wldtEventFilter, this);
-
-            // Add the Query Result Listener to the Map
-            this.queryResultListenerMap.put(queryRequest.getRequestId(), queryResultListener);
-
-            // Send the Query Request
-            EventManager.publishStorageQueryRequest(this.digitalTwinId, this.queryExecutorId, queryRequest);
-
-        }catch (Exception e){
-            logger.error("Error handling the QueryRequest Event ! Error: {}", e.getMessage());
-        }
+    public void asyncQueryExecute(Query query, IQueryResultListener queryResultListener) {
+        submit(query).thenAccept(queryResultListener::onQueryResult);
     }
 
     @Override
     public void onEventSubscribed(String eventType) {
-        logger.info("QueryExecutor - Async Execution - Correctly Subscribed to the Event Type: {}", eventType);
+        logger.info("QueryExecutor - Correctly Subscribed to the Event Type: {}", eventType);
     }
 
     @Override
     public void onEventUnSubscribed(String eventType) {
-        logger.info("QueryExecutor - Async Execution - Correctly UnSubscribed to the Event Type: {}", eventType);
+        logger.info("QueryExecutor - Correctly UnSubscribed from the Event Type: {}", eventType);
     }
 
     @Override
     public void onEvent(WldtEvent<?> wldtEvent) {
 
-        try{
-            // Check if the Event Body is a Query Result
-            if(wldtEvent != null && wldtEvent.getBody() != null && wldtEvent.getBody() instanceof QueryResult<?>) {
-                QueryResult<?> queryResult = (QueryResult<?>) wldtEvent.getBody();
-
-                // Get the Query Result Listener
-                IQueryResultListener queryResultListener = this.queryResultListenerMap.get(queryResult.getOriginalRequest().getRequestId());
-
-                // Notify the Query Result Listener
-                if(queryResultListener != null)
-                    queryResultListener.onQueryResult(queryResult);
-                else
-                    logger.error("QueryExecutor - Async Execution - Error handling the QueryRequest Event ! The QueryResult Listener is null !");
-
-                // UnSubscribe from the Query Result Event
-                WldtEventFilter queryResultFilter = new WldtEventFilter();
-                queryResultFilter.add(wldtEvent.getType());
-                WldtEventBus.getInstance().unSubscribe(this.digitalTwinId, this.queryExecutorId, new WldtEventFilter(), this);
+        try {
+            if (wldtEvent == null || !(wldtEvent.getBody() instanceof QueryResult<?>)) {
+                logger.error("QueryExecutor - Error handling the Query Result Event ! The event body is not a QueryResult !");
+                return;
             }
-            else {
-                logger.error("QueryExecutor - Async Execution - Error handling the QueryRequest Event ! The event body is not a QueryRequest !");
-            }
-        }catch (Exception e){
-            logger.error("QueryExecutor - Async Execution - Error handling the QueryRequest Event ! Error: {}", e.getMessage());
+
+            QueryResult<?> queryResult = (QueryResult<?>) wldtEvent.getBody();
+
+            // Results of queries sent by other executors are ignored
+            CompletableFuture<QueryResult<?>> pending = pendingQueries.get(queryResult.getOriginalQuery().getRequestId());
+            if (pending != null)
+                pending.complete(queryResult);
+
+        } catch (Exception e) {
+            logger.error("QueryExecutor - Error handling the Query Result Event ! Error: {}", e.getMessage());
         }
     }
 }

@@ -21,7 +21,7 @@
 package it.wldt.augmentation.listener;
 
 import it.wldt.augmentation.result.AugmentationFunctionResultList;
-import it.wldt.storage.query.QueryRequest;
+import it.wldt.storage.query.Query;
 
 import java.util.List;
 
@@ -37,5 +37,5 @@ public interface StatefulAugmentationListener {
 
     public void onStatefulAugmentationFunctionResult(String augmentationFunctionId, AugmentationFunctionResultList augmentationFunctionResultList);
 
-    public void onStatefulAugmentationFunctionQueryResultRefresh(String augmentationFunctionId, QueryRequest queryRequest);
+    public void onStatefulAugmentationFunctionQueryResultRefresh(String augmentationFunctionId, Query query);
 }

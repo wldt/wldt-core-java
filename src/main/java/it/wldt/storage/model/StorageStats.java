@@ -28,7 +28,7 @@ package it.wldt.storage.model;
  * in terms of start and end timestamp for each type of stored resource. For each category of stored resource a specific
  * the StorageStatsRecord object is used to store the information.
  */
-public class StorageStats {
+public class StorageStats extends StorageRecord {
 
     /**
      * Storage Stats for the State Variation Records

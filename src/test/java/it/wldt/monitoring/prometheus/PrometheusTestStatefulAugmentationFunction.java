@@ -6,14 +6,18 @@ import it.wldt.augmentation.request.AugmentationFunctionRequest;
 import it.wldt.core.state.DigitalTwinState;
 import it.wldt.core.state.DigitalTwinStateEventNotification;
 import it.wldt.exception.AugmentationFunctionException;
-import it.wldt.storage.query.QueryRequest;
-import it.wldt.storage.query.QueryRequestType;
+import it.wldt.storage.query.Query;
+import it.wldt.storage.query.QueryFieldNames;
+import it.wldt.storage.query.filter.FilterFactory;
+import it.wldt.storage.query.SortCriterion;
+import it.wldt.storage.query.aggregation.AggregationFactory;
+import it.wldt.storage.model.AggregationRecord;
 import it.wldt.storage.query.QueryResourceType;
 import it.wldt.storage.query.QueryResult;
 
 /**
  * Minimal stateful augmentation function used only by the Prometheus monitoring example.
- * Sets a contextRequest with a QueryRequest so the handler executes a storage query on
+ * Sets a contextRequest with a Query so the handler executes a storage query on
  * START and STOP, populating the af_function_query_exec_* Prometheus metrics.
  */
 public class PrometheusTestStatefulAugmentationFunction extends StatefulAugmentationFunction {
@@ -26,9 +30,7 @@ public class PrometheusTestStatefulAugmentationFunction extends StatefulAugmenta
                 "Triggers query exec metrics on start/stop for Prometheus monitoring example.",
                 "1.0.0");
 
-        QueryRequest queryRequest = new QueryRequest();
-        queryRequest.setResourceType(QueryResourceType.DIGITAL_TWIN_STATE);
-        queryRequest.setRequestType(QueryRequestType.LAST_VALUE);
+        Query queryRequest = Query.on(QueryResourceType.DIGITAL_TWIN_STATE).orderBy(QueryFieldNames.TIMESTAMP, SortCriterion.Direction.DESC).limit(1).build();
 
         setContextRequest(new AugmentationFunctionContextRequest(queryRequest));
     }
@@ -49,7 +51,7 @@ public class PrometheusTestStatefulAugmentationFunction extends StatefulAugmenta
     }
 
     @Override
-    public void onQueryResultRefresh(QueryRequest queryRequest, QueryResult<?> queryResult) throws AugmentationFunctionException {
+    public void onQueryResultRefresh(Query queryRequest, QueryResult<?> queryResult) throws AugmentationFunctionException {
         // no-op
     }
 

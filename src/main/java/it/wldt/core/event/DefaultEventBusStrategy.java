@@ -304,9 +304,14 @@ public class DefaultEventBusStrategy implements WldtEventBusStrategy {
         while (!Thread.currentThread().isInterrupted()) {
             try {
                 SubscriberDelivery delivery = queue.take();
-                delivery.info.getEventListener().onEvent(delivery.event);
-                if (delivery.eventLogger != null)
-                    delivery.eventLogger.logEventForwarded(delivery.publisherId, delivery.info.getId(), delivery.event);
+                try {
+                    delivery.info.getEventListener().onEvent(delivery.event);
+                    if (delivery.eventLogger != null)
+                        delivery.eventLogger.logEventForwarded(delivery.publisherId, delivery.info.getId(), delivery.event);
+                } catch (RuntimeException e) {
+                    // A failing listener must not stop the delivery of the following events to its subscriber
+                    logger.error("Subscriber {} failed handling event {}: {}", subId, delivery.event.getType(), e.toString());
+                }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }

@@ -22,7 +22,7 @@ package it.wldt.augmentation.context;
 
 import it.wldt.augmentation.function.AugmentationFunction;
 import it.wldt.core.state.DigitalTwinState;
-import it.wldt.storage.query.QueryRequest;
+import it.wldt.storage.query.Query;
 import it.wldt.storage.query.QueryResult;
 
 /**
@@ -39,7 +39,7 @@ public class AugmentationFunctionContext {
     private DigitalTwinState digitalTwinState;
 
     /**
-     * The results of the query on the Digital Twin's storage associated to the {@link QueryRequest}
+     * The results of the query on the Digital Twin's storage associated to the {@link Query}
      * defined in the {@link AugmentationFunctionContextRequest} of the {@link AugmentationFunction}
      */
     private QueryResult<?> queryResult;
@@ -53,7 +53,7 @@ public class AugmentationFunctionContext {
     /**
      * Constructor for AugmentationFunctionContext with both Digital Twin State and Query Result.
      * @param digitalTwinState The Digital Twin State at the time of the augmentation function execution.
-     * @param queryResult The results of the query on the Digital Twin's storage associated to the {@link QueryRequest}
+     * @param queryResult The results of the query on the Digital Twin's storage associated to the {@link Query}
      * defined in the {@link AugmentationFunctionContextRequest} of the {@link AugmentationFunction}
      */
     public AugmentationFunctionContext(DigitalTwinState digitalTwinState, QueryResult<?> queryResult) {
@@ -78,7 +78,7 @@ public class AugmentationFunctionContext {
     }
 
     /**
-     * Get the results of the query on the Digital Twin's storage associated to the {@link QueryRequest}
+     * Get the results of the query on the Digital Twin's storage associated to the {@link Query}
      * defined in the {@link AugmentationFunctionContextRequest} of the {@link AugmentationFunction}
      * @return The results of the query on the Digital Twin's storage
      */
@@ -95,7 +95,7 @@ public class AugmentationFunctionContext {
     }
 
     /**
-     * Sets the results of the query on the Digital Twin's storage associated to the {@link QueryRequest}
+     * Sets the results of the query on the Digital Twin's storage associated to the {@link Query}
      * defined in the {@link AugmentationFunctionContextRequest} of the {@link AugmentationFunction}
      * @param queryResult The QueryResult to set for the context.
      */

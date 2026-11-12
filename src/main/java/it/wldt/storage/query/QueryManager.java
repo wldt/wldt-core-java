@@ -20,7 +20,6 @@
  */
 package it.wldt.storage.query;
 
-import it.wldt.exception.StorageException;
 import it.wldt.log.WldtLogger;
 import it.wldt.log.WldtLoggerProvider;
 import it.wldt.monitoring.CoreMonitoringUtils;
@@ -38,11 +37,13 @@ import java.util.Optional;
  *      Marco Picone, Ph.D. (picone.m@gmail.com)
  * Date: 25/07/2024
  * This class represents the Query Manager responsible to handle the query request and manage the query execution.
- * This class is designed to be extended by the user to implement the desired query management logic.
+ * It selects the target storage and delegates the execution of the {@link Query} to it
+ * (see {@link WldtStorage#execute(Query)}).
+ * This class is designed to be extended by the user to implement a different storage selection logic.
  */
 public class QueryManager {
 
-    private static final WldtLogger logger = WldtLoggerProvider.getLogger(DefaultQueryManager.class);
+    private static final WldtLogger logger = WldtLoggerProvider.getLogger(QueryManager.class);
 
     protected String digitalTwinId;
     protected MonitoringInterface monitoringInterface;
@@ -74,11 +75,11 @@ public class QueryManager {
      * Default implementation of the method for the query manager.
      * The method has been designed to return the desired storage object from the storage map to be used for the query management.
      * In the default implementation, the method returns the first storage object available in the storage map.
-     * @param queryRequest Query Request Object, that can be used to select different storage according to the query
+     * @param query Query Object, that can be used to select different storage according to the query
      * @param storageMap Storage Map containing the storage objects
      * @return Desired Storage Object to be used for the query management
      */
-    public Optional<WldtStorage> getTargetStorage(QueryRequest queryRequest, Map<String, WldtStorage> storageMap) {
+    public Optional<WldtStorage> getTargetStorage(Query query, Map<String, WldtStorage> storageMap) {
         if(!storageMap.isEmpty()) {
             WldtStorage targetStorage = storageMap.entrySet().iterator().next().getValue();
             if(targetStorage != null)
@@ -91,256 +92,27 @@ public class QueryManager {
     }
 
     /**
-     * Handle Query Request allowing its management through the storage map and the associated storage objects
+     * Handle a Query allowing its execution on the target storage selected from the storage map
      *
-     * @param queryRequest Query Request Object
-     * @param storageMap   Storage Map containing the storage objects to be used for the query management
+     * @param query Query Object
+     * @param storageMap Storage Map containing the storage objects to be used for the query management
+     * @return the query result, a failed result if the query cannot be executed
      */
-    public QueryResult<?> handleQuery(QueryRequest queryRequest, Map<String, WldtStorage> storageMap) {
+    public QueryResult<?> handleQuery(Query query, Map<String, WldtStorage> storageMap) {
 
-        try{
+        try {
 
-            logger.info("Handling Query Request: {}", queryRequest);
-            Optional<WldtStorage> storageOptional = getTargetStorage(queryRequest, storageMap);
+            logger.info("Handling Query: {}", query);
+            Optional<WldtStorage> storageOptional = getTargetStorage(query, storageMap);
 
-            if(storageOptional.isPresent()) {
+            if(!storageOptional.isPresent())
+                return QueryResult.failure(query, "No Storage Available for the Query !");
 
-                logger.info("Storage Available for the Query Request ! Storage Id: {}", storageOptional.get().getStorageId());
+            logger.info("Storage Available for the Query ! Storage Id: {}", storageOptional.get().getStorageId());
+            return storageOptional.get().execute(query);
 
-                // Digital Twin State Query Request
-                if(queryRequest.getResourceType().equals(QueryResourceType.DIGITAL_TWIN_STATE))
-                    return handleStateQuery(queryRequest, storageOptional.get());
-                else if(queryRequest.getResourceType().equals(QueryResourceType.DIGITAL_TWIN_STATE_EVENT_NOTIFICATION))
-                    return handleStateEventNotificationQuery(queryRequest, storageOptional.get());
-                else if(queryRequest.getResourceType().equals(QueryResourceType.PHYSICAL_ASSET_PROPERTY_VARIATION))
-                    return handlePhysicalAssetPropertyVariationQuery(queryRequest, storageOptional.get());
-                else if(queryRequest.getResourceType().equals(QueryResourceType.PHYSICAL_ASSET_EVENT_NOTIFICATION))
-                    return handlePhysicalAssetEventNotificationQuery(queryRequest, storageOptional.get());
-                else if(queryRequest.getResourceType().equals(QueryResourceType.PHYSICAL_ACTION_REQUEST))
-                    return handlePhysicalActionRequestQuery(queryRequest, storageOptional.get());
-                else if(queryRequest.getResourceType().equals(QueryResourceType.DIGITAL_ACTION_REQUEST))
-                    return handleDigitalActionRequestQuery(queryRequest, storageOptional.get());
-                else if(queryRequest.getResourceType().equals(QueryResourceType.NEW_PAD_NOTIFICATION))
-                    return handleNewPadNotification(queryRequest, storageOptional.get());
-                else if(queryRequest.getResourceType().equals(QueryResourceType.UPDATED_PAD_NOTIFICATION))
-                    return handleUpdatedPadNotification(queryRequest, storageOptional.get());
-                else if(queryRequest.getResourceType().equals(QueryResourceType.PHYSICAL_RELATIONSHIP_INSTANCE_CREATED_NOTIFICATION))
-                    return handlePhysicalRelationshipInstanceCreatedNotificationQuery(queryRequest, storageOptional.get());
-                else if(queryRequest.getResourceType().equals(QueryResourceType.PHYSICAL_RELATIONSHIP_INSTANCE_DELETED_NOTIFICATION))
-                    return handlePhysicalRelationshipInstanceDeletedNotificationQuery(queryRequest, storageOptional.get());
-                else if(queryRequest.getResourceType().equals(QueryResourceType.AUGMENTATION_FUNCTION_ERROR))
-                    return handleAugmentationFunctionErrorQuery(queryRequest, storageOptional.get());
-                else if(queryRequest.getResourceType().equals(QueryResourceType.AUGMENTATION_FUNCTION_REQUEST))
-                    return handleAugmentationFunctionRequestQuery(queryRequest, storageOptional.get());
-                else if(queryRequest.getResourceType().equals(QueryResourceType.AUGMENTATION_FUNCTION_RESULT))
-                    return handleAugmentationFunctionResultQuery(queryRequest, storageOptional.get());
-                else if(queryRequest.getResourceType().equals(QueryResourceType.AUGMENTATION_FUNCTION_REGISTRATION))
-                    return handleAugmentationFunctionRegistrationQuery(queryRequest, storageOptional.get());
-                else if(queryRequest.getResourceType().equals(QueryResourceType.AUGMENTATION_FUNCTION_UNREGISTRATION))
-                    return handleAugmentationFunctionUnregistrationQuery(queryRequest, storageOptional.get());
-                else if(queryRequest.getResourceType().equals(QueryResourceType.LIFE_CYCLE_EVENT))
-                    return handleLifeCycleEventQuery(queryRequest, storageOptional.get());
-                else if(queryRequest.getResourceType().equals(QueryResourceType.STORAGE_STATS))
-                    return handleStorageStatsQuery(queryRequest, storageOptional.get());
-                else
-                    return new QueryResult<>(queryRequest, false, "Invalid Query Request Type !");
-            }
-            else
-                return new QueryResult<>(queryRequest, false, "No Storage Available for the Query Request !");
-        }catch (Exception e){
-            return new QueryResult<>(queryRequest, false, e.getMessage());
+        } catch (Exception e) {
+            return QueryResult.failure(query, e.getMessage());
         }
     }
-
-    /**
-     * Handle Life Cycle Event Query Request
-     *
-     * @param queryRequest Query Request Object
-     * @param wldtStorage  Storage Object to be used for the query management
-     * @return Query Result Object containing the query result
-     */
-    public QueryResult<?> handleLifeCycleEventQuery(QueryRequest queryRequest, WldtStorage wldtStorage) throws StorageException {
-        return new QueryResult<>(queryRequest, false, "Query not supported by the current implementation !");
-    }
-
-    /**
-     * Handle Physical Relationship Instance Deleted Notification Query Request
-     *
-     * @param queryRequest Query Request Object
-     * @param wldtStorage  Storage Object to be used for the query management
-     * @return Query Result Object containing the query result
-     */
-    public QueryResult<?> handlePhysicalRelationshipInstanceDeletedNotificationQuery(QueryRequest queryRequest, WldtStorage wldtStorage) throws StorageException {
-        return new QueryResult<>(queryRequest, false, "Query not supported by the current implementation !");
-    }
-
-    /**
-     * Handle Physical Relationship Instance Created Notification Query Request
-     *
-     * @param queryRequest Query Request Object
-     * @param wldtStorage  Storage Object to be used for the query management
-     * @return Query Result Object containing the query result
-     */
-    public QueryResult<?> handlePhysicalRelationshipInstanceCreatedNotificationQuery(QueryRequest queryRequest, WldtStorage wldtStorage) throws StorageException {
-        return new QueryResult<>(queryRequest, false, "Query not supported by the current implementation !");
-    }
-
-    /**
-     * Handle Updated Pad Notification Query Request
-     *
-     * @param queryRequest Query Request Object
-     * @param wldtStorage  Storage Object to be used for the query management
-     * @return Query Result Object containing the query result
-     */
-    public QueryResult<?> handleUpdatedPadNotification(QueryRequest queryRequest, WldtStorage wldtStorage) throws StorageException {
-        return new QueryResult<>(queryRequest, false, "Query not supported by the current implementation !");
-    }
-
-    /**
-     * Handle New Pad Notification Query Request
-     *
-     * @param queryRequest Query Request Object
-     * @param wldtStorage  Storage Object to be used for the query management
-     * @return Query Result Object containing the query result
-     */
-    public QueryResult<?> handleNewPadNotification(QueryRequest queryRequest, WldtStorage wldtStorage) throws StorageException {
-        return new QueryResult<>(queryRequest, false, "Query not supported by the current implementation !");
-    }
-
-    /**
-     * Handle Digital Action Request Query Request
-     *
-     * @param queryRequest Query Request Object
-     * @param wldtStorage  Storage Object to be used for the query management
-     * @return Query Result Object containing the query result
-     */
-    public QueryResult<?> handleDigitalActionRequestQuery(QueryRequest queryRequest, WldtStorage wldtStorage) throws StorageException{
-        return new QueryResult<>(queryRequest, false, "Query not supported by the current implementation !");
-    }
-
-
-    /**
-     * Handle Physical Action Request Query Request
-     *
-     * @param queryRequest Query Request Object
-     * @param wldtStorage  Storage Object to be used for the query management
-     * @return Query Result Object containing the query result
-     */
-    public QueryResult<?> handlePhysicalActionRequestQuery(QueryRequest queryRequest, WldtStorage wldtStorage) throws StorageException{
-        return new QueryResult<>(queryRequest, false, "Query not supported by the current implementation !");
-    }
-
-    /**
-     * Handle Physical Asset Event Notification Query Request
-     *
-     * @param queryRequest Query Request Object
-     * @param wldtStorage  Storage Object to be used for the query management
-     * @return Query Result Object containing the query result
-     */
-    public QueryResult<?> handlePhysicalAssetEventNotificationQuery(QueryRequest queryRequest, WldtStorage wldtStorage) throws StorageException{
-        return new QueryResult<>(queryRequest, false, "Query not supported by the current implementation !");
-    }
-
-    /**
-     * Handle Physical Asset Property Variation Query Request
-     *
-     * @param queryRequest Query Request Object
-     * @param wldtStorage  Storage Object to be used for the query management
-     * @return Query Result Object containing the query result
-     */
-    public QueryResult<?> handlePhysicalAssetPropertyVariationQuery(QueryRequest queryRequest, WldtStorage wldtStorage) throws StorageException{
-        return new QueryResult<>(queryRequest, false, "Query not supported by the current implementation !");
-    }
-
-    /**
-     * Handle Digital Twin State Query Request
-     *
-     * @param queryRequest Query Request Object
-     * @param storage      Storage Object to be used for the query management
-     * @return Query Result Object containing the query result
-     * @throws StorageException Storage Exception
-     */
-    public QueryResult<?> handleStateQuery(QueryRequest queryRequest, WldtStorage storage) throws StorageException{
-        return new QueryResult<>(queryRequest, false, "Query not supported by the current implementation !");
-    }
-
-    /**
-     * Handle Digital Twin State Event Notification Query Request
-     *
-     * @param queryRequest Query Request Object
-     * @param storage      Storage Object to be used for the query management
-     * @return Query Result Object containing the query result
-     * @throws StorageException Storage Exception
-     */
-    public QueryResult<?> handleStateEventNotificationQuery(QueryRequest queryRequest, WldtStorage storage) throws StorageException{
-        return new QueryResult<>(queryRequest, false, "Query not supported by the current implementation !");
-    }
-
-    /**
-     * Handle Storage Stats Query
-     *
-     * @param queryRequest Query Request Object
-     * @param storage      Storage Object to be used for the query management
-     * @return Query Result Object containing the query result
-     * @throws StorageException Storage Exception
-     */
-    public QueryResult<?> handleStorageStatsQuery(QueryRequest queryRequest, WldtStorage storage) throws StorageException{
-        return new QueryResult<>(queryRequest, false, "Query not supported by the current implementation !");
-    }
-
-    /**
-     * Handle Augmentation Function Error Query
-     * @param queryRequest Query Request Object
-     * @param storage Storage Object to be used for the query management
-     * @return Query Result Object containing the query result
-     * @throws StorageException Storage Exception
-     */
-    public QueryResult<?> handleAugmentationFunctionErrorQuery(QueryRequest queryRequest, WldtStorage storage) throws StorageException {
-        return new QueryResult<>(queryRequest, false, "Query not supported by the current implementation !");
-    }
-
-    /**
-     * Handle Augmentation Function Request Query
-     * @param queryRequest Query Request Object
-     * @param storage Storage Object to be used for the query management
-     * @return Query Result Object containing the query result
-     * @throws StorageException Storage Exception
-     */
-    public QueryResult<?> handleAugmentationFunctionRequestQuery(QueryRequest queryRequest, WldtStorage storage) throws StorageException {
-        return new QueryResult<>(queryRequest, false, "Query not supported by the current implementation !");
-    }
-
-    /**
-     * Handle Augmentation Function Result Query
-     * @param queryRequest Query Request Object
-     * @param storage Storage Object to be used for the query management
-     * @return Query Result Object containing the query result
-     * @throws StorageException Storage Exception
-     */
-    public QueryResult<?> handleAugmentationFunctionResultQuery(QueryRequest queryRequest, WldtStorage storage) throws StorageException {
-        return new QueryResult<>(queryRequest, false, "Query not supported by the current implementation !");
-    }
-
-    /**
-     * Handle Augmentation Function Registration Query
-     * @param queryRequest Query Request Object
-     * @param storage Storage Object to be used for the query management
-     * @return Query Result Object containing the query result
-     * @throws StorageException Storage Exception
-     */
-    public QueryResult<?> handleAugmentationFunctionRegistrationQuery(QueryRequest queryRequest, WldtStorage storage) throws StorageException {
-        return new QueryResult<>(queryRequest, false, "Query not supported by the current implementation !");
-    }
-
-    /**
-     * Handle Augmentation Function Unregistration Query
-     * @param queryRequest Query Request Object
-     * @param storage Storage Object to be used for the query management
-     * @return Query Result Object containing the query result
-     * @throws StorageException Storage Exception
-     */
-    public QueryResult<?> handleAugmentationFunctionUnregistrationQuery(QueryRequest queryRequest, WldtStorage storage) throws StorageException {
-        return new QueryResult<>(queryRequest, false, "Query not supported by the current implementation !");
-    }
-
 }

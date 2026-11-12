@@ -240,7 +240,7 @@ protected abstract AugmentationFunctionResultList handleAugmentationFunctionExec
 
 // Called to deliver a refreshed query result to a running stateful function
 protected abstract void handleAugmentationFunctionQueryResultRefresh(
-    StatefulAugmentationFunction function, QueryRequest queryRequest, QueryResult<?> queryResult)
+    StatefulAugmentationFunction function, Query query, QueryResult<?> queryResult)
     throws AugmentationFunctionException;
 ```
 
@@ -330,7 +330,7 @@ public interface StatefulAugmentationListener {
 
     // Called when the stateful function requests a query result refresh from DT storage
     void onStatefulAugmentationFunctionQueryResultRefresh(String augmentationFunctionId,
-                                                         QueryRequest queryRequest);
+                                                         Query query);
 }
 ```
 
@@ -564,7 +564,8 @@ public class AugmentationFunctionContextRequest {
     private List<String> propertyNameFilter;
     private List<String> eventNameFilter;
     private List<String> relationshipNameFilter;
-    private QueryRequest queryRequest;
+    private Query query;
+    private boolean refreshQueryOnStateUpdate;   // default false
 }
 ```
 
@@ -577,7 +578,8 @@ public class AugmentationFunctionContextRequest {
 | `propertyNameFilter` | `List<String>` | `null` | Filter for specific property names (null = observe all) |
 | `eventNameFilter` | `List<String>` | `null` | Filter for specific event names (null = observe all) |
 | `relationshipNameFilter` | `List<String>` | `null` | Filter for specific relationship names (null = observe all) |
-| `queryRequest` | `QueryRequest` | `null` | Query to execute on DT storage for historical data |
+| `query` | `Query` | `null` | Query to execute on DT storage for historical data (see [Storage & Query System](storage_query_system.md#query-system)) |
+| `refreshQueryOnStateUpdate` | `boolean` | `false` | If `true` the query is executed and its result delivered to the function before every state update (stateful functions only, see [below](#query-refresh-on-every-state-update-opt-in)) |
 
 > **⚠️ Warning**: `propertyNameFilter`, `eventNameFilter`, and `relationshipNameFilter` are declared in the
 > class but are **currently not read by the framework** — configuring them has no effect.
@@ -591,12 +593,12 @@ public class AugmentationFunctionContextRequest {
 public AugmentationFunctionContextRequest()
 
 // Constructor with query only
-public AugmentationFunctionContextRequest(QueryRequest queryRequest)
+public AugmentationFunctionContextRequest(Query query)
 
 // Constructor with observation flags and query
 public AugmentationFunctionContextRequest(boolean observeState,
                                          boolean observeEventNotifications,
-                                         QueryRequest queryRequest)
+                                         Query query)
 ```
 
 #### Usage in Function Constructors
@@ -610,23 +612,28 @@ public class HistoryAwareStatelessFunction extends StatelessAugmentationFunction
 
     public HistoryAwareStatelessFunction() {
         // ⚠️ Warning: timestamps are computed once at construction time and stay fixed.
-        // For a truly sliding "last 10 minutes" window, build the QueryRequest inside run()
-        // and pass it to refreshQueryResult(QueryRequest) at each invocation instead.
+        // A Query is immutable: for a truly sliding "last 10 minutes" window, build a new Query
+        // with fresh timestamps and pass it to refreshQueryResult(Query) at each invocation
+        // (available in stateful functions).
         super("history-fn", "History Function", "Uses DT state history", "1.0.0",
               new AugmentationFunctionContextRequest(
-                  new QueryRequest()
-                      .setResourceType(QueryResourceType.DIGITAL_TWIN_STATE)
-                      .setRequestType(QueryRequestType.TIME_RANGE)
-                      .setStartTimestampMs(System.currentTimeMillis() - 600_000)
-                      .setEndTimestampMs(System.currentTimeMillis())
+                  Query.on(QueryResourceType.DIGITAL_TWIN_STATE)
+                      .where(and(gte(QueryFieldNames.TIMESTAMP, System.currentTimeMillis() - 600_000),
+                                 lte(QueryFieldNames.TIMESTAMP, System.currentTimeMillis())))
+                      .build()
               ));
     }
 
     @Override
     protected AugmentationFunctionResultList run(AugmentationFunctionRequest request)
             throws AugmentationFunctionException {
+        // The result of the query defined in the context request: a list of DigitalTwinStateRecord
         QueryResult<?> history = request.getContext().getQueryResult();
-        // use history ...
+        if (history != null && history.isSuccessful()) {
+            for (DigitalTwinStateRecord record : history.as(DigitalTwinStateRecord.class).getItems()) {
+                // use record.getCurrentState() ...
+            }
+        }
         return new AugmentationFunctionResultList();
     }
 }
@@ -641,6 +648,53 @@ public class StateOnlyStatefulFunction extends StatefulAugmentationFunction {
     // ...
 }
 ```
+
+#### Query refresh on every state update (opt-in)
+
+A stateful function that has a `Query` in its context request receives the result of that query when it is **started**, and then only when a refresh is requested. **By default a Digital Twin state update does not execute any query**: the function receives the new state in `onStateUpdate()` and decides by itself if and when it needs fresh data from the storage. A refresh can be requested in three ways:
+
+- **By the function** (recommended): the function calls `refreshQueryResult()` (re-executes the query of the context request) or `refreshQueryResult(Query)` (executes a new query, e.g., a sliding time window) whenever it needs it, for example inside `onStateUpdate()` only when a condition is met, or from a timer. The result arrives in `onQueryResultRefresh()`.
+- **By the Digital Twin Model** (shadowing function): `refreshAugmentationFunctionQueryResult(augmentationFunctionHandlerId, augmentationFunctionId)` triggers the execution of the query of the context request of a stateful function.
+- **Automatically on every state update** (opt-in): when `refreshQueryOnStateUpdate` is set to `true` in the context request, the handler executes the query and calls `onQueryResultRefresh()` **before** calling `onStateUpdate()` for each state update, so the function always sees fresh history together with the new state.
+
+```java
+public class LastHourAverageFunction extends StatefulAugmentationFunction {
+
+    public LastHourAverageFunction() {
+        super("last-hour-average", "Last Hour Average", "Average of the temperature on every state update", "1.0.0",
+              buildContextRequest());
+    }
+
+    private static AugmentationFunctionContextRequest buildContextRequest() {
+        // The query is executed by the handler before every state update
+        AugmentationFunctionContextRequest contextRequest = new AugmentationFunctionContextRequest(
+                Query.on(QueryResourceType.PHYSICAL_ASSET_PROPERTY_VARIATION)
+                        .where(eq(QueryFieldNames.PROPERTY_KEY, "temperature"))
+                        .aggregate(avg(QueryFieldNames.BODY).as("avg"))
+                        .build());
+
+        // Disabled by default
+        contextRequest.setRefreshQueryOnStateUpdate(true);
+        return contextRequest;
+    }
+
+    @Override
+    public void onQueryResultRefresh(Query query, QueryResult<?> queryResult) throws AugmentationFunctionException {
+        // Called first: the aggregation result is a single AggregationRecord
+        if (queryResult != null && queryResult.isSuccessful())
+            logger.info("Average temperature: {}", queryResult.as(AggregationRecord.class).first().getDouble("avg"));
+    }
+
+    @Override
+    public void onStateUpdate(DigitalTwinState digitalTwinState) throws AugmentationFunctionException {
+        // Called right after onQueryResultRefresh() for the same state update
+    }
+
+    // start(), stop() and onEventNotificationReceived() omitted
+}
+```
+
+> **⚠️ Warning**: the query is executed **synchronously on the handler thread** for every state update, so a heavy query slows down the processing of all the functions of that handler and loads the storage (that executes queries and writes on the same thread, see [Threading and performance](storage_query_system.md#threading-and-performance)). Moreover, if the results of the function modify the Digital Twin state (e.g., through the shadowing function), each result produces a new state update that executes the query again: avoid this feedback loop, or enable the option only for light and bounded queries (filters, `limit`, aggregations). The handler waits for the result with the default timeout of the `QueryExecutor` (5 seconds): a query that takes longer returns a failed `QueryResult`, delivered to `onQueryResultRefresh()` as any other result.
 
 ---
 
@@ -837,16 +891,17 @@ public class StatefulPollingAugmentationFunction extends StatefulAugmentationFun
               "Polling Augmentation Function",
               "Periodically queries DT storage for the last 60 seconds of state history",
               "1.0.0",
-              // ⚠️ Warning: timestamps below are fixed at construction time.
-              // This sets the initial query range. To slide the window at each polling cycle,
-              // call refreshQueryResult(new QueryRequest()...) with fresh timestamps inside the TimerTask.
-              new AugmentationFunctionContextRequest(
-                  new QueryRequest()
-                      .setResourceType(QueryResourceType.DIGITAL_TWIN_STATE)
-                      .setRequestType(QueryRequestType.TIME_RANGE)
-                      .setStartTimestampMs(System.currentTimeMillis() - 60_000)
-                      .setEndTimestampMs(System.currentTimeMillis())
-              ));
+              // The initial query of the context request: the last 60 seconds at construction time.
+              // A Query is immutable, so the window is slid at each polling cycle by building a new Query
+              // inside the TimerTask and passing it to refreshQueryResult(Query).
+              new AugmentationFunctionContextRequest(lastSecondsQuery(60)));
+    }
+
+    private static Query lastSecondsQuery(int seconds) {
+        long now = System.currentTimeMillis();
+        return Query.on(QueryResourceType.DIGITAL_TWIN_STATE)
+                .where(and(gte(QueryFieldNames.TIMESTAMP, now - seconds * 1000L), lte(QueryFieldNames.TIMESTAMP, now)))
+                .build();
     }
 
     @Override
@@ -857,27 +912,27 @@ public class StatefulPollingAugmentationFunction extends StatefulAugmentationFun
         pollingTimer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
-                // Request a fresh query result from DT storage using the context request's QueryRequest
-                refreshQueryResult();
+                // Request a fresh query result from DT storage with a sliding window of the last 60 seconds
+                refreshQueryResult(lastSecondsQuery(60));
             }
         }, 0, POLLING_INTERVAL_MS);
     }
 
     @Override
-    public void onQueryResultRefresh(QueryRequest queryRequest, QueryResult<?> queryResult)
+    public void onQueryResultRefresh(Query query, QueryResult<?> queryResult)
             throws AugmentationFunctionException {
-        if (queryResult == null || queryResult.isEmpty()) {
+        if (queryResult == null || !queryResult.isSuccessful() || queryResult.getItems().isEmpty()) {
             return;
         }
 
         // Process the refreshed historical data
-        logger.debug("Received query refresh with {} records", queryResult.size());
+        logger.debug("Received query refresh with {} records", queryResult.getItems().size());
 
         // Compute result from the historical snapshot
         AugmentationFunctionResult<Integer> result = new AugmentationFunctionResult<>(
                 AugmentationFunctionResultType.GENERIC_RESULT,
                 "history_record_count",
-                queryResult.size(),
+                queryResult.getItems().size(),
                 null,
                 Map.of("query_timestamp", System.currentTimeMillis())
         );
@@ -907,10 +962,10 @@ public class StatefulPollingAugmentationFunction extends StatefulAugmentationFun
 ```
 
 In polling mode the function drives its own data retrieval rhythm independently of DT state changes.
-`refreshQueryResult()` re-executes the `QueryRequest` defined in the `AugmentationFunctionContextRequest`
-and delivers the result to `onQueryResultRefresh()`. A custom `QueryRequest` can also be passed
-directly to `refreshQueryResult(QueryRequest)` when the query parameters need to change at runtime
-(e.g., to slide a time window).
+`refreshQueryResult()` re-executes the `Query` defined in the `AugmentationFunctionContextRequest`
+and delivers the result to `onQueryResultRefresh()`. A custom `Query` can also be passed
+directly to `refreshQueryResult(Query)` when the query parameters need to change at runtime
+(e.g., to slide a time window, as in the example above).
 
 ---
 
@@ -1872,7 +1927,7 @@ public abstract class StatelessAugmentationFunction extends AugmentationFunction
     }
 
     // Constructor with custom context request — use when the function needs a specific
-    // AugmentationFunctionContextRequest (e.g. to include a storage QueryRequest or to
+    // AugmentationFunctionContextRequest (e.g. to include a storage Query or to
     // disable state/event observation)
     protected StatelessAugmentationFunction(String id,
                                             String name,
@@ -1924,7 +1979,7 @@ public abstract class StatefulAugmentationFunction extends AugmentationFunction 
     }
 
     // Constructor with custom context request — use when the function needs a specific
-    // AugmentationFunctionContextRequest (e.g. to include a storage QueryRequest or to
+    // AugmentationFunctionContextRequest (e.g. to include a storage Query or to
     // disable state/event observation)
     protected StatefulAugmentationFunction(String id,
                                            String name,
@@ -1975,31 +2030,31 @@ public abstract class StatefulAugmentationFunction extends AugmentationFunction 
      * Invoked only after the function has explicitly requested a refresh via refreshQueryResult().
      * Override this method only when using the polling pattern; the default implementation is a no-op.
      *
-     * @param queryRequest The query request whose result was refreshed
+     * @param query The query whose result was refreshed
      * @param queryResult  The new query result
      * @throws AugmentationFunctionException if processing fails
      */
-    public void onQueryResultRefresh(QueryRequest queryRequest, QueryResult<?> queryResult)
+    public void onQueryResultRefresh(Query query, QueryResult<?> queryResult)
         throws AugmentationFunctionException {
         // default no-op — override when using the polling pattern
     }
 
     /**
      * Request a refresh of the query result from the DT storage.
-     * Uses the QueryRequest defined in AugmentationFunctionContextRequest.
+     * Uses the Query defined in AugmentationFunctionContextRequest.
      * The refreshed result is delivered asynchronously via onQueryResultRefresh().
      * Provided by the framework — call this method from your implementation, do not override it.
      */
     protected final void refreshQueryResult() { /* provided by the framework */ }
 
     /**
-     * Request a refresh of the query result using a custom QueryRequest.
+     * Request a refresh of the query result using a custom Query.
      * The refreshed result is delivered asynchronously via onQueryResultRefresh().
      * Provided by the framework — call this method from your implementation, do not override it.
      *
-     * @param queryRequest The custom query request to execute
+     * @param query The custom query to execute
      */
-    protected final void refreshQueryResult(QueryRequest queryRequest) { /* provided by the framework */ }
+    protected final void refreshQueryResult(Query query) { /* provided by the framework */ }
 
     /**
      * Returns whether this stateful function is currently running.

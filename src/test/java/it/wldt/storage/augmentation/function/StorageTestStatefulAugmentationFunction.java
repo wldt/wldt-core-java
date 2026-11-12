@@ -11,7 +11,12 @@ import it.wldt.core.state.DigitalTwinStateEventNotification;
 import it.wldt.exception.AugmentationFunctionException;
 import it.wldt.log.WldtLogger;
 import it.wldt.log.WldtLoggerProvider;
-import it.wldt.storage.query.QueryRequest;
+import it.wldt.storage.query.Query;
+import it.wldt.storage.query.QueryFieldNames;
+import it.wldt.storage.query.filter.FilterFactory;
+import it.wldt.storage.query.SortCriterion;
+import it.wldt.storage.query.aggregation.AggregationFactory;
+import it.wldt.storage.model.AggregationRecord;
 import it.wldt.storage.query.QueryResult;
 
 import java.util.Collections;
@@ -128,7 +133,7 @@ public class StorageTestStatefulAugmentationFunction extends StatefulAugmentatio
     }
 
     @Override
-    public void onQueryResultRefresh(QueryRequest queryRequest, QueryResult<?> queryResult) throws AugmentationFunctionException {
+    public void onQueryResultRefresh(Query queryRequest, QueryResult<?> queryResult) throws AugmentationFunctionException {
         logger.debug("Received query result refresh: queryRequest={}, queryResult={}", queryRequest, queryResult);
     }
 

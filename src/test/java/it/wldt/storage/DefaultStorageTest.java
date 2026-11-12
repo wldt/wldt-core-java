@@ -1,5 +1,7 @@
 package it.wldt.storage;
 
+import it.wldt.storage.query.QueryResourceType;
+
 import it.wldt.adapter.digital.DigitalActionRequest;
 import it.wldt.adapter.physical.*;
 import it.wldt.core.engine.LifeCycleState;
@@ -106,7 +108,7 @@ public class DefaultStorageTest {
 
         wldtStorage.saveDigitalTwinState(digitalTwinState, null);
 
-        Optional<DigitalTwinStateRecord> lastDigitalTwinStateOptional = wldtStorage.getLastDigitalTwinState();
+        Optional<DigitalTwinStateRecord> lastDigitalTwinStateOptional = Optional.ofNullable(StorageTestUtils.<DigitalTwinStateRecord>last(wldtStorage, QueryResourceType.DIGITAL_TWIN_STATE));
 
         //Check if the Last DT State is available in the Storage
         assertTrue(lastDigitalTwinStateOptional.isPresent());
@@ -131,7 +133,7 @@ public class DefaultStorageTest {
         digitalTwinState = digitalTwinStateManager.getDigitalTwinState();
         wldtStorage.saveDigitalTwinState(digitalTwinState, currentChangeList);
 
-        Optional<DigitalTwinStateRecord> lastDigitalTwinStateOptional = wldtStorage.getLastDigitalTwinState();
+        Optional<DigitalTwinStateRecord> lastDigitalTwinStateOptional = Optional.ofNullable(StorageTestUtils.<DigitalTwinStateRecord>last(wldtStorage, QueryResourceType.DIGITAL_TWIN_STATE));
 
         //Check if the Last DT State is available in the Storage
         assertTrue(lastDigitalTwinStateOptional.isPresent());
@@ -183,7 +185,7 @@ public class DefaultStorageTest {
 
         System.out.println(digitalTwinStateManager.getDigitalTwinState());
 
-        assertEquals(targetUpdateCount, wldtStorage.getDigitalTwinStateCount());
+        assertEquals(targetUpdateCount, StorageTestUtils.count(wldtStorage, QueryResourceType.DIGITAL_TWIN_STATE));
     }
 
     @Test
@@ -228,22 +230,22 @@ public class DefaultStorageTest {
 
         int TOTAL_TARGET_UPDATE_COUNT = 2*TARGET_STATE_UPDATE_COUNT+1;
 
-        assertEquals(TOTAL_TARGET_UPDATE_COUNT, wldtStorage.getDigitalTwinStateCount());
+        assertEquals(TOTAL_TARGET_UPDATE_COUNT, StorageTestUtils.count(wldtStorage, QueryResourceType.DIGITAL_TWIN_STATE));
 
         // Check Complete Range
-        List<DigitalTwinStateRecord> digitalTwinStateList = wldtStorage.getDigitalTwinStateInTimeRange(startTimeStamp, endTimeStamp);
+        List<DigitalTwinStateRecord> digitalTwinStateList = StorageTestUtils.inTimeRange(wldtStorage, QueryResourceType.DIGITAL_TWIN_STATE, startTimeStamp, endTimeStamp);
         assertNotNull(digitalTwinStateList);
         assertFalse(digitalTwinStateList.isEmpty());
         assertEquals(TOTAL_TARGET_UPDATE_COUNT, digitalTwinStateList.size());
 
         // Check First Block Range
-        digitalTwinStateList = wldtStorage.getDigitalTwinStateInTimeRange(startTimeStamp, middleTimeStamp);
+        digitalTwinStateList = StorageTestUtils.inTimeRange(wldtStorage, QueryResourceType.DIGITAL_TWIN_STATE, startTimeStamp, middleTimeStamp);
         assertNotNull(digitalTwinStateList);
         assertFalse(digitalTwinStateList.isEmpty());
         assertEquals(TARGET_STATE_UPDATE_COUNT+1, digitalTwinStateList.size());
 
         // Check Final Block Range
-        digitalTwinStateList = wldtStorage.getDigitalTwinStateInTimeRange(middleTimeStamp, endTimeStamp);
+        digitalTwinStateList = StorageTestUtils.inTimeRange(wldtStorage, QueryResourceType.DIGITAL_TWIN_STATE, middleTimeStamp, endTimeStamp);
         assertNotNull(digitalTwinStateList);
         assertFalse(digitalTwinStateList.isEmpty());
         assertEquals(TARGET_STATE_UPDATE_COUNT, digitalTwinStateList.size());
@@ -285,22 +287,22 @@ public class DefaultStorageTest {
 
         int TOTAL_TARGET_UPDATE_COUNT = 2*TARGET_STATE_UPDATE_COUNT+1;
 
-        assertEquals(TOTAL_TARGET_UPDATE_COUNT, wldtStorage.getDigitalTwinStateCount());
+        assertEquals(TOTAL_TARGET_UPDATE_COUNT, StorageTestUtils.count(wldtStorage, QueryResourceType.DIGITAL_TWIN_STATE));
 
         // Check Complete Range
-        List<DigitalTwinStateRecord> digitalTwinStateList = wldtStorage.getDigitalTwinStateInRange(0, TOTAL_TARGET_UPDATE_COUNT-1);
+        List<DigitalTwinStateRecord> digitalTwinStateList = StorageTestUtils.inRange(wldtStorage, QueryResourceType.DIGITAL_TWIN_STATE, 0, TOTAL_TARGET_UPDATE_COUNT-1);
         assertNotNull(digitalTwinStateList);
         assertFalse(digitalTwinStateList.isEmpty());
         assertEquals(TOTAL_TARGET_UPDATE_COUNT, digitalTwinStateList.size());
 
         // Check First Block Range
-        digitalTwinStateList = wldtStorage.getDigitalTwinStateInRange(0, 5);
+        digitalTwinStateList = StorageTestUtils.inRange(wldtStorage, QueryResourceType.DIGITAL_TWIN_STATE, 0, 5);
         assertNotNull(digitalTwinStateList);
         assertFalse(digitalTwinStateList.isEmpty());
         assertEquals(6, digitalTwinStateList.size());
 
         // Check Final Block Range
-        digitalTwinStateList = wldtStorage.getDigitalTwinStateInRange(5, TOTAL_TARGET_UPDATE_COUNT-1);
+        digitalTwinStateList = StorageTestUtils.inRange(wldtStorage, QueryResourceType.DIGITAL_TWIN_STATE, 5, TOTAL_TARGET_UPDATE_COUNT-1);
         assertNotNull(digitalTwinStateList);
         assertFalse(digitalTwinStateList.isEmpty());
         assertEquals(16, digitalTwinStateList.size());
@@ -328,13 +330,13 @@ public class DefaultStorageTest {
         }
 
         // Check the number of LifeCycle States
-        assertEquals(LIFE_CYCLE_STATE_CHANGE_NUMBER, wldtStorage.getLifeCycleStateCount());
+        assertEquals(LIFE_CYCLE_STATE_CHANGE_NUMBER, StorageTestUtils.count(wldtStorage, QueryResourceType.LIFE_CYCLE_EVENT));
 
         // Save Final experiment time
         long endTimeStamp = System.currentTimeMillis();
 
         // Check the LifeCycle States in the complete range
-        List<LifeCycleVariationRecord> lifeCycleStateMap = wldtStorage.getLifeCycleStateInTimeRange(startTimeStamp, endTimeStamp);
+        List<LifeCycleVariationRecord> lifeCycleStateMap = StorageTestUtils.inTimeRange(wldtStorage, QueryResourceType.LIFE_CYCLE_EVENT, startTimeStamp, endTimeStamp);
 
         // Check the number of LifeCycle States stored in the target range
         assertEquals(LIFE_CYCLE_STATE_CHANGE_NUMBER, lifeCycleStateMap.size());
@@ -346,7 +348,7 @@ public class DefaultStorageTest {
         }
 
         // Retrieve the LifeCycle States in the target range
-        List<LifeCycleVariationRecord> lifeCycleStateMapInRange = wldtStorage.getLifeCycleStateInRange(0, LIFE_CYCLE_STATE_CHANGE_NUMBER-1);
+        List<LifeCycleVariationRecord> lifeCycleStateMapInRange = StorageTestUtils.inRange(wldtStorage, QueryResourceType.LIFE_CYCLE_EVENT, 0, LIFE_CYCLE_STATE_CHANGE_NUMBER-1);
 
         // Check the number of LifeCycle States stored in the target range
         assertEquals(LIFE_CYCLE_STATE_CHANGE_NUMBER, lifeCycleStateMapInRange.size());
@@ -381,13 +383,13 @@ public class DefaultStorageTest {
         }
 
         // Check the number of Physical Asset Action Request
-        assertEquals(EVENT_TEST_NUMBER, wldtStorage.getPhysicalAssetActionRequestCount());
+        assertEquals(EVENT_TEST_NUMBER, StorageTestUtils.count(wldtStorage, QueryResourceType.PHYSICAL_ACTION_REQUEST));
 
         // Save Final experiment time
         long endTimeStamp = System.currentTimeMillis();
 
         // Check the Physical Asset Action Requests in the target range
-        List<PhysicalAssetActionRequestRecord> resultList = wldtStorage.getPhysicalAssetActionRequestInTimeRange(startTimeStamp, endTimeStamp);
+        List<PhysicalAssetActionRequestRecord> resultList = StorageTestUtils.inTimeRange(wldtStorage, QueryResourceType.PHYSICAL_ACTION_REQUEST, startTimeStamp, endTimeStamp);
 
         // Check the number of Physical Asset Action Requests stored in the target range
         assertEquals(EVENT_TEST_NUMBER, resultList.size());
@@ -400,7 +402,7 @@ public class DefaultStorageTest {
         }
 
         // Retrieve the Physical Asset Action Requests in the target range
-        resultList = wldtStorage.getPhysicalAssetActionRequestInRange(0, EVENT_TEST_NUMBER-1);
+        resultList = StorageTestUtils.inRange(wldtStorage, QueryResourceType.PHYSICAL_ACTION_REQUEST, 0, EVENT_TEST_NUMBER-1);
 
         // Check the number of Physical Asset Action Requests stored in the target range
         assertEquals(EVENT_TEST_NUMBER, resultList.size());
@@ -436,13 +438,13 @@ public class DefaultStorageTest {
         }
 
         // Check the number of Digital Action Request
-        assertEquals(EVENT_TEST_NUMBER, wldtStorage.getDigitalActionRequestCount());
+        assertEquals(EVENT_TEST_NUMBER, StorageTestUtils.count(wldtStorage, QueryResourceType.DIGITAL_ACTION_REQUEST));
 
         // Save Final experiment time
         long endTimeStamp = System.currentTimeMillis();
 
         // Check the Digital Action Requests in the target range
-        List<DigitalActionRequestRecord> resultList = wldtStorage.getDigitalActionRequestInTimeRange(startTimeStamp, endTimeStamp);
+        List<DigitalActionRequestRecord> resultList = StorageTestUtils.inTimeRange(wldtStorage, QueryResourceType.DIGITAL_ACTION_REQUEST, startTimeStamp, endTimeStamp);
 
         // Check the number of Digital Action Requests stored in the target range
         assertEquals(EVENT_TEST_NUMBER, resultList.size());
@@ -455,7 +457,7 @@ public class DefaultStorageTest {
         }
 
         // Retrieve the Digital Action Requests in the target range
-        resultList = wldtStorage.getDigitalActionRequestInRange(0, EVENT_TEST_NUMBER-1);
+        resultList = StorageTestUtils.inRange(wldtStorage, QueryResourceType.DIGITAL_ACTION_REQUEST, 0, EVENT_TEST_NUMBER-1);
 
         // Check the number of Digital Action Requests stored in the target range
         assertEquals(EVENT_TEST_NUMBER, resultList.size());
@@ -494,13 +496,13 @@ public class DefaultStorageTest {
         }
 
         // Check the number of Physical Asset Description Notification
-        assertEquals(EVENT_TEST_NUMBER, wldtStorage.getNewPhysicalAssetDescriptionNotificationCount());
+        assertEquals(EVENT_TEST_NUMBER, StorageTestUtils.count(wldtStorage, QueryResourceType.NEW_PAD_NOTIFICATION));
 
         // Save Final experiment time
         long endTimeStamp = System.currentTimeMillis();
 
         // Check the Digital Action Requests in the target range
-        List<PhysicalAssetDescriptionNotificationRecord> resultList = wldtStorage.getNewPhysicalAssetDescriptionNotificationInTimeRange(startTimeStamp, endTimeStamp);
+        List<PhysicalAssetDescriptionNotificationRecord> resultList = StorageTestUtils.inTimeRange(wldtStorage, QueryResourceType.NEW_PAD_NOTIFICATION, startTimeStamp, endTimeStamp);
 
         // Check the number of Physical Asset Description Notification stored in the target range
         assertEquals(EVENT_TEST_NUMBER, resultList.size());
@@ -516,7 +518,7 @@ public class DefaultStorageTest {
         }
 
         // Retrieve the Physical Asset Description Notification in the target range
-        resultList = wldtStorage.getNewPhysicalAssetDescriptionNotificationInRange(0, EVENT_TEST_NUMBER-1);
+        resultList = StorageTestUtils.inRange(wldtStorage, QueryResourceType.NEW_PAD_NOTIFICATION, 0, EVENT_TEST_NUMBER-1);
 
         // Check the number of Physical Asset Description Notification stored in the target range
         assertEquals(EVENT_TEST_NUMBER, resultList.size());
@@ -558,13 +560,13 @@ public class DefaultStorageTest {
         }
 
         // Check the number of Physical Asset Description Notification
-        assertEquals(EVENT_TEST_NUMBER, wldtStorage.getUpdatedPhysicalAssetDescriptionNotificationCount());
+        assertEquals(EVENT_TEST_NUMBER, StorageTestUtils.count(wldtStorage, QueryResourceType.UPDATED_PAD_NOTIFICATION));
 
         // Save Final experiment time
         long endTimeStamp = System.currentTimeMillis();
 
         // Check the Digital Action Requests in the target range
-        List<PhysicalAssetDescriptionNotificationRecord> resultList = wldtStorage.getUpdatedPhysicalAssetDescriptionNotificationInTimeRange(startTimeStamp, endTimeStamp);
+        List<PhysicalAssetDescriptionNotificationRecord> resultList = StorageTestUtils.inTimeRange(wldtStorage, QueryResourceType.UPDATED_PAD_NOTIFICATION, startTimeStamp, endTimeStamp);
 
         // Check the number of Physical Asset Description Notification stored in the target range
         assertEquals(EVENT_TEST_NUMBER, resultList.size());
@@ -580,7 +582,7 @@ public class DefaultStorageTest {
         }
 
         // Retrieve the Physical Asset Description Notification in the target range
-        resultList = wldtStorage.getUpdatedPhysicalAssetDescriptionNotificationInRange(0, EVENT_TEST_NUMBER-1);
+        resultList = StorageTestUtils.inRange(wldtStorage, QueryResourceType.UPDATED_PAD_NOTIFICATION, 0, EVENT_TEST_NUMBER-1);
 
         // Check the number of Physical Asset Description Notification stored in the target range
         assertEquals(EVENT_TEST_NUMBER, resultList.size());
@@ -620,13 +622,13 @@ public class DefaultStorageTest {
         }
 
         // Check the number of entities
-        assertEquals(EVENT_TEST_NUMBER, wldtStorage.getPhysicalAssetPropertyVariationCount());
+        assertEquals(EVENT_TEST_NUMBER, StorageTestUtils.count(wldtStorage, QueryResourceType.PHYSICAL_ASSET_PROPERTY_VARIATION));
 
         // Save Final experiment time
         long endTimeStamp = System.currentTimeMillis();
 
         // Check the entities in the target range
-        List<PhysicalAssetPropertyVariationRecord> resultList = wldtStorage.getPhysicalAssetPropertyVariationInTimeRange(startTimeStamp, endTimeStamp);
+        List<PhysicalAssetPropertyVariationRecord> resultList = StorageTestUtils.inTimeRange(wldtStorage, QueryResourceType.PHYSICAL_ASSET_PROPERTY_VARIATION, startTimeStamp, endTimeStamp);
 
         // Check the number of entities stored in the target range
         assertEquals(EVENT_TEST_NUMBER, resultList.size());
@@ -639,7 +641,7 @@ public class DefaultStorageTest {
         }
 
         // Retrieve the entities in the target range
-        resultList = wldtStorage.getPhysicalAssetPropertyVariationInRange(0, EVENT_TEST_NUMBER-1);
+        resultList = StorageTestUtils.inRange(wldtStorage, QueryResourceType.PHYSICAL_ASSET_PROPERTY_VARIATION, 0, EVENT_TEST_NUMBER-1);
 
         // Check the number of entities stored in the target range
         assertEquals(EVENT_TEST_NUMBER, resultList.size());
@@ -677,13 +679,13 @@ public class DefaultStorageTest {
         }
 
         // Check the number of entities
-        assertEquals(EVENT_TEST_NUMBER, wldtStorage.getPhysicalAssetRelationshipInstanceCreatedNotificationCount());
+        assertEquals(EVENT_TEST_NUMBER, StorageTestUtils.count(wldtStorage, QueryResourceType.PHYSICAL_RELATIONSHIP_INSTANCE_CREATED_NOTIFICATION));
 
         // Save Final experiment time
         long endTimeStamp = System.currentTimeMillis();
 
         // Check the entities in the target range
-        List<PhysicalRelationshipInstanceVariationRecord> resultList = wldtStorage.getPhysicalAssetRelationshipInstanceCreatedNotificationInTimeRange(startTimeStamp, endTimeStamp);
+        List<PhysicalRelationshipInstanceVariationRecord> resultList = StorageTestUtils.inTimeRange(wldtStorage, QueryResourceType.PHYSICAL_RELATIONSHIP_INSTANCE_CREATED_NOTIFICATION, startTimeStamp, endTimeStamp);
 
         // Check the number of entities stored in the target range
         assertEquals(EVENT_TEST_NUMBER, resultList.size());
@@ -698,7 +700,7 @@ public class DefaultStorageTest {
         }
 
         // Retrieve the entities in the target range
-        resultList = wldtStorage.getPhysicalAssetRelationshipInstanceCreatedNotificationInRange(0, EVENT_TEST_NUMBER-1);
+        resultList = StorageTestUtils.inRange(wldtStorage, QueryResourceType.PHYSICAL_RELATIONSHIP_INSTANCE_CREATED_NOTIFICATION, 0, EVENT_TEST_NUMBER-1);
 
         // Check the number of entities stored in the target range
         assertEquals(EVENT_TEST_NUMBER, resultList.size());
@@ -738,13 +740,13 @@ public class DefaultStorageTest {
         }
 
         // Check the number of entities
-        assertEquals(EVENT_TEST_NUMBER, wldtStorage.getPhysicalAssetRelationshipInstanceDeletedNotificationCount());
+        assertEquals(EVENT_TEST_NUMBER, StorageTestUtils.count(wldtStorage, QueryResourceType.PHYSICAL_RELATIONSHIP_INSTANCE_DELETED_NOTIFICATION));
 
         // Save Final experiment time
         long endTimeStamp = System.currentTimeMillis();
 
         // Check the entities in the target range
-        List<PhysicalRelationshipInstanceVariationRecord> resultList = wldtStorage.getPhysicalAssetRelationshipInstanceDeletedNotificationInTimeRange(startTimeStamp, endTimeStamp);
+        List<PhysicalRelationshipInstanceVariationRecord> resultList = StorageTestUtils.inTimeRange(wldtStorage, QueryResourceType.PHYSICAL_RELATIONSHIP_INSTANCE_DELETED_NOTIFICATION, startTimeStamp, endTimeStamp);
 
         // Check the number of entities stored in the target range
         assertEquals(EVENT_TEST_NUMBER, resultList.size());
@@ -759,7 +761,7 @@ public class DefaultStorageTest {
         }
 
         // Retrieve the entities in the target range
-        resultList = wldtStorage.getPhysicalAssetRelationshipInstanceDeletedNotificationInRange(0, EVENT_TEST_NUMBER-1);
+        resultList = StorageTestUtils.inRange(wldtStorage, QueryResourceType.PHYSICAL_RELATIONSHIP_INSTANCE_DELETED_NOTIFICATION, 0, EVENT_TEST_NUMBER-1);
 
         // Check the number of entities stored in the target range
         assertEquals(EVENT_TEST_NUMBER, resultList.size());
@@ -797,13 +799,13 @@ public class DefaultStorageTest {
         }
 
         // Check the number of entities
-        assertEquals(EVENT_TEST_NUMBER, wldtStorage.getDigitalTwinStateEventNotificationCount());
+        assertEquals(EVENT_TEST_NUMBER, StorageTestUtils.count(wldtStorage, QueryResourceType.DIGITAL_TWIN_STATE_EVENT_NOTIFICATION));
 
         // Save Final experiment time
         long endTimeStamp = System.currentTimeMillis();
 
         // Check the entities in the target range
-        List<DigitalTwinStateEventNotificationRecord> resultList = wldtStorage.getDigitalTwinStateEventNotificationInTimeRange(startTimeStamp, endTimeStamp);
+        List<DigitalTwinStateEventNotificationRecord> resultList = StorageTestUtils.inTimeRange(wldtStorage, QueryResourceType.DIGITAL_TWIN_STATE_EVENT_NOTIFICATION, startTimeStamp, endTimeStamp);
 
         // Check the number of entities stored in the target range
         assertEquals(EVENT_TEST_NUMBER, resultList.size());
@@ -816,7 +818,7 @@ public class DefaultStorageTest {
         }
 
         // Retrieve the entities in the target range
-        resultList = wldtStorage.getDigitalTwinStateEventNotificationInRange(0, EVENT_TEST_NUMBER-1);
+        resultList = StorageTestUtils.inRange(wldtStorage, QueryResourceType.DIGITAL_TWIN_STATE_EVENT_NOTIFICATION, 0, EVENT_TEST_NUMBER-1);
 
         // Check the number of entities stored in the target range
         assertEquals(EVENT_TEST_NUMBER, resultList.size());
@@ -852,13 +854,13 @@ public class DefaultStorageTest {
         }
 
         // Check the number of entities
-        assertEquals(EVENT_TEST_NUMBER, wldtStorage.getPhysicalAssetEventNotificationCount());
+        assertEquals(EVENT_TEST_NUMBER, StorageTestUtils.count(wldtStorage, QueryResourceType.PHYSICAL_ASSET_EVENT_NOTIFICATION));
 
         // Save Final experiment time
         long endTimeStamp = System.currentTimeMillis();
 
         // Check the entities in the target range
-        List<PhysicalAssetEventNotificationRecord> resultList = wldtStorage.getPhysicalAssetEventNotificationInTimeRange(startTimeStamp, endTimeStamp);
+        List<PhysicalAssetEventNotificationRecord> resultList = StorageTestUtils.inTimeRange(wldtStorage, QueryResourceType.PHYSICAL_ASSET_EVENT_NOTIFICATION, startTimeStamp, endTimeStamp);
 
         // Check the number of entities stored in the target range
         assertEquals(EVENT_TEST_NUMBER, resultList.size());
@@ -871,7 +873,7 @@ public class DefaultStorageTest {
         }
 
         // Retrieve the entities in the target range
-        resultList = wldtStorage.getPhysicalAssetEventNotificationInRange(0, EVENT_TEST_NUMBER-1);
+        resultList = StorageTestUtils.inRange(wldtStorage, QueryResourceType.PHYSICAL_ASSET_EVENT_NOTIFICATION, 0, EVENT_TEST_NUMBER-1);
 
         // Check the number of entities stored in the target range
         assertEquals(EVENT_TEST_NUMBER, resultList.size());

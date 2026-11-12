@@ -409,6 +409,8 @@ publishEvent()
           → onEvent() callback
 ```
 
+**Subscriber isolation and error handling**: each subscriber is served by its own thread, so a slow `onEvent()` delays only the events of that subscriber and never the other ones (e.g., the `StorageManager` executing a long query does not block the delivery of the events to the Digital Adapters). If a listener throws a `RuntimeException`, the error is logged and the processor thread of that subscriber **keeps running**, so the following events are still delivered.
+
 Constructors:
 
 ```java
