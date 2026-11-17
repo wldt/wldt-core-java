@@ -1953,6 +1953,14 @@ public abstract class DigitalTwinModel implements WldtEventListener {
      */
     private void handleDigitalActionEvent(DigitalActionWldtEvent<?> wldtEvent){
 
+        // Keep track of the last invocation of the action (no state update is generated)
+        try {
+            if(this.digitalTwinStateManager != null)
+                this.digitalTwinStateManager.recordActionInvocation(wldtEvent.getActionKey());
+        } catch (Exception e) {
+            logger.warn("Unable to record the invocation of action {}: {}", wldtEvent.getActionKey(), e.getMessage());
+        }
+
         // Check if the Monitoring Interface is configured and has the handler configured
         if(this.monitoringInterface == null || !this.monitoringInterface.isActive(WldtMetricComponent.DT_MODEL)){
             try {

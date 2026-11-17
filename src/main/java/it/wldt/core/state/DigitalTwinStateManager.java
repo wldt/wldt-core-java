@@ -239,6 +239,10 @@ public class DigitalTwinStateManager {
     public void notifyDigitalTwinStateEvent(DigitalTwinStateEventNotification<?> digitalTwinStateEventNotification) throws WldtDigitalTwinStateEventNotificationException{
 
         try {
+            //Keep track of the last notification of the event (outside of the state transactions, no state update)
+            if (digitalTwinStateEventNotification.getDigitalEventKey() != null)
+                this.digitalTwinState.recordEventNotification(digitalTwinStateEventNotification.getDigitalEventKey(), java.time.Instant.now());
+
             //Publish the event for state observer
             WldtEvent<DigitalTwinStateEventNotification<?>> notificationEvent = new WldtEvent<>(getEventNotificationWldtEventMessageType(digitalTwinStateEventNotification.getDigitalEventKey()));
             notificationEvent.setBody(digitalTwinStateEventNotification);
@@ -251,6 +255,17 @@ public class DigitalTwinStateManager {
             throw new WldtDigitalTwinStateEventNotificationException(e.getLocalizedMessage());
         }
 
+    }
+
+    /**
+     * Records that the action with the given key has been invoked now. The information is kept outside of the
+     * state transactions: no transaction is needed and no Digital Twin State update is published.
+     * It can be read through {@link DigitalTwinState#getLastActionInvocation(String)} or {@link DigitalTwinState#getValues()}.
+     * @param actionKey the key of the invoked action
+     */
+    public void recordActionInvocation(String actionKey) {
+        if (actionKey != null)
+            this.digitalTwinState.recordActionInvocation(actionKey, java.time.Instant.now());
     }
 
     /**

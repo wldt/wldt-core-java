@@ -106,7 +106,9 @@ protected void onDigitalTwinBound(Map<String, PhysicalAssetDescription> adapters
                 try{
                     if(relationship != null && relationship.getName().equals("insideIn")){
                         DigitalTwinStateRelationship<String> insideInDtStateRelationship = new DigitalTwinStateRelationship<>(relationship.getName(), relationship.getName());
-                        this.digitalTwinState.createRelationship(insideInDtStateRelationship);
+                        this.digitalTwinStateManager.startStateTransaction();
+                        this.digitalTwinStateManager.createRelationship(insideInDtStateRelationship);
+                        this.digitalTwinStateManager.commitStateTransaction();
                         observePhysicalAssetRelationship(relationship);
                     }
                 }catch (Exception e){
@@ -130,7 +132,7 @@ The object ```PhysicalAssetRelationshipInstanceCreatedWldtEvent``` describes the
 with all the information about the new Relationship Instance.
 
 The Shadowing Function analyzes the instance and create the corresponding Digital Relationship instance on the DT'State
-through the class ```DigitalTwinStateRelationshipInstance``` and the method ```this.digitalTwinState.addRelationshipInstance(relName, instance);```.
+through the class ```DigitalTwinStateRelationshipInstance``` and the method ```this.digitalTwinStateManager.addRelationshipInstance(instance);``` (the relationship name is part of the instance), inside a state transaction.
 The resulting implemented method is the following:
 
 ```java
@@ -152,7 +154,9 @@ protected void onPhysicalAssetRelationshipEstablished(PhysicalAssetRelationshipI
             
                 DigitalTwinStateRelationshipInstance<String> instance = new DigitalTwinStateRelationshipInstance<String>(relName, relTargetId, relKey);
             
-                this.digitalTwinState.addRelationshipInstance(relName, instance);
+                this.digitalTwinStateManager.startStateTransaction();
+                this.digitalTwinStateManager.addRelationshipInstance(instance);
+                this.digitalTwinStateManager.commitStateTransaction();
             }
         }
     }catch (Exception e){
@@ -166,50 +170,37 @@ protected void onPhysicalAssetRelationshipDeleted(PhysicalAssetRelationshipInsta
 }
 ```
 
-At the end the new DT's Relationships and the associated instances can be managed on a Digital Adapter using the ```onDigitalTwinSync(IDigitalTwinState startDigitalTwinState)``` method and
-the following callback methods:
+At the end the new DT's Relationships and the associated instances can be managed on a Digital Adapter using the ```onDigitalTwinSync(DigitalTwinState startDigitalTwinState)``` method and
+the following callback methods, that receive the variations of relationships together with all the other state variations:
 
-- ```onStateChangeRelationshipCreated(DigitalTwinStateRelationship digitalTwinStateRelationship)```: A Relationship description has been added to the DT's State. The Relationship is passed to the method.
-- ```onStateChangeRelationshipInstanceCreated(DigitalTwinStateRelationshipInstance digitalTwinStateRelationshipInstance)```: A Relationship Instance has been added to the DT's State. The Relationship Instance is passed to the method.
-- ```onStateChangeRelationshipDeleted(DigitalTwinStateRelationship digitalTwinStateRelationship)```: A Relationship has been removed from the DT's State. The last Relationship is passed to the method.
-- ```onStateChangeRelationshipInstanceDeleted(DigitalTwinStateRelationshipInstance digitalTwinStateRelationshipInstance)```: A Relationship Instance has been removed from the DT's State. The last Relationship Instance is passed to the method.
+- ```onStateUpdate(DigitalTwinState newDigitalTwinState, DigitalTwinState previousDigitalTwinState, ArrayList<DigitalTwinStateChange> digitalTwinStateChangeList)```:
+  Every update of the DT's State. A change on a relationship has resource type ```RELATIONSHIP``` (the relationship description) or ```RELATIONSHIP_INSTANCE``` (a concrete instance),
+  and operation ```OPERATION_ADD``` or ```OPERATION_REMOVE```. The changed resource is a ```DigitalTwinStateRelationship``` or a ```DigitalTwinStateRelationshipInstance```.
+- ```onStateDescriptionUpdate(DigitalTwinStateDescription description, List<DigitalTwinStateChange> descriptionChanges)```:
+  A Relationship description has been added, updated or removed. The description contains the list of the relationships (name and type) currently declared in the DT's State.
+- ```onStateValuesUpdate(DigitalTwinStateValues values, List<DigitalTwinStateChange> relevantChanges)```:
+  A Relationship Instance has been added or removed (or a whole relationship has been added or removed). The values contain the instances of each relationship.
+
+The relationships that the adapter is interested in can be selected with a ```DigitalTwinStateFilter``` (see [Getting started](getting_started.md#observing-the-digital-twin-state)):
+```observeDigitalTwinState(DigitalTwinStateFilter.all().withRelationshipNames("insideIn"))``` limits ```onStateUpdate``` and ```onStateValuesUpdate``` to the relationship named ```insideIn```.
 
 For example a simple implementation logging on the console can be:
 
 ```java
-/**
- * Notification that a new Relationship has been created on the DT State
- * @param digitalTwinStateRelationship
- */
 @Override
-protected void onStateChangeRelationshipCreated(DigitalTwinStateRelationship digitalTwinStateRelationship) {
-    System.out.println("[TestDigitalAdapter] -> onStateChangeRelationshipCreated(): " + digitalTwinStateRelationship);
+protected void onStateDescriptionUpdate(DigitalTwinStateDescription description, List<DigitalTwinStateChange> descriptionChanges) {
+    for (DigitalTwinStateChange change : descriptionChanges)
+        if (change.getResourceType() == DigitalTwinStateChange.ResourceType.RELATIONSHIP)
+            System.out.println("[TestDigitalAdapter] -> Relationship " + change.getOperation() + ": " + change.getResource());
 }
 
-/**
- * Notification that a new Relationship Instance has been created on the DT State
- * @param digitalTwinStateRelationshipInstance
- */
 @Override
-protected void onStateChangeRelationshipInstanceCreated(DigitalTwinStateRelationshipInstance digitalTwinStateRelationshipInstance) {
-    System.out.println("[TestDigitalAdapter] -> onStateChangeRelationshipInstanceCreated(): " + digitalTwinStateRelationshipInstance);
-}
+protected void onStateValuesUpdate(DigitalTwinStateValues values, List<DigitalTwinStateChange> relevantChanges) {
+    for (DigitalTwinStateChange change : relevantChanges)
+        if (change.getResourceType() == DigitalTwinStateChange.ResourceType.RELATIONSHIP_INSTANCE)
+            System.out.println("[TestDigitalAdapter] -> Relationship Instance " + change.getOperation() + ": " + change.getResource());
 
-/**
- * Notification that an existing Relationship has been removed from the DT State
- * @param digitalTwinStateRelationship
- */
-@Override
-protected void onStateChangeRelationshipDeleted(DigitalTwinStateRelationship digitalTwinStateRelationship) {
-    System.out.println("[TestDigitalAdapter] -> onStateChangeRelationshipDeleted(): " + digitalTwinStateRelationship);
-}
-
-/**
- * Notification that an existing Relationships Instance has been removed
- * @param digitalTwinStateRelationshipInstance
- */
-@Override
-protected void onStateChangeRelationshipInstanceDeleted(DigitalTwinStateRelationshipInstance digitalTwinStateRelationshipInstance) {
-    System.out.println("[TestDigitalAdapter] -> onStateChangeRelationshipInstanceDeleted(): " + digitalTwinStateRelationshipInstance);
+    // All the current instances of the relationship named "insideIn"
+    System.out.println("Instances: " + values.getRelationshipInstances().get("insideIn"));
 }
 ```

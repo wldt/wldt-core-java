@@ -87,6 +87,12 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
 
     protected DigitalTwinState digitalTwinState = null;
 
+    // Filter applied to the DT State updates delivered to onStateUpdate(...) and onStateValuesUpdate(...)
+    private volatile DigitalTwinStateFilter stateFilter = DigitalTwinStateFilter.all();
+
+    // True if the adapter is currently subscribed to the Digital Twin State updates
+    private volatile boolean stateObserved = false;
+
     private DigitalAdapterListener digitalAdapterListener;
 
     private DigitalAdapterLifeCycleListener digitalAdapterLifeCycleListener;
@@ -216,6 +222,40 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
         this.statePropertiesWldtEventFilter = wldtEventFilter;
 
         WldtEventBus.getInstance().subscribe(this.digitalTwinId, this.id, wldtEventFilter, this);
+        this.stateObserved = true;
+    }
+
+    /**
+     * Enable the observation of the Digital Twin State applying a {@link DigitalTwinStateFilter} to what is delivered
+     * to the adapter. The filter is applied by the adapter: the complete state keeps flowing on the event bus.
+     * <ul>
+     *   <li>{@link #onStateUpdate(DigitalTwinState, DigitalTwinState, ArrayList)} receives the new and the previous
+     *   state limited to the resources accepted by the filter, together with the accepted changes, and it is invoked
+     *   only if at least one change of the update concerns an accepted resource;</li>
+     *   <li>{@link #onStateValuesUpdate(DigitalTwinStateValues, List)} receives the values of the accepted resources,
+     *   if at least one accepted value changed;</li>
+     *   <li>{@link #onStateDescriptionUpdate(DigitalTwinStateDescription, List)} is <b>not</b> filtered: it receives the
+     *   complete description every time the structure of the state changes.</li>
+     * </ul>
+     * If the adapter is already observing the state (e.g. automatically after the DT synchronization) no additional
+     * subscription is created: only the filter is replaced. A new call replaces the previous filter.
+     * @param filter the filter, null is equivalent to {@link DigitalTwinStateFilter#all()}
+     * @throws EventBusException Thrown if there is an error in the EventBus subscription
+     */
+    protected void observeDigitalTwinState(DigitalTwinStateFilter filter) throws EventBusException {
+
+        this.stateFilter = filter != null ? filter : DigitalTwinStateFilter.all();
+
+        if(!this.stateObserved)
+            observeDigitalTwinState();
+    }
+
+    /**
+     * Remove the filter configured with {@link #observeDigitalTwinState(DigitalTwinStateFilter)}: from now on the
+     * adapter receives the complete Digital Twin State updates.
+     */
+    protected void clearStateFilter() {
+        this.stateFilter = DigitalTwinStateFilter.all();
     }
 
     /**
@@ -232,6 +272,7 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
         this.statePropertiesWldtEventFilter = wldtEventFilter;
 
         WldtEventBus.getInstance().unSubscribe(this.digitalTwinId, this.id, wldtEventFilter, this);
+        this.stateObserved = false;
     }
 
 
@@ -447,9 +488,43 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
     }
 
     //////////////////////// DIGITAL TWIN STATE UPDATE  //////////////////////////////////////////////////////////
+    /**
+     * Called on every update of the Digital Twin State. If a filter has been configured with
+     * {@link #observeDigitalTwinState(DigitalTwinStateFilter)} the states and the change list are limited to the
+     * accepted resources and the method is invoked only if at least one change concerns an accepted resource.
+     * @param newDigitalTwinState the new state (limited to the accepted resources if a filter is configured)
+     * @param previousDigitalTwinState the previous state (limited to the accepted resources if a filter is configured)
+     * @param digitalTwinStateChangeList the changes of the update (limited to the accepted resources if a filter is configured)
+     */
     abstract protected void onStateUpdate(DigitalTwinState newDigitalTwinState,
                                           DigitalTwinState previousDigitalTwinState,
                                           ArrayList<DigitalTwinStateChange> digitalTwinStateChangeList);
+
+    /**
+     * Called every time the <b>description</b> (structure) of the Digital Twin State changes: a property, action,
+     * event or relationship has been added, updated or removed. It is never filtered, neither for the triggering nor
+     * for the content, and it is invoked also when no {@link DigitalTwinStateFilter} is configured.
+     * The default implementation does nothing.
+     * @param description the complete current description of the state
+     * @param descriptionChanges all the changes of the update that altered the description
+     */
+    protected void onStateDescriptionUpdate(DigitalTwinStateDescription description,
+                                            List<DigitalTwinStateChange> descriptionChanges) {
+        // Default: nothing to do
+    }
+
+    /**
+     * Called when the <b>values</b> of the Digital Twin State change: a property value or a relationship instance has
+     * changed. It is invoked also when no {@link DigitalTwinStateFilter} is configured; if one is configured, only the
+     * changes on accepted resources trigger the method and the values are limited to the accepted resources.
+     * The default implementation does nothing.
+     * @param values the current values (limited to the accepted resources if a filter is configured)
+     * @param relevantChanges the changes of the update that altered the values (and concern accepted resources)
+     */
+    protected void onStateValuesUpdate(DigitalTwinStateValues values,
+                                       List<DigitalTwinStateChange> relevantChanges) {
+        // Default: nothing to do
+    }
 
 
     //////////////////////// EVENTS NOTIFICATION CALLBACK /////////////////////////////////////////////////////
@@ -671,8 +746,60 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
         if(digitalTwinStateChangeListOptional.isPresent())
             digitalTwinStateChangeList = (ArrayList<DigitalTwinStateChange>) digitalTwinStateChangeListOptional.get();
 
-        onStateUpdate(newDigitalTwinState, previsousDigitalTwinState, digitalTwinStateChangeList);
+        // Keep the reference to the current (complete) state aligned with the last update
+        this.digitalTwinState = newDigitalTwinState;
 
+        DigitalTwinStateFilter filter = this.stateFilter;
+
+        // The filter is applied here: the complete state keeps flowing on the event bus
+        ArrayList<DigitalTwinStateChange> acceptedChanges = digitalTwinStateChangeList;
+        boolean notifyStateUpdate = true;
+
+        if(filter.isActive() && digitalTwinStateChangeList != null) {
+            acceptedChanges = new ArrayList<>(filter.acceptedChanges(digitalTwinStateChangeList));
+            notifyStateUpdate = !acceptedChanges.isEmpty();
+        }
+
+        if(notifyStateUpdate)
+            onStateUpdate(newDigitalTwinState.filter(filter),
+                    previsousDigitalTwinState != null ? previsousDigitalTwinState.filter(filter) : null,
+                    acceptedChanges);
+
+        dispatchDescriptionAndValuesUpdate(newDigitalTwinState, digitalTwinStateChangeList, filter);
+    }
+
+    /**
+     * Notifies the description and values callbacks if the structure and/or the values of the state changed.
+     * The description is never filtered, the values are limited by the filter. A failure in one callback does not
+     * prevent the other from being notified.
+     * @param newDigitalTwinState the new state
+     * @param changes the changes of the update (if null, nothing can be evaluated and nothing is notified)
+     * @param filter the filter applied to the values
+     */
+    private void dispatchDescriptionAndValuesUpdate(DigitalTwinState newDigitalTwinState,
+                                                    List<DigitalTwinStateChange> changes,
+                                                    DigitalTwinStateFilter filter) {
+
+        if(newDigitalTwinState == null || changes == null)
+            return;
+
+        List<DigitalTwinStateChange> descriptionChanges = DigitalTwinStateFilter.all().descriptionChanges(changes);
+        if(!descriptionChanges.isEmpty()) {
+            try {
+                onStateDescriptionUpdate(newDigitalTwinState.getDescription(), descriptionChanges);
+            } catch (Exception e) {
+                logger.error("Digital Adapter ({}) -> Error in onStateDescriptionUpdate: {}", this.id, e.getLocalizedMessage());
+            }
+        }
+
+        List<DigitalTwinStateChange> valueChanges = filter.valueChanges(changes);
+        if(!valueChanges.isEmpty()) {
+            try {
+                onStateValuesUpdate(newDigitalTwinState.getValues(filter), valueChanges);
+            } catch (Exception e) {
+                logger.error("Digital Adapter ({}) -> Error in onStateValuesUpdate: {}", this.id, e.getLocalizedMessage());
+            }
+        }
     }
 
     @Override
@@ -731,7 +858,9 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
             onDigitalTwinSync(digitalTwinState);
 
             //By default, the Digital Adapter observer all the variation on the DT State
-            observeDigitalTwinState();
+            //(unless the developer already enabled the observation, e.g. with a DigitalTwinStateFilter)
+            if(!this.stateObserved)
+                observeDigitalTwinState();
 
         }catch (Exception e){
             logger.error(String.format("Digital Adapter (%s) -> observe DigitalTwin State: Error: %s", id, e.getLocalizedMessage()));

@@ -43,6 +43,12 @@ public class DigitalTwinState {
     private Map<String, DigitalTwinStateEvent> events;
     private Map<String, DigitalTwinStateRelationship<?>> relationships;
 
+    // Last invocation of each action and last notification of each event (by key). They are updated outside of the
+    // state transactions and, for this reason, they are shared (not copied) between a state and the states derived
+    // from it, so that an update done while a transaction is open is not lost on commit.
+    private Map<String, Instant> lastActionInvocations;
+    private Map<String, Instant> lastEventNotifications;
+
     // Timestamp representing the evaluation instant of the digital twin state
     private Instant evaluationInstant;
 
@@ -54,6 +60,8 @@ public class DigitalTwinState {
         this.actions = new HashMap<>();
         this.events = new HashMap<>();
         this.relationships = new HashMap<>();
+        this.lastActionInvocations = new java.util.concurrent.ConcurrentHashMap<>();
+        this.lastEventNotifications = new java.util.concurrent.ConcurrentHashMap<>();
         this.evaluationInstant = Instant.now();
     }
 
@@ -73,6 +81,8 @@ public class DigitalTwinState {
         this.actions = actions;
         this.events = events;
         this.relationships = relationships;
+        this.lastActionInvocations = new java.util.concurrent.ConcurrentHashMap<>();
+        this.lastEventNotifications = new java.util.concurrent.ConcurrentHashMap<>();
         this.evaluationInstant = Instant.now();
     }
 
@@ -88,6 +98,9 @@ public class DigitalTwinState {
         this.actions.putAll(sourceDigitalTwinState.actions);
         this.events.putAll(sourceDigitalTwinState.events);
         this.relationships.putAll(sourceDigitalTwinState.relationships);
+        // Shared on purpose, see the field comment
+        this.lastActionInvocations = sourceDigitalTwinState.lastActionInvocations;
+        this.lastEventNotifications = sourceDigitalTwinState.lastEventNotifications;
     }
 
     //////////////////////////// PROPERTY MANAGEMENT //////////////////////////////////////////////////////////
@@ -528,6 +541,181 @@ public class DigitalTwinState {
                 relationship.removeInstance(instanceKey);
             }
         });
+    }
+
+    //////////////////////////// DESCRIPTION & VALUES VIEWS ////////////////////////////////////////////////////////
+
+    /**
+     * Records the instant of the last invocation of an action. It does not require a state transaction and does
+     * not produce a state update.
+     * @param actionKey the key of the invoked action
+     * @param instant the instant of the invocation
+     */
+    protected void recordActionInvocation(String actionKey, Instant instant) {
+        if (actionKey != null && instant != null)
+            this.lastActionInvocations.put(actionKey, instant);
+    }
+
+    /**
+     * Records the instant of the last notification of an event. It does not require a state transaction and does
+     * not produce a state update.
+     * @param eventKey the key of the notified event
+     * @param instant the instant of the notification
+     */
+    protected void recordEventNotification(String eventKey, Instant instant) {
+        if (eventKey != null && instant != null)
+            this.lastEventNotifications.put(eventKey, instant);
+    }
+
+    /**
+     * @return the instant of the last invocation of the action, or empty if it has never been invoked
+     * @param actionKey the key of the action
+     */
+    public Optional<Instant> getLastActionInvocation(String actionKey) {
+        return Optional.ofNullable(this.lastActionInvocations.get(actionKey));
+    }
+
+    /**
+     * @return the instant of the last notification of the event, or empty if it has never been notified
+     * @param eventKey the key of the event
+     */
+    public Optional<Instant> getLastEventNotification(String eventKey) {
+        return Optional.ofNullable(this.lastEventNotifications.get(eventKey));
+    }
+
+    /**
+     * Builds a partial state limited to the resources accepted by the filter. Each category (properties, actions,
+     * events, relationships) is filtered independently: a null name list keeps the whole category, an empty list
+     * removes it. The resources are shared with this state (not copied). The partial state keeps the evaluation
+     * instant and the last action invocations / event notifications of this state.
+     * @param filter the content filter (null = no filter)
+     * @return this same instance if no filter is active, otherwise a new partial state
+     */
+    public DigitalTwinState filter(DigitalTwinStateFilter filter) {
+
+        if (filter == null || !filter.isActive())
+            return this;
+
+        Map<String, DigitalTwinStateProperty<?>> filteredProperties = new HashMap<>();
+        for (DigitalTwinStateProperty<?> p : safe(this.properties))
+            if (filter.acceptsProperty(p.getKey()))
+                filteredProperties.put(p.getKey(), p);
+
+        Map<String, DigitalTwinStateAction> filteredActions = new HashMap<>();
+        for (DigitalTwinStateAction a : safe(this.actions))
+            if (filter.acceptsAction(a.getKey()))
+                filteredActions.put(a.getKey(), a);
+
+        Map<String, DigitalTwinStateEvent> filteredEvents = new HashMap<>();
+        for (DigitalTwinStateEvent e : safe(this.events))
+            if (filter.acceptsEvent(e.getKey()))
+                filteredEvents.put(e.getKey(), e);
+
+        Map<String, DigitalTwinStateRelationship<?>> filteredRelationships = new HashMap<>();
+        for (DigitalTwinStateRelationship<?> r : safe(this.relationships))
+            if (filter.acceptsRelationship(r.getName()))
+                filteredRelationships.put(r.getName(), r);
+
+        DigitalTwinState filtered = new DigitalTwinState(filteredProperties, filteredActions, filteredEvents, filteredRelationships);
+        filtered.lastActionInvocations = this.lastActionInvocations;
+        filtered.lastEventNotifications = this.lastEventNotifications;
+        filtered.evaluationInstant = this.evaluationInstant;
+        return filtered;
+    }
+
+    /**
+     * Extracts the structure (no values) of the complete state.
+     * @return the description of the state
+     */
+    public DigitalTwinStateDescription getDescription() {
+        return getDescription(DigitalTwinStateFilter.all());
+    }
+
+    /**
+     * Extracts the structure (no values) of the resources accepted by the filter.
+     * @param filter the content filter (null = no filter)
+     * @return the description of the state
+     */
+    public DigitalTwinStateDescription getDescription(DigitalTwinStateFilter filter) {
+
+        DigitalTwinStateFilter f = filter != null ? filter : DigitalTwinStateFilter.all();
+
+        List<DigitalTwinStateDescription.PropertyDescription> propertyDescriptions = new ArrayList<>();
+        for (DigitalTwinStateProperty<?> p : safe(this.properties))
+            if (f.acceptsProperty(p.getKey()))
+                propertyDescriptions.add(new DigitalTwinStateDescription.PropertyDescription(
+                        p.getKey(), p.getType(), p.getContentType(), p.isReadable(), p.isWritable(), p.isExposed()));
+
+        List<DigitalTwinStateDescription.ActionDescription> actionDescriptions = new ArrayList<>();
+        for (DigitalTwinStateAction a : safe(this.actions))
+            if (f.acceptsAction(a.getKey()))
+                actionDescriptions.add(new DigitalTwinStateDescription.ActionDescription(
+                        a.getKey(), a.getType(), a.getContentType(), a.isExposed()));
+
+        List<DigitalTwinStateDescription.EventDescription> eventDescriptions = new ArrayList<>();
+        for (DigitalTwinStateEvent e : safe(this.events))
+            if (f.acceptsEvent(e.getKey()))
+                eventDescriptions.add(new DigitalTwinStateDescription.EventDescription(
+                        e.getKey(), e.getType(), e.getContentType()));
+
+        List<DigitalTwinStateDescription.RelationshipDescription> relationshipDescriptions = new ArrayList<>();
+        for (DigitalTwinStateRelationship<?> r : safe(this.relationships))
+            if (f.acceptsRelationship(r.getName()))
+                relationshipDescriptions.add(new DigitalTwinStateDescription.RelationshipDescription(r.getName(), r.getType()));
+
+        return new DigitalTwinStateDescription(this.evaluationInstant,
+                propertyDescriptions, actionDescriptions, eventDescriptions, relationshipDescriptions);
+    }
+
+    /**
+     * Extracts a snapshot of the values of the complete state.
+     * @return the values of the state
+     */
+    public DigitalTwinStateValues getValues() {
+        return getValues(DigitalTwinStateFilter.all());
+    }
+
+    /**
+     * Extracts a snapshot of the values of the resources accepted by the filter: the properties and the
+     * relationships instances, plus the last invocation of the accepted actions and the last notification of the
+     * accepted events (only if they ever happened).
+     * @param filter the content filter (null = no filter)
+     * @return the values of the state
+     */
+    public DigitalTwinStateValues getValues(DigitalTwinStateFilter filter) {
+
+        DigitalTwinStateFilter f = filter != null ? filter : DigitalTwinStateFilter.all();
+
+        Map<String, Object> propertyValues = new HashMap<>();
+        for (DigitalTwinStateProperty<?> p : safe(this.properties))
+            if (f.acceptsProperty(p.getKey()))
+                propertyValues.put(p.getKey(), p.getValue());
+
+        Map<String, List<DigitalTwinStateRelationshipInstance<?>>> relationshipInstances = new HashMap<>();
+        for (DigitalTwinStateRelationship<?> r : safe(this.relationships))
+            if (f.acceptsRelationship(r.getName()))
+                relationshipInstances.put(r.getName(), r.getInstances());
+
+        Map<String, Instant> actionInvocations = new HashMap<>();
+        for (DigitalTwinStateAction a : safe(this.actions)) {
+            Instant last = this.lastActionInvocations.get(a.getKey());
+            if (last != null && f.acceptsAction(a.getKey()))
+                actionInvocations.put(a.getKey(), last);
+        }
+
+        Map<String, Instant> eventNotifications = new HashMap<>();
+        for (DigitalTwinStateEvent e : safe(this.events)) {
+            Instant last = this.lastEventNotifications.get(e.getKey());
+            if (last != null && f.acceptsEvent(e.getKey()))
+                eventNotifications.put(e.getKey(), last);
+        }
+
+        return new DigitalTwinStateValues(this.evaluationInstant,
+                propertyValues, relationshipInstances, actionInvocations, eventNotifications);
+    }
+
+    private static <T> Collection<T> safe(Map<String, T> map) {
+        return map == null ? Collections.<T>emptyList() : new ArrayList<>(map.values());
     }
 
     public Instant getEvaluationInstant() {

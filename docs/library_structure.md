@@ -60,7 +60,8 @@ Each of this core components has the following main characteristics:
   the mapping, following the model defined by the designer.
   This component also exposes a set of methods to allow SF manipulation.
   Every time the Digital Twin State is modified, the latter generates the corresponding DT's event to notify all the components
-  about the variation.
+  about the variation. The state can be read as a whole or through its **description** (structure) and its **values**,
+  optionally limited to a set of resources by name with a `DigitalTwinStateFilter`.
 - **Digital Twin Model**: It is the library component responsible for defining the behavior of
   the Digital Twin by interacting with the Digital Twin State.
   Specifically, it implements the shadowing process that allows keeping the
@@ -85,7 +86,8 @@ Each of this core components has the following main characteristics:
   The Digital Twin Model
   selects the components of the various PADs that it is interested in managing.
 - **Digital Adapter**: It provides the set of callbacks that each specific implementation can use
-  to be notified of changes in the DT state.
+  to be notified of changes in the DT state (`onStateUpdate`, `onStateDescriptionUpdate` and `onStateValuesUpdate`),
+  optionally limited to the resources selected with a `DigitalTwinStateFilter`.
   Symmetrically to what happens with Physical Adapters, a Digital Twin can define
   multiple Digital Adapters to expose its state and functionality through different protocols.
 

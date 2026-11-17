@@ -18,9 +18,8 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
-package it.wldt.augmentation.context;
+package it.wldt.core.state;
 
-import it.wldt.core.state.*;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -35,16 +34,16 @@ import java.util.Set;
  * <p>
  * A rule is made of three optional criteria (operations, resource types, resource names). An empty criterion is a
  * wildcard, and all the non-empty criteria must be satisfied by the change (AND). For example
- * {@code StateChangeFilter.builder().operations(OPERATION_UPDATE_VALUE).resourceTypes(PROPERTY_VALUE).resourceNames("temperature").build()}
+ * {@code DigitalTwinStateChangeFilter.builder().operations(OPERATION_UPDATE_VALUE).resourceTypes(PROPERTY_VALUE).resourceNames("temperature").build()}
  * matches only value updates of the property "temperature".
  */
-public final class StateChangeFilter {
+public final class DigitalTwinStateChangeFilter {
 
     private final Set<DigitalTwinStateChange.Operation> operations;
     private final Set<DigitalTwinStateChange.ResourceType> resourceTypes;
     private final Set<String> resourceNames;
 
-    private StateChangeFilter(Set<DigitalTwinStateChange.Operation> operations,
+    private DigitalTwinStateChangeFilter(Set<DigitalTwinStateChange.Operation> operations,
                               Set<DigitalTwinStateChange.ResourceType> resourceTypes,
                               Set<String> resourceNames) {
         this.operations = Collections.unmodifiableSet(operations);
@@ -53,7 +52,7 @@ public final class StateChangeFilter {
     }
 
     /**
-     * @return a new builder for a {@link StateChangeFilter}
+     * @return a new builder for a {@link DigitalTwinStateChangeFilter}
      */
     public static Builder builder() {
         return new Builder();
@@ -64,7 +63,7 @@ public final class StateChangeFilter {
      * @param propertyNames names of the properties (empty = any property)
      * @return the rule
      */
-    public static StateChangeFilter onPropertyValueUpdate(String... propertyNames) {
+    public static DigitalTwinStateChangeFilter onPropertyValueUpdate(String... propertyNames) {
         return builder()
                 .operations(DigitalTwinStateChange.Operation.OPERATION_UPDATE_VALUE)
                 .resourceTypes(DigitalTwinStateChange.ResourceType.PROPERTY_VALUE)
@@ -77,7 +76,7 @@ public final class StateChangeFilter {
      * @param resourceNames the names of the resources (empty = any resource)
      * @return the rule
      */
-    public static StateChangeFilter onResources(String... resourceNames) {
+    public static DigitalTwinStateChangeFilter onResources(String... resourceNames) {
         return builder().resourceNames(resourceNames).build();
     }
 
@@ -153,12 +152,12 @@ public final class StateChangeFilter {
 
     @Override
     public String toString() {
-        return "StateChangeFilter{operations=" + operations + ", resourceTypes=" + resourceTypes +
+        return "DigitalTwinStateChangeFilter{operations=" + operations + ", resourceTypes=" + resourceTypes +
                 ", resourceNames=" + resourceNames + '}';
     }
 
     /**
-     * Builder of {@link StateChangeFilter}.
+     * Builder of {@link DigitalTwinStateChangeFilter}.
      */
     public static final class Builder {
 
@@ -212,8 +211,8 @@ public final class StateChangeFilter {
         /**
          * @return the immutable rule
          */
-        public StateChangeFilter build() {
-            return new StateChangeFilter(new HashSet<>(operations), new HashSet<>(resourceTypes), new HashSet<>(resourceNames));
+        public DigitalTwinStateChangeFilter build() {
+            return new DigitalTwinStateChangeFilter(new HashSet<>(operations), new HashSet<>(resourceTypes), new HashSet<>(resourceNames));
         }
     }
 }

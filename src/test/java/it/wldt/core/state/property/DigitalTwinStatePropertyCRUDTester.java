@@ -249,7 +249,7 @@ public class DigitalTwinStatePropertyCRUDTester {
      */
     @Test
     @SuppressWarnings("deprecation")
-    public void propertyTypeValidationWithDeprecatedConstructor() throws WldtDigitalTwinStatePropertyException, WldtDigitalTwinStatePropertyBadRequestException, WldtDigitalTwinStateException, WldtDigitalTwinStatePropertyNotFoundException {
+    public void propertyTypeValidationWithTypeAndContentType() throws WldtDigitalTwinStatePropertyException, WldtDigitalTwinStatePropertyBadRequestException, WldtDigitalTwinStateException, WldtDigitalTwinStatePropertyNotFoundException {
 
         //Init DigitaTwin State
         initTestDtState();
@@ -266,7 +266,7 @@ public class DigitalTwinStatePropertyCRUDTester {
         assertTrue(digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).isPresent());
         assertEquals(testProperty1, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).get());
         assertEquals(TEST_PROPERTY_TYPE, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).get().getType());
-        assertEquals(String.class.getName(), digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).get().getContentType());
+        assertEquals(TEST_PROPERTY_TYPE, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).get().getContentType());
 
     }
 

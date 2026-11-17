@@ -20,6 +20,8 @@
  */
 package it.wldt.augmentation.context;
 
+import it.wldt.core.state.DigitalTwinStateChangeFilter;
+import it.wldt.core.state.DigitalTwinStateFilter;
 import it.wldt.storage.query.Query;
 
 import java.util.ArrayList;
@@ -78,9 +80,9 @@ public class AugmentationFunctionContextRequest {
 
     /**
      * Trigger filter (stateful functions only): a state update is notified to the function only if at least one of
-     * its changes matches at least one of these rules. Null or empty (default) = every state update is notified.
+     * its changes matches at least one of these rules (and, if a content filter is defined, concerns an accepted resource). Null or empty (default) = every state update is notified.
      */
-    private List<StateChangeFilter> stateChangeFilters = null;
+    private List<DigitalTwinStateChangeFilter> stateChangeFilters = null;
 
     /**
      * The Query associate to the augmentation function context,
@@ -257,12 +259,15 @@ public class AugmentationFunctionContextRequest {
     /**
      * @return the trigger rules (null or empty = every state update is notified)
      */
-    public List<StateChangeFilter> getStateChangeFilters() {
+    public List<DigitalTwinStateChangeFilter> getStateChangeFilters() {
         return stateChangeFilters;
     }
 
     /**
      * Restrict the properties delivered to the function.
+     * The filter has a double role: it selects the content delivered to the function and, for
+     * stateful functions, a state update is notified only if at least one of its changes concerns an accepted resource
+     * (when a trigger filter is also defined, the same change must satisfy both).
      * @param propertyNames the property names, null to remove the filter, empty to deliver no property
      * @return this request
      */
@@ -273,6 +278,9 @@ public class AugmentationFunctionContextRequest {
 
     /**
      * Restrict the actions delivered to the function.
+     * The filter has a double role: it selects the content delivered to the function and, for
+     * stateful functions, a state update is notified only if at least one of its changes concerns an accepted resource
+     * (when a trigger filter is also defined, the same change must satisfy both).
      * @param actionNames the action names, null to remove the filter, empty to deliver no action
      * @return this request
      */
@@ -283,6 +291,9 @@ public class AugmentationFunctionContextRequest {
 
     /**
      * Restrict the events (and the event notifications) delivered to the function.
+     * The filter has a double role: it selects the content delivered to the function and, for
+     * stateful functions, a state update is notified only if at least one of its changes concerns an accepted resource
+     * (when a trigger filter is also defined, the same change must satisfy both).
      * @param eventNames the event names, null to remove the filter, empty to deliver no event
      * @return this request
      */
@@ -293,6 +304,9 @@ public class AugmentationFunctionContextRequest {
 
     /**
      * Restrict the relationships delivered to the function.
+     * The filter has a double role: it selects the content delivered to the function and, for
+     * stateful functions, a state update is notified only if at least one of its changes concerns an accepted resource
+     * (when a trigger filter is also defined, the same change must satisfy both).
      * @param relationshipNames the relationship names, null to remove the filter, empty to deliver no relationship
      * @return this request
      */
@@ -307,7 +321,7 @@ public class AugmentationFunctionContextRequest {
      * @param rules the trigger rules
      * @return this request
      */
-    public AugmentationFunctionContextRequest withStateChangeFilters(StateChangeFilter... rules) {
+    public AugmentationFunctionContextRequest withStateChangeFilters(DigitalTwinStateChangeFilter... rules) {
         this.stateChangeFilters = (rules == null || rules.length == 0) ? null
                 : Collections.unmodifiableList(new ArrayList<>(Arrays.asList(rules)));
         return this;
@@ -326,6 +340,14 @@ public class AugmentationFunctionContextRequest {
      */
     public boolean hasTriggerFilter() {
         return stateChangeFilters != null && !stateChangeFilters.isEmpty();
+    }
+
+    /**
+     * @return the content filter of this request (property, action, event, relationship names) as a generic
+     * {@link DigitalTwinStateFilter}, accepting everything if no content filter is defined
+     */
+    public DigitalTwinStateFilter toStateFilter() {
+        return DigitalTwinStateFilter.of(propertyNameFilter, actionNameFilter, eventNameFilter, relationshipNameFilter);
     }
 
     private static List<String> copyNames(String[] names) {

@@ -21,12 +21,8 @@
 package it.wldt.augmentation.context;
 
 import it.wldt.core.state.*;
-import it.wldt.log.WldtLogger;
-import it.wldt.log.WldtLoggerProvider;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Utility methods applying the filters defined in an {@link AugmentationFunctionContextRequest}:
@@ -35,29 +31,51 @@ import java.util.Map;
  */
 public final class DigitalTwinStateFilterUtils {
 
-    private static final WldtLogger logger = WldtLoggerProvider.getLogger(DigitalTwinStateFilterUtils.class);
-
     private DigitalTwinStateFilterUtils() {
     }
 
     /**
-     * Checks if a state update must be notified according to the trigger filter of the context request.
+     * Checks if a state update must be notified according to the filters of the context request. The trigger filter
+     * ({@link DigitalTwinStateChangeFilter} rules) and the content filter ({@link DigitalTwinStateFilter}) are
+     * evaluated on each single change: the update is notified if at least one change satisfies both
+     * (a missing filter accepts every change). Two different changes, one matching only the trigger filter and the
+     * other only the content filter, do not trigger the update.
+     * <p>
+     * Without change information (null or empty list) the update is not notified if a trigger filter is defined,
+     * and it is notified otherwise (the relevance for the content filter cannot be evaluated).
      * @param contextRequest the context request of the function (null = no filter)
      * @param changeList the changes of the state update (may be null)
-     * @return true if no trigger filter is defined, or at least one change matches at least one rule
+     * @return true if the update must be notified
      */
     public static boolean shouldTrigger(AugmentationFunctionContextRequest contextRequest, List<DigitalTwinStateChange> changeList) {
-        if (contextRequest == null || !contextRequest.hasTriggerFilter())
+        if (contextRequest == null)
+            return true;
+
+        boolean triggerFilter = contextRequest.hasTriggerFilter();
+        boolean contentFilter = contextRequest.hasContentFilter();
+
+        if (!triggerFilter && !contentFilter)
             return true;
 
         if (changeList == null || changeList.isEmpty())
-            return false;
+            return !triggerFilter;
 
-        for (DigitalTwinStateChange change : changeList)
-            for (StateChangeFilter rule : contextRequest.getStateChangeFilters())
-                if (rule.matches(change))
-                    return true;
+        DigitalTwinStateFilter stateFilter = contextRequest.toStateFilter();
 
+        for (DigitalTwinStateChange change : changeList) {
+            if (contentFilter && !stateFilter.accepts(change))
+                continue;
+            if (!triggerFilter || matchesAnyRule(contextRequest, change))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static boolean matchesAnyRule(AugmentationFunctionContextRequest contextRequest, DigitalTwinStateChange change) {
+        for (DigitalTwinStateChangeFilter rule : contextRequest.getStateChangeFilters())
+            if (rule.matches(change))
+                return true;
         return false;
     }
 
@@ -85,41 +103,17 @@ public final class DigitalTwinStateFilterUtils {
         if (state == null || contextRequest == null || !contextRequest.hasContentFilter())
             return state;
 
-        Map<String, DigitalTwinStateProperty<?>> properties = new HashMap<>();
-        Map<String, DigitalTwinStateAction> actions = new HashMap<>();
-        Map<String, DigitalTwinStateEvent> events = new HashMap<>();
-        Map<String, DigitalTwinStateRelationship<?>> relationships = new HashMap<>();
+        return applyFilter(state, contextRequest.toStateFilter());
+    }
 
-        try {
-            List<String> propertyFilter = contextRequest.getPropertyNameFilter();
-            if (state.getPropertyList().isPresent())
-                for (DigitalTwinStateProperty<?> p : state.getPropertyList().get())
-                    if (propertyFilter == null || propertyFilter.contains(p.getKey()))
-                        properties.put(p.getKey(), p);
-
-            List<String> actionFilter = contextRequest.getActionNameFilter();
-            if (state.getActionList().isPresent())
-                for (DigitalTwinStateAction a : state.getActionList().get())
-                    if (actionFilter == null || actionFilter.contains(a.getKey()))
-                        actions.put(a.getKey(), a);
-
-            List<String> eventFilter = contextRequest.getEventNameFilter();
-            if (state.getEventList().isPresent())
-                for (DigitalTwinStateEvent e : state.getEventList().get())
-                    if (eventFilter == null || eventFilter.contains(e.getKey()))
-                        events.put(e.getKey(), e);
-
-            List<String> relationshipFilter = contextRequest.getRelationshipNameFilter();
-            if (state.getRelationshipList().isPresent())
-                for (DigitalTwinStateRelationship<?> r : state.getRelationshipList().get())
-                    if (relationshipFilter == null || relationshipFilter.contains(r.getName()))
-                        relationships.put(r.getName(), r);
-
-        } catch (Exception e) {
-            logger.error("Error while filtering the Digital Twin State, the complete state is returned: {}", e.getMessage());
-            return state;
-        }
-
-        return new DigitalTwinState(properties, actions, events, relationships);
+    /**
+     * Applies a generic content filter to a state. Each category (properties, actions, events, relationships) is
+     * filtered independently: a null name list keeps the whole category, an empty list removes it.
+     * @param state the full state
+     * @param filter the content filter (null = no filter)
+     * @return the same instance if no filter is active, otherwise a new partial state
+     */
+    public static DigitalTwinState applyFilter(DigitalTwinState state, DigitalTwinStateFilter filter) {
+        return state == null ? null : state.filter(filter);
     }
 }

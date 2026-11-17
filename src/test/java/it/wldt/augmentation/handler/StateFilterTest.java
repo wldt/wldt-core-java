@@ -22,7 +22,6 @@ package it.wldt.augmentation.handler;
 
 import it.wldt.augmentation.context.AugmentationFunctionContextRequest;
 import it.wldt.augmentation.context.DigitalTwinStateFilterUtils;
-import it.wldt.augmentation.context.StateChangeFilter;
 import it.wldt.augmentation.function.StatefulAugmentationFunction;
 import it.wldt.augmentation.request.AugmentationFunctionRequest;
 import it.wldt.core.state.*;
@@ -120,7 +119,7 @@ public class StateFilterTest {
     public void triggerFilterFiresOnlyOnMatchingChange() throws Exception {
         TestHandler handler = new TestHandler();
         StatefulAugmentationFunction f = function(new AugmentationFunctionContextRequest()
-                .withStateChangeFilters(StateChangeFilter.onPropertyValueUpdate("temp")));
+                .withStateChangeFilters(DigitalTwinStateChangeFilter.onPropertyValueUpdate("temp")));
 
         handler.state(f, fullState(), changes(valueChange("hum")));
         handler.state(f, fullState(), changes(new DigitalTwinStateChange(OPERATION_ADD, PROPERTY, new DigitalTwinStateProperty<>("temp", 1))));
@@ -135,8 +134,8 @@ public class StateFilterTest {
     public void multipleTriggerRulesAreOred() throws Exception {
         TestHandler handler = new TestHandler();
         StatefulAugmentationFunction f = function(new AugmentationFunctionContextRequest()
-                .withStateChangeFilters(StateChangeFilter.onPropertyValueUpdate("temp"),
-                        StateChangeFilter.builder().operations(OPERATION_REMOVE).resourceTypes(RELATIONSHIP).build()));
+                .withStateChangeFilters(DigitalTwinStateChangeFilter.onPropertyValueUpdate("temp"),
+                        DigitalTwinStateChangeFilter.builder().operations(OPERATION_REMOVE).resourceTypes(RELATIONSHIP).build()));
 
         handler.state(f, fullState(), changes(new DigitalTwinStateChange(OPERATION_REMOVE, RELATIONSHIP, new DigitalTwinStateRelationship<>("near", "t"))));
         handler.state(f, fullState(), changes(valueChange("temp")));
@@ -147,7 +146,7 @@ public class StateFilterTest {
 
     @Test
     public void nameOnlyRuleMatchesAnyOperationAndType() throws Exception {
-        StateChangeFilter rule = StateChangeFilter.onResources("near");
+        DigitalTwinStateChangeFilter rule = DigitalTwinStateChangeFilter.onResources("near");
         assertTrue(rule.matches(new DigitalTwinStateChange(OPERATION_ADD, RELATIONSHIP, new DigitalTwinStateRelationship<>("near", "t"))));
         assertFalse(rule.matches(valueChange("temp")));
     }

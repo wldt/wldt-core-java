@@ -567,7 +567,7 @@ public class AugmentationFunctionContextRequest {
     private List<String> actionNameFilter;          // content filter, null = all
     private List<String> eventNameFilter;           // content filter, null = all
     private List<String> relationshipNameFilter;    // content filter, null = all
-    private List<StateChangeFilter> stateChangeFilters;   // trigger filter, null/empty = every update
+    private List<DigitalTwinStateChangeFilter> stateChangeFilters;   // trigger filter, null/empty = every update
     private Query query;
     private boolean refreshQueryOnStateUpdate;   // default false
 }
@@ -583,7 +583,7 @@ public class AugmentationFunctionContextRequest {
 | `actionNameFilter` | `List<String>` | `null` | Content filter: actions delivered to the function (null = all, empty = none) |
 | `eventNameFilter` | `List<String>` | `null` | Content filter: events in the state **and** event notifications delivered (null = all, empty = none) |
 | `relationshipNameFilter` | `List<String>` | `null` | Content filter: relationships delivered to the function (null = all, empty = none) |
-| `stateChangeFilters` | `List<StateChangeFilter>` | `null` | Trigger filter (stateful only): a state update is pushed only if one of its changes matches one of the rules (null/empty = every update) |
+| `stateChangeFilters` | `List<DigitalTwinStateChangeFilter>` | `null` | Trigger filter (stateful only): a state update is pushed only if one of its changes matches one of the rules (null/empty = every update) |
 | `query` | `Query` | `null` | Query to execute on DT storage for historical data (see [Storage & Query System](storage_query_system.md#query-system)) |
 | `refreshQueryOnStateUpdate` | `boolean` | `false` | If `true` the query is executed and its result delivered to the function before every state update (stateful functions only, see [below](#query-refresh-on-every-state-update-opt-in)) |
 
@@ -596,8 +596,8 @@ Both filters are optional and **disabled by default**: with no filter the functi
 with the complete state.
 
 **1. Trigger filter** (`stateChangeFilters`, stateful functions only) — decides *when* a state update is pushed.
-Each `StateChangeFilter` rule has optional criteria on operation, resource type and resource name (empty criterion =
-wildcard, non-empty criteria are AND-ed). The update is pushed if **any** change of the update matches **any** rule.
+Each `DigitalTwinStateChangeFilter` rule has optional criteria on operation, resource type and resource name (empty criterion =
+wildcard, non-empty criteria are AND-ed). The update is pushed if **any** change of the update matches **any** rule (and, if a content filter is also defined, concerns an accepted resource, see below).
 
 **2. Content filter** (`propertyNameFilter`, `actionNameFilter`, `eventNameFilter`, `relationshipNameFilter`,
 stateful and stateless) — decides *what* is delivered. The function receives a partial `DigitalTwinState` copy
@@ -609,8 +609,8 @@ whose name is not listed.
 AugmentationFunctionContextRequest request = new AugmentationFunctionContextRequest()
         // push only when the value of "temperature" or "humidity" is updated...
         .withStateChangeFilters(
-                StateChangeFilter.onPropertyValueUpdate("temperature", "humidity"),
-                StateChangeFilter.builder()
+                DigitalTwinStateChangeFilter.onPropertyValueUpdate("temperature", "humidity"),
+                DigitalTwinStateChangeFilter.builder()
                         .operations(DigitalTwinStateChange.Operation.OPERATION_REMOVE)
                         .resourceTypes(DigitalTwinStateChange.ResourceType.RELATIONSHIP_INSTANCE)
                         .build())
@@ -619,8 +619,29 @@ AugmentationFunctionContextRequest request = new AugmentationFunctionContextRequ
         .withActionNameFilter();
 ```
 
-Notes: the partial state has a new `evaluationInstant`; the trigger filter does not apply to event notifications
-(use `eventNameFilter`) nor to stateless functions, which are request-driven.
+**The content filter has a double role.** Besides selecting what is delivered, for stateful functions it also
+decides *when*: with a content filter, a state update is pushed only if at least one of its changes concerns an
+accepted resource. When both filters are defined, the **same change** must satisfy both (a change matching only the
+trigger filter plus another one matching only the content filter do not push the update). Examples:
+
+| Filters | `onStateUpdate` is invoked when |
+|---|---|
+| none | every state update |
+| trigger only (`OPERATION_UPDATE_VALUE` on property values) | any property value update, complete state delivered |
+| content only (`withPropertyNameFilter("temperature", "humidity")`) | a change concerns `temperature`, `humidity` or any other category left unset (unset = accepts all) |
+| both | a value update on `temperature` **or** on `humidity` (each one alone is enough) |
+
+Without change information (null/empty change list) the update is pushed only if no trigger filter is defined.
+Stateless functions are request-driven, so for them the content filter only restricts the state in the context.
+
+The content filter is the generic `DigitalTwinStateFilter` (package `it.wldt.core.state`), also used by the
+Digital Adapter and by `DigitalTwinState.getDescription(filter)` / `getValues(filter)` / `filter(filter)`:
+`request.toStateFilter()` returns it. `DigitalTwinStateChangeFilter` lives in the same package. The delivered partial
+state keeps the `evaluationInstant` of the full state. The trigger filter does not apply to event notifications
+(use `eventNameFilter`).
+
+A function that needs the structure or the values of the state calls `state.getDescription()` / `state.getValues()`
+on the received (already filtered) `DigitalTwinState`.
 
 #### Constructors
 
@@ -867,7 +888,7 @@ For **stateful functions**, the context lifecycle is more complex:
 1. **Context Request Definition**: The function defines its initial context requirements
 2. **Start Invocation**: When `startAugmentationFunction()` is called
 3. **Initial Context**: The `start()` method receives an initial context built from the context request
-4. **Runtime Updates**: The function automatically receives `onStateUpdate()` and `onEventNotificationReceived()` callbacks with fresh state/events. By default every update is pushed with the complete state; the optional [State Filters](#state-filters) of the context request restrict when updates are pushed and which part of the state is delivered (the same content filters also shape the initial context)
+4. **Runtime Updates**: The function automatically receives `onStateUpdate()` and `onEventNotificationReceived()` callbacks with fresh state/events. By default every update is pushed with the complete state; the optional [State Filters](#state-filters) of the context request restrict which part of the state is delivered and, together, when an update is pushed (an update is pushed only if at least one change satisfies both the trigger filter and the content filter; the same content filters also shape the initial context)
 5. **Context Update Request**: The function can explicitly request context updates when needed
 6. **Stop**: The `stop()` method may receive a final context
 
@@ -1016,7 +1037,7 @@ directly to `refreshQueryResult(Query)` when the query parameters need to change
 | **Context Frequency** | Once per `execute()` call | Initial context + runtime updates |
 | **Context Source** | Built fresh each execution | Initial + push notifications or polling requests |
 | **Context Request** | Defines single execution needs | Defines initial setup + observation preferences |
-| **State Observation** | Initial/execution context contains the state if `observeState = true` (optionally narrowed by content filters) | Via `onStateUpdate()` if `observeState = true`, only for updates matching the trigger filter (if any), with the state narrowed by the content filters (if any) |
+| **State Observation** | Initial/execution context contains the state if `observeState = true` (optionally narrowed by content filters) | Via `onStateUpdate()` if `observeState = true`, only for updates with at least one change matching the trigger filter (if any) and concerning a resource accepted by the content filters (if any), with the state narrowed by the content filters |
 | **Event Observation** | Not applicable (no lifecycle) | Via `onEventNotificationReceived()` if `observeEventNotifications = true`, only for events listed in `eventNameFilter` (if set) |
 | **Context Updates** | Not possible (stateless) | Automatic (push) or explicit (polling) |
 | **Query Execution** | Once per execution | Initial + can be refreshed on request |
