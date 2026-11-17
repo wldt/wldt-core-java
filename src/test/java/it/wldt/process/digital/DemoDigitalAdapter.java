@@ -1,16 +1,14 @@
 package it.wldt.process.digital;
 
 import it.wldt.adapter.digital.DigitalAdapter;
-import it.wldt.core.state.DigitalTwinState;
-import it.wldt.core.state.DigitalTwinStateChange;
-import it.wldt.core.state.DigitalTwinStateEvent;
-import it.wldt.core.state.DigitalTwinStateEventNotification;
+import it.wldt.core.state.*;
 import it.wldt.exception.EventBusException;
 import it.wldt.log.WldtLogger;
 import it.wldt.log.WldtLoggerProvider;
 import it.wldt.utils.SharedTestMetrics;
 import it.wldt.storage.query.*;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Collectors;
 
 public class DemoDigitalAdapter extends DigitalAdapter<DemoDigitalAdapterConfiguration> {
@@ -79,6 +77,16 @@ public class DemoDigitalAdapter extends DigitalAdapter<DemoDigitalAdapterConfigu
         logger.info("DummyDigitalTwinAdapter -> onStateUpdate() - Previous State: {}", previousDigitalTwinState);
         logger.info("DummyDigitalTwinAdapter -> onStateUpdate() - State's Changes: {}", digitalTwinStateChangeList);
         SharedTestMetrics.getInstance().addDigitalAdapterStateUpdate(digitalTwinId, digitalTwinState);
+    }
+
+    @Override
+    protected void onStateDescriptionUpdate(DigitalTwinStateDescription description, List<DigitalTwinStateChange> descriptionChanges) {
+
+    }
+
+    @Override
+    protected void onStateValuesUpdate(DigitalTwinStateValues values, List<DigitalTwinStateChange> relevantChanges) {
+
     }
 
 

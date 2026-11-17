@@ -108,6 +108,21 @@ public class TestDigitalAdapter extends DigitalAdapter<TestDigitalAdapterConfigu
             this.receivedDigitalTwinStateUpdateList.add(digitalTwinState);
     }
 
+    @Override
+    protected void onStateDescriptionUpdate(DigitalTwinStateDescription description, List<DigitalTwinStateChange> descriptionChanges) {
+
+        logger.info("DummyDigitalTwinAdapter -> onStateDescriptionUpdate() - New Description: {}", description);
+        logger.info("DummyDigitalTwinAdapter -> onStateDescriptionUpdate() - Description's Changes: {}", descriptionChanges);
+
+    }
+
+    @Override
+    protected void onStateValuesUpdate(DigitalTwinStateValues values, List<DigitalTwinStateChange> relevantChanges) {
+
+        logger.info("DummyDigitalTwinAdapter -> onStateValuesUpdate() - New Values: {}", values);
+        logger.info("DummyDigitalTwinAdapter -> onStateValuesUpdate() - Relevant Changes: {}", relevantChanges);
+    }
+
 
     @Override
     protected void onEventNotificationReceived(DigitalTwinStateEventNotification<?> digitalTwinStateEventNotification) {

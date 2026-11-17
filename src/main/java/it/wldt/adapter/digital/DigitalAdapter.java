@@ -508,10 +508,8 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
      * @param description the complete current description of the state
      * @param descriptionChanges all the changes of the update that altered the description
      */
-    protected void onStateDescriptionUpdate(DigitalTwinStateDescription description,
-                                            List<DigitalTwinStateChange> descriptionChanges) {
-        // Default: nothing to do
-    }
+    abstract protected void onStateDescriptionUpdate(DigitalTwinStateDescription description,
+                                            List<DigitalTwinStateChange> descriptionChanges);
 
     /**
      * Called when the <b>values</b> of the Digital Twin State change: a property value or a relationship instance has
@@ -521,10 +519,8 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
      * @param values the current values (limited to the accepted resources if a filter is configured)
      * @param relevantChanges the changes of the update that altered the values (and concern accepted resources)
      */
-    protected void onStateValuesUpdate(DigitalTwinStateValues values,
-                                       List<DigitalTwinStateChange> relevantChanges) {
-        // Default: nothing to do
-    }
+    abstract protected void onStateValuesUpdate(DigitalTwinStateValues values,
+                                       List<DigitalTwinStateChange> relevantChanges);
 
 
     //////////////////////// EVENTS NOTIFICATION CALLBACK /////////////////////////////////////////////////////

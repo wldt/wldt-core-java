@@ -5,6 +5,7 @@ import it.wldt.core.state.*;
 import it.wldt.exception.EventBusException;
 
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author Marco Picone, Ph.D. - picone.m@gmail.com
@@ -19,6 +20,16 @@ public class SwitchDigitalAdapter extends DigitalAdapter<String> {
 
     @Override
     protected void onStateUpdate(DigitalTwinState newDigitalTwinState, DigitalTwinState previousDigitalTwinState, ArrayList<DigitalTwinStateChange> digitalTwinStateChangeList) {
+
+    }
+
+    @Override
+    protected void onStateDescriptionUpdate(DigitalTwinStateDescription description, List<DigitalTwinStateChange> descriptionChanges) {
+
+    }
+
+    @Override
+    protected void onStateValuesUpdate(DigitalTwinStateValues values, List<DigitalTwinStateChange> relevantChanges) {
 
     }
 

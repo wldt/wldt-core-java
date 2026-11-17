@@ -209,7 +209,6 @@ public class StatefulGenericResultAugmentationDigitalTwinModel extends DigitalTw
             logger.info("DigitalTwinModel Physical Asset Event Notification - Event Received: {}", physicalAssetEventWldtEvent);
 
             SharedTestMetrics.getInstance().addShadowingFunctionEventNotification(this.digitalTwinStateManager.getDigitalTwinId(), physicalAssetEventWldtEvent);
-
             //Handle the received physical event notification and map into a digital notification for digital adapters
             this.digitalTwinStateManager.notifyDigitalTwinStateEvent(
                     new DigitalTwinStateEventNotification<String>(

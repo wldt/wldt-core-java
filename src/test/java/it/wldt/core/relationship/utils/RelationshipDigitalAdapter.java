@@ -39,6 +39,16 @@ public class RelationshipDigitalAdapter extends DigitalAdapter<String> {
     }
 
     @Override
+    protected void onStateDescriptionUpdate(DigitalTwinStateDescription description, List<DigitalTwinStateChange> descriptionChanges) {
+
+    }
+
+    @Override
+    protected void onStateValuesUpdate(DigitalTwinStateValues values, List<DigitalTwinStateChange> relevantChanges) {
+
+    }
+
+    @Override
     protected void onEventNotificationReceived(DigitalTwinStateEventNotification<?> digitalTwinStateEventNotification) {
 
     }
