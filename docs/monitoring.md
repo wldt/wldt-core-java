@@ -612,7 +612,7 @@ Requires `withDtModelMonitoring()` in the configuration.
 | `digital_action_exec_time` | `WldtTimer` | Execution time of digital action request processing |
 | `digital_action_exec_success_count` | `WldtCounter` | Successful digital action handlers |
 | `digital_action_exec_error_count` | `WldtCounter` | Failed digital action handlers |
-| `dt_state_computation_exec_time` | `WldtTimer` | Time taken for full DT state computation |
+| `dt_state_computation_exec_time` | `WldtTimer` | Time taken to compute and commit a DT state transaction (description + values) |
 | `dt_state_computation_exec_success_count` | `WldtCounter` | Successful state computations |
 | `dt_state_computation_exec_error_count` | `WldtCounter` | Failed state computations |
 | `af_stateless_exec_success_count` | `WldtCounter` | Stateless augmentation function invocations that succeeded |
@@ -653,9 +653,9 @@ Requires `withDigitalAdapterMonitoring()` in the configuration.
 |---|---|---|
 | `da_action_event_pub_success_count` | `WldtCounter` | Digital action events published successfully |
 | `da_action_event_pub_error_count` | `WldtCounter` | Digital action event publication failures |
-| `da_state_update_processing_exec_time` | `WldtTimer` | Time to process incoming DT state updates |
-| `da_state_update_processing_exec_success_count` | `WldtCounter` | Successful state update processing |
-| `da_state_update_processing_exec_error_count` | `WldtCounter` | Failed state update processing |
+| `da_state_update_processing_exec_time` | `WldtTimer` | Time to process each incoming DT state event (description update or values update) |
+| `da_state_update_processing_exec_success_count` | `WldtCounter` | Successfully processed DT state events (description and values updates) |
+| `da_state_update_processing_exec_error_count` | `WldtCounter` | Failed DT state events (description and values updates) |
 | `da_event_notification_processing_exec_time` | `WldtTimer` | Time to process incoming DT event notifications |
 | `da_event_notification_processing_exec_success_count` | `WldtCounter` | Successful event notification processing |
 | `da_event_notification_processing_exec_error_count` | `WldtCounter` | Failed event notification processing |
@@ -716,9 +716,12 @@ Requires `withStorageMonitoring()` in the configuration. `StorageManager`, `Wldt
 | `storage_write_pa_description_success_count` | `WldtCounter` | Successful PA description write operations |
 | `storage_write_pa_description_error_count` | `WldtCounter` | Failed PA description write operations |
 | `storage_write_pa_description_exec_time` | `WldtTimer` | PA description write time |
-| `storage_write_dt_state_success_count` | `WldtCounter` | Successful DT state write operations |
-| `storage_write_dt_state_error_count` | `WldtCounter` | Failed DT state write operations |
-| `storage_write_dt_state_exec_time` | `WldtTimer` | DT state write time |
+| `storage_write_dt_state_description_success_count` | `WldtCounter` | Successful DT state **description** write operations (`saveDigitalTwinStateDescription`) |
+| `storage_write_dt_state_description_error_count` | `WldtCounter` | Failed DT state description write operations |
+| `storage_write_dt_state_description_exec_time` | `WldtTimer` | DT state description write time |
+| `storage_write_dt_state_success_count` | `WldtCounter` | Successful DT state **values** write operations (`saveDigitalTwinStateValues`). Since 0.9.0 it counts the values only: the description has its own metrics |
+| `storage_write_dt_state_error_count` | `WldtCounter` | Failed DT state values write operations |
+| `storage_write_dt_state_exec_time` | `WldtTimer` | DT state values write time |
 | `storage_write_af_success_count` | `WldtCounter` | Successful augmentation function result write operations |
 | `storage_write_af_error_count` | `WldtCounter` | Failed augmentation function result write operations |
 | `storage_write_af_exec_time` | `WldtTimer` | Augmentation function result write time |

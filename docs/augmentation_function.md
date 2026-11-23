@@ -326,11 +326,11 @@ public interface AugmentationLifeCycleListener {
 | Callback | When it is invoked |
 |----------|--------------------|
 | `onCreate()` | The Digital Twin instance is created |
-| `onStart()` | The Digital Twin starts its lifecycle |
+| `onStart()` | The Digital Twin starts its lifecycle. It is notified **before** the Physical and Digital Adapters are executed, so it always precedes the binding of the adapters |
 | `onDigitalTwinBound()` | The DT has successfully bound to all Physical Adapters |
 | `onDigitalTwinUnBound()` | The DT has unbound from Physical Adapters |
-| `onSync(state)` | The DT reaches the Synchronized state (state snapshot provided) |
-| `onUnSync(state)` | The DT exits the Synchronized state |
+| `onSync(description, values)` | The DT reaches the Synchronized state (the current description and values of the state are provided) |
+| `onUnSync(description, values)` | The DT exits the Synchronized state (the last known description and values are provided) |
 | `onStop()` | The Digital Twin stops |
 | `onDestroy()` | The Digital Twin instance is destroyed |
 
@@ -715,11 +715,13 @@ public class HistoryAwareStatelessFunction extends StatelessAugmentationFunction
     @Override
     protected AugmentationFunctionResultList run(AugmentationFunctionRequest request)
             throws AugmentationFunctionException {
-        // The result of the query defined in the context request: a list of DigitalTwinStateRecord
+        // The result of the query defined in the context request: a single DigitalTwinStateHistoryRecord
+        // that maps every description (by description id) to the values stored for it in the interval
         QueryResult<?> history = request.getContext().getQueryResult();
-        if (history != null && history.isSuccessful()) {
-            for (DigitalTwinStateRecord record : history.as(DigitalTwinStateRecord.class).getItems()) {
-                // use record.getCurrentState() ...
+        if (history != null && history.isSuccessful() && !history.getItems().isEmpty()) {
+            DigitalTwinStateHistoryRecord states = history.as(DigitalTwinStateHistoryRecord.class).first();
+            for (DigitalTwinStateHistoryEntry entry : states.getEntries().values()) {
+                // entry.getDescription() is the structure, entry.getValuesList() the values stored for it
             }
         }
         return new AugmentationFunctionResultList();

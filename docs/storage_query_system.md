@@ -736,7 +736,7 @@ digitalTwin.getMonitoringInterface().setHandler(new MyMonitoringHandler());
 21 metrics are registered under the `"core"` namespace, covering:
 
 - **Query operations** — success count, error count, and execution time for every query handled by `DefaultQueryManager`
-- **Write operations** — success count, error count, and write time for each entity type: DT state, Physical Asset Description, augmentation function results, digital events, physical events, and lifecycle events
+- **Write operations** — success count, error count, and write time for each entity type: DT state description, DT state values, Physical Asset Description, augmentation function results, digital events, physical events, and lifecycle events
 
 For the full list of metric names and types, see [STORAGE metrics](monitoring.md#storage-metrics) in the monitoring documentation.
 

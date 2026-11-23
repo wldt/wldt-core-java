@@ -410,6 +410,8 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
 
     /**
      * Notifies listeners when the digital twin is started.
+     * It is invoked before the Physical and Digital Adapters are executed, so adapters receive the callback
+     * before their own execution begins.
      */
     private void notifyLifeCycleOnStart(){
 
@@ -848,6 +850,12 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
 
         notifyLifeCycleOnCreate();
 
+        // The DT moves to the Start State BEFORE the adapters are executed: in this way no adapter can bind
+        // (BOUND) before the STARTED life cycle event has been published.
+        // NOTE: the onStart() callback of the Adapters (e.g., DigitalAdapter.onDigitalTwinStart()) is therefore
+        // invoked before the adapters are running and must not be used to initialize adapter resources.
+        notifyLifeCycleOnStart();
+
         //Init PhysicalAdapter Executor
         physicalAdapterExecutor = Executors.newFixedThreadPool(this.getPhysicalAdapterList().size());
 
@@ -877,9 +885,6 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
 
             digitalAdapterExecutor.execute(digitalAdapter);
         });
-
-        //When all Physical and Digital Adapters have been started the DT moves to the Start State
-        notifyLifeCycleOnStart();
 
         physicalAdapterExecutor.shutdown();
         digitalAdapterExecutor.shutdown();

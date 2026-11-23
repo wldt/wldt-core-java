@@ -59,9 +59,12 @@ Each of this core components has the following main characteristics:
   or can derive from their combination, in any case, it is the `Digital Twin Model` and its management of the **Shadowing Process** that defines
   the mapping, following the model defined by the designer.
   This component also exposes a set of methods to allow SF manipulation.
-  Every time the Digital Twin State is modified, the latter generates the corresponding DT's event to notify all the components
-  about the variation. The state can be read as a whole or through its **description** (structure) and its **values**,
-  optionally limited to a set of resources by name with a `DigitalTwinStateFilter`.
+  Every time the Digital Twin State is modified, the latter generates the corresponding DT's events to notify all the components
+  about the variation: a **description** event (the complete new structure, only when the structure really changes) and a **values** event
+  (only the values that changed), published on two separate topics of the event bus. The complete state never travels on the bus: every component
+  that observes it (Digital Adapters, Storage Manager, Augmentation Function Handlers) keeps its own complete local copy (`DigitalTwinStateReplica`)
+  updated at every event. The state is read through its **description** and its **values**; the values can be limited to a set
+  of resources by name with a `DigitalTwinStateFilter` (the description is never filtered).
 - **Digital Twin Model**: It is the library component responsible for defining the behavior of
   the Digital Twin by interacting with the Digital Twin State.
   Specifically, it implements the shadowing process that allows keeping the

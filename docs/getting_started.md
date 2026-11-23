@@ -815,7 +815,7 @@ Available callbacks can be summarized as follows:
     - ```onAdapterStop()```: Feedback when the Digital Adapter has been stopped
 - Digital Twin Life Cycle Notifications:
     - ```onDigitalTwinCreate()```: The DT has been created
-    - ```onDigitalTwinStart()```: The DT started
+    - ```onDigitalTwinStart()```: The DT started. It is called before the adapter is executed (before ```onAdapterStart()```), so do not use it to initialize adapter resources: a way to exploit it will be defined in the future
     - ```onDigitalTwinSync(DigitalTwinStateDescription digitalTwinStateDescription, DigitalTwinStateValues digitalTwinStateValues)```: The DT is Synchronized with its physical counterpart.
       The current description and values of the state are passed as parameters to allow the Digital Adapter to know the current state and consequently
       implement its behaviour
@@ -830,6 +830,9 @@ Available callbacks can be summarized as follows:
       Called every time the **values** of the DT's State change.
 - Single Event Notification
     - ```onEventNotificationReceived(DigitalTwinStateEventNotification<?> digitalTwinStateEventNotification)```: Called when a notification of an observed DT's State Event is received.
+
+The Digital Twin life cycle follows this order: `CREATED` and `STARTED` are notified **before** the Physical and Digital Adapters are executed (so ```onDigitalTwinCreate()``` and ```onDigitalTwinStart()``` are called before ```onAdapterStart()```
+and they must not be used to initialize adapter resources), then the adapters bind (`BOUND`) and the shadowing synchronizes the DT (`SYNCHRONIZED`). `BOUND` can never precede `STARTED`.
 
 The core method where a Digital Adapter receive the description of the DT'State is ```onDigitalTwinSync(DigitalTwinStateDescription digitalTwinStateDescription, DigitalTwinStateValues digitalTwinStateValues)```.
 The Adapter using the parameters can analyze available properties, actions, events and relationships and decide how to implement its internal behaviour with the methods presented in [DigitalTwinModel](#digitaltwinmodel---handling-the-shadowing-process).

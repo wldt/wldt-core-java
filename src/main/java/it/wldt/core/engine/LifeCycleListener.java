@@ -37,6 +37,11 @@ public interface LifeCycleListener {
 
     public void onCreate();
 
+    /**
+     * Called when the DT moves to the STARTED state. The notification is sent BEFORE the Physical and Digital
+     * Adapters are executed: adapters implementing this listener receive it before they are running, so it must
+     * not be used to initialize adapter resources (a way to exploit it will be defined in the future).
+     */
     public void onStart();
 
     public void onPhysicalAdapterBound(String adapterId, PhysicalAssetDescription physicalAssetDescription);

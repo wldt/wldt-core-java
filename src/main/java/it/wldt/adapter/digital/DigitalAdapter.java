@@ -598,6 +598,11 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
 
     public abstract void onDigitalTwinCreate();
 
+    /**
+     * Called when the DT moves to the STARTED state. It is invoked BEFORE the adapter is executed
+     * (before {@link #onAdapterStart()}), so it must not be used to initialize adapter resources.
+     * A way to exploit this callback will be defined in the future.
+     */
     public abstract void onDigitalTwinStart();
 
     public abstract void onDigitalTwinStop();
