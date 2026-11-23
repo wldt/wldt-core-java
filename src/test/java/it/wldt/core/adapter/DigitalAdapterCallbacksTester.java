@@ -93,10 +93,6 @@ public class DigitalAdapterCallbacksTester {
         return new DigitalAdapter<String>(id) {
 
             @Override
-            protected void onStateUpdate(DigitalTwinState newDigitalTwinState, DigitalTwinState previousDigitalTwinState, ArrayList<DigitalTwinStateChange> digitalTwinStateChangeList) {
-            }
-
-            @Override
             protected void onStateDescriptionUpdate(DigitalTwinStateDescription description, List<DigitalTwinStateChange> descriptionChanges) {
 
             }
@@ -123,12 +119,12 @@ public class DigitalAdapterCallbacksTester {
             }
 
             @Override
-            public void onDigitalTwinSync(DigitalTwinState digitalTwinState) {
+            public void onDigitalTwinSync(DigitalTwinStateDescription digitalTwinStateDescription, DigitalTwinStateValues digitalTwinStateValues) {
                 receivedCallbacks.add(ON_DT_SYNC);
             }
 
             @Override
-            public void onDigitalTwinUnSync(DigitalTwinState digitalTwinState) {
+            public void onDigitalTwinUnSync(DigitalTwinStateDescription digitalTwinStateDescription, DigitalTwinStateValues digitalTwinStateValues) {
                 receivedCallbacks.add(ON_DT_UN_SYNC);
             }
 

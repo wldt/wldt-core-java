@@ -2,12 +2,14 @@ package it.wldt.core.relationship.utils;
 
 import it.wldt.adapter.physical.PhysicalAssetDescription;
 import it.wldt.core.engine.LifeCycleListener;
-import it.wldt.core.state.DigitalTwinState;
+import it.wldt.core.state.DigitalTwinStateDescription;
+import it.wldt.core.state.DigitalTwinStateValues;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
 public class RelationshipsLifeCycleListener implements LifeCycleListener {
-    private DigitalTwinState digitalTwinState;
+    private DigitalTwinStateDescription digitalTwinStateDescription;
+    private DigitalTwinStateValues digitalTwinStateValues;
     private PhysicalAssetDescription physicalAssetDescription;
     private final CountDownLatch syncLatch;
 
@@ -61,13 +63,14 @@ public class RelationshipsLifeCycleListener implements LifeCycleListener {
     }
 
     @Override
-    public void onSync(DigitalTwinState digitalTwinState) {
-        this.digitalTwinState = digitalTwinState;
+    public void onSync(DigitalTwinStateDescription digitalTwinStateDescription, DigitalTwinStateValues digitalTwinStateValues) {
+        this.digitalTwinStateDescription = digitalTwinStateDescription;
+        this.digitalTwinStateValues = digitalTwinStateValues;
         this.syncLatch.countDown();
     }
 
     @Override
-    public void onUnSync(DigitalTwinState digitalTwinState) {
+    public void onUnSync(DigitalTwinStateDescription digitalTwinStateDescription, DigitalTwinStateValues digitalTwinStateValues) {
 
     }
 
@@ -81,12 +84,12 @@ public class RelationshipsLifeCycleListener implements LifeCycleListener {
 
     }
 
-    public DigitalTwinState getDigitalTwinState() {
-        return digitalTwinState;
+    public DigitalTwinStateDescription getDigitalTwinStateDescription() {
+        return digitalTwinStateDescription;
     }
 
-    public void setDigitalTwinState(DigitalTwinState digitalTwinState) {
-        this.digitalTwinState = digitalTwinState;
+    public DigitalTwinStateValues getDigitalTwinStateValues() {
+        return digitalTwinStateValues;
     }
 
     public PhysicalAssetDescription getPhysicalAssetDescription() {

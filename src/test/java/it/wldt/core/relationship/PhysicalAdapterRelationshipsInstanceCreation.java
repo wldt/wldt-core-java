@@ -6,13 +6,14 @@ import it.wldt.core.relationship.utils.RelationshipDigitalAdapter;
 import it.wldt.core.relationship.utils.RelationshipPhysicalAdapter;
 import it.wldt.core.relationship.utils.RelationshipDigitalTwinModel;
 import it.wldt.core.relationship.utils.RelationshipsLifeCycleListener;
-import it.wldt.core.state.DigitalTwinStateRelationship;
+import it.wldt.core.state.DigitalTwinStateRelationshipInstance;
 import it.wldt.exception.*;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.junit.jupiter.api.parallel.Isolated;
 
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -86,10 +87,11 @@ public class PhysicalAdapterRelationshipsInstanceCreation {
         physicalAdapter.simulateRelationshipInstanceEvent(RelationshipPhysicalAdapter.RELATIONSHIP_CONTAINS_NAME, DT_TARGET1_NAME, true);
         relationshipLatch.await(5000, TimeUnit.MILLISECONDS);
 
-        DigitalTwinStateRelationship<String> containsRelationship = (DigitalTwinStateRelationship<String>) lifeCycleListener.getDigitalTwinState().getRelationship(RelationshipPhysicalAdapter.RELATIONSHIP_CONTAINS_NAME).get();
+        List<DigitalTwinStateRelationshipInstance<?>> containsInstances = digitalAdapter.awaitRelationshipInstances(RelationshipPhysicalAdapter.RELATIONSHIP_CONTAINS_NAME, 1, 5000);
 
-        assertEquals(1, containsRelationship.getInstances().size());
-        assertEquals(DT_TARGET1_NAME, containsRelationship.getInstances().get(0).getTargetId());
+        assertNotNull(containsInstances);
+        assertEquals(1, containsInstances.size());
+        assertEquals(DT_TARGET1_NAME, containsInstances.get(0).getTargetId());
 
         digitalTwinEngine.stopDigitalTwin(DIGITAL_TWIN_ID);
     }

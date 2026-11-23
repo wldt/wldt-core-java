@@ -19,11 +19,6 @@ public class SwitchDigitalAdapter extends DigitalAdapter<String> {
     }
 
     @Override
-    protected void onStateUpdate(DigitalTwinState newDigitalTwinState, DigitalTwinState previousDigitalTwinState, ArrayList<DigitalTwinStateChange> digitalTwinStateChangeList) {
-
-    }
-
-    @Override
     protected void onStateDescriptionUpdate(DigitalTwinStateDescription description, List<DigitalTwinStateChange> descriptionChanges) {
 
     }
@@ -49,12 +44,12 @@ public class SwitchDigitalAdapter extends DigitalAdapter<String> {
     }
 
     @Override
-    public void onDigitalTwinSync(DigitalTwinState digitalTwinState) {
+    public void onDigitalTwinSync(DigitalTwinStateDescription digitalTwinStateDescription, DigitalTwinStateValues digitalTwinStateValues) {
 
     }
 
     @Override
-    public void onDigitalTwinUnSync(DigitalTwinState digitalTwinState) {
+    public void onDigitalTwinUnSync(DigitalTwinStateDescription digitalTwinStateDescription, DigitalTwinStateValues digitalTwinStateValues) {
 
     }
 

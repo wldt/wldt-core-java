@@ -7,7 +7,8 @@ import it.wldt.augmentation.result.AugmentationFunctionResult;
 import it.wldt.augmentation.result.AugmentationFunctionResultList;
 import it.wldt.augmentation.result.AugmentationFunctionResultMetrics;
 import it.wldt.augmentation.result.AugmentationFunctionResultType;
-import it.wldt.core.state.DigitalTwinState;
+import it.wldt.core.state.DigitalTwinStateDescription;
+import it.wldt.core.state.DigitalTwinStateValues;
 import it.wldt.core.state.DigitalTwinStateEventNotification;
 import it.wldt.exception.AugmentationFunctionException;
 import it.wldt.log.WldtLogger;
@@ -96,7 +97,12 @@ public class StatefulStateDrivenRandomNumberAugmentationFunction extends Statefu
     }
 
     @Override
-    public void onStateUpdate(DigitalTwinState digitalTwinState) throws AugmentationFunctionException {
+    public void onStateDescriptionUpdate(DigitalTwinStateDescription digitalTwinStateDescription) throws AugmentationFunctionException {
+        // The description is not relevant for this test function
+    }
+
+    @Override
+    public void onStateValuesUpdate(DigitalTwinStateValues digitalTwinState) throws AugmentationFunctionException {
         try {
 
             logger.debug("Received state update: {}", digitalTwinState);

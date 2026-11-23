@@ -20,8 +20,17 @@ public class TestObserverListener implements IWldtEventObserverListener {
     // Physical Action Events
     private Map<String, List<WldtEvent<?>>> physicalActionEvents;
 
-    // Digital Twin State Events
+    // Digital Twin State Events (all the kinds together: description updates, values updates and event notifications)
     private Map<String, List<WldtEvent<?>>> dtStateEvents;
+
+    // Digital Twin State Description Update Events
+    private Map<String, List<WldtEvent<?>>> dtStateDescriptionEvents;
+
+    // Digital Twin State Values Update Events
+    private Map<String, List<WldtEvent<?>>> dtStateValuesEvents;
+
+    // Digital Twin State Event Notifications
+    private Map<String, List<WldtEvent<?>>> dtStateEventNotifications;
 
     // Digital Action Events
     private Map<String, List<WldtEvent<?>>> digitalActionEvents;
@@ -44,6 +53,9 @@ public class TestObserverListener implements IWldtEventObserverListener {
         this.physicalAssetEvents = new HashMap<>();
         this.physicalActionEvents = new HashMap<>();
         this.dtStateEvents = new HashMap<>();
+        this.dtStateDescriptionEvents = new HashMap<>();
+        this.dtStateValuesEvents = new HashMap<>();
+        this.dtStateEventNotifications = new HashMap<>();
         this.digitalActionEvents = new HashMap<>();
         this.physicalAssetDescriptionEvents = new HashMap<>();
         this.lifeCycleEvents = new HashMap<>();
@@ -56,6 +68,9 @@ public class TestObserverListener implements IWldtEventObserverListener {
         this.physicalAssetEvents.clear();
         this.physicalActionEvents.clear();
         this.dtStateEvents.clear();
+        this.dtStateDescriptionEvents.clear();
+        this.dtStateValuesEvents.clear();
+        this.dtStateEventNotifications.clear();
         this.digitalActionEvents.clear();
         this.physicalAssetDescriptionEvents.clear();
         this.lifeCycleEvents.clear();
@@ -86,8 +101,21 @@ public class TestObserverListener implements IWldtEventObserverListener {
     }
 
     @Override
-    public void onStateEvent(WldtEvent<?> wldtEvent) {
+    public void onStateDescriptionEvent(WldtEvent<?> wldtEvent) {
         handleNewEvent(this.dtStateEvents, wldtEvent);
+        handleNewEvent(this.dtStateDescriptionEvents, wldtEvent);
+    }
+
+    @Override
+    public void onStateValuesEvent(WldtEvent<?> wldtEvent) {
+        handleNewEvent(this.dtStateEvents, wldtEvent);
+        handleNewEvent(this.dtStateValuesEvents, wldtEvent);
+    }
+
+    @Override
+    public void onStateEventNotification(WldtEvent<?> wldtEvent) {
+        handleNewEvent(this.dtStateEvents, wldtEvent);
+        handleNewEvent(this.dtStateEventNotifications, wldtEvent);
     }
 
     @Override
@@ -140,6 +168,18 @@ public class TestObserverListener implements IWldtEventObserverListener {
 
     public Map<String, List<WldtEvent<?>>> getDtStateEvents() {
         return dtStateEvents;
+    }
+
+    public Map<String, List<WldtEvent<?>>> getDtStateDescriptionEvents() {
+        return dtStateDescriptionEvents;
+    }
+
+    public Map<String, List<WldtEvent<?>>> getDtStateValuesEvents() {
+        return dtStateValuesEvents;
+    }
+
+    public Map<String, List<WldtEvent<?>>> getDtStateEventNotifications() {
+        return dtStateEventNotifications;
     }
 
     public Map<String, List<WldtEvent<?>>> getDigitalActionEvents() {

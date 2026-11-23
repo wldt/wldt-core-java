@@ -82,6 +82,9 @@ public class DigitalMultipleActionsTester {
 
         digitalTwinEngine.addDigitalTwin(dt, true);
 
+        // The start of the Digital Twin does not wait for the adapters anymore: wait for bind and sync
+        Thread.sleep(2000);
+
         assertEquals(0, physicalAssetActionEventReceived1.size());
         assertEquals(0, physicalAssetActionEventReceived2.size());
 

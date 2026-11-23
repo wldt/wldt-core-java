@@ -157,13 +157,14 @@ public class WldtEventObserver implements WldtEventListener {
     }
 
     /**
-     * Trigger the observation of events generated from the Digital Twin Model related to State Variations and Event
-     * Notifications
+     * Trigger the observation of events generated from the Digital Twin Model related to State Variations (description
+     * updates and values updates) and Event Notifications
      * @throws EventBusException
      */
     public void observeStateEvents() throws EventBusException {
         observeEventsWithFilter(this.dtStateEventFilter,
-                WldtEventTypes.DT_STATE_UPDATE_MESSAGE_EVENT_TYPE,
+                WldtEventTypes.DT_STATE_DESCRIPTION_UPDATE_MESSAGE_EVENT_TYPE,
+                WldtEventTypes.DT_STATE_VALUES_UPDATE_MESSAGE_EVENT_TYPE,
                 WldtEventTypes.ALL_DT_STATE_EVENT_NOTIFICATION_EVENT_TYPE);
     }
 
@@ -349,9 +350,15 @@ public class WldtEventObserver implements WldtEventListener {
 
         if(wldtEvent != null && wldtEvent.getType() != null){
 
-            // Check State Events
-            if(this.dtStateEventFilter != null && this.dtStateEventFilter.matchEventType(wldtEvent.getType()))
-                this.observerListener.onStateEvent(wldtEvent);
+            // Check State Events (description updates, values updates and event notifications)
+            if(this.dtStateEventFilter != null && this.dtStateEventFilter.matchEventType(wldtEvent.getType())) {
+                if(WldtEventTypes.DT_STATE_DESCRIPTION_UPDATE_MESSAGE_EVENT_TYPE.equals(wldtEvent.getType()))
+                    this.observerListener.onStateDescriptionEvent(wldtEvent);
+                else if(WldtEventTypes.DT_STATE_VALUES_UPDATE_MESSAGE_EVENT_TYPE.equals(wldtEvent.getType()))
+                    this.observerListener.onStateValuesEvent(wldtEvent);
+                else
+                    this.observerListener.onStateEventNotification(wldtEvent);
+            }
 
             // Check Physical Asset Events
             if(this.physicalAssetEventFilter != null && this.physicalAssetEventFilter.matchEventType(wldtEvent.getType()))

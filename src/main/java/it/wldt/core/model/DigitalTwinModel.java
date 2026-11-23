@@ -1134,7 +1134,11 @@ public abstract class DigitalTwinModel implements WldtEventListener {
         // If the Context Request requires the Digital Twin State, retrieve it and set it in the context
         // The content filters of the Context Request (if any) restrict the state delivered to the function
         if(contextRequest.isObserveState())
-            augmentationFunctionRequest.getContext().setDigitalTwinState(DigitalTwinStateFilterUtils.filterState(this.digitalTwinStateManager.getDigitalTwinState(), contextRequest));
+        {
+            // The description is never filtered, the content filters of the Context Request restrict only the values
+            augmentationFunctionRequest.getContext().setDigitalTwinStateDescription(this.digitalTwinStateManager.getDigitalTwinStateDescription());
+            augmentationFunctionRequest.getContext().setDigitalTwinStateValues(DigitalTwinStateFilterUtils.filterValues(this.digitalTwinStateManager.getDigitalTwinStateValues(), contextRequest));
+        }
 
         AugmentationFunctionExecuteWldtEvent augmentationFunctionExecuteWldtEvent = new AugmentationFunctionExecuteWldtEvent(augmentationFunctionHandlerId, augmentationFunctionId, augmentationFunctionRequest);
 
@@ -1271,7 +1275,11 @@ public abstract class DigitalTwinModel implements WldtEventListener {
         // If the Context Request requires the Digital Twin State, retrieve it and set it in the context
         // The content filters of the Context Request (if any) restrict the state delivered to the function
         if(contextRequest.isObserveState())
-            augmentationFunctionRequest.getContext().setDigitalTwinState(DigitalTwinStateFilterUtils.filterState(this.digitalTwinStateManager.getDigitalTwinState(), contextRequest));
+        {
+            // The description is never filtered, the content filters of the Context Request restrict only the values
+            augmentationFunctionRequest.getContext().setDigitalTwinStateDescription(this.digitalTwinStateManager.getDigitalTwinStateDescription());
+            augmentationFunctionRequest.getContext().setDigitalTwinStateValues(DigitalTwinStateFilterUtils.filterValues(this.digitalTwinStateManager.getDigitalTwinStateValues(), contextRequest));
+        }
 
         AugmentationFunctionStartWldtEvent augmentationFunctionStartWldtEvent = new AugmentationFunctionStartWldtEvent(augmentationFunctionHandlerId, augmentationFunctionId, augmentationFunctionRequest);
 
@@ -1412,7 +1420,11 @@ public abstract class DigitalTwinModel implements WldtEventListener {
         // If the Context Request requires the Digital Twin State, retrieve it and set it in the context
         // The content filters of the Context Request (if any) restrict the state delivered to the function
         if(contextRequest.isObserveState())
-            augmentationFunctionRequest.getContext().setDigitalTwinState(DigitalTwinStateFilterUtils.filterState(this.digitalTwinStateManager.getDigitalTwinState(), contextRequest));
+        {
+            // The description is never filtered, the content filters of the Context Request restrict only the values
+            augmentationFunctionRequest.getContext().setDigitalTwinStateDescription(this.digitalTwinStateManager.getDigitalTwinStateDescription());
+            augmentationFunctionRequest.getContext().setDigitalTwinStateValues(DigitalTwinStateFilterUtils.filterValues(this.digitalTwinStateManager.getDigitalTwinStateValues(), contextRequest));
+        }
 
         AugmentationFunctionStopWldtEvent augmentationFunctionStopWldtEvent = new AugmentationFunctionStopWldtEvent(augmentationFunctionHandlerId, augmentationFunctionId, augmentationFunctionRequest);
 
@@ -1953,14 +1965,6 @@ public abstract class DigitalTwinModel implements WldtEventListener {
      */
     private void handleDigitalActionEvent(DigitalActionWldtEvent<?> wldtEvent){
 
-        // Keep track of the last invocation of the action (no state update is generated)
-        try {
-            if(this.digitalTwinStateManager != null)
-                this.digitalTwinStateManager.recordActionInvocation(wldtEvent.getActionKey());
-        } catch (Exception e) {
-            logger.warn("Unable to record the invocation of action {}: {}", wldtEvent.getActionKey(), e.getMessage());
-        }
-
         // Check if the Monitoring Interface is configured and has the handler configured
         if(this.monitoringInterface == null || !this.monitoringInterface.isActive(WldtMetricComponent.DT_MODEL)){
             try {
@@ -2312,7 +2316,7 @@ public abstract class DigitalTwinModel implements WldtEventListener {
     protected void notifyShadowingSync(){
         // Notify the Shadowing Model Listener that the Shadowing Model is synchronized with the Physical Asset
         if(getShadowingModelListener() != null)
-            getShadowingModelListener().onShadowingSync(digitalTwinStateManager.getDigitalTwinState());
+            getShadowingModelListener().onShadowingSync(digitalTwinStateManager.getDigitalTwinStateDescription(), digitalTwinStateManager.getDigitalTwinStateValues());
     }
 
     /**
@@ -2321,7 +2325,7 @@ public abstract class DigitalTwinModel implements WldtEventListener {
     protected void notifyShadowingOutOfSync(){
         // Notify the Shadowing Model Listener that the Shadowing Model is out of sync with the Physical Asset
         if(getShadowingModelListener() != null)
-            getShadowingModelListener().onShadowingOutOfSync(digitalTwinStateManager.getDigitalTwinState());
+            getShadowingModelListener().onShadowingOutOfSync(digitalTwinStateManager.getDigitalTwinStateDescription(), digitalTwinStateManager.getDigitalTwinStateValues());
     }
 
     /**

@@ -16,7 +16,8 @@ import it.wldt.adapter.physical.event.PhysicalAssetEventWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetPropertyWldtEvent;
 import it.wldt.core.model.DigitalTwinModel;
 import it.wldt.core.adapter.digital.TestDigitalAdapterConfiguration;
-import it.wldt.core.state.DigitalTwinState;
+import it.wldt.core.state.DigitalTwinStateDescription;
+import it.wldt.core.state.DigitalTwinStateValues;
 import it.wldt.exception.*;
 import it.wldt.log.WldtLogger;
 import it.wldt.log.WldtLoggerProvider;
@@ -225,13 +226,13 @@ public class LifeCycleTester {
             }
 
             @Override
-            public void onSync(DigitalTwinState digitalTwinState) {
-                logger.debug("LifeCycleListener - onSync() - DT State: {}", digitalTwinState);
+            public void onSync(DigitalTwinStateDescription digitalTwinStateDescription, DigitalTwinStateValues digitalTwinStateValues) {
+                logger.debug("LifeCycleListener - onSync() - DT State Description: {} Values: {}", digitalTwinStateDescription, digitalTwinStateValues);
             }
 
             @Override
-            public void onUnSync(DigitalTwinState digitalTwinState) {
-                logger.debug("LifeCycleListener - onUnSync() - DT State: {}", digitalTwinState);
+            public void onUnSync(DigitalTwinStateDescription digitalTwinStateDescription, DigitalTwinStateValues digitalTwinStateValues) {
+                logger.debug("LifeCycleListener - onUnSync() - DT State Description: {} Values: {}", digitalTwinStateDescription, digitalTwinStateValues);
             }
 
             @Override

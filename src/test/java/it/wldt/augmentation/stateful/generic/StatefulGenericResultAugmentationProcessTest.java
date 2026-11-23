@@ -141,8 +141,9 @@ public class StatefulGenericResultAugmentationProcessTest {
         assertNotNull(augmentationFunctionResultLists);
 
         //Check the number of received Augmentation Function Result Events is equal to the number of Physical Asset Property Update Events
-        //since the Stateless Augmentation Function is executed every time a new Physical Asset Property Update Event is received by the Digital Twin Model
-        assertEquals(TestPhysicalAdapter.TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES, augmentationFunctionResultLists.size());
+        //plus the number of Physical Asset Events notified by the Digital Twin Model: the Stateful Augmentation Function (without filters)
+        //is executed at every values update of the state, and the notification of an event updates the last notification of the event (a value of the state)
+        assertEquals(TestPhysicalAdapter.TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES + DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_EVENT_UPDATES, augmentationFunctionResultLists.size());
 
         // For each received Augmentation Function Result Event
         for (AugmentationFunctionResultList resultList : augmentationFunctionResultLists) {

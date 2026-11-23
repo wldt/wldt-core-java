@@ -1,5 +1,6 @@
 package it.wldt.core.state.event;
 
+import it.wldt.core.state.StateManagerTestAccess;
 import it.wldt.core.state.DigitalTwinStateEvent;
 import it.wldt.core.state.DigitalTwinStateManager;
 import it.wldt.exception.*;
@@ -40,12 +41,12 @@ public class DigitalTwinStateEventCRUDTester {
         digitalTwinStateManager.registerEvent(newEvent);
         digitalTwinStateManager.commitStateTransaction();
 
-        assertTrue(digitalTwinStateManager.getDigitalTwinState().containsEvent(EVENT_KEY_1));
-        assertTrue(digitalTwinStateManager.getDigitalTwinState().getEvent(EVENT_KEY_1).isPresent());
-        assertEquals(EVENT_TYPE, digitalTwinStateManager.getDigitalTwinState().getEvent(EVENT_KEY_1).get().getType());
-        assertEquals(EVENT_CONTENT_TYPE, digitalTwinStateManager.getDigitalTwinState().getEvent(EVENT_KEY_1).get().getContentType());
-        assertTrue(digitalTwinStateManager.getDigitalTwinState().getEventList().isPresent());
-        assertEquals(1, digitalTwinStateManager.getDigitalTwinState().getEventList().get().size());
+        assertTrue(StateManagerTestAccess.state(digitalTwinStateManager).containsEvent(EVENT_KEY_1));
+        assertTrue(StateManagerTestAccess.state(digitalTwinStateManager).getEvent(EVENT_KEY_1).isPresent());
+        assertEquals(EVENT_TYPE, StateManagerTestAccess.state(digitalTwinStateManager).getEvent(EVENT_KEY_1).get().getType());
+        assertEquals(EVENT_CONTENT_TYPE, StateManagerTestAccess.state(digitalTwinStateManager).getEvent(EVENT_KEY_1).get().getContentType());
+        assertTrue(StateManagerTestAccess.state(digitalTwinStateManager).getEventList().isPresent());
+        assertEquals(1, StateManagerTestAccess.state(digitalTwinStateManager).getEventList().get().size());
     }
 
     @Test
@@ -54,14 +55,14 @@ public class DigitalTwinStateEventCRUDTester {
 
         registerEvent();
 
-        assertTrue(digitalTwinStateManager.getDigitalTwinState().getEvent(EVENT_KEY_1).isPresent());
-        assertEquals(EVENT_TYPE, digitalTwinStateManager.getDigitalTwinState().getEvent(EVENT_KEY_1).get().getType());
+        assertTrue(StateManagerTestAccess.state(digitalTwinStateManager).getEvent(EVENT_KEY_1).isPresent());
+        assertEquals(EVENT_TYPE, StateManagerTestAccess.state(digitalTwinStateManager).getEvent(EVENT_KEY_1).get().getType());
 
         digitalTwinStateManager.startStateTransaction();
         digitalTwinStateManager.updateRegisteredEvent(new DigitalTwinStateEvent(EVENT_KEY_1, EVENT_TYPE_2, EVENT_TYPE_2));
         digitalTwinStateManager.commitStateTransaction();
 
-        assertEquals(EVENT_TYPE_2, digitalTwinStateManager.getDigitalTwinState().getEvent(EVENT_KEY_1).get().getType());
+        assertEquals(EVENT_TYPE_2, StateManagerTestAccess.state(digitalTwinStateManager).getEvent(EVENT_KEY_1).get().getType());
     }
 
     @Test
@@ -73,9 +74,9 @@ public class DigitalTwinStateEventCRUDTester {
         digitalTwinStateManager.unRegisterEvent(EVENT_KEY_1);
         digitalTwinStateManager.commitStateTransaction();
 
-        assertFalse(digitalTwinStateManager.getDigitalTwinState().containsEvent(EVENT_KEY_1));
-        assertFalse(digitalTwinStateManager.getDigitalTwinState().getEvent(EVENT_KEY_1).isPresent());
-        assertFalse(digitalTwinStateManager.getDigitalTwinState().getEventList().isPresent());
+        assertFalse(StateManagerTestAccess.state(digitalTwinStateManager).containsEvent(EVENT_KEY_1));
+        assertFalse(StateManagerTestAccess.state(digitalTwinStateManager).getEvent(EVENT_KEY_1).isPresent());
+        assertFalse(StateManagerTestAccess.state(digitalTwinStateManager).getEventList().isPresent());
     }
 
 }

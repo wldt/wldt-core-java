@@ -31,9 +31,14 @@ package it.wldt.storage.model;
 public class StorageStats extends StorageRecord {
 
     /**
-     * Storage Stats for the State Variation Records
+     * Storage Stats for the Digital Twin State Values Records
      */
-    private StorageStatsRecord stateVariationStats;
+    private StorageStatsRecord stateValuesVariationStats;
+
+    /**
+     * Storage Stats for the Digital Twin State Description Records (the stateValuesVariationStats refer to the values)
+     */
+    private StorageStatsRecord stateDescriptionVariationStats;
 
     /**
      * Storage Stats for the Life Cycle Variation Records
@@ -113,7 +118,7 @@ public class StorageStats extends StorageRecord {
 
     /**
      * Constructor with all the parameters
-     * @param stateVariationStats Storage Stats for the State Variation Records
+     * @param stateValuesVariationStats Storage Stats for the Digital Twin State Values Records
      * @param lifeCycleVariationStats Storage Stats for the Life Cycle Variation Records
      * @param physicalAssetPropertyVariationStats Storage Stats for the Physical Asset Property Variation Records
      * @param physicalAssetEventNotificationStats Storage Stats for the Physical Asset Event Notification Records
@@ -129,8 +134,8 @@ public class StorageStats extends StorageRecord {
      * @param augmentationFunctionRequestStats Storage Stats for the Augmentation Function Request Records
      * @param augmentationFunctionResultStats Storage Stats for the Augmentation Function Result Records
      */
-    public StorageStats(StorageStatsRecord stateVariationStats, StorageStatsRecord lifeCycleVariationStats, StorageStatsRecord physicalAssetPropertyVariationStats, StorageStatsRecord physicalAssetEventNotificationStats, StorageStatsRecord physicalAssetActionRequestStats, StorageStatsRecord digitalActionRequestStats, StorageStatsRecord newPhysicalAssetDescriptionNotificationStats, StorageStatsRecord updatedPhysicalAssetDescriptionNotificationStats, StorageStatsRecord physicalRelationshipInstanceCreatedNotificationStats, StorageStatsRecord physicalRelationshipInstanceDeletedNotificationStats, StorageStatsRecord augmentationFunctionErrorStats, StorageStatsRecord augmentationFunctionRegistrationStats, StorageStatsRecord augmentationFunctionUnregistrationStats, StorageStatsRecord augmentationFunctionRequestStats, StorageStatsRecord augmentationFunctionResultStats) {
-        this.stateVariationStats = stateVariationStats;
+    public StorageStats(StorageStatsRecord stateValuesVariationStats, StorageStatsRecord lifeCycleVariationStats, StorageStatsRecord physicalAssetPropertyVariationStats, StorageStatsRecord physicalAssetEventNotificationStats, StorageStatsRecord physicalAssetActionRequestStats, StorageStatsRecord digitalActionRequestStats, StorageStatsRecord newPhysicalAssetDescriptionNotificationStats, StorageStatsRecord updatedPhysicalAssetDescriptionNotificationStats, StorageStatsRecord physicalRelationshipInstanceCreatedNotificationStats, StorageStatsRecord physicalRelationshipInstanceDeletedNotificationStats, StorageStatsRecord augmentationFunctionErrorStats, StorageStatsRecord augmentationFunctionRegistrationStats, StorageStatsRecord augmentationFunctionUnregistrationStats, StorageStatsRecord augmentationFunctionRequestStats, StorageStatsRecord augmentationFunctionResultStats) {
+        this.stateValuesVariationStats = stateValuesVariationStats;
         this.lifeCycleVariationStats = lifeCycleVariationStats;
         this.physicalAssetPropertyVariationStats = physicalAssetPropertyVariationStats;
         this.physicalAssetEventNotificationStats = physicalAssetEventNotificationStats;
@@ -148,19 +153,35 @@ public class StorageStats extends StorageRecord {
     }
 
     /**
-     * Get the Storage Stats for the State Variation Records
-     * @return Storage Stats for the State Variation Records
+     * Get the Storage Stats for the Digital Twin State Values Records
+     * @return Storage Stats for the Digital Twin State Values Records
      */
-    public StorageStatsRecord getStateVariationStats() {
-        return stateVariationStats;
+    public StorageStatsRecord getStateValuesVariationStats() {
+        return stateValuesVariationStats;
     }
 
     /**
-     * Set the Storage Stats for the State Variation Records
-     * @param stateVariationStats Storage Stats for the State Variation Records
+     * Set the Storage Stats for the Digital Twin State Values Records
+     * @param stateValuesVariationStats Storage Stats for the Digital Twin State Values Records
      */
-    public void setStateVariationStats(StorageStatsRecord stateVariationStats) {
-        this.stateVariationStats = stateVariationStats;
+    public void setStateValuesVariationStats(StorageStatsRecord stateValuesVariationStats) {
+        this.stateValuesVariationStats = stateValuesVariationStats;
+    }
+
+    /**
+     * Get the Storage Stats for the State Description Variation Records
+     * @return Storage Stats for the State Description Variation Records
+     */
+    public StorageStatsRecord getStateDescriptionVariationStats() {
+        return stateDescriptionVariationStats;
+    }
+
+    /**
+     * Set the Storage Stats for the State Description Variation Records
+     * @param stateDescriptionVariationStats Storage Stats for the State Description Variation Records
+     */
+    public void setStateDescriptionVariationStats(StorageStatsRecord stateDescriptionVariationStats) {
+        this.stateDescriptionVariationStats = stateDescriptionVariationStats;
     }
 
     /**
@@ -390,7 +411,8 @@ public class StorageStats extends StorageRecord {
     @Override
     public String toString() {
         final StringBuffer sb = new StringBuffer("StorageStats{");
-        sb.append("stateVariationStats=").append(stateVariationStats);
+        sb.append("stateValuesVariationStats=").append(stateValuesVariationStats);
+        sb.append(", stateDescriptionVariationStats=").append(stateDescriptionVariationStats);
         sb.append(", lifeCycleVariationStats=").append(lifeCycleVariationStats);
         sb.append(", physicalAssetPropertyVariationStats=").append(physicalAssetPropertyVariationStats);
         sb.append(", physicalAssetEventNotificationStats=").append(physicalAssetEventNotificationStats);

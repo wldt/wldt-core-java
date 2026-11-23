@@ -26,7 +26,9 @@ import it.wldt.storage.model.digital.DigitalActionRequestRecord;
 import it.wldt.storage.model.lifecycle.LifeCycleVariationRecord;
 import it.wldt.storage.model.physical.*;
 import it.wldt.storage.model.state.DigitalTwinStateEventNotificationRecord;
-import it.wldt.storage.model.state.DigitalTwinStateRecord;
+import it.wldt.storage.model.state.DigitalTwinStateHistoryEntry;
+import it.wldt.storage.model.state.DigitalTwinStateHistoryRecord;
+import it.wldt.storage.model.state.DigitalTwinStateValuesRecord;
 import it.wldt.storage.model.AggregationRecord;
 import it.wldt.storage.query.*;
 import org.junit.jupiter.api.*;
@@ -141,7 +143,17 @@ public class StorageQueryTester {
                     }
 
                     @Override
-                    public void onStateEvent(WldtEvent<?> wldtEvent) {
+                    public void onStateDescriptionEvent(WldtEvent<?> wldtEvent) {
+
+                    }
+
+                    @Override
+                    public void onStateValuesEvent(WldtEvent<?> wldtEvent) {
+
+                    }
+
+                    @Override
+                    public void onStateEventNotification(WldtEvent<?> wldtEvent) {
 
                     }
 
@@ -305,7 +317,7 @@ public class StorageQueryTester {
 
         /////////////////// Query in Time Range //////////////////////
 
-        // Create Query Request to the Storage Manager for the Last Digital Twin State
+        // Create Query Request to the Storage Manager for the Digital Twin State in the time range
         Query queryRequest = Query.on(QueryResourceType.DIGITAL_TWIN_STATE).where(FilterFactory.and(FilterFactory.gte(QueryFieldNames.TIMESTAMP, startTimeStamp), FilterFactory.lte(QueryFieldNames.TIMESTAMP, endTimeStamp))).build();
 
         // Send the Query Request to the Storage Manager for the target DT
@@ -316,18 +328,27 @@ public class StorageQueryTester {
 
         List<?> resultList =  queryResult.getItems();
 
-        // Check the result list is not null and contains only DigitalTwinStateRecord
+        // The complete state is a single history record that maps the descriptions to the values associated to them:
+        // the structure of the state is created once, so we have a single description with all the values
         assertTrue(resultList != null && !resultList.isEmpty());
-        assertTrue(resultList.stream().allMatch(item -> item instanceof DigitalTwinStateRecord));
+        assertTrue(resultList.stream().allMatch(item -> item instanceof DigitalTwinStateHistoryRecord));
+        assertEquals(1, resultList.size());
+        assertEquals(1, ((DigitalTwinStateHistoryRecord) resultList.get(0)).size());
 
         // we have 10 Energy Updates, 4 Relationship Instance changes + 1 Initial State Update
-        int targetStateUpdates = TestPhysicalAdapter.TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES + 4 + 1;
-        assertEquals(targetStateUpdates, resultList.size());
+        // + 2 Event Notifications (the last notification of each event is a value of the state)
+        int targetStateUpdates = TestPhysicalAdapter.TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES + 4 + 1 + TestPhysicalAdapter.TARGET_PHYSICAL_ASSET_EVENT_UPDATES;
+        DigitalTwinStateHistoryRecord historyRecord = (DigitalTwinStateHistoryRecord) resultList.get(0);
+        DigitalTwinStateHistoryEntry entry = historyRecord.getEntries().values().iterator().next();
+        assertNotNull(entry.getDescription());
+        assertEquals(entry.getDescriptionId(), entry.getDescription().getId());
+        assertEquals(targetStateUpdates, entry.getValuesList().size());
+        assertTrue(entry.getValuesList().stream().allMatch(v -> entry.getDescriptionId().equals(v.getDescriptionId())));
 
         ///////////////// Query in Sample Range //////////////////////
 
-        // Query to get the number of collectes samples
-        queryRequest = Query.on(QueryResourceType.DIGITAL_TWIN_STATE).aggregate(AggregationFactory.count().as("count")).build();
+        // Query to get the number of collected samples (values)
+        queryRequest = Query.on(QueryResourceType.DIGITAL_TWIN_STATE_VALUES).aggregate(AggregationFactory.count().as("count")).build();
 
         // Send the Query Request to the Storage Manager for the target DT
         queryResult = queryExecutor.syncQueryExecute(queryRequest);
@@ -336,9 +357,9 @@ public class StorageQueryTester {
         resultList =  queryResult.getItems();
 
         assertNotNull(queryResult);
-        assertEquals(queryResult.getOriginalQuery().getResource(), QueryResourceType.DIGITAL_TWIN_STATE);
+        assertEquals(queryResult.getOriginalQuery().getResource(), QueryResourceType.DIGITAL_TWIN_STATE_VALUES);
 
-        // Check the result list is not null and contains only DigitalTwinStateRecord
+        // Check the result list is not null and contains only aggregation records
         assertTrue(resultList != null && !resultList.isEmpty());
         assertTrue(resultList.stream().allMatch(item -> item instanceof AggregationRecord));
 
@@ -348,22 +369,25 @@ public class StorageQueryTester {
         // Check the number of collected samples
         assertEquals(targetStateUpdates, availableStateCount);
 
-        // Create Query Request to the Storage Manager for the Last Digital Twin State
-        queryRequest = Query.on(QueryResourceType.DIGITAL_TWIN_STATE).offset(0).limit((availableStateCount-1) - (0) + 1).build();
+        // The structure of the state has been stored once
+        queryResult = queryExecutor.syncQueryExecute(Query.on(QueryResourceType.DIGITAL_TWIN_STATE_DESCRIPTION).aggregate(AggregationFactory.count().as("count")).build());
+        assertEquals(1, (int) ((AggregationRecord) queryResult.getItems().get(0)).getLong("count"));
+
+        // Create Query Request to the Storage Manager for the Digital Twin State Values in the sample range
+        queryRequest = Query.on(QueryResourceType.DIGITAL_TWIN_STATE_VALUES).offset(0).limit((availableStateCount-1) - (0) + 1).build();
 
         // Send the Query Request to the Storage Manager for the target DT
         queryResult = queryExecutor.syncQueryExecute(queryRequest);
 
         assertNotNull(queryResult);
-        assertEquals(queryResult.getOriginalQuery().getResource(), QueryResourceType.DIGITAL_TWIN_STATE);
+        assertEquals(queryResult.getOriginalQuery().getResource(), QueryResourceType.DIGITAL_TWIN_STATE_VALUES);
 
         resultList =  queryResult.getItems();
 
-        // Check the result list is not null and contains only DigitalTwinStateRecord
+        // Check the result list is not null and contains only DigitalTwinStateValuesRecord
         assertTrue(resultList != null && !resultList.isEmpty());
-        assertTrue(resultList.stream().allMatch(item -> item instanceof DigitalTwinStateRecord));
+        assertTrue(resultList.stream().allMatch(item -> item instanceof DigitalTwinStateValuesRecord));
 
-        // we have 10 Energy Updates, 4 Relationship Instance changes
         assertEquals(targetStateUpdates, resultList.size());
 
     }

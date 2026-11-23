@@ -244,6 +244,25 @@ protected abstract void handleAugmentationFunctionQueryResultRefresh(
     throws AugmentationFunctionException;
 ```
 
+The two state callbacks are called **once for each running stateful function** and the library has already applied the filters of that
+function ([State Filters](#state-filters)): the function is skipped if it does not observe the state, the description is always complete, and the values
+are delivered only if the trigger filter accepts at least one change and they are already limited by the content filter. A custom handler only decides *how* the
+update is delivered:
+
+```java
+// Called for each running stateful function that observes the state: the description is complete and never filtered
+protected abstract void onStateDescriptionUpdate(StatefulAugmentationFunction function,
+                                                 DigitalTwinStateDescription description,
+                                                 List<DigitalTwinStateChange> changes)
+    throws AugmentationFunctionException;
+
+// Called for each running stateful function whose filters accept the update: the values are already filtered
+protected abstract void onStateValuesUpdate(StatefulAugmentationFunction function,
+                                            DigitalTwinStateValues filteredValues,
+                                            List<DigitalTwinStateChange> changes)
+    throws AugmentationFunctionException;
+```
+
 > **Note**: For most use cases, `DefaultAugmentationFunctionHandler` is sufficient.
 > Extend `AugmentationFunctionHandler` only when you need custom execution logic,
 > instrumentation, filtering, or specialized lifecycle management.
@@ -255,7 +274,7 @@ protected abstract void handleAugmentationFunctionQueryResultRefresh(
 `DefaultAugmentationFunctionHandler` is the **ready-to-use concrete implementation** of
 `AugmentationFunctionHandler`. It provides standard handling for all lifecycle operations—registration,
 unregistration, stateless execution, and stateful start/stop—and automatically forwards DT state updates
-and event notifications to the running stateful functions, applying the optional trigger and content filters
+and event notifications to the running stateful functions, applying the optional trigger and content filters (done by the abstract `AugmentationFunctionHandler`)
 defined in each function's `AugmentationFunctionContextRequest` (see [State Filters](#state-filters)); without filters every
 update is forwarded with the complete state.
 
@@ -297,8 +316,8 @@ public interface AugmentationLifeCycleListener {
     void onStart();
     void onDigitalTwinBound();
     void onDigitalTwinUnBound();
-    void onSync(DigitalTwinState digitalTwinState);
-    void onUnSync(DigitalTwinState digitalTwinState);
+    void onSync(DigitalTwinStateDescription digitalTwinStateDescription, DigitalTwinStateValues digitalTwinStateValues);
+    void onUnSync(DigitalTwinStateDescription digitalTwinStateDescription, DigitalTwinStateValues digitalTwinStateValues);
     void onStop();
     void onDestroy();
 }
@@ -510,13 +529,14 @@ the data and configuration that augmentation functions need during execution:
 
 The `AugmentationFunctionContext` encapsulates the runtime data 
 provided to an augmentation function during execution. 
-It contains the current Digital Twin state and optional query results from the DT storage.
+It contains the current Digital Twin state (its description and its values) and optional query results from the DT storage.
 
 #### Structure
 
 ```java
 public class AugmentationFunctionContext {
-    private DigitalTwinState digitalTwinState;
+    private DigitalTwinStateDescription digitalTwinStateDescription;
+    private DigitalTwinStateValues digitalTwinStateValues;
     private QueryResult<?> queryResult;
 }
 ```
@@ -525,7 +545,8 @@ public class AugmentationFunctionContext {
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `digitalTwinState` | `DigitalTwinState` | The Digital Twin State at the time of execution: the complete state, or only the resources selected by the content filters of the context request (see [State Filters](#state-filters)) |
+| `digitalTwinStateDescription` | `DigitalTwinStateDescription` | The structure of the Digital Twin State at the time of execution. It is **always complete**: the filters of the context request never apply to the description |
+| `digitalTwinStateValues` | `DigitalTwinStateValues` | The values of the Digital Twin State at the time of execution: all the values, or only the resources selected by the content filters of the context request (see [State Filters](#state-filters)) |
 | `queryResult` | `QueryResult<?>` | Results from storage queries defined in the `AugmentationFunctionContextRequest` (optional) |
 
 #### Constructors
@@ -535,10 +556,10 @@ public class AugmentationFunctionContext {
 public AugmentationFunctionContext()
 
 // Constructor with state only
-public AugmentationFunctionContext(DigitalTwinState digitalTwinState)
+public AugmentationFunctionContext(DigitalTwinStateDescription digitalTwinStateDescription, DigitalTwinStateValues digitalTwinStateValues)
 
 // Constructor with state and query results
-public AugmentationFunctionContext(DigitalTwinState digitalTwinState, QueryResult<?> queryResult)
+public AugmentationFunctionContext(DigitalTwinStateDescription digitalTwinStateDescription, DigitalTwinStateValues digitalTwinStateValues, QueryResult<?> queryResult)
 ```
 
 #### Usage in Functions
@@ -592,17 +613,18 @@ start/stop/execute context; `observeEventNotifications: false` stops event notif
 
 #### State Filters
 
-Both filters are optional and **disabled by default**: with no filter the function receives every state update
-with the complete state.
+Both filters are optional and **disabled by default**: with no filter the function receives every values update
+with the complete values. They apply **only to the values** of the state: the description (the structure) is never filtered,
+and a stateful function is notified of every change of the description.
 
-**1. Trigger filter** (`stateChangeFilters`, stateful functions only) — decides *when* a state update is pushed.
+**1. Trigger filter** (`stateChangeFilters`, stateful functions only) — decides *when* a values update is pushed.
 Each `DigitalTwinStateChangeFilter` rule has optional criteria on operation, resource type and resource name (empty criterion =
 wildcard, non-empty criteria are AND-ed). The update is pushed if **any** change of the update matches **any** rule (and, if a content filter is also defined, concerns an accepted resource, see below).
 
 **2. Content filter** (`propertyNameFilter`, `actionNameFilter`, `eventNameFilter`, `relationshipNameFilter`,
-stateful and stateless) — decides *what* is delivered. The function receives a partial `DigitalTwinState` copy
-containing only the listed resources (same `onStateUpdate(DigitalTwinState)` signature). Each category is
-independent: `null` keeps it all, an empty list removes it. `eventNameFilter` also drops the event notifications
+stateful and stateless) — decides *what* is delivered. The function receives the `DigitalTwinStateValues`
+containing only the listed resources (`onStateValuesUpdate(DigitalTwinStateValues)` and the context of start / stop / execute).
+Each category is independent: `null` keeps it all, an empty list removes it. `eventNameFilter` also drops the event notifications
 whose name is not listed.
 
 ```java
@@ -624,10 +646,10 @@ decides *when*: with a content filter, a state update is pushed only if at least
 accepted resource. When both filters are defined, the **same change** must satisfy both (a change matching only the
 trigger filter plus another one matching only the content filter do not push the update). Examples:
 
-| Filters | `onStateUpdate` is invoked when |
+| Filters | `onStateValuesUpdate` is invoked when |
 |---|---|
 | none | every state update |
-| trigger only (`OPERATION_UPDATE_VALUE` on property values) | any property value update, complete state delivered |
+| trigger only (`OPERATION_UPDATE_VALUE` on property values) | any property value update, complete values delivered |
 | content only (`withPropertyNameFilter("temperature", "humidity")`) | a change concerns `temperature`, `humidity` or any other category left unset (unset = accepts all) |
 | both | a value update on `temperature` **or** on `humidity` (each one alone is enough) |
 
@@ -635,13 +657,18 @@ Without change information (null/empty change list) the update is pushed only if
 Stateless functions are request-driven, so for them the content filter only restricts the state in the context.
 
 The content filter is the generic `DigitalTwinStateFilter` (package `it.wldt.core.state`), also used by the
-Digital Adapter and by `DigitalTwinState.getDescription(filter)` / `getValues(filter)` / `filter(filter)`:
-`request.toStateFilter()` returns it. `DigitalTwinStateChangeFilter` lives in the same package. The delivered partial
-state keeps the `evaluationInstant` of the full state. The trigger filter does not apply to event notifications
+Digital Adapter and by `DigitalTwinStateValues.filter(filter)`:
+`request.toStateFilter()` returns it. `DigitalTwinStateChangeFilter` lives in the same package. The delivered filtered
+values keep the `evaluationInstant` and the description id of the complete values. The trigger filter does not apply to event notifications
 (use `eventNameFilter`).
 
-A function that needs the structure or the values of the state calls `state.getDescription()` / `state.getValues()`
-on the received (already filtered) `DigitalTwinState`.
+A function that needs the structure of the state receives it, always complete, in `onStateDescriptionUpdate(DigitalTwinStateDescription)`
+and in the context (`getDigitalTwinStateDescription()`); the values are in `onStateValuesUpdate(DigitalTwinStateValues)` and in the context
+(`getDigitalTwinStateValues()`), already filtered. The values carry the id of the description they belong to (`getDescriptionId()`).
+
+The handler keeps a complete, never filtered, local copy of the description and of the values, updated with the description and values events of the
+event bus (see [Digital Twin State events on the event bus](getting_started.md#digital-twin-state-events-on-the-event-bus)): the filters are applied for each function only when the function is notified.
+A function **without filters** receives, at every values update, the complete values (not just the delta carried by the event) and, at every description update, the complete new description.
 
 #### Constructors
 
@@ -712,11 +739,11 @@ public class StateOnlyStatefulFunction extends StatefulAugmentationFunction {
 
 #### Query refresh on every state update (opt-in)
 
-A stateful function that has a `Query` in its context request receives the result of that query when it is **started**, and then only when a refresh is requested. **By default a Digital Twin state update does not execute any query**: the function receives the new state in `onStateUpdate()` and decides by itself if and when it needs fresh data from the storage. A refresh can be requested in three ways:
+A stateful function that has a `Query` in its context request receives the result of that query when it is **started**, and then only when a refresh is requested. **By default a Digital Twin state update does not execute any query**: the function receives the new values in `onStateValuesUpdate()` and decides by itself if and when it needs fresh data from the storage. A refresh can be requested in three ways:
 
-- **By the function** (recommended): the function calls `refreshQueryResult()` (re-executes the query of the context request) or `refreshQueryResult(Query)` (executes a new query, e.g., a sliding time window) whenever it needs it, for example inside `onStateUpdate()` only when a condition is met, or from a timer. The result arrives in `onQueryResultRefresh()`.
+- **By the function** (recommended): the function calls `refreshQueryResult()` (re-executes the query of the context request) or `refreshQueryResult(Query)` (executes a new query, e.g., a sliding time window) whenever it needs it, for example inside `onStateValuesUpdate()` only when a condition is met, or from a timer. The result arrives in `onQueryResultRefresh()`.
 - **By the Digital Twin Model** (shadowing function): `refreshAugmentationFunctionQueryResult(augmentationFunctionHandlerId, augmentationFunctionId)` triggers the execution of the query of the context request of a stateful function.
-- **Automatically on every state update** (opt-in): when `refreshQueryOnStateUpdate` is set to `true` in the context request, the handler executes the query and calls `onQueryResultRefresh()` **before** calling `onStateUpdate()` for each state update, so the function always sees fresh history together with the new state.
+- **Automatically on every state update** (opt-in): when `refreshQueryOnStateUpdate` is set to `true` in the context request, the handler executes the query and calls `onQueryResultRefresh()` **before** calling `onStateValuesUpdate()` for each values update, so the function always sees fresh history together with the new values.
 
 ```java
 public class LastHourAverageFunction extends StatefulAugmentationFunction {
@@ -747,8 +774,13 @@ public class LastHourAverageFunction extends StatefulAugmentationFunction {
     }
 
     @Override
-    public void onStateUpdate(DigitalTwinState digitalTwinState) throws AugmentationFunctionException {
-        // Called right after onQueryResultRefresh() for the same state update
+    public void onStateDescriptionUpdate(DigitalTwinStateDescription digitalTwinStateDescription) throws AugmentationFunctionException {
+        // The structure of the state changed (never filtered, no query refresh)
+    }
+
+    @Override
+    public void onStateValuesUpdate(DigitalTwinStateValues digitalTwinStateValues) throws AugmentationFunctionException {
+        // Called right after onQueryResultRefresh() for the same values update
     }
 
     // start(), stop() and onEventNotificationReceived() omitted
@@ -811,8 +843,9 @@ public AugmentationFunctionResultList run(AugmentationFunctionRequest request)
     // Retrieve the context from the request
     AugmentationFunctionContext context = request.getContext();
 
-    // Access the current DT state
-    DigitalTwinState state = context.getDigitalTwinState();
+    // Access the current DT state: the structure (always complete) and the values (limited by the content filters, if any)
+    DigitalTwinStateDescription description = context.getDigitalTwinStateDescription();
+    DigitalTwinStateValues values = context.getDigitalTwinStateValues();
 
     // Access optional query results from DT storage
     QueryResult<?> queryResult = context.getQueryResult();
@@ -867,7 +900,7 @@ public class StatelessPredictionFunction extends StatelessAugmentationFunction {
     public AugmentationFunctionResultList run(AugmentationFunctionRequest request)
             throws AugmentationFunctionException {
         // Context used once per execution
-        DigitalTwinState currentState = request.getContext().getDigitalTwinState();
+        DigitalTwinStateValues currentValues = request.getContext().getDigitalTwinStateValues();
         QueryResult<?> history = request.getContext().getQueryResult();
         
         // Perform prediction using current state and history
@@ -888,7 +921,7 @@ For **stateful functions**, the context lifecycle is more complex:
 1. **Context Request Definition**: The function defines its initial context requirements
 2. **Start Invocation**: When `startAugmentationFunction()` is called
 3. **Initial Context**: The `start()` method receives an initial context built from the context request
-4. **Runtime Updates**: The function automatically receives `onStateUpdate()` and `onEventNotificationReceived()` callbacks with fresh state/events. By default every update is pushed with the complete state; the optional [State Filters](#state-filters) of the context request restrict which part of the state is delivered and, together, when an update is pushed (an update is pushed only if at least one change satisfies both the trigger filter and the content filter; the same content filters also shape the initial context)
+4. **Runtime Updates**: The function automatically receives `onStateDescriptionUpdate()`, `onStateValuesUpdate()` and `onEventNotificationReceived()` callbacks with fresh state/events. By default every values update is pushed with the complete values; the optional [State Filters](#state-filters) of the context request restrict which part of the values is delivered and, together, when an update is pushed (an update is pushed only if at least one change satisfies both the trigger filter and the content filter; the same content filters also shape the initial context). The description is never filtered
 5. **Context Update Request**: The function can explicitly request context updates when needed
 6. **Stop**: The `stop()` method may receive a final context
 
@@ -902,21 +935,27 @@ public class StatefulAnomalyDetector extends StatefulAugmentationFunction {
     @Override
     public void start(AugmentationFunctionRequest request) throws AugmentationFunctionException {
         // Receive initial context at startup
-        DigitalTwinState initialState = request.getContext().getDigitalTwinState();
+        DigitalTwinStateValues initialValues = request.getContext().getDigitalTwinStateValues();
         
         // Initialize with current temperature
-        initialState.getProperty("temperature")
-            .ifPresent(p -> temperatureHistory.add((Double) p.getValue()));
+        if (initialValues.getPropertyValues().containsKey("temperature"))
+            temperatureHistory.add((Double) initialValues.getPropertyValue("temperature"));
         
         logger.info("Started with initial temperature: {}", temperatureHistory.get(0));
     }
     
     @Override
-    public void onStateUpdate(DigitalTwinState newState) {
-        // Automatically receive state updates (no explicit context request needed)
-        newState.getProperty("temperature")
-            .ifPresent(p -> {
-                double temp = (Double) p.getValue();
+    public void onStateDescriptionUpdate(DigitalTwinStateDescription newDescription) {
+        // The structure of the state changed: e.g., a property has been added or removed
+    }
+
+    @Override
+    public void onStateValuesUpdate(DigitalTwinStateValues newValues) {
+        // Automatically receive values updates (no explicit context request needed)
+        if (newValues.getPropertyValues().containsKey("temperature"))
+            Optional.ofNullable(newValues.getPropertyValue("temperature"))
+            .ifPresent(value -> {
+                double temp = (Double) value;
                 temperatureHistory.add(temp);
                 
                 // Detect anomaly
@@ -1011,7 +1050,12 @@ public class StatefulPollingAugmentationFunction extends StatefulAugmentationFun
     }
 
     @Override
-    public void onStateUpdate(DigitalTwinState digitalTwinState) {
+    public void onStateDescriptionUpdate(DigitalTwinStateDescription digitalTwinStateDescription) {
+        // Not used in pure polling mode
+    }
+
+    @Override
+    public void onStateValuesUpdate(DigitalTwinStateValues digitalTwinStateValues) {
         // Not used in pure polling mode — data is retrieved via scheduled refreshQueryResult()
     }
 
@@ -1037,7 +1081,7 @@ directly to `refreshQueryResult(Query)` when the query parameters need to change
 | **Context Frequency** | Once per `execute()` call | Initial context + runtime updates |
 | **Context Source** | Built fresh each execution | Initial + push notifications or polling requests |
 | **Context Request** | Defines single execution needs | Defines initial setup + observation preferences |
-| **State Observation** | Initial/execution context contains the state if `observeState = true` (optionally narrowed by content filters) | Via `onStateUpdate()` if `observeState = true`, only for updates with at least one change matching the trigger filter (if any) and concerning a resource accepted by the content filters (if any), with the state narrowed by the content filters |
+| **State Observation** | Initial/execution context contains the state if `observeState = true` (optionally narrowed by content filters) | Via `onStateDescriptionUpdate()` (always the complete description) and `onStateValuesUpdate()` if `observeState = true`; the values update only for updates with at least one change matching the trigger filter (if any) and concerning a resource accepted by the content filters (if any), with the values narrowed by the content filters |
 | **Event Observation** | Not applicable (no lifecycle) | Via `onEventNotificationReceived()` if `observeEventNotifications = true`, only for events listed in `eventNameFilter` (if set) |
 | **Context Updates** | Not possible (stateless) | Automatic (push) or explicit (polling) |
 | **Query Execution** | Once per execution | Initial + can be refreshed on request |
@@ -1868,13 +1912,13 @@ public class MyStatelessFunction extends StatelessAugmentationFunction {
 ### Reporting Errors from Stateful Functions
 
 Inside a `StatefulAugmentationFunction`, the same `notifyError()` method is available in `start()`,
-`stop()`, `onStateUpdate()`, and `onEventNotificationReceived()`.
+`stop()`, `onStateDescriptionUpdate()`, `onStateValuesUpdate()`, and `onEventNotificationReceived()`.
 
 ```java
 public class MyStatefulFunction extends StatefulAugmentationFunction {
 
     @Override
-    public void onStateUpdate(DigitalTwinState digitalTwinState)
+    public void onStateValuesUpdate(DigitalTwinStateValues digitalTwinStateValues)
             throws AugmentationFunctionException {
 
         try {
@@ -1882,7 +1926,7 @@ public class MyStatefulFunction extends StatefulAugmentationFunction {
         } catch (Exception e) {
             // Report a critical error with additional metadata
             HashMap<String, Object> meta = new HashMap<>();
-            meta.put("state_snapshot", digitalTwinState.toString());
+            meta.put("state_snapshot", digitalTwinStateValues.toString());
 
             notifyError(new AugmentationFunctionError(
                 AugmentationFunctionErrorType.CRITICAL,
@@ -2069,12 +2113,23 @@ public abstract class StatefulAugmentationFunction extends AugmentationFunction 
         throws AugmentationFunctionException;
 
     /**
-     * Called automatically when the Digital Twin state is updated.
+     * Called automatically when the description (structure) of the Digital Twin state changes.
+     * The description is never filtered.
      *
-     * @param digitalTwinState The new Digital Twin state
+     * @param digitalTwinStateDescription The new complete Digital Twin state description
      * @throws AugmentationFunctionException if processing fails
      */
-    public abstract void onStateUpdate(DigitalTwinState digitalTwinState)
+    public abstract void onStateDescriptionUpdate(DigitalTwinStateDescription digitalTwinStateDescription)
+        throws AugmentationFunctionException;
+
+    /**
+     * Called automatically when the values of the Digital Twin state change (subject to the filters of the
+     * context request, if any).
+     *
+     * @param digitalTwinStateValues The new Digital Twin state values (complete, or limited by the content filter)
+     * @throws AugmentationFunctionException if processing fails
+     */
+    public abstract void onStateValuesUpdate(DigitalTwinStateValues digitalTwinStateValues)
         throws AugmentationFunctionException;
 
     /**
@@ -2150,7 +2205,7 @@ public abstract class StatefulAugmentationFunction extends AugmentationFunction 
 
 - **Lifecycle Management**: Implements `start()` and `stop()` for initialization and cleanup
 - **Running State**: `isRunning()` reflects whether the function has been started. `startAugmentationFunction()` is a no-op if already running; `stopAugmentationFunction()` is a no-op if already stopped
-- **Push Notifications**: Receives automatic callbacks via `onStateUpdate()` and `onEventNotificationReceived()`
+- **Push Notifications**: Receives automatic callbacks via `onStateDescriptionUpdate()`, `onStateValuesUpdate()` and `onEventNotificationReceived()`
 - **Polling Support**: Override `onQueryResultRefresh()` only when using the polling pattern; it has a default no-op implementation and does **not** need to be overridden in push-mode or timer-based functions
 - **Asynchronous Results**: Produces results by calling `notifyResult(AugmentationFunctionResultList)` at any time, not necessarily synchronized with notifications
 - **Error Reporting**: Call `notifyError()` to report errors asynchronously; errors in stateful functions are separate from `notifyResult()`
@@ -2359,8 +2414,14 @@ public class StatefulPeriodicRandomNumberAugmentationFunction extends StatefulAu
     }
 
     @Override
-    public void onStateUpdate(DigitalTwinState digitalTwinState) {
-        logger.debug("Received state update: {}", digitalTwinState);
+    public void onStateDescriptionUpdate(DigitalTwinStateDescription digitalTwinStateDescription) {
+        logger.debug("Received state description update: {}", digitalTwinStateDescription);
+        // No action needed - timer handles result generation
+    }
+
+    @Override
+    public void onStateValuesUpdate(DigitalTwinStateValues digitalTwinStateValues) {
+        logger.debug("Received state values update: {}", digitalTwinStateValues);
         // No action needed - timer handles result generation
     }
 
@@ -2420,9 +2481,14 @@ public class StatefulStateDrivenRandomNumberAugmentationFunction extends Statefu
     }
 
     @Override
-    public void onStateUpdate(DigitalTwinState digitalTwinState) throws AugmentationFunctionException {
+    public void onStateDescriptionUpdate(DigitalTwinStateDescription digitalTwinStateDescription) throws AugmentationFunctionException {
+        logger.debug("Received state description update: {}", digitalTwinStateDescription);
+    }
+
+    @Override
+    public void onStateValuesUpdate(DigitalTwinStateValues digitalTwinStateValues) throws AugmentationFunctionException {
         try {
-            logger.debug("Received state update: {}", digitalTwinState);
+            logger.debug("Received state values update: {}", digitalTwinStateValues);
 
             // Generate new random number in response to state change
             double randomNumber = Math.random();
@@ -2498,7 +2564,7 @@ based on each state update, demonstrating both state-driven execution and intern
 1. **Constructor**: Initialize function metadata and internal state structures
 2. **start()**: Initialize any resources needed
 3. **stop()**: Cleanup resources
-4. **onStateUpdate()**: React to state changes, compute results, call `notifyResult()`
+4. **onStateDescriptionUpdate()** / **onStateValuesUpdate()**: React to structure and values changes, compute results, call `notifyResult()`
 5. **onEventNotificationReceived()**: React to events if relevant
 
 ---

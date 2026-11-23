@@ -9,7 +9,8 @@ import java.util.concurrent.CountDownLatch;
 
 public class RelationshipDigitalAdapter extends DigitalAdapter<String> {
 
-    private DigitalTwinState digitalTwinState;
+    private volatile DigitalTwinStateDescription synchronizedDescription;
+    private volatile DigitalTwinStateValues synchronizedValues;
     private final List<DigitalTwinStateRelationshipInstance<?>> instancesNotification;
     private CountDownLatch relationshipNotificationLatch;
 
@@ -20,9 +21,14 @@ public class RelationshipDigitalAdapter extends DigitalAdapter<String> {
 
 
     @Override
-    protected void onStateUpdate(DigitalTwinState newDigitalTwinState, DigitalTwinState previousDigitalTwinState, ArrayList<DigitalTwinStateChange> digitalTwinStateChangeList) {
+    protected void onStateDescriptionUpdate(DigitalTwinStateDescription description, List<DigitalTwinStateChange> descriptionChanges) {
 
-        for(DigitalTwinStateChange digitalTwinStateChange : digitalTwinStateChangeList){
+    }
+
+    @Override
+    protected void onStateValuesUpdate(DigitalTwinStateValues values, List<DigitalTwinStateChange> relevantChanges) {
+
+        for(DigitalTwinStateChange digitalTwinStateChange : relevantChanges){
             //If the change involve a Relationship
             if(digitalTwinStateChange != null && digitalTwinStateChange.getResourceType().equals(DigitalTwinStateChange.ResourceType.RELATIONSHIP_INSTANCE)){
                 if(digitalTwinStateChange.getOperation().equals(DigitalTwinStateChange.Operation.OPERATION_ADD) && digitalTwinStateChange.getResource() instanceof DigitalTwinStateRelationshipInstance<?>){
@@ -36,16 +42,6 @@ public class RelationshipDigitalAdapter extends DigitalAdapter<String> {
                 }
             }
         }
-    }
-
-    @Override
-    protected void onStateDescriptionUpdate(DigitalTwinStateDescription description, List<DigitalTwinStateChange> descriptionChanges) {
-
-    }
-
-    @Override
-    protected void onStateValuesUpdate(DigitalTwinStateValues values, List<DigitalTwinStateChange> relevantChanges) {
-
     }
 
     @Override
@@ -64,12 +60,13 @@ public class RelationshipDigitalAdapter extends DigitalAdapter<String> {
     }
 
     @Override
-    public void onDigitalTwinSync(DigitalTwinState digitalTwinState) {
-        this.digitalTwinState = digitalTwinState;
+    public void onDigitalTwinSync(DigitalTwinStateDescription digitalTwinStateDescription, DigitalTwinStateValues digitalTwinStateValues) {
+        this.synchronizedDescription = digitalTwinStateDescription;
+        this.synchronizedValues = digitalTwinStateValues;
     }
 
     @Override
-    public void onDigitalTwinUnSync(DigitalTwinState digitalTwinState) {
+    public void onDigitalTwinUnSync(DigitalTwinStateDescription digitalTwinStateDescription, DigitalTwinStateValues digitalTwinStateValues) {
 
     }
 
@@ -93,8 +90,37 @@ public class RelationshipDigitalAdapter extends DigitalAdapter<String> {
 
     }
 
-    public DigitalTwinState getDigitalTwinState() {
-        return digitalTwinState;
+    /**
+     * @return the current description of the Digital Twin State known by the adapter (kept up to date with the events)
+     */
+    public DigitalTwinStateDescription getCurrentDescription() {
+        return getDigitalTwinStateDescription();
+    }
+
+    /**
+     * @return the current values of the Digital Twin State known by the adapter (kept up to date with the events)
+     */
+    public DigitalTwinStateValues getCurrentValues() {
+        return getDigitalTwinStateValues();
+    }
+
+    /**
+     * Waits until the adapter knows the expected number of instances of a relationship
+     * @return the instances of the relationship (the last known, also if the expected number has not been reached)
+     */
+    public List<DigitalTwinStateRelationshipInstance<?>> awaitRelationshipInstances(String relationshipName, int expectedInstances, long timeoutMs) throws InterruptedException {
+        long end = System.currentTimeMillis() + timeoutMs;
+        List<DigitalTwinStateRelationshipInstance<?>> instances = null;
+        while (System.currentTimeMillis() < end) {
+            DigitalTwinStateValues values = getCurrentValues();
+            if (values != null) {
+                instances = values.getRelationshipInstances().get(relationshipName);
+                if (instances != null && instances.size() == expectedInstances)
+                    return instances;
+            }
+            Thread.sleep(25);
+        }
+        return instances;
     }
 
     public CountDownLatch getRelationshipNotificationLatch() {

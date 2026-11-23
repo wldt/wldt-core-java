@@ -189,11 +189,13 @@ public class TestDigitalTwinModel extends DigitalTwinModel {
             logger.info("DigitalTwinModel Physical Asset Event Notification - Event Received: {}", physicalAssetEventWldtEvent);
 
             //Handle the received physical event notification and map into a digital notification for digital adapters
+            this.digitalTwinStateManager.startStateTransaction();
             this.digitalTwinStateManager.notifyDigitalTwinStateEvent(
                     new DigitalTwinStateEventNotification<String>(
                             physicalAssetEventWldtEvent.getPhysicalEventKey(),
                             (String)physicalAssetEventWldtEvent.getBody(),
                             System.currentTimeMillis()));
+            this.digitalTwinStateManager.commitStateTransaction();
 
         }catch (Exception e){
             e.printStackTrace();

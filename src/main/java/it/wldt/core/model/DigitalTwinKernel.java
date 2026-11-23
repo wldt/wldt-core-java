@@ -23,7 +23,8 @@ package it.wldt.core.model;
 import it.wldt.adapter.physical.PhysicalAssetDescription;
 import it.wldt.augmentation.AugmentationManager;
 import it.wldt.core.engine.LifeCycleListener;
-import it.wldt.core.state.DigitalTwinState;
+import it.wldt.core.state.DigitalTwinStateDescription;
+import it.wldt.core.state.DigitalTwinStateValues;
 import it.wldt.core.state.DigitalTwinStateManager;
 import it.wldt.exception.KernelException;
 import it.wldt.exception.WldtRuntimeException;
@@ -166,13 +167,13 @@ public class DigitalTwinKernel extends DigitalTwinWorker implements LifeCycleLis
     }
 
     @Override
-    public void onSync(DigitalTwinState digitalTwinState) {
-        logger.debug("Kernel-Listener-DT-LifeCycle: onSync() - DT State: {}", digitalTwinState);
+    public void onSync(DigitalTwinStateDescription digitalTwinStateDescription, DigitalTwinStateValues digitalTwinStateValues) {
+        logger.debug("Kernel-Listener-DT-LifeCycle: onSync() - DT State Description: {} Values: {}", digitalTwinStateDescription, digitalTwinStateValues);
     }
 
     @Override
-    public void onUnSync(DigitalTwinState digitalTwinState) {
-        logger.debug("Kernel-Listener-DT-LifeCycle: onUnSync() - DT State: {}", digitalTwinState);
+    public void onUnSync(DigitalTwinStateDescription digitalTwinStateDescription, DigitalTwinStateValues digitalTwinStateValues) {
+        logger.debug("Kernel-Listener-DT-LifeCycle: onUnSync() - DT State Description: {} Values: {}", digitalTwinStateDescription, digitalTwinStateValues);
     }
 
     @Override

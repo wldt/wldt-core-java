@@ -32,7 +32,8 @@ import it.wldt.core.event.WldtEventBus;
 import it.wldt.core.model.DigitalTwinKernel;
 import it.wldt.core.model.DigitalTwinModel;
 import it.wldt.core.model.ShadowingModelListener;
-import it.wldt.core.state.DigitalTwinState;
+import it.wldt.core.state.DigitalTwinStateDescription;
+import it.wldt.core.state.DigitalTwinStateValues;
 import it.wldt.core.state.DigitalTwinStateManager;
 import it.wldt.exception.*;
 import it.wldt.log.WldtLogger;
@@ -46,6 +47,7 @@ import it.wldt.storage.StorageManager;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -273,6 +275,10 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
 
         // Initialize the Storage Manager of the current Digital Twin instance
         this.storageManager = new StorageManager(this.digitalTwinId);
+        // The storage manager keeps a local copy of the state: it is initialized here with the initial state and then it
+        // follows every state event, since the storage manager is already listening from this moment (it is not re-seeded
+        // at synchronization time, otherwise the events still in flight would be considered already included and not saved)
+        this.storageManager.seedDigitalTwinState(this.digitalTwinStateManager.getDigitalTwinStateDescription(), this.digitalTwinStateManager.getDigitalTwinStateValues());
 
         // Initialize the Resource Manager of the current Digital Twin instance
         this.resourceManager = new ResourceManager(this.digitalTwinId);
@@ -549,9 +555,10 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
     /**
      * Notifies listeners when the digital twin is synchronized.
      *
-     * @param digitalTwinState The state of the digital twin after synchronization.
+     * @param digitalTwinStateDescription The description of the digital twin state after synchronization.
+     * @param digitalTwinStateValues The values of the digital twin state after synchronization.
      */
-    private void notifyLifeCycleOnSync(DigitalTwinState digitalTwinState){
+    private void notifyLifeCycleOnSync(DigitalTwinStateDescription digitalTwinStateDescription, DigitalTwinStateValues digitalTwinStateValues){
         synchronized (this.syncStateObject){
             this.currentLifeCycleState = LifeCycleState.SYNCHRONIZED;
 
@@ -571,15 +578,16 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
 
         // Notify all Listeners
         for(LifeCycleListener listener : this.lifeCycleListenerList)
-            listener.onSync(digitalTwinState);
+            listener.onSync(digitalTwinStateDescription, digitalTwinStateValues);
     }
 
     /**
      * Notifies listeners when the digital twin is out of synchronization.
      *
-     * @param digitalTwinState The state of the digital twin after going out of synchronization.
+     * @param digitalTwinStateDescription The description of the digital twin state after going out of synchronization.
+     * @param digitalTwinStateValues The values of the digital twin state after going out of synchronization.
      */
-    private void notifyLifeCycleOnUnSync(DigitalTwinState digitalTwinState){
+    private void notifyLifeCycleOnUnSync(DigitalTwinStateDescription digitalTwinStateDescription, DigitalTwinStateValues digitalTwinStateValues){
         synchronized (this.syncStateObject){
             this.currentLifeCycleState = LifeCycleState.NOT_SYNCHRONIZED;
 
@@ -599,7 +607,7 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
 
         // Notify all Listeners
         for(LifeCycleListener listener : this.lifeCycleListenerList)
-            listener.onUnSync(digitalTwinState);
+            listener.onUnSync(digitalTwinStateDescription, digitalTwinStateValues);
     }
 
     /**
@@ -874,8 +882,7 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
         notifyLifeCycleOnStart();
 
         physicalAdapterExecutor.shutdown();
-
-        while (!physicalAdapterExecutor.isTerminated() && ! digitalAdapterExecutor.isTerminated()) {}
+        digitalAdapterExecutor.shutdown();
 
     }
 
@@ -958,21 +965,23 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
     /**
      * Callback method invoked when the digital twin is synchronized.
      *
-     * @param digitalTwinState The state of the digital twin after synchronization.
+     * @param digitalTwinStateDescription The description of the digital twin state after synchronization.
+     * @param digitalTwinStateValues The values of the digital twin state after synchronization.
      */
     @Override
-    public void onShadowingSync(DigitalTwinState digitalTwinState) {
-        notifyLifeCycleOnSync(digitalTwinState);
+    public void onShadowingSync(DigitalTwinStateDescription digitalTwinStateDescription, DigitalTwinStateValues digitalTwinStateValues) {
+        notifyLifeCycleOnSync(digitalTwinStateDescription, digitalTwinStateValues);
     }
 
     /**
      * Callback method invoked when the digital twin is out of sync.
      *
-     * @param digitalTwinState The state of the digital twin after going out of sync.
+     * @param digitalTwinStateDescription The description of the digital twin state after going out of sync.
+     * @param digitalTwinStateValues The values of the digital twin state after going out of sync.
      */
     @Override
-    public void onShadowingOutOfSync(DigitalTwinState digitalTwinState) {
-        notifyLifeCycleOnUnSync(digitalTwinState);
+    public void onShadowingOutOfSync(DigitalTwinStateDescription digitalTwinStateDescription, DigitalTwinStateValues digitalTwinStateValues) {
+        notifyLifeCycleOnUnSync(digitalTwinStateDescription, digitalTwinStateValues);
     }
 
     /**

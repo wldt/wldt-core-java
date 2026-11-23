@@ -17,14 +17,14 @@ public class TestDigitalAdapter extends DigitalAdapter<TestDigitalAdapterConfigu
 
     private List<DigitalTwinStateEventNotification<?>> receivedEventNotificationList = null;
 
-    private List<DigitalTwinState> receivedDigitalTwinStateUpdateList = null;
+    private List<DigitalTwinStateValues> receivedDigitalTwinStateUpdateList = null;
 
     public TestDigitalAdapter(String id, TestDigitalAdapterConfiguration configuration) {
         super(id, configuration);
     }
 
     public TestDigitalAdapter(String id, TestDigitalAdapterConfiguration configuration,
-                              List<DigitalTwinState> receivedDigitalTwinStateUpdateList,
+                              List<DigitalTwinStateValues> receivedDigitalTwinStateUpdateList,
                               List<DigitalTwinStateEventNotification<?>> receivedEventNotificationList
                                ) {
 
@@ -45,19 +45,19 @@ public class TestDigitalAdapter extends DigitalAdapter<TestDigitalAdapterConfigu
     }
 
     @Override
-    public void onDigitalTwinSync(DigitalTwinState digitalTwinState) {
+    public void onDigitalTwinSync(DigitalTwinStateDescription digitalTwinStateDescription, DigitalTwinStateValues digitalTwinStateValues) {
 
-        logger.info("DummyDigitalTwinAdapter -> onDigitalTwinSync() - DT State: {}", digitalTwinState);
+        logger.info("DummyDigitalTwinAdapter -> onDigitalTwinSync() - DT State Description: {} Values: {}", digitalTwinStateDescription, digitalTwinStateValues);
 
         //Observe for notification of all the available events
         try {
 
             //Option 1 Observe all Physical Event Notification through direct call
-            if(digitalTwinState != null && digitalTwinState.getEventList().isPresent())
-                this.observeDigitalTwinEventsNotifications(digitalTwinState.getEventList().get().stream().map(DigitalTwinStateEvent::getKey).collect(Collectors.toList()));
+            if(digitalTwinStateDescription != null && !digitalTwinStateDescription.getEvents().isEmpty())
+                this.observeDigitalTwinEventsNotifications(digitalTwinStateDescription.getEvents().stream().map(DigitalTwinStateDescription.EventDescription::getKey).collect(Collectors.toList()));
 
             //Option 2 Observe all Physical Event Notification through direct call
-            //this.observeAllDigitalTwinEventsNotifications(digitalTwinState);
+            //this.observeAllDigitalTwinEventsNotifications(digitalTwinStateDescription);
 
         }catch (Exception e){
             //logger.error("ERROR OBSERVING TARGET EVENT LIST ! Error: {}", e.getLocalizedMessage());
@@ -66,8 +66,8 @@ public class TestDigitalAdapter extends DigitalAdapter<TestDigitalAdapterConfigu
     }
 
     @Override
-    public void onDigitalTwinUnSync(DigitalTwinState digitalTwinState) {
-        logger.info("DummyDigitalTwinAdapter -> onDigitalTwinUnSync() - DT State: {}", digitalTwinState);
+    public void onDigitalTwinUnSync(DigitalTwinStateDescription digitalTwinStateDescription, DigitalTwinStateValues digitalTwinStateValues) {
+        logger.info("DummyDigitalTwinAdapter -> onDigitalTwinUnSync() - DT State Description: {} Values: {}", digitalTwinStateDescription, digitalTwinStateValues);
     }
 
     @Override
@@ -91,24 +91,6 @@ public class TestDigitalAdapter extends DigitalAdapter<TestDigitalAdapterConfigu
     }
 
     @Override
-    protected void onStateUpdate(DigitalTwinState newDigitalTwinState, DigitalTwinState previousDigitalTwinState, ArrayList<DigitalTwinStateChange> digitalTwinStateChangeList) {
-
-        logger.info("DummyDigitalTwinAdapter -> onStateUpdate() - New State: {}", newDigitalTwinState);
-        logger.info("DummyDigitalTwinAdapter -> onStateUpdate() - Previous State: {}", previousDigitalTwinState);
-        logger.info("DummyDigitalTwinAdapter -> onStateUpdate() - State's Changes: {}", digitalTwinStateChangeList);
-
-        assertNotNull(newDigitalTwinState);
-
-        if(previousDigitalTwinState != null){
-            //Check if the two state are different
-            assertNotEquals(newDigitalTwinState.getEvaluationInstant().toEpochMilli(), previousDigitalTwinState.getEvaluationInstant().toEpochMilli());
-        }
-
-        if(this.receivedDigitalTwinStateUpdateList != null)
-            this.receivedDigitalTwinStateUpdateList.add(digitalTwinState);
-    }
-
-    @Override
     protected void onStateDescriptionUpdate(DigitalTwinStateDescription description, List<DigitalTwinStateChange> descriptionChanges) {
 
         logger.info("DummyDigitalTwinAdapter -> onStateDescriptionUpdate() - New Description: {}", description);
@@ -121,6 +103,12 @@ public class TestDigitalAdapter extends DigitalAdapter<TestDigitalAdapterConfigu
 
         logger.info("DummyDigitalTwinAdapter -> onStateValuesUpdate() - New Values: {}", values);
         logger.info("DummyDigitalTwinAdapter -> onStateValuesUpdate() - Relevant Changes: {}", relevantChanges);
+
+        assertNotNull(values);
+        assertNotNull(values.getDescriptionId());
+
+        if(this.receivedDigitalTwinStateUpdateList != null)
+            this.receivedDigitalTwinStateUpdateList.add(values);
     }
 
 
@@ -139,7 +127,7 @@ public class TestDigitalAdapter extends DigitalAdapter<TestDigitalAdapterConfigu
         return receivedEventNotificationList;
     }
 
-    public List<DigitalTwinState> getReceivedDigitalTwinStateUpdateList() {
+    public List<DigitalTwinStateValues> getReceivedDigitalTwinStateUpdateList() {
         return receivedDigitalTwinStateUpdateList;
     }
 }

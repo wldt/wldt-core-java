@@ -210,11 +210,13 @@ public class StatefulGenericResultAugmentationDigitalTwinModel extends DigitalTw
 
             SharedTestMetrics.getInstance().addShadowingFunctionEventNotification(this.digitalTwinStateManager.getDigitalTwinId(), physicalAssetEventWldtEvent);
             //Handle the received physical event notification and map into a digital notification for digital adapters
+            this.digitalTwinStateManager.startStateTransaction();
             this.digitalTwinStateManager.notifyDigitalTwinStateEvent(
                     new DigitalTwinStateEventNotification<String>(
                             physicalAssetEventWldtEvent.getPhysicalEventKey(),
                             (String)physicalAssetEventWldtEvent.getBody(),
                             System.currentTimeMillis()));
+            this.digitalTwinStateManager.commitStateTransaction();
 
         }catch (Exception e){
             e.printStackTrace();
@@ -341,9 +343,10 @@ public class StatefulGenericResultAugmentationDigitalTwinModel extends DigitalTw
                 SharedTestMetrics.getInstance().addAugmentationFunctionRegistrationCallback(this.digitalTwinStateManager.getDigitalTwinId(), handlerId, augmentationFunction);
 
                 // If the Augmentation Function correspond to the target type and it is stateful
-                if(augmentationFunction.getId().equals(StatefulPeriodicRandomNumberAugmentationFunction.FUNCTION_ID)
+                if((augmentationFunction.getId().equals(StatefulPeriodicRandomNumberAugmentationFunction.FUNCTION_ID)
+                        || augmentationFunction.getId().equals(it.wldt.augmentation.stateful.function.StatefulStateDrivenRandomNumberAugmentationFunction.FUNCTION_ID))
                         && augmentationFunction.getType().equals(it.wldt.augmentation.function.AugmentationFunctionType.STATEFUL))
-                    this.startAugmentationFunction(StatefulPeriodicRandomNumberAugmentationFunction.FUNCTION_ID);
+                    this.startAugmentationFunction(augmentationFunction.getId());
             }
         }catch (Exception e){
             e.printStackTrace();

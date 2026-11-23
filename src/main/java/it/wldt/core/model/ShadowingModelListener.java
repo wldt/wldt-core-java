@@ -20,7 +20,8 @@
  */
 package it.wldt.core.model;
 
-import it.wldt.core.state.DigitalTwinState;
+import it.wldt.core.state.DigitalTwinStateDescription;
+import it.wldt.core.state.DigitalTwinStateValues;
 
 /**
  * Authors:
@@ -50,9 +51,10 @@ public interface ShadowingModelListener {
      * Called when all Physical Adapters are bound and the Digital Twin State is actively
      * synchronized with the physical asset.
      *
-     * @param digitalTwinState the current synchronized Digital Twin State
+     * @param digitalTwinStateDescription the description (structure) of the current synchronized Digital Twin State
+     * @param digitalTwinStateValues the values of the current synchronized Digital Twin State, associated to the description
      */
-    public void onShadowingSync(DigitalTwinState digitalTwinState);
+    public void onShadowingSync(DigitalTwinStateDescription digitalTwinStateDescription, DigitalTwinStateValues digitalTwinStateValues);
 
     /**
      * Invoked when the Digital Twin transitions to out-of-sync state.
@@ -60,8 +62,9 @@ public interface ShadowingModelListener {
      * Called when the Digital Twin loses synchronization with its physical asset due to
      * Physical Adapter issues or communication failures.
      *
-     * @param digitalTwinState the last known Digital Twin State before synchronization was lost
+     * @param digitalTwinStateDescription the last known description of the Digital Twin State before synchronization was lost
+     * @param digitalTwinStateValues the last known values of the Digital Twin State before synchronization was lost
      */
-    public void onShadowingOutOfSync(DigitalTwinState digitalTwinState);
+    public void onShadowingOutOfSync(DigitalTwinStateDescription digitalTwinStateDescription, DigitalTwinStateValues digitalTwinStateValues);
 
 }

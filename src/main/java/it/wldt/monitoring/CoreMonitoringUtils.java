@@ -219,6 +219,12 @@ public class CoreMonitoringUtils {
 
     public static final String STORAGE_WRITE_PHYSICAL_ASSET_DESCRIPTION_EXEC_TIME = "storage_write_pa_description_exec_time";
 
+    public static final String STORAGE_WRITE_DIGITAL_TWIN_STATE_DESCRIPTION_SUCCESS_COUNT = "storage_write_dt_state_description_success_count";
+
+    public static final String STORAGE_WRITE_DIGITAL_TWIN_STATE_DESCRIPTION_ERROR_COUNT = "storage_write_dt_state_description_error_count";
+
+    public static final String STORAGE_WRITE_DIGITAL_TWIN_STATE_DESCRIPTION_EXEC_TIME = "storage_write_dt_state_description_exec_time";
+
     public static final String STORAGE_WRITE_DIGITAL_TWIN_STATE_SUCCESS_COUNT = "storage_write_dt_state_success_count";
 
     public static final String STORAGE_WRITE_DIGITAL_TWIN_STATE_ERROR_COUNT = "storage_write_dt_state_error_count";

@@ -154,14 +154,21 @@ public class DigitalTwinStateViewsTest {
     }
 
     @Test
-    public void lastTriggeredSurvivesStateCopy() throws Exception {
+    public void lastTriggeredIsCopiedWithTheState() throws Exception {
         DigitalTwinState state = buildState();
+        Instant before = Instant.now();
+        state.recordActionInvocation("on", before);
+
         DigitalTwinState copy = new DigitalTwinState(state);
+        assertEquals(before, copy.getLastActionInvocation("on").get());
 
-        // Recorded on the old state after the copy (e.g. while a transaction is open): visible from the new one
-        state.recordActionInvocation("on", Instant.now());
+        // Every state owns its last-triggered information: what is recorded on one state after the copy
+        // (e.g. by the transaction on the new state) does not alter the other one
+        copy.recordActionInvocation("off", Instant.now());
+        state.recordEventNotification("alarm", Instant.now());
 
-        assertTrue(copy.getLastActionInvocation("on").isPresent());
+        assertFalse(state.getLastActionInvocation("off").isPresent());
+        assertFalse(copy.getLastEventNotification("alarm").isPresent());
     }
 
     @Test

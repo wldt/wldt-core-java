@@ -25,7 +25,12 @@ package it.wldt.storage.query;
  *          Marco Picone, Ph.D. (picone.m@gmail.com)
  * Date: 25/07/2024
  * This Enum represents the Query Resource Type used to specify the type of resource to be queried
- * on the storage system (e.g., Physical Asset Property Variation, Physical Asset Event Notification, Physical Action Request)
+ * on the storage system (e.g., Physical Asset Property Variation, Physical Asset Event Notification, Physical Action Request).
+ * <p>
+ * The Digital Twin State can be queried in three ways: {@link #DIGITAL_TWIN_STATE_DESCRIPTION} (the stored descriptions,
+ * {@code DigitalTwinStateDescriptionRecord}), {@link #DIGITAL_TWIN_STATE_VALUES} (the stored values,
+ * {@code DigitalTwinStateValuesRecord}) and {@link #DIGITAL_TWIN_STATE} (the complete state: a description together
+ * with the values associated to it in the selected interval, {@code DigitalTwinStateHistoryRecord}).
  */
 public enum QueryResourceType {
 
@@ -33,6 +38,8 @@ public enum QueryResourceType {
     PHYSICAL_ASSET_EVENT_NOTIFICATION("storage_physical_event_notification"),
     PHYSICAL_ACTION_REQUEST("storage_physical_action_request"),
     DIGITAL_ACTION_REQUEST("storage_digital_action_request"),
+    DIGITAL_TWIN_STATE_DESCRIPTION("storage_dt_state_description"),
+    DIGITAL_TWIN_STATE_VALUES("storage_dt_state_values"),
     DIGITAL_TWIN_STATE("storage_dt_state"),
     DIGITAL_TWIN_STATE_EVENT_NOTIFICATION("storage_dt_state_event_notification"),
     NEW_PAD_NOTIFICATION("storage_new_pad_notification"),

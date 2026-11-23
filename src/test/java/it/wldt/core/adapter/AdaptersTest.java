@@ -41,7 +41,7 @@ public class AdaptersTest {
 
     private static List<DigitalTwinStateEventNotification<?>> receivedEventNotificationList = null;
 
-    private static List<DigitalTwinState> receivedDigitalTwinStateUpdateList = null;
+    private static List<DigitalTwinStateValues> receivedDigitalTwinStateUpdateList = null;
 
     private static List<String> receivedLifeCycleUpdateList = null;
 
@@ -131,10 +131,16 @@ public class AdaptersTest {
         //Check Received Physical Asset Events Availability correctly received by the Shadowing Function
         assertEquals(TestPhysicalAdapter.TARGET_PHYSICAL_ASSET_EVENT_UPDATES, receivedPhysicalEventEventMessageList.size());
 
-        //Check Correct Digital Twin State Property Update Events have been received on the Digital Adapter through DT State Updates
-        assertEquals(TestPhysicalAdapter.TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES, receivedDigitalTwinStateUpdateList.size());
+        //Check Correct Digital Twin State Values Updates have been received on the Digital Adapter: one for each Physical Property
+        //Update plus one for each Event notified by the Shadowing Function (the last notification of an event is a value of the state).
+        for (int i = 0; i < 100 && receivedDigitalTwinStateUpdateList.size() < TestPhysicalAdapter.TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES + TestPhysicalAdapter.TARGET_PHYSICAL_ASSET_EVENT_UPDATES; i++)
+            Thread.sleep(50);
+        assertEquals(TestPhysicalAdapter.TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES + TestPhysicalAdapter.TARGET_PHYSICAL_ASSET_EVENT_UPDATES, receivedDigitalTwinStateUpdateList.size());
 
         //Check if Digital Twin State Events Notifications have been correctly received by the Digital Adapter after passing through the Shadowing Function
+        //(the notifications are delivered asynchronously by the event bus after the Shadowing Function has handled the event)
+        for (int i = 0; i < 100 && receivedEventNotificationList.size() < TestPhysicalAdapter.TARGET_PHYSICAL_ASSET_EVENT_UPDATES; i++)
+            Thread.sleep(50);
         assertEquals(TestPhysicalAdapter.TARGET_PHYSICAL_ASSET_EVENT_UPDATES, receivedEventNotificationList.size());
 
         // Test that each received event has the correct associated physical adapter ID
@@ -362,10 +368,12 @@ public class AdaptersTest {
                         receivedPhysicalEventEventMessageList.add(physicalAssetEventWldtEvent);
 
                     //Handle the received physical event notification and map into a digital notification for digital adapters
+                    this.digitalTwinStateManager.startStateTransaction();
                     this.digitalTwinStateManager.notifyDigitalTwinStateEvent(
                             new DigitalTwinStateEventNotification<String>(
                                     physicalAssetEventWldtEvent.getPhysicalEventKey(),
                                     (String)physicalAssetEventWldtEvent.getBody(), System.currentTimeMillis()));
+                    this.digitalTwinStateManager.commitStateTransaction();
 
                     if(wldtEventsLock != null)
                         wldtEventsLock.countDown();

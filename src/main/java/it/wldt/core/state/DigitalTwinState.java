@@ -43,11 +43,15 @@ public class DigitalTwinState {
     private Map<String, DigitalTwinStateEvent> events;
     private Map<String, DigitalTwinStateRelationship<?>> relationships;
 
-    // Last invocation of each action and last notification of each event (by key). They are updated outside of the
-    // state transactions and, for this reason, they are shared (not copied) between a state and the states derived
-    // from it, so that an update done while a transaction is open is not lost on commit.
+    // Last invocation of each action and last notification of each event (by key). They are updated only through
+    // state transactions (changes with OPERATION_UPDATE_VALUE on ACTION / EVENT resources), so every state owns its
+    // copy and the previous state of a transaction is never altered by the transaction itself.
     private Map<String, Instant> lastActionInvocations;
     private Map<String, Instant> lastEventNotifications;
+
+    // Id of the description (structure) this state currently has. It is assigned by the DigitalTwinStateManager
+    // every time the structure really changes: <digitalTwinCreationTimestamp>_<numSeq>
+    private String descriptionId;
 
     // Timestamp representing the evaluation instant of the digital twin state
     private Instant evaluationInstant;
@@ -63,6 +67,7 @@ public class DigitalTwinState {
         this.lastActionInvocations = new java.util.concurrent.ConcurrentHashMap<>();
         this.lastEventNotifications = new java.util.concurrent.ConcurrentHashMap<>();
         this.evaluationInstant = Instant.now();
+        this.descriptionId = null;
     }
 
     /**
@@ -98,9 +103,9 @@ public class DigitalTwinState {
         this.actions.putAll(sourceDigitalTwinState.actions);
         this.events.putAll(sourceDigitalTwinState.events);
         this.relationships.putAll(sourceDigitalTwinState.relationships);
-        // Shared on purpose, see the field comment
-        this.lastActionInvocations = sourceDigitalTwinState.lastActionInvocations;
-        this.lastEventNotifications = sourceDigitalTwinState.lastEventNotifications;
+        this.lastActionInvocations.putAll(sourceDigitalTwinState.lastActionInvocations);
+        this.lastEventNotifications.putAll(sourceDigitalTwinState.lastEventNotifications);
+        this.descriptionId = sourceDigitalTwinState.descriptionId;
     }
 
     //////////////////////////// PROPERTY MANAGEMENT //////////////////////////////////////////////////////////
@@ -374,6 +379,8 @@ public class DigitalTwinState {
         try {
             DigitalTwinStateAction originalValue = this.actions.get(actionKey);
             this.actions.remove(actionKey);
+            // The last invocation is meaningless without the action
+            this.lastActionInvocations.remove(actionKey);
         }catch (Exception e){
             throw new WldtDigitalTwinStateActionException(e.getLocalizedMessage());
         }
@@ -480,6 +487,8 @@ public class DigitalTwinState {
 
             DigitalTwinStateEvent originalValue = this.events.get(eventKey);
             this.events.remove(eventKey);
+            // The last notification is meaningless without the event
+            this.lastEventNotifications.remove(eventKey);
         }catch (Exception e){
             throw  new WldtDigitalTwinStateEventException(e.getLocalizedMessage());
         }
@@ -546,8 +555,8 @@ public class DigitalTwinState {
     //////////////////////////// DESCRIPTION & VALUES VIEWS ////////////////////////////////////////////////////////
 
     /**
-     * Records the instant of the last invocation of an action. It does not require a state transaction and does
-     * not produce a state update.
+     * Records the instant of the last invocation of an action. It is applied by the state transaction when it
+     * handles a change on an action with {@code OPERATION_UPDATE_VALUE}.
      * @param actionKey the key of the invoked action
      * @param instant the instant of the invocation
      */
@@ -557,8 +566,8 @@ public class DigitalTwinState {
     }
 
     /**
-     * Records the instant of the last notification of an event. It does not require a state transaction and does
-     * not produce a state update.
+     * Records the instant of the last notification of an event. It is applied by the state transaction when it
+     * handles a change on an event with {@code OPERATION_UPDATE_VALUE}.
      * @param eventKey the key of the notified event
      * @param instant the instant of the notification
      */
@@ -620,6 +629,7 @@ public class DigitalTwinState {
         filtered.lastActionInvocations = this.lastActionInvocations;
         filtered.lastEventNotifications = this.lastEventNotifications;
         filtered.evaluationInstant = this.evaluationInstant;
+        filtered.descriptionId = this.descriptionId;
         return filtered;
     }
 
@@ -663,7 +673,33 @@ public class DigitalTwinState {
             if (f.acceptsRelationship(r.getName()))
                 relationshipDescriptions.add(new DigitalTwinStateDescription.RelationshipDescription(r.getName(), r.getType()));
 
-        return new DigitalTwinStateDescription(this.evaluationInstant,
+        // Deterministic order, needed to compare two descriptions structurally
+        Collections.sort(propertyDescriptions, new Comparator<DigitalTwinStateDescription.PropertyDescription>() {
+            @Override
+            public int compare(DigitalTwinStateDescription.PropertyDescription a, DigitalTwinStateDescription.PropertyDescription b) {
+                return a.getKey().compareTo(b.getKey());
+            }
+        });
+        Collections.sort(actionDescriptions, new Comparator<DigitalTwinStateDescription.ActionDescription>() {
+            @Override
+            public int compare(DigitalTwinStateDescription.ActionDescription a, DigitalTwinStateDescription.ActionDescription b) {
+                return a.getKey().compareTo(b.getKey());
+            }
+        });
+        Collections.sort(eventDescriptions, new Comparator<DigitalTwinStateDescription.EventDescription>() {
+            @Override
+            public int compare(DigitalTwinStateDescription.EventDescription a, DigitalTwinStateDescription.EventDescription b) {
+                return a.getKey().compareTo(b.getKey());
+            }
+        });
+        Collections.sort(relationshipDescriptions, new Comparator<DigitalTwinStateDescription.RelationshipDescription>() {
+            @Override
+            public int compare(DigitalTwinStateDescription.RelationshipDescription a, DigitalTwinStateDescription.RelationshipDescription b) {
+                return a.getName().compareTo(b.getName());
+            }
+        });
+
+        return new DigitalTwinStateDescription(this.descriptionId, this.evaluationInstant,
                 propertyDescriptions, actionDescriptions, eventDescriptions, relationshipDescriptions);
     }
 
@@ -710,7 +746,7 @@ public class DigitalTwinState {
                 eventNotifications.put(e.getKey(), last);
         }
 
-        return new DigitalTwinStateValues(this.evaluationInstant,
+        return new DigitalTwinStateValues(this.descriptionId, this.evaluationInstant,
                 propertyValues, relationshipInstances, actionInvocations, eventNotifications);
     }
 
@@ -724,6 +760,17 @@ public class DigitalTwinState {
 
     protected void setEvaluationInstant(Instant evaluationInstant) {
         this.evaluationInstant = evaluationInstant;
+    }
+
+    /**
+     * @return the id of the description (structure) of this state, see {@link DigitalTwinStateDescription#getId()}
+     */
+    public String getDescriptionId() {
+        return descriptionId;
+    }
+
+    protected void setDescriptionId(String descriptionId) {
+        this.descriptionId = descriptionId;
     }
 
     @Override

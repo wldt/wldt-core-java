@@ -3,7 +3,8 @@ package it.wldt.monitoring.prometheus;
 import it.wldt.augmentation.context.AugmentationFunctionContextRequest;
 import it.wldt.augmentation.function.StatefulAugmentationFunction;
 import it.wldt.augmentation.request.AugmentationFunctionRequest;
-import it.wldt.core.state.DigitalTwinState;
+import it.wldt.core.state.DigitalTwinStateDescription;
+import it.wldt.core.state.DigitalTwinStateValues;
 import it.wldt.core.state.DigitalTwinStateEventNotification;
 import it.wldt.exception.AugmentationFunctionException;
 import it.wldt.storage.query.Query;
@@ -46,7 +47,12 @@ public class PrometheusTestStatefulAugmentationFunction extends StatefulAugmenta
     }
 
     @Override
-    public void onStateUpdate(DigitalTwinState digitalTwinState) throws AugmentationFunctionException {
+    public void onStateDescriptionUpdate(DigitalTwinStateDescription digitalTwinStateDescription) throws AugmentationFunctionException {
+        // The description is not relevant for this test function
+    }
+
+    @Override
+    public void onStateValuesUpdate(DigitalTwinStateValues digitalTwinState) throws AugmentationFunctionException {
         // no-op
     }
 

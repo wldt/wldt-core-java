@@ -30,16 +30,16 @@ public class DemoDigitalAdapter extends DigitalAdapter<DemoDigitalAdapterConfigu
     }
 
     @Override
-    public void onDigitalTwinSync(DigitalTwinState digitalTwinState) {
+    public void onDigitalTwinSync(DigitalTwinStateDescription digitalTwinStateDescription, DigitalTwinStateValues digitalTwinStateValues) {
 
-        logger.info("DummyDigitalTwinAdapter -> onDigitalTwinSync() - DT State: {}", digitalTwinState);
+        logger.info("DummyDigitalTwinAdapter -> onDigitalTwinSync() - DT State Description: {} Values: {}", digitalTwinStateDescription, digitalTwinStateValues);
 
         //Observe for notification of all the available events
         try {
 
             //Option 1 Observe all Physical Event Notification through direct call
-            if(digitalTwinState != null && digitalTwinState.getEventList().isPresent())
-                this.observeDigitalTwinEventsNotifications(digitalTwinState.getEventList().get().stream().map(DigitalTwinStateEvent::getKey).collect(Collectors.toList()));
+            if(digitalTwinStateDescription != null && !digitalTwinStateDescription.getEvents().isEmpty())
+                this.observeDigitalTwinEventsNotifications(digitalTwinStateDescription.getEvents().stream().map(DigitalTwinStateDescription.EventDescription::getKey).collect(Collectors.toList()));
 
         }catch (Exception e){
             e.printStackTrace();
@@ -47,8 +47,8 @@ public class DemoDigitalAdapter extends DigitalAdapter<DemoDigitalAdapterConfigu
     }
 
     @Override
-    public void onDigitalTwinUnSync(DigitalTwinState digitalTwinState) {
-        logger.info("DummyDigitalTwinAdapter -> onDigitalTwinUnSync() - DT State: {}", digitalTwinState);
+    public void onDigitalTwinUnSync(DigitalTwinStateDescription digitalTwinStateDescription, DigitalTwinStateValues digitalTwinStateValues) {
+        logger.info("DummyDigitalTwinAdapter -> onDigitalTwinUnSync() - DT State Description: {} Values: {}", digitalTwinStateDescription, digitalTwinStateValues);
     }
 
     @Override
@@ -72,21 +72,15 @@ public class DemoDigitalAdapter extends DigitalAdapter<DemoDigitalAdapterConfigu
     }
 
     @Override
-    protected void onStateUpdate(DigitalTwinState newDigitalTwinState, DigitalTwinState previousDigitalTwinState, ArrayList<DigitalTwinStateChange> digitalTwinStateChangeList) {
-        logger.info("DummyDigitalTwinAdapter -> onStateUpdate() - New State: {}", newDigitalTwinState);
-        logger.info("DummyDigitalTwinAdapter -> onStateUpdate() - Previous State: {}", previousDigitalTwinState);
-        logger.info("DummyDigitalTwinAdapter -> onStateUpdate() - State's Changes: {}", digitalTwinStateChangeList);
-        SharedTestMetrics.getInstance().addDigitalAdapterStateUpdate(digitalTwinId, digitalTwinState);
-    }
-
-    @Override
     protected void onStateDescriptionUpdate(DigitalTwinStateDescription description, List<DigitalTwinStateChange> descriptionChanges) {
 
     }
 
     @Override
     protected void onStateValuesUpdate(DigitalTwinStateValues values, List<DigitalTwinStateChange> relevantChanges) {
-
+        logger.info("DummyDigitalTwinAdapter -> onStateValuesUpdate() - New Values: {}", values);
+        logger.info("DummyDigitalTwinAdapter -> onStateValuesUpdate() - Changes: {}", relevantChanges);
+        SharedTestMetrics.getInstance().addDigitalAdapterStateUpdate(digitalTwinId, values);
     }
 
 

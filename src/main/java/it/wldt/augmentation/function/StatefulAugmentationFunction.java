@@ -26,8 +26,9 @@ import it.wldt.augmentation.listener.StatefulAugmentationListener;
 import it.wldt.augmentation.request.AugmentationFunctionRequest;
 import it.wldt.augmentation.result.AugmentationFunctionResult;
 import it.wldt.augmentation.result.AugmentationFunctionResultList;
-import it.wldt.core.state.DigitalTwinState;
+import it.wldt.core.state.DigitalTwinStateDescription;
 import it.wldt.core.state.DigitalTwinStateEventNotification;
+import it.wldt.core.state.DigitalTwinStateValues;
 import it.wldt.exception.AugmentationFunctionException;
 import it.wldt.log.WldtLogger;
 import it.wldt.log.WldtLoggerProvider;
@@ -219,15 +220,40 @@ public abstract class StatefulAugmentationFunction extends AugmentationFunction{
     protected abstract void stop(AugmentationFunctionRequest request) throws AugmentationFunctionException;
 
     /**
-     * Framework entry point for state update dispatch. Instruments the call with metrics and delegates to
-     * the abstract {@link #onStateUpdate(DigitalTwinState)}. Called by the handler — do not call directly.
-     * @param digitalTwinState the new state of the digital twin
+     * Framework entry point for the dispatch of a Digital Twin State Description update. Instruments the call with
+     * metrics and delegates to the abstract {@link #onStateDescriptionUpdate(DigitalTwinStateDescription)}.
+     * Called by the handler — do not call directly.
+     * @param digitalTwinStateDescription the complete new description of the digital twin state (never filtered)
      * @throws AugmentationFunctionException if any error occurs during state update handling
      */
-    public final void handleStateUpdate(DigitalTwinState digitalTwinState) throws AugmentationFunctionException {
+    public final void handleStateDescriptionUpdate(DigitalTwinStateDescription digitalTwinStateDescription) throws AugmentationFunctionException {
         long startMs = System.currentTimeMillis();
         try {
-            onStateUpdate(digitalTwinState);
+            onStateDescriptionUpdate(digitalTwinStateDescription);
+            if (monitoringInterface != null && monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION))
+                monitoringInterface.increaseCounter(metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATE_UPDATE_SUCCESS_COUNT, metricsInstanceId);
+        } catch (Exception e) {
+            if (monitoringInterface != null && monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION))
+                monitoringInterface.increaseCounter(metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATE_UPDATE_ERROR_COUNT, metricsInstanceId);
+            throw e;
+        } finally {
+            if (monitoringInterface != null && monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION))
+                monitoringInterface.updateTimerSince(metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATE_UPDATE_EXEC_TIME, startMs, metricsInstanceId);
+        }
+    }
+
+    /**
+     * Framework entry point for the dispatch of a Digital Twin State Values update. Instruments the call with
+     * metrics and delegates to the abstract {@link #onStateValuesUpdate(DigitalTwinStateValues)}.
+     * Called by the handler — do not call directly.
+     * @param digitalTwinStateValues the complete new values of the digital twin state, limited by the content filter
+     *                               of the context request of the function, if any
+     * @throws AugmentationFunctionException if any error occurs during state update handling
+     */
+    public final void handleStateValuesUpdate(DigitalTwinStateValues digitalTwinStateValues) throws AugmentationFunctionException {
+        long startMs = System.currentTimeMillis();
+        try {
+            onStateValuesUpdate(digitalTwinStateValues);
             if (monitoringInterface != null && monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION))
                 monitoringInterface.increaseCounter(metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATE_UPDATE_SUCCESS_COUNT, metricsInstanceId);
         } catch (Exception e) {
@@ -257,11 +283,24 @@ public abstract class StatefulAugmentationFunction extends AugmentationFunction{
     }
 
     /**
-     * Method to notify the running Stateful Augmentation Function of a new state update of the digital twin.
-     * @param digitalTwinState the new state of the digital twin to notify to the function
+     * Method to notify the running Stateful Augmentation Function that the description (structure) of the digital
+     * twin state changed. It receives the complete new description, which is never filtered (the filters of the
+     * context request apply only to the values). It is invoked at every description change if the function
+     * observes the state.
+     * @param digitalTwinStateDescription the complete new description of the digital twin state
      * @throws AugmentationFunctionException if any error occurs during the notification of the state update to the function
      */
-    public abstract void onStateUpdate(DigitalTwinState digitalTwinState) throws AugmentationFunctionException;
+    public abstract void onStateDescriptionUpdate(DigitalTwinStateDescription digitalTwinStateDescription) throws AugmentationFunctionException;
+
+    /**
+     * Method to notify the running Stateful Augmentation Function that the values of the digital twin state changed.
+     * Without filters in the context request the function receives the complete values at every values update.
+     * With filters it is notified only if at least one change passes both the trigger filter and the content filter,
+     * and the values are limited by the content filter.
+     * @param digitalTwinStateValues the new values of the digital twin state, associated to the id of the current description
+     * @throws AugmentationFunctionException if any error occurs during the notification of the state update to the function
+     */
+    public abstract void onStateValuesUpdate(DigitalTwinStateValues digitalTwinStateValues) throws AugmentationFunctionException;
 
     /**
      * Method to notify the running Stateful Augmentation Function of a new query result refresh from the digital twin.

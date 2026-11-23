@@ -1,18 +1,17 @@
 package it.wldt.core.state.event;
 
-
-import it.wldt.core.event.*;
 import it.wldt.core.state.*;
 import it.wldt.exception.*;
 import org.junit.jupiter.api.Test;
-import java.util.ArrayList;
-import java.util.Optional;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-
+/**
+ * Tests the events published on the event bus when the events of the Digital Twin State change. The definition of the
+ * events is part of the structure (description): changes produce a description update event and no values event;
+ * the notification of an event produces a values update event with its last notification and, after it,
+ * the event notification itself.
+ */
 public class DigitalTwinStateWldtEventObserverTester {
 
     public final String DIGITAL_TWIN_ID = "dt00001";
@@ -29,24 +28,6 @@ public class DigitalTwinStateWldtEventObserverTester {
 
     public DigitalTwinStateManager digitalTwinStateManager = null;
 
-    public DigitalTwinStateProperty<String> testProperty1 = null;
-
-    private CountDownLatch lock = new CountDownLatch(1);
-
-    private WldtEvent<?> stateUpdatedReceivedWldtEvent;
-    private DigitalTwinState receivedDigitalTwinStateUpdate;
-
-    private WldtEvent<?> propertyUpdatedReceivedWldtEvent;
-    private DigitalTwinStateProperty<?> propertyUpdatedReceivedProperty;
-
-    private WldtEvent<?> propertyDeletedReceivedWldtEvent;
-    private DigitalTwinStateProperty<?> propertyDeletedReceivedProperty;
-    private DigitalTwinState receivedPreviousDigitalTwinState;
-
-    private ArrayList<DigitalTwinStateChange> receivedDigitalTwinStateChangeList;
-
-    private WldtEventListener wldtEventListener;
-
     private DigitalTwinStateEvent testNewEvent1;
 
     private void initTestDtState() throws WldtDigitalTwinStateException {
@@ -58,6 +39,8 @@ public class DigitalTwinStateWldtEventObserverTester {
 
     private void registerEvent() throws WldtDigitalTwinStateException {
 
+        initTestDtState();
+
         testNewEvent1 = new DigitalTwinStateEvent(EVENT_KEY_1, EVENT_TYPE, EVENT_TYPE);
 
         digitalTwinStateManager.startStateTransaction();
@@ -65,213 +48,181 @@ public class DigitalTwinStateWldtEventObserverTester {
         digitalTwinStateManager.commitStateTransaction();
     }
 
-    private WldtEventListener getWldtEventListener(){
-
-        if(wldtEventListener == null)
-            wldtEventListener = new WldtEventListener() {
-                @Override
-                public void onEventSubscribed(String eventType) {
-                    System.out.println(SUBSCRIBER_ID_1  + " -> onSubscribe() called ! Event-Type:" + eventType);
-                }
-
-                @Override
-                public void onEventUnSubscribed(String eventType) {
-                    System.out.println(SUBSCRIBER_ID_1  + " -> onUnSubscribe() called ! Event-Type:" + eventType);
-                }
-
-                @Override
-                public void onEvent(WldtEvent<?> wldtEvent) {
-
-                    System.out.printf("Received Event: %s%n", wldtEvent);
-
-                    stateUpdatedReceivedWldtEvent = wldtEvent;
-
-                    //DT State Events Management
-                    if(wldtEvent != null
-                            && wldtEvent.getType().equals(DigitalTwinStateManager.getStatusUpdatesWldtEventMessageType())
-                            && wldtEvent.getBody() != null
-                            && (wldtEvent.getBody() instanceof DigitalTwinState)){
-
-                        //Retrieve DT's State Update
-                        DigitalTwinState newDigitalTwinState = (DigitalTwinState)wldtEvent.getBody();
-                        DigitalTwinState previsousDigitalTwinState = null;
-                        ArrayList<DigitalTwinStateChange> digitalTwinStateChangeList = null;
-
-                        Optional<?> prevDigitalTwinStateOptional = wldtEvent.getMetadata(DigitalTwinStateManager.DT_STATE_UPDATE_METADATA_PREVIOUS_STATE);
-                        Optional<?> digitalTwinStateChangeListOptional = wldtEvent.getMetadata(DigitalTwinStateManager.DT_STATE_UPDATE_METADATA_CHANGE_LIST);
-
-                        if(prevDigitalTwinStateOptional.isPresent() && prevDigitalTwinStateOptional.get() instanceof DigitalTwinState)
-                            previsousDigitalTwinState = (DigitalTwinState) prevDigitalTwinStateOptional.get();
-
-                        if(digitalTwinStateChangeListOptional.isPresent())
-                            digitalTwinStateChangeList = (ArrayList<DigitalTwinStateChange>) digitalTwinStateChangeListOptional.get();
-
-
-                        receivedDigitalTwinStateUpdate = newDigitalTwinState;
-                        receivedPreviousDigitalTwinState = previsousDigitalTwinState;
-                        receivedDigitalTwinStateChangeList = digitalTwinStateChangeList;
-                    }
-
-                    lock.countDown();
-                }
-            };
-
-        return wldtEventListener;
-    }
-
     @Test
-    public void observeStateChanges() throws WldtDigitalTwinStateException, InterruptedException, EventBusException, WldtDigitalTwinStateEventException {
+    public void observeStateChanges() throws WldtDigitalTwinStateException, InterruptedException, EventBusException {
 
-        //Init DigitaTwin State
         initTestDtState();
+        DigitalTwinStateDescription originalDescription = digitalTwinStateManager.getDigitalTwinStateDescription();
 
-        //Get original DT State before the test
-        DigitalTwinState originalDtState = digitalTwinStateManager.getDigitalTwinState();
+        StateEventCollector collector = new StateEventCollector(DIGITAL_TWIN_ID, SUBSCRIBER_ID_1);
+        collector.start();
 
-        //Define EventFilter and add the target topic
-        WldtEventFilter wldtEventFilter = new WldtEventFilter();
-        wldtEventFilter.add(DigitalTwinStateManager.getStatusUpdatesWldtEventMessageType());
-
-        //Set EventBus Logger
-        WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
-
-        //Subscribe for target topic
-        WldtEventBus.getInstance().subscribe(DIGITAL_TWIN_ID, SUBSCRIBER_ID_1, wldtEventFilter, getWldtEventListener());
-
-        registerEvent();
-
-        lock.await(2000, TimeUnit.MILLISECONDS);
-
-        // Check Received Event
-        assertNotNull(stateUpdatedReceivedWldtEvent);
-        assertEquals(stateUpdatedReceivedWldtEvent.getType(), DigitalTwinStateManager.getStatusUpdatesWldtEventMessageType());
-        assertEquals(stateUpdatedReceivedWldtEvent.getBody(), digitalTwinStateManager.getDigitalTwinState());
-
-        // Check if the event is correctly available in the State
-        assertTrue(digitalTwinStateManager.getDigitalTwinState().containsEvent(EVENT_KEY_1));
-        assertTrue(digitalTwinStateManager.getDigitalTwinState().getEvent(EVENT_KEY_1).isPresent());
-        assertEquals(EVENT_TYPE, digitalTwinStateManager.getDigitalTwinState().getEvent(EVENT_KEY_1).get().getType());
-        assertTrue(digitalTwinStateManager.getDigitalTwinState().getEventList().isPresent());
-        assertEquals(1, digitalTwinStateManager.getDigitalTwinState().getEventList().get().size());
-
-        // Check Received Previous DT State
-        assertNotNull(receivedPreviousDigitalTwinState);
-        assertEquals(receivedPreviousDigitalTwinState, originalDtState);
-
-        // Check State Change List
-        assertEquals(1, receivedDigitalTwinStateChangeList.size());
-        assertEquals(DigitalTwinStateChange.Operation.OPERATION_ADD, receivedDigitalTwinStateChangeList.get(0).getOperation());
-        assertEquals(DigitalTwinStateChange.ResourceType.EVENT, receivedDigitalTwinStateChangeList.get(0).getResourceType());
-        assertEquals(receivedDigitalTwinStateChangeList.get(0).getResource(), testNewEvent1);
-
-        //Remove Subscription for target topic
-        WldtEventBus.getInstance().unSubscribe(DIGITAL_TWIN_ID, SUBSCRIBER_ID_1, wldtEventFilter, getWldtEventListener());
-    }
-
-    @Test
-    public void observeStateUpdatedEvent() throws WldtDigitalTwinStateException, InterruptedException, EventBusException, WldtDigitalTwinStateEventException {
-
-        //Init DigitaTwin State
-        initTestDtState();
-
-        //Create Initial Event to test update
-        registerEvent();
-
-        //Get original DT State before the test
-        DigitalTwinState originalDtState = digitalTwinStateManager.getDigitalTwinState();
-
-        //Define EventFilter and add the target topic
-        WldtEventFilter wldtEventFilter = new WldtEventFilter();
-        wldtEventFilter.add(DigitalTwinStateManager.getStatusUpdatesWldtEventMessageType());
-
-        //Set EventBus Logger
-        WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
-
-        //Subscribe for target topic
-        WldtEventBus.getInstance().subscribe(DIGITAL_TWIN_ID, SUBSCRIBER_ID_1, wldtEventFilter, getWldtEventListener());
-
-        assertTrue(digitalTwinStateManager.getDigitalTwinState().getEvent(EVENT_KEY_1).isPresent());
-        assertEquals(EVENT_TYPE, digitalTwinStateManager.getDigitalTwinState().getEvent(EVENT_KEY_1).get().getType());
-
-        //Update Event
+        testNewEvent1 = new DigitalTwinStateEvent(EVENT_KEY_1, EVENT_TYPE, EVENT_TYPE);
         digitalTwinStateManager.startStateTransaction();
+        digitalTwinStateManager.registerEvent(testNewEvent1);
+        digitalTwinStateManager.commitStateTransaction();
+
+        assertTrue(collector.awaitDescriptionEvents(1, 2000));
+        collector.settle();
+
+        assertEquals(digitalTwinStateManager.getDigitalTwinStateDescription(), collector.description(0));
+        assertEquals(1, collector.description(0).getEvents().size());
+        assertEquals(EVENT_KEY_1, collector.description(0).getEvents().get(0).getKey());
+        assertEquals(EVENT_TYPE, collector.description(0).getEvents().get(0).getType());
+        assertNotEquals(originalDescription.getId(), collector.description(0).getId());
+        assertEquals(originalDescription, collector.previousDescription(0));
+
+        assertEquals(1, collector.descriptionChanges(0).size());
+        assertEquals(DigitalTwinStateChange.Operation.OPERATION_ADD, collector.descriptionChanges(0).get(0).getOperation());
+        assertEquals(DigitalTwinStateChange.ResourceType.EVENT, collector.descriptionChanges(0).get(0).getResourceType());
+        assertEquals(testNewEvent1, collector.descriptionChanges(0).get(0).getResource());
+
+        assertTrue(collector.getValuesEvents().isEmpty());
+
+        collector.stop();
+    }
+
+    @Test
+    public void observeStateUpdatedEvent() throws WldtDigitalTwinStateException, InterruptedException, EventBusException {
+
+        registerEvent();
+        DigitalTwinStateDescription descriptionBefore = digitalTwinStateManager.getDigitalTwinStateDescription();
+
+        StateEventCollector collector = new StateEventCollector(DIGITAL_TWIN_ID, SUBSCRIBER_ID_1);
+        collector.start();
+
         DigitalTwinStateEvent updatedEvent = new DigitalTwinStateEvent(EVENT_KEY_1, EVENT_TYPE_2, EVENT_TYPE_2);
+        digitalTwinStateManager.startStateTransaction();
         digitalTwinStateManager.updateRegisteredEvent(updatedEvent);
         digitalTwinStateManager.commitStateTransaction();
 
-        lock.await(2000, TimeUnit.MILLISECONDS);
+        assertTrue(collector.awaitDescriptionEvents(1, 2000));
+        collector.settle();
 
-        // Check Received Event
-        assertNotNull(stateUpdatedReceivedWldtEvent);
-        assertEquals(stateUpdatedReceivedWldtEvent.getType(), DigitalTwinStateManager.getStatusUpdatesWldtEventMessageType());
-        assertEquals(stateUpdatedReceivedWldtEvent.getBody(), digitalTwinStateManager.getDigitalTwinState());
+        assertEquals(1, collector.description(0).getEvents().size());
+        assertEquals(EVENT_TYPE_2, collector.description(0).getEvents().get(0).getType());
+        assertNotEquals(descriptionBefore.getId(), collector.description(0).getId());
+        assertEquals(EVENT_TYPE, collector.previousDescription(0).getEvents().get(0).getType());
 
-        // Check if the property has been correctly updated in the State
-        assertTrue(receivedDigitalTwinStateUpdate.getEvent(EVENT_KEY_1).isPresent());
-        assertEquals(EVENT_TYPE_2, receivedDigitalTwinStateUpdate.getEvent(EVENT_KEY_1).get().getType());
+        assertEquals(1, collector.descriptionChanges(0).size());
+        assertEquals(DigitalTwinStateChange.Operation.OPERATION_UPDATE, collector.descriptionChanges(0).get(0).getOperation());
+        assertEquals(DigitalTwinStateChange.ResourceType.EVENT, collector.descriptionChanges(0).get(0).getResourceType());
+        assertEquals(updatedEvent, collector.descriptionChanges(0).get(0).getResource());
 
-        // Check Received Previous DT State
-        assertNotNull(receivedPreviousDigitalTwinState);
-        assertEquals(receivedPreviousDigitalTwinState, originalDtState);
+        assertTrue(collector.getValuesEvents().isEmpty());
 
-        // Check State Change List
-        assertEquals(1, receivedDigitalTwinStateChangeList.size());
-        assertEquals(DigitalTwinStateChange.Operation.OPERATION_UPDATE, receivedDigitalTwinStateChangeList.get(0).getOperation());
-        assertEquals(DigitalTwinStateChange.ResourceType.EVENT, receivedDigitalTwinStateChangeList.get(0).getResourceType());
-        assertEquals(receivedDigitalTwinStateChangeList.get(0).getResource(), updatedEvent);
-
-        //Remove Subscription for target topic
-        WldtEventBus.getInstance().unSubscribe(DIGITAL_TWIN_ID, SUBSCRIBER_ID_1, wldtEventFilter, getWldtEventListener());
+        collector.stop();
     }
 
     @Test
-    public void observeStateDeletedEvent() throws WldtDigitalTwinStateException, InterruptedException, EventBusException, WldtDigitalTwinStateEventException {
-
-        //Init DigitaTwin State
-        initTestDtState();
+    public void observeStateDeletedEvent() throws WldtDigitalTwinStateException, InterruptedException, EventBusException {
 
         registerEvent();
+        DigitalTwinStateDescription descriptionBefore = digitalTwinStateManager.getDigitalTwinStateDescription();
 
-        //Get original DT State before the test
-        DigitalTwinState originalDtState = digitalTwinStateManager.getDigitalTwinState();
-
-        //Define EventFilter and add the target topic
-        WldtEventFilter wldtEventFilter = new WldtEventFilter();
-        wldtEventFilter.add(DigitalTwinStateManager.getStatusUpdatesWldtEventMessageType());
-
-        //Set EventBus Logger
-        WldtEventBus.getInstance().setEventLogger(new DefaultWldtEventLogger());
-
-        //Subscribe for target topic
-        WldtEventBus.getInstance().subscribe(DIGITAL_TWIN_ID, SUBSCRIBER_ID_1, wldtEventFilter, getWldtEventListener());
+        StateEventCollector collector = new StateEventCollector(DIGITAL_TWIN_ID, SUBSCRIBER_ID_1);
+        collector.start();
 
         digitalTwinStateManager.startStateTransaction();
         digitalTwinStateManager.unRegisterEvent(EVENT_KEY_1);
         digitalTwinStateManager.commitStateTransaction();
 
-        lock.await(2000, TimeUnit.MILLISECONDS);
+        assertTrue(collector.awaitDescriptionEvents(1, 2000));
+        collector.settle();
 
-        // Check Received Event
-        assertNotNull(stateUpdatedReceivedWldtEvent);
-        assertEquals(stateUpdatedReceivedWldtEvent.getType(), DigitalTwinStateManager.getStatusUpdatesWldtEventMessageType());
-        assertEquals(stateUpdatedReceivedWldtEvent.getBody(), digitalTwinStateManager.getDigitalTwinState());
+        assertTrue(collector.description(0).getEvents().isEmpty());
+        assertNotEquals(descriptionBefore.getId(), collector.description(0).getId());
+        assertEquals(descriptionBefore, collector.previousDescription(0));
 
-        // Check if the property has been correctly removed from the State
-        assertFalse(receivedDigitalTwinStateUpdate.containsEvent(EVENT_KEY_1));
-        assertFalse(receivedDigitalTwinStateUpdate.getEvent(EVENT_KEY_1).isPresent());
-        assertFalse(receivedDigitalTwinStateUpdate.getEventList().isPresent());
+        assertEquals(1, collector.descriptionChanges(0).size());
+        assertEquals(DigitalTwinStateChange.Operation.OPERATION_REMOVE, collector.descriptionChanges(0).get(0).getOperation());
+        assertEquals(DigitalTwinStateChange.ResourceType.EVENT, collector.descriptionChanges(0).get(0).getResourceType());
+        assertEquals(testNewEvent1, collector.descriptionChanges(0).get(0).getResource());
 
-        // Check Received Previous DT State
-        assertNotNull(receivedPreviousDigitalTwinState);
-        assertEquals(receivedPreviousDigitalTwinState, originalDtState);
+        assertTrue(collector.getValuesEvents().isEmpty());
 
-        // Check State Change List
-        assertEquals(1, receivedDigitalTwinStateChangeList.size());
-        assertEquals(DigitalTwinStateChange.Operation.OPERATION_REMOVE, receivedDigitalTwinStateChangeList.get(0).getOperation());
-        assertEquals(DigitalTwinStateChange.ResourceType.EVENT, receivedDigitalTwinStateChangeList.get(0).getResourceType());
-        assertEquals(receivedDigitalTwinStateChangeList.get(0).getResource(), testNewEvent1);
+        collector.stop();
+    }
 
-        //Remove Subscription for target topic
-        WldtEventBus.getInstance().unSubscribe(DIGITAL_TWIN_ID, SUBSCRIBER_ID_1, wldtEventFilter, getWldtEventListener());
+    @Test
+    public void observeEventNotification() throws WldtDigitalTwinStateException, WldtDigitalTwinStateEventNotificationException, InterruptedException, EventBusException {
+
+        registerEvent();
+        String descriptionIdBefore = digitalTwinStateManager.getDigitalTwinStateDescription().getId();
+
+        StateEventCollector collector = new StateEventCollector(DIGITAL_TWIN_ID, SUBSCRIBER_ID_1);
+        collector.start();
+
+        DigitalTwinStateEventNotification<String> notification = new DigitalTwinStateEventNotification<>(EVENT_KEY_1, "body", System.currentTimeMillis());
+
+        digitalTwinStateManager.startStateTransaction();
+        digitalTwinStateManager.notifyDigitalTwinStateEvent(notification);
+
+        // Nothing is published before the commit
+        collector.settle();
+        assertTrue(collector.getValuesEvents().isEmpty());
+        assertTrue(collector.getNotificationEvents().isEmpty());
+
+        digitalTwinStateManager.commitStateTransaction();
+
+        assertTrue(collector.awaitValuesEvents(1, 2000));
+        assertTrue(collector.awaitNotificationEvents(1, 2000));
+        collector.settle();
+
+        // The last notification is a value of the state, the structure does not change
+        assertTrue(collector.getDescriptionEvents().isEmpty());
+        assertEquals(descriptionIdBefore, collector.delta(0).getDescriptionId());
+        assertNotNull(collector.delta(0).getLastEventNotifications().get(EVENT_KEY_1));
+        assertEquals(DigitalTwinStateChange.Operation.OPERATION_UPDATE_VALUE, collector.valuesChanges(0).get(0).getOperation());
+        assertEquals(DigitalTwinStateChange.ResourceType.EVENT, collector.valuesChanges(0).get(0).getResourceType());
+        assertNotNull(digitalTwinStateManager.getDigitalTwinStateValues().getLastEventNotifications().get(EVENT_KEY_1));
+
+        // The notification itself
+        assertEquals(1, collector.getNotificationEvents().size());
+        assertEquals(notification, collector.getNotificationEvents().get(0).getBody());
+        assertEquals(DigitalTwinStateManager.getEventNotificationWldtEventMessageType(EVENT_KEY_1), collector.getNotificationEvents().get(0).getType());
+
+        collector.stop();
+    }
+
+    @Test
+    public void rollbackDiscardsEventNotification() throws WldtDigitalTwinStateException, WldtDigitalTwinStateEventNotificationException, InterruptedException, EventBusException {
+
+        registerEvent();
+
+        StateEventCollector collector = new StateEventCollector(DIGITAL_TWIN_ID, SUBSCRIBER_ID_1);
+        collector.start();
+
+        digitalTwinStateManager.startStateTransaction();
+        digitalTwinStateManager.notifyDigitalTwinStateEvent(new DigitalTwinStateEventNotification<>(EVENT_KEY_1, "body", System.currentTimeMillis()));
+        digitalTwinStateManager.rollbackTransaction();
+
+        // A new committed transaction (a different change) must not publish the discarded notification
+        digitalTwinStateManager.createProperty(new DigitalTwinStateProperty<>("p", 1));
+        digitalTwinStateManager.commitStateTransaction();
+
+        assertTrue(collector.awaitValuesEvents(1, 2000));
+        collector.settle();
+
+        assertTrue(collector.getNotificationEvents().isEmpty());
+        assertTrue(digitalTwinStateManager.getDigitalTwinStateValues().getLastEventNotifications().isEmpty());
+
+        collector.stop();
+    }
+
+    @Test
+    public void notifyEventRequiresTransactionAndExistingEvent() throws WldtDigitalTwinStateException {
+
+        registerEvent();
+
+        // Outside of a transaction
+        assertThrows(WldtDigitalTwinStateEventNotificationException.class,
+                () -> digitalTwinStateManager.notifyDigitalTwinStateEvent(new DigitalTwinStateEventNotification<>(EVENT_KEY_1, "body", 0L)));
+
+        // Event not defined in the state
+        digitalTwinStateManager.startStateTransaction();
+        assertThrows(WldtDigitalTwinStateEventNotificationException.class,
+                () -> digitalTwinStateManager.notifyDigitalTwinStateEvent(new DigitalTwinStateEventNotification<>(EVENT_KEY_2, "body", 0L)));
+        digitalTwinStateManager.rollbackTransaction();
     }
 }

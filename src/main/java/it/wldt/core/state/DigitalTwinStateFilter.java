@@ -211,45 +211,71 @@ public final class DigitalTwinStateFilter {
     }
 
     /**
-     * Checks if a change alters the <b>structure</b> of the state (see {@link DigitalTwinStateDescription}):
-     * every change on properties, actions, events and relationships definitions (add, update, remove).
-     * Value-only changes (property value updates, relationship instances) do not alter the structure.
+     * Checks if a change alters the <b>structure</b> of the state (see {@link DigitalTwinStateDescription}).
+     * The decision is taken on the operation first: only {@code OPERATION_ADD}, {@code OPERATION_UPDATE} and
+     * {@code OPERATION_REMOVE} on the definition of a property, relationship, action or event are description
+     * changes. {@code OPERATION_UPDATE_VALUE} (property value updates, last invocation of an action, last
+     * notification of an event) and the changes on relationship instances never alter the structure.
      * @param change the state change
      * @return true if the change alters the description of the state
      */
     public static boolean isDescriptionChange(DigitalTwinStateChange change) {
-        if (change == null)
+        if (change == null || change.getOperation() == null || change.getResourceType() == null)
             return false;
 
-        switch (change.getResourceType()) {
-            case PROPERTY:
-            case ACTION:
-            case EVENT:
-            case RELATIONSHIP:
-                return true;
+        switch (change.getOperation()) {
+            case OPERATION_ADD:
+            case OPERATION_UPDATE:
+            case OPERATION_REMOVE:
+                switch (change.getResourceType()) {
+                    case PROPERTY:
+                    case RELATIONSHIP:
+                    case ACTION:
+                    case EVENT:
+                        return true;
+                    default:
+                        return false;
+                }
             default:
                 return false;
         }
     }
 
     /**
-     * Checks if a change alters the <b>values</b> of the state (see {@link DigitalTwinStateValues}):
-     * property value updates and relationship instances changes. Adding, updating or removing a whole property or
-     * relationship is considered a values change too, because it adds, replaces or removes its value/instances.
-     * Actions and events definitions carry no value, so their changes are description-only.
+     * Checks if a change must produce a <b>values</b> update (see {@link DigitalTwinStateValues}):
+     * <ul>
+     *     <li>{@code OPERATION_UPDATE_VALUE}: property value, last invocation of an action, last notification of an event;</li>
+     *     <li>{@code OPERATION_ADD} and {@code OPERATION_UPDATE} of a property or of a relationship (they carry a value
+     *     / the instances);</li>
+     *     <li>{@code OPERATION_ADD} and {@code OPERATION_REMOVE} of a relationship instance (the structure does not change).</li>
+     * </ul>
+     * The {@code OPERATION_REMOVE} of a property, relationship, action or event is <b>not</b> a values change: it is
+     * only a description change and every component that keeps a local copy of the values drops the value of the
+     * removed resource when it applies the new description. The same holds for the addition or update of the
+     * definition of an action or of an event, that carry no value.
      * @param change the state change
-     * @return true if the change alters the values of the state
+     * @return true if the change produces a values update
      */
     public static boolean isValueChange(DigitalTwinStateChange change) {
-        if (change == null)
+        if (change == null || change.getOperation() == null || change.getResourceType() == null)
             return false;
 
-        switch (change.getResourceType()) {
-            case PROPERTY:
-            case PROPERTY_VALUE:
-            case RELATIONSHIP:
-            case RELATIONSHIP_INSTANCE:
+        switch (change.getOperation()) {
+            case OPERATION_UPDATE_VALUE:
                 return true;
+            case OPERATION_ADD:
+            case OPERATION_UPDATE:
+                switch (change.getResourceType()) {
+                    case PROPERTY:
+                    case PROPERTY_VALUE:
+                    case RELATIONSHIP:
+                    case RELATIONSHIP_INSTANCE:
+                        return true;
+                    default:
+                        return false;
+                }
+            case OPERATION_REMOVE:
+                return DigitalTwinStateChange.ResourceType.RELATIONSHIP_INSTANCE.equals(change.getResourceType());
             default:
                 return false;
         }

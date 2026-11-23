@@ -25,6 +25,7 @@ import it.wldt.augmentation.context.DigitalTwinStateFilterUtils;
 import it.wldt.augmentation.function.StatefulAugmentationFunction;
 import it.wldt.augmentation.request.AugmentationFunctionRequest;
 import it.wldt.core.state.*;
+import java.time.Instant;
 import it.wldt.storage.query.Query;
 import it.wldt.storage.query.QueryResult;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,12 +42,14 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 public class StateFilterTest {
 
-    private final List<DigitalTwinState> receivedStates = new ArrayList<>();
+    private final List<DigitalTwinStateValues> receivedStates = new ArrayList<>();
+    private final List<DigitalTwinStateDescription> receivedDescriptions = new ArrayList<>();
     private final List<String> receivedNotifications = new ArrayList<>();
 
     @BeforeEach
     public void reset() {
         receivedStates.clear();
+        receivedDescriptions.clear();
         receivedNotifications.clear();
     }
 
@@ -55,8 +58,12 @@ public class StateFilterTest {
             super("test-handler");
         }
 
-        void state(StatefulAugmentationFunction f, DigitalTwinState state, ArrayList<DigitalTwinStateChange> changes) {
-            onStateUpdate(new ArrayList<>(Collections.singletonList(f)), state, null, changes);
+        void state(StatefulAugmentationFunction f, DigitalTwinStateValues values, ArrayList<DigitalTwinStateChange> changes) {
+            notifyStateValuesUpdate(new ArrayList<>(Collections.singletonList(f)), values, changes);
+        }
+
+        void description(StatefulAugmentationFunction f, DigitalTwinStateDescription description, ArrayList<DigitalTwinStateChange> changes) {
+            notifyStateDescriptionUpdate(new ArrayList<>(Collections.singletonList(f)), description, changes);
         }
 
         void notification(StatefulAugmentationFunction f, String key) {
@@ -69,7 +76,8 @@ public class StateFilterTest {
         return new StatefulAugmentationFunction("fn", "fn", "test", "1.0.0", request) {
             @Override protected void start(AugmentationFunctionRequest r) {}
             @Override protected void stop(AugmentationFunctionRequest r) {}
-            @Override public void onStateUpdate(DigitalTwinState s) { receivedStates.add(s); }
+            @Override public void onStateDescriptionUpdate(DigitalTwinStateDescription d) { receivedDescriptions.add(d); }
+            @Override public void onStateValuesUpdate(DigitalTwinStateValues v) { receivedStates.add(v); }
             @Override public void onQueryResultRefresh(Query q, QueryResult<?> r) {}
             @Override public void onEventNotificationReceived(DigitalTwinStateEventNotification<?> n) {
                 receivedNotifications.add(n.getDigitalEventKey());
@@ -90,7 +98,12 @@ public class StateFilterTest {
         Map<String, DigitalTwinStateRelationship<?>> rels = new HashMap<>();
         rels.put("near", new DigitalTwinStateRelationship<>("near", "t"));
         rels.put("inside", new DigitalTwinStateRelationship<>("inside", "t"));
-        return new DigitalTwinState(props, actions, events, rels);
+        DigitalTwinState state = new DigitalTwinState(props, actions, events, rels);
+        DigitalTwinStateTestFactory.withDescriptionId(state, "1_0");
+        DigitalTwinStateTestFactory.withLastActionInvocation(state, "on", Instant.now());
+        DigitalTwinStateTestFactory.withLastEventNotification(state, "alarm", Instant.now());
+        DigitalTwinStateTestFactory.withLastEventNotification(state, "info", Instant.now());
+        return state;
     }
 
     private static DigitalTwinStateChange valueChange(String property) throws Exception {
@@ -103,16 +116,16 @@ public class StateFilterTest {
 
     @Test
     public void noFilterSendsEveryUpdateWithFullState() throws Exception {
-        DigitalTwinState state = fullState();
+        DigitalTwinStateValues values = fullState().getValues();
         TestHandler handler = new TestHandler();
         StatefulAugmentationFunction f = function(new AugmentationFunctionContextRequest());
 
-        handler.state(f, state, null);
-        handler.state(f, state, changes(valueChange("temp")));
+        handler.state(f, values, null);
+        handler.state(f, values, changes(valueChange("temp")));
 
         assertEquals(2, receivedStates.size());
-        assertSame(state, receivedStates.get(0));
-        assertSame(state, receivedStates.get(1));
+        assertSame(values, receivedStates.get(0));
+        assertSame(values, receivedStates.get(1));
     }
 
     @Test
@@ -121,12 +134,12 @@ public class StateFilterTest {
         StatefulAugmentationFunction f = function(new AugmentationFunctionContextRequest()
                 .withStateChangeFilters(DigitalTwinStateChangeFilter.onPropertyValueUpdate("temp")));
 
-        handler.state(f, fullState(), changes(valueChange("hum")));
-        handler.state(f, fullState(), changes(new DigitalTwinStateChange(OPERATION_ADD, PROPERTY, new DigitalTwinStateProperty<>("temp", 1))));
-        handler.state(f, fullState(), null);
+        handler.state(f, fullState().getValues(), changes(valueChange("hum")));
+        handler.state(f, fullState().getValues(), changes(new DigitalTwinStateChange(OPERATION_ADD, PROPERTY, new DigitalTwinStateProperty<>("temp", 1))));
+        handler.state(f, fullState().getValues(), null);
         assertEquals(0, receivedStates.size());
 
-        handler.state(f, fullState(), changes(valueChange("hum"), valueChange("temp")));
+        handler.state(f, fullState().getValues(), changes(valueChange("hum"), valueChange("temp")));
         assertEquals(1, receivedStates.size());
     }
 
@@ -135,11 +148,12 @@ public class StateFilterTest {
         TestHandler handler = new TestHandler();
         StatefulAugmentationFunction f = function(new AugmentationFunctionContextRequest()
                 .withStateChangeFilters(DigitalTwinStateChangeFilter.onPropertyValueUpdate("temp"),
-                        DigitalTwinStateChangeFilter.builder().operations(OPERATION_REMOVE).resourceTypes(RELATIONSHIP).build()));
+                        DigitalTwinStateChangeFilter.builder().operations(OPERATION_REMOVE).resourceTypes(RELATIONSHIP_INSTANCE).build()));
 
-        handler.state(f, fullState(), changes(new DigitalTwinStateChange(OPERATION_REMOVE, RELATIONSHIP, new DigitalTwinStateRelationship<>("near", "t"))));
-        handler.state(f, fullState(), changes(valueChange("temp")));
-        handler.state(f, fullState(), changes(valueChange("hum")));
+        // The removal of a relationship instance is a values change (the structure does not change)
+        handler.state(f, fullState().getValues(), changes(new DigitalTwinStateChange(OPERATION_REMOVE, RELATIONSHIP_INSTANCE, new DigitalTwinStateRelationshipInstance<>("near", "t", "k1"))));
+        handler.state(f, fullState().getValues(), changes(valueChange("temp")));
+        handler.state(f, fullState().getValues(), changes(valueChange("hum")));
 
         assertEquals(2, receivedStates.size());
     }
@@ -159,25 +173,46 @@ public class StateFilterTest {
                 .withActionNameFilter()
                 .withRelationshipNameFilter("near", "inside"));
 
-        handler.state(f, fullState(), null);
+        handler.state(f, fullState().getValues(), null);
 
-        DigitalTwinState got = receivedStates.get(0);
-        assertEquals(1, got.getPropertyList().get().size());
-        assertTrue(got.containsProperty("temp"));
-        assertFalse(got.getActionList().isPresent());
-        assertEquals(2, got.getEventList().get().size());       // events untouched (null filter)
-        assertEquals(2, got.getRelationshipList().get().size());
+        DigitalTwinStateValues got = receivedStates.get(0);
+        assertEquals(1, got.getPropertyValues().size());
+        assertTrue(got.getPropertyValues().containsKey("temp"));
+        assertTrue(got.getLastActionInvocations().isEmpty());       // empty action filter removes the category
+        assertEquals(2, got.getLastEventNotifications().size());    // events untouched (null filter)
+        assertEquals(2, got.getRelationshipInstances().size());
     }
 
     @Test
     public void contentFilterOnStatelessContextHelper() throws Exception {
-        DigitalTwinState state = fullState();
-        assertSame(state, DigitalTwinStateFilterUtils.filterState(state, new AugmentationFunctionContextRequest()));
-        assertSame(state, DigitalTwinStateFilterUtils.filterState(state, null));
+        DigitalTwinStateValues values = fullState().getValues();
+        assertSame(values, DigitalTwinStateFilterUtils.filterValues(values, new AugmentationFunctionContextRequest()));
+        assertSame(values, DigitalTwinStateFilterUtils.filterValues(values, null));
 
-        DigitalTwinState filtered = DigitalTwinStateFilterUtils.filterState(state, new AugmentationFunctionContextRequest().withEventNameFilter("alarm"));
-        assertEquals(1, filtered.getEventList().get().size());
-        assertEquals(2, filtered.getPropertyList().get().size());
+        DigitalTwinStateValues filtered = DigitalTwinStateFilterUtils.filterValues(values, new AugmentationFunctionContextRequest().withEventNameFilter("alarm"));
+        assertEquals(1, filtered.getLastEventNotifications().size());
+        assertEquals(2, filtered.getPropertyValues().size());
+        assertEquals("1_0", filtered.getDescriptionId());
+    }
+
+    @Test
+    public void descriptionIsNeverFiltered() throws Exception {
+        TestHandler handler = new TestHandler();
+        DigitalTwinStateDescription description = fullState().getDescription();
+
+        // Content and trigger filters apply only to the values: the complete description is always delivered
+        StatefulAugmentationFunction filtered = function(new AugmentationFunctionContextRequest()
+                .withPropertyNameFilter("temp")
+                .withActionNameFilter()
+                .withStateChangeFilters(DigitalTwinStateChangeFilter.onPropertyValueUpdate("temp")));
+
+        handler.description(filtered, description, changes(new DigitalTwinStateChange(OPERATION_ADD, PROPERTY, new DigitalTwinStateProperty<>("hum", 2))));
+
+        assertEquals(1, receivedDescriptions.size());
+        assertSame(description, receivedDescriptions.get(0));
+        assertEquals(2, receivedDescriptions.get(0).getProperties().size());
+        assertEquals(2, receivedDescriptions.get(0).getActions().size());
+        assertEquals("1_0", receivedDescriptions.get(0).getId());
     }
 
     @Test
@@ -199,10 +234,12 @@ public class StateFilterTest {
         assertFalse(request.isObserveEventNotifications());
         StatefulAugmentationFunction f = function(request);
 
-        handler.state(f, fullState(), null);
+        handler.state(f, fullState().getValues(), null);
+        handler.description(f, fullState().getDescription(), null);
         handler.notification(f, "alarm");
 
         assertTrue(receivedStates.isEmpty());
+        assertTrue(receivedDescriptions.isEmpty());
         assertTrue(receivedNotifications.isEmpty());
     }
 }

@@ -53,6 +53,16 @@ public final class QueryFieldNames {
     public static final String RELATIONSHIP_NAME = "relationshipName";
     public static final String RELATIONSHIP_TYPE = "relationshipType";
 
+    // Digital twin state records (description, values and complete state)
+    /** Id of the Digital Twin State Description (available on description, values and complete state records) */
+    public static final String DESCRIPTION_ID = "descriptionId";
+    /** The Digital Twin State Description (use dotted paths for its fields, e.g. {@code description.evaluationInstant}) */
+    public static final String DESCRIPTION = "description";
+    /** The Digital Twin State Values (use dotted paths for its fields, e.g. {@code values.propertyValues.temperature}) */
+    public static final String VALUES = "values";
+    /** The list of the Digital Twin State Changes that produced the record */
+    public static final String STATE_CHANGE_LIST = "stateChangeList";
+
     // Augmentation function records
     public static final String FUNCTION_ID = "augmentationFunctionId";
     public static final String FUNCTION_HANDLER_ID = "augmentationFunctionHandlerId";

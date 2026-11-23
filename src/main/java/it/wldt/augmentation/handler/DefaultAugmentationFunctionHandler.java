@@ -24,7 +24,8 @@ import it.wldt.augmentation.function.*;
 import it.wldt.augmentation.request.AugmentationFunctionRequest;
 import it.wldt.augmentation.result.AugmentationFunctionResult;
 import it.wldt.augmentation.result.AugmentationFunctionResultList;
-import it.wldt.core.state.DigitalTwinState;
+import it.wldt.core.state.DigitalTwinStateDescription;
+import it.wldt.core.state.DigitalTwinStateValues;
 import it.wldt.core.state.DigitalTwinStateChange;
 import it.wldt.core.state.DigitalTwinStateEventNotification;
 import it.wldt.exception.AugmentationFunctionException;
@@ -158,37 +159,35 @@ public class DefaultAugmentationFunctionHandler extends AugmentationFunctionHand
     }
 
     /**
-     * Notifies all active Stateful Augmentation Functions about a Digital Twin state update, so that they can
-     * update their internal state and produce new results if needed.
-     * @param statefulAugmentationFunctions the list of active Stateful Augmentation Functions to notify
-     * @param newDigitalTwinState the new state of the Digital Twin after the update
-     * @param previousDigitalTwinState the previous state of the Digital Twin before the update
-     * @param digitalTwinStateChangeList the list of changes that occurred in the Digital Twin state
+     * Delivers a change of the Digital Twin State Description (structure) to a Stateful Augmentation Function. The
+     * library already checked that the function observes the state: the description is complete and never filtered.
+     * @param statefulAugmentationFunction the Stateful Augmentation Function to notify
+     * @param newDigitalTwinStateDescription the complete new description of the Digital Twin State
+     * @param digitalTwinStateChangeList the list of changes that altered the description
      */
     @Override
-    protected void onStateUpdate(ArrayList<StatefulAugmentationFunction> statefulAugmentationFunctions, DigitalTwinState newDigitalTwinState, DigitalTwinState previousDigitalTwinState, ArrayList<DigitalTwinStateChange> digitalTwinStateChangeList) {
-        // The handler should notify active Stateful Augmentation Function about the state update,
-        // so that they can update their internal state and generate new results if needed
-        for(StatefulAugmentationFunction statefulAugmentationFunction : statefulAugmentationFunctions) {
-            try {
-                // Opt-in: refresh the query result of the function before notifying the state update
-                AugmentationFunctionContextRequest contextRequest = statefulAugmentationFunction.getContextRequest();
+    protected void onStateDescriptionUpdate(StatefulAugmentationFunction statefulAugmentationFunction, DigitalTwinStateDescription newDigitalTwinStateDescription, List<DigitalTwinStateChange> digitalTwinStateChangeList) throws AugmentationFunctionException {
+        statefulAugmentationFunction.handleStateDescriptionUpdate(newDigitalTwinStateDescription);
+    }
 
-                // The function may not observe the state, or may be interested only in specific state changes
-                if (contextRequest != null && !contextRequest.isObserveState())
-                    continue;
-                if (!DigitalTwinStateFilterUtils.shouldTrigger(contextRequest, digitalTwinStateChangeList))
-                    continue;
+    /**
+     * Delivers a change of the Digital Twin State Values to a Stateful Augmentation Function, so that it can update
+     * its internal state and produce new results if needed. The library already checked that the function observes
+     * the state and that the trigger filter accepts the changes, and the values are already limited by the content
+     * filter of the function. If the function opted in, the result of its query is refreshed before the notification.
+     * @param statefulAugmentationFunction the Stateful Augmentation Function to notify
+     * @param filteredDigitalTwinStateValues the new values of the Digital Twin State limited by the content filter of the function
+     * @param digitalTwinStateChangeList the list of changes that altered the values
+     */
+    @Override
+    protected void onStateValuesUpdate(StatefulAugmentationFunction statefulAugmentationFunction, DigitalTwinStateValues filteredDigitalTwinStateValues, List<DigitalTwinStateChange> digitalTwinStateChangeList) throws AugmentationFunctionException {
+        AugmentationFunctionContextRequest contextRequest = statefulAugmentationFunction.getContextRequest();
 
-                if (contextRequest != null && contextRequest.isRefreshQueryOnStateUpdate() && contextRequest.getQuery() != null)
-                    onStatefulAugmentationFunctionQueryResultRefresh(statefulAugmentationFunction.getId(), contextRequest.getQuery());
+        // Opt-in: refresh the query result of the function before notifying the values update
+        if (contextRequest != null && contextRequest.isRefreshQueryOnStateUpdate() && contextRequest.getQuery() != null)
+            onStatefulAugmentationFunctionQueryResultRefresh(statefulAugmentationFunction.getId(), contextRequest.getQuery());
 
-                statefulAugmentationFunction.handleStateUpdate(DigitalTwinStateFilterUtils.filterState(newDigitalTwinState, contextRequest));
-            } catch (AugmentationFunctionException e) {
-                // Log the error and continue with the next augmentation function
-               logger.error(String.format("Error while notifying state update to augmentation function with id %s: %s", statefulAugmentationFunction.getId(), e.getMessage()));
-            }
-        }
+        statefulAugmentationFunction.handleStateValuesUpdate(filteredDigitalTwinStateValues);
     }
 
     /**
@@ -235,19 +234,21 @@ public class DefaultAugmentationFunctionHandler extends AugmentationFunctionHand
 
     /**
      * Default empty implementation. Override to react when the Digital Twin becomes synchronized.
-     * @param digitalTwinState the current state of the Digital Twin at synchronization
+     * @param digitalTwinStateDescription the description of the Digital Twin State at synchronization
+     * @param digitalTwinStateValues the values of the Digital Twin State at synchronization
      */
     @Override
-    public void onDigitalTwinLifeCycleSync(DigitalTwinState digitalTwinState) {
+    public void onDigitalTwinLifeCycleSync(DigitalTwinStateDescription digitalTwinStateDescription, DigitalTwinStateValues digitalTwinStateValues) {
 
     }
 
     /**
      * Default empty implementation. Override to react when the Digital Twin loses synchronization.
-     * @param digitalTwinState the last known state of the Digital Twin before losing synchronization
+     * @param digitalTwinStateDescription the last known description of the Digital Twin State before losing synchronization
+     * @param digitalTwinStateValues the last known values of the Digital Twin State before losing synchronization
      */
     @Override
-    public void onDigitalTwinLifeCycleUnSync(DigitalTwinState digitalTwinState) {
+    public void onDigitalTwinLifeCycleUnSync(DigitalTwinStateDescription digitalTwinStateDescription, DigitalTwinStateValues digitalTwinStateValues) {
 
     }
 

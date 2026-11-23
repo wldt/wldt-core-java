@@ -22,6 +22,7 @@ package it.wldt.core.state;
 
 import it.wldt.exception.WldtDigitalTwinStateException;
 
+import java.time.Instant;
 import java.util.Objects;
 
 /**
@@ -91,6 +92,13 @@ public class DigitalTwinStateChange {
     private DigitalTwinStateResource resource;
 
     /**
+     * Instant carried by the changes that record the trigger of an action or of an event
+     * ({@link ResourceType#ACTION} / {@link ResourceType#EVENT} with {@link Operation#OPERATION_UPDATE_VALUE}).
+     * It is null for every other change.
+     */
+    private Instant valueInstant;
+
+    /**
      * Private constructor to prevent direct instantiation without required parameters.
      */
     private DigitalTwinStateChange(){
@@ -115,6 +123,39 @@ public class DigitalTwinStateChange {
         this.operation = operation;
         this.resourceType = resourceType;
         this.resource = resource;
+    }
+
+    /**
+     * Creates a change that carries also the instant of the trigger of an action or of an event. The instant is
+     * needed because the last invocation of an action / last notification of an event is a value of the state and
+     * the developer can specify when the action was executed (for example
+     * {@code DigitalTwinStateManager.notifyActionExecuted(key, instant)}); the constructor without the instant
+     * cannot carry it.
+     *
+     * @param operation     The operation performed on the state (usually {@link Operation#OPERATION_UPDATE_VALUE}).
+     * @param resourceType  The type of resource ({@link ResourceType#ACTION} or {@link ResourceType#EVENT}).
+     * @param resource      The action or the event that has been triggered.
+     * @param valueInstant  The instant of the trigger.
+     * @throws WldtDigitalTwinStateException If any of the provided parameters is null.
+     */
+    public DigitalTwinStateChange(Operation operation,
+                                  ResourceType resourceType,
+                                  DigitalTwinStateResource resource,
+                                  Instant valueInstant) throws WldtDigitalTwinStateException {
+        this(operation, resourceType, resource);
+
+        if(valueInstant == null)
+            throw new WldtDigitalTwinStateException("Wrong DigitalTwinStateChange constructor parameters ! Missing or null instant");
+
+        this.valueInstant = valueInstant;
+    }
+
+    /**
+     * @return the instant of the trigger carried by the changes on the last invocation of an action / last
+     * notification of an event, null for every other change
+     */
+    public Instant getValueInstant() {
+        return valueInstant;
     }
 
     public Operation getOperation() {
@@ -146,12 +187,12 @@ public class DigitalTwinStateChange {
         if (this == o) return true;
         if (!(o instanceof DigitalTwinStateChange)) return false;
         DigitalTwinStateChange that = (DigitalTwinStateChange) o;
-        return operation == that.operation && resourceType == that.resourceType && Objects.equals(resource, that.resource);
+        return operation == that.operation && resourceType == that.resourceType && Objects.equals(resource, that.resource) && Objects.equals(valueInstant, that.valueInstant);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(operation, resourceType, resource);
+        return Objects.hash(operation, resourceType, resource, valueInstant);
     }
 
     @Override
@@ -160,6 +201,8 @@ public class DigitalTwinStateChange {
         sb.append("operation=").append(operation);
         sb.append(", resourceType=").append(resourceType);
         sb.append(", resource=").append(resource);
+        if (valueInstant != null)
+            sb.append(", valueInstant=").append(valueInstant);
         sb.append('}');
         return sb.toString();
     }

@@ -100,10 +100,18 @@ public class DigitalTwinStateTransaction {
             for(DigitalTwinStateChange digitalTwinStateChange : this.digitalTwinStateChangeList){
                 if((digitalTwinStateChange.getResourceType().equals(DigitalTwinStateChange.ResourceType.PROPERTY) || digitalTwinStateChange.getResourceType().equals(DigitalTwinStateChange.ResourceType.PROPERTY_VALUE) ) && digitalTwinStateChange.getResource() instanceof DigitalTwinStateProperty)
                     handlePropertyChange(digitalTwinStateChange.getOperation(), (DigitalTwinStateProperty<?>)digitalTwinStateChange.getResource());
-                else if(digitalTwinStateChange.getResourceType().equals(DigitalTwinStateChange.ResourceType.EVENT) && digitalTwinStateChange.getResource() instanceof DigitalTwinStateEvent)
-                    handleEventChange(digitalTwinStateChange.getOperation(), (DigitalTwinStateEvent)digitalTwinStateChange.getResource());
-                else if(digitalTwinStateChange.getResourceType().equals(DigitalTwinStateChange.ResourceType.ACTION) && digitalTwinStateChange.getResource() instanceof DigitalTwinStateAction)
-                    handleActionChange(digitalTwinStateChange.getOperation(), (DigitalTwinStateAction)digitalTwinStateChange.getResource());
+                else if(digitalTwinStateChange.getResourceType().equals(DigitalTwinStateChange.ResourceType.EVENT) && digitalTwinStateChange.getResource() instanceof DigitalTwinStateEvent) {
+                    if(digitalTwinStateChange.getOperation().equals(DigitalTwinStateChange.Operation.OPERATION_UPDATE_VALUE))
+                        handleEventTriggerChange(digitalTwinStateChange);
+                    else
+                        handleEventChange(digitalTwinStateChange.getOperation(), (DigitalTwinStateEvent) digitalTwinStateChange.getResource());
+                }
+                else if(digitalTwinStateChange.getResourceType().equals(DigitalTwinStateChange.ResourceType.ACTION) && digitalTwinStateChange.getResource() instanceof DigitalTwinStateAction) {
+                    if(digitalTwinStateChange.getOperation().equals(DigitalTwinStateChange.Operation.OPERATION_UPDATE_VALUE))
+                        handleActionTriggerChange(digitalTwinStateChange);
+                    else
+                        handleActionChange(digitalTwinStateChange.getOperation(), (DigitalTwinStateAction) digitalTwinStateChange.getResource());
+                }
                 else if(digitalTwinStateChange.getResourceType().equals(DigitalTwinStateChange.ResourceType.RELATIONSHIP) && digitalTwinStateChange.getResource() instanceof DigitalTwinStateRelationship)
                     handleRelationshipChange(digitalTwinStateChange.getOperation(), (DigitalTwinStateRelationship<?>)digitalTwinStateChange.getResource());
                 else if(digitalTwinStateChange.getResourceType().equals(DigitalTwinStateChange.ResourceType.RELATIONSHIP_INSTANCE) && digitalTwinStateChange.getResource() instanceof DigitalTwinStateRelationshipInstance)
@@ -144,6 +152,34 @@ public class DigitalTwinStateTransaction {
             this.endDigitalTwinState.updatePropertyValue(digitalTwinStateProperty.getKey(), digitalTwinStateProperty.getValue());
         else
             throw new WldtDigitalTwinStatePropertyException(String.format("Wrong DigitalTwinStateChange Operation Provided: %s", operation));
+    }
+
+    /**
+     * Handle the trigger of an Event: the instant of its last notification is updated on the new Digital Twin State
+     * @param change the change (OPERATION_UPDATE_VALUE on an EVENT resource)
+     * @throws WldtDigitalTwinStateEventException if the event is not defined in the new Digital Twin State
+     */
+    private void handleEventTriggerChange(DigitalTwinStateChange change) throws WldtDigitalTwinStateEventException {
+        String eventKey = ((DigitalTwinStateEvent) change.getResource()).getKey();
+
+        if(!this.endDigitalTwinState.containsEvent(eventKey))
+            throw new WldtDigitalTwinStateEventException(String.format("Event with Key: %s not found !", eventKey));
+
+        this.endDigitalTwinState.recordEventNotification(eventKey, change.getValueInstant() != null ? change.getValueInstant() : Instant.now());
+    }
+
+    /**
+     * Handle the execution of an Action: the instant of its last invocation is updated on the new Digital Twin State
+     * @param change the change (OPERATION_UPDATE_VALUE on an ACTION resource)
+     * @throws WldtDigitalTwinStateActionNotFoundException if the action is not defined in the new Digital Twin State
+     */
+    private void handleActionTriggerChange(DigitalTwinStateChange change) throws WldtDigitalTwinStateActionException, WldtDigitalTwinStateActionNotFoundException {
+        String actionKey = ((DigitalTwinStateAction) change.getResource()).getKey();
+
+        if(!this.endDigitalTwinState.getAction(actionKey).isPresent())
+            throw new WldtDigitalTwinStateActionNotFoundException(String.format("Action with Key: %s not found !", actionKey));
+
+        this.endDigitalTwinState.recordActionInvocation(actionKey, change.getValueInstant() != null ? change.getValueInstant() : Instant.now());
     }
 
     /**
@@ -214,19 +250,23 @@ public class DigitalTwinStateTransaction {
     }
 
     /**
-     * Returns the current Digital Twin State
-     * @return
+     * Returns the Digital Twin State at the beginning of the transaction. It is {@code protected} on purpose: it is
+     * used by the {@link DigitalTwinStateManager} (same package) and it is not part of the public API, because the
+     * complete state is never exposed (use the description and the values of the Digital Twin State Manager).
+     * Note that {@code protected} also allows the subclasses of the transaction, in any package, to read the state.
+     * @return the state at the beginning of the transaction
      */
-    public DigitalTwinState getStartDigitalTwinState() {
+    protected DigitalTwinState getStartDigitalTwinState() {
         return startDigitalTwinState;
     }
 
     /**
      * Returns the new Digital Twin State.
-     * Values will be updated only after the application of the listed changes.
-     * @return
+     * Values will be updated only after the application of the listed changes. Same visibility rules of
+     * {@link #getStartDigitalTwinState()}.
+     * @return the new state
      */
-    public DigitalTwinState getEndDigitalTwinState() {
+    protected DigitalTwinState getEndDigitalTwinState() {
         return endDigitalTwinState;
     }
 

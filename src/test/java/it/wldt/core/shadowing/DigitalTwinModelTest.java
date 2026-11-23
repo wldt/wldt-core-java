@@ -14,7 +14,7 @@ import it.wldt.adapter.physical.event.PhysicalAssetPropertyWldtEvent;
 import it.wldt.core.engine.DigitalTwinEngine;
 import it.wldt.core.event.*;
 import it.wldt.core.model.DigitalTwinModel;
-import it.wldt.core.state.DigitalTwinState;
+import it.wldt.core.state.DigitalTwinStateValues;
 import it.wldt.core.state.DigitalTwinStateManager;
 import it.wldt.core.state.DigitalTwinStateProperty;
 import it.wldt.core.adapter.digital.TestDigitalAdapter;
@@ -46,7 +46,7 @@ public class DigitalTwinModelTest {
 
         //Define EventFilter and add the target topic
         WldtEventFilter wldtEventFilter = new WldtEventFilter();
-        wldtEventFilter.add(DigitalTwinStateManager.getStatusUpdatesWldtEventMessageType());
+        wldtEventFilter.add(DigitalTwinStateManager.getStateValuesUpdateWldtEventMessageType());
 
         WldtEventBus.getInstance().subscribe(DIGITAL_TWIN_ID, "demo-state-observer", wldtEventFilter, new WldtEventListener() {
             @Override
@@ -64,9 +64,9 @@ public class DigitalTwinModelTest {
 
                 //DT State Events Management
                 if(wldtEvent != null
-                        && wldtEvent.getType().equals(DigitalTwinStateManager.getStatusUpdatesWldtEventMessageType())
+                        && wldtEvent.getType().equals(DigitalTwinStateManager.getStateValuesUpdateWldtEventMessageType())
                         && wldtEvent.getBody() != null
-                        && (wldtEvent.getBody() instanceof DigitalTwinState)){
+                        && (wldtEvent.getBody() instanceof DigitalTwinStateValues)){
 
                     logger.info("DT-State-Observer - onEvent(): Type: {} Event:{}", wldtEvent.getType(), wldtEvent);
                     receivedStateWldtEventList.add(wldtEvent);
@@ -121,7 +121,7 @@ public class DigitalTwinModelTest {
                             logger.info("New Physical Property Detected ! Key: {} Type: {} InstanceType: {}", physicalPropertyKey, physicalPropertyType, physicalAssetProperty.getClass());
 
                             //Update Digital Twin State creating the new Property
-                            if(!this.digitalTwinStateManager.getDigitalTwinState().containsProperty(physicalPropertyKey)) {
+                            if(this.digitalTwinStateManager.getDigitalTwinStateDescription().getProperties().stream().noneMatch(p -> p.getKey().equals(physicalPropertyKey))) {
 
                                 this.digitalTwinStateManager.startStateTransaction();
                                 this.digitalTwinStateManager.createProperty(new DigitalTwinStateProperty<>(
@@ -175,7 +175,7 @@ public class DigitalTwinModelTest {
                     if(physicalPropertyEventMessage != null
                             && getPhysicalEventsFilter().contains(physicalPropertyEventMessage.getType())
                             && physicalPropertyEventMessage.getPhysicalPropertyId() != null
-                            && this.digitalTwinStateManager.getDigitalTwinState().containsProperty(physicalPropertyEventMessage.getPhysicalPropertyId())
+                            && this.digitalTwinStateManager.getDigitalTwinStateDescription().getProperties().stream().anyMatch(p -> p.getKey().equals(physicalPropertyEventMessage.getPhysicalPropertyId()))
                             && physicalPropertyEventMessage.getBody() instanceof Double
                     ){
 

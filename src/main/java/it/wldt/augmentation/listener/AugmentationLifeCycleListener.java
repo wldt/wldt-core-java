@@ -21,7 +21,8 @@
 package it.wldt.augmentation.listener;
 
 import it.wldt.core.engine.LifeCycleListener;
-import it.wldt.core.state.DigitalTwinState;
+import it.wldt.core.state.DigitalTwinStateDescription;
+import it.wldt.core.state.DigitalTwinStateValues;
 
 /**
  * Authors:
@@ -44,9 +45,9 @@ public interface AugmentationLifeCycleListener {
 
     public void onDigitalTwinUnBound();
 
-    public void onSync(DigitalTwinState digitalTwinState);
+    public void onSync(DigitalTwinStateDescription digitalTwinStateDescription, DigitalTwinStateValues digitalTwinStateValues);
 
-    public void onUnSync(DigitalTwinState digitalTwinState);
+    public void onUnSync(DigitalTwinStateDescription digitalTwinStateDescription, DigitalTwinStateValues digitalTwinStateValues);
 
     public void onStop();
 

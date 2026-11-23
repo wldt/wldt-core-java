@@ -170,19 +170,21 @@ protected void onPhysicalAssetRelationshipDeleted(PhysicalAssetRelationshipInsta
 }
 ```
 
-At the end the new DT's Relationships and the associated instances can be managed on a Digital Adapter using the ```onDigitalTwinSync(DigitalTwinState startDigitalTwinState)``` method and
+At the end the new DT's Relationships and the associated instances can be managed on a Digital Adapter using the ```onDigitalTwinSync(DigitalTwinStateDescription description, DigitalTwinStateValues values)``` method and
 the following callback methods, that receive the variations of relationships together with all the other state variations:
 
-- ```onStateUpdate(DigitalTwinState newDigitalTwinState, DigitalTwinState previousDigitalTwinState, ArrayList<DigitalTwinStateChange> digitalTwinStateChangeList)```:
-  Every update of the DT's State. A change on a relationship has resource type ```RELATIONSHIP``` (the relationship description) or ```RELATIONSHIP_INSTANCE``` (a concrete instance),
-  and operation ```OPERATION_ADD``` or ```OPERATION_REMOVE```. The changed resource is a ```DigitalTwinStateRelationship``` or a ```DigitalTwinStateRelationshipInstance```.
 - ```onStateDescriptionUpdate(DigitalTwinStateDescription description, List<DigitalTwinStateChange> descriptionChanges)```:
   A Relationship description has been added, updated or removed. The description contains the list of the relationships (name and type) currently declared in the DT's State.
+  A change on a relationship definition has resource type ```RELATIONSHIP``` and operation ```OPERATION_ADD```, ```OPERATION_UPDATE``` or ```OPERATION_REMOVE```; the changed resource is a ```DigitalTwinStateRelationship```.
+  When a relationship is removed this is the **only** callback invoked: the removal is not a values update, the instances of the removed relationship are dropped from the local values (see ```getDigitalTwinStateValues()```) when the new description is applied.
 - ```onStateValuesUpdate(DigitalTwinStateValues values, List<DigitalTwinStateChange> relevantChanges)```:
-  A Relationship Instance has been added or removed (or a whole relationship has been added or removed). The values contain the instances of each relationship.
+  A Relationship Instance has been added or removed (or a whole relationship has been added: it is notified with its instances). The values contain the complete list of the instances of each relationship.
+  A change on an instance has resource type ```RELATIONSHIP_INSTANCE``` and operation ```OPERATION_ADD``` or ```OPERATION_REMOVE```; the changed resource is a ```DigitalTwinStateRelationshipInstance```.
+
+On the event bus the values update carries, for each touched relationship, the **complete** list of its instances, while the adapter receives the instances of all the relationships.
 
 The relationships that the adapter is interested in can be selected with a ```DigitalTwinStateFilter``` (see [Getting started](getting_started.md#observing-the-digital-twin-state)):
-```observeDigitalTwinState(DigitalTwinStateFilter.all().withRelationshipNames("insideIn"))``` limits ```onStateUpdate``` and ```onStateValuesUpdate``` to the relationship named ```insideIn```.
+```observeDigitalTwinState(DigitalTwinStateFilter.all().withRelationshipNames("insideIn"))``` limits ```onStateValuesUpdate``` to the relationship named ```insideIn``` (the description is never filtered).
 
 For example a simple implementation logging on the console can be:
 

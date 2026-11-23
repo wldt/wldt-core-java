@@ -25,7 +25,8 @@ import it.wldt.augmentation.function.AugmentationFunction;
 import it.wldt.augmentation.handler.AugmentationFunctionHandler;
 import it.wldt.augmentation.listener.AugmentationLifeCycleListener;
 import it.wldt.core.engine.LifeCycleListener;
-import it.wldt.core.state.DigitalTwinState;
+import it.wldt.core.state.DigitalTwinStateDescription;
+import it.wldt.core.state.DigitalTwinStateValues;
 import it.wldt.exception.AugmentationFunctionException;
 import it.wldt.exception.WldtRuntimeException;
 import it.wldt.exception.WldtWorkerException;
@@ -446,32 +447,34 @@ public class AugmentationManager implements LifeCycleListener {
     }
 
     /**
-     * Forwards the {@code onSync} life cycle event and the current Digital Twin state to all registered
-     * augmentation life cycle listeners.
-     * @param digitalTwinState the current state of the Digital Twin at the moment of synchronization
+     * Forwards the {@code onSync} life cycle event and the current Digital Twin state (description and values) to
+     * all registered augmentation life cycle listeners.
+     * @param digitalTwinStateDescription the description of the Digital Twin State at the moment of synchronization
+     * @param digitalTwinStateValues the values of the Digital Twin State at the moment of synchronization
      */
     @Override
-    public void onSync(DigitalTwinState digitalTwinState) {
+    public void onSync(DigitalTwinStateDescription digitalTwinStateDescription, DigitalTwinStateValues digitalTwinStateValues) {
 
         // Forward the notification to the life cycle listeners
         if(this.augmentationFunctionlifeCycleListenerList != null) {
             for (AugmentationLifeCycleListener lifeCycleListener : this.augmentationFunctionlifeCycleListenerList) {
-                lifeCycleListener.onSync(digitalTwinState);
+                lifeCycleListener.onSync(digitalTwinStateDescription, digitalTwinStateValues);
             }
         }
     }
 
     /**
-     * Forwards the {@code onUnSync} life cycle event and the last known Digital Twin state to all registered
-     * augmentation life cycle listeners.
-     * @param digitalTwinState the last known state of the Digital Twin before losing synchronization
+     * Forwards the {@code onUnSync} life cycle event and the last known Digital Twin state (description and values)
+     * to all registered augmentation life cycle listeners.
+     * @param digitalTwinStateDescription the last known description of the Digital Twin State before losing synchronization
+     * @param digitalTwinStateValues the last known values of the Digital Twin State before losing synchronization
      */
     @Override
-    public void onUnSync(DigitalTwinState digitalTwinState) {
+    public void onUnSync(DigitalTwinStateDescription digitalTwinStateDescription, DigitalTwinStateValues digitalTwinStateValues) {
         // Forward the notification to the life cycle listeners
         if(this.augmentationFunctionlifeCycleListenerList != null) {
             for (AugmentationLifeCycleListener lifeCycleListener : this.augmentationFunctionlifeCycleListenerList) {
-                lifeCycleListener.onUnSync(digitalTwinState);
+                lifeCycleListener.onUnSync(digitalTwinStateDescription, digitalTwinStateValues);
             }
         }
     }

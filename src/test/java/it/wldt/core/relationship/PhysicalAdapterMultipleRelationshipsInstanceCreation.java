@@ -6,17 +6,19 @@ import it.wldt.core.relationship.utils.RelationshipDigitalAdapter;
 import it.wldt.core.relationship.utils.RelationshipDigitalTwinModel;
 import it.wldt.core.relationship.utils.RelationshipPhysicalAdapter;
 import it.wldt.core.relationship.utils.RelationshipsLifeCycleListener;
-import it.wldt.core.state.DigitalTwinStateRelationship;
+import it.wldt.core.state.DigitalTwinStateRelationshipInstance;
 import it.wldt.exception.*;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.junit.jupiter.api.parallel.Isolated;
 
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @Execution(ExecutionMode.SAME_THREAD)
@@ -88,10 +90,12 @@ public class PhysicalAdapterMultipleRelationshipsInstanceCreation {
         physicalAdapter.simulateRelationshipInstanceEvent(RelationshipPhysicalAdapter.RELATIONSHIP_OPERATOR_NAME, DT_TARGET1_NAME, true);
 
         relationshipLatch.await(3000, TimeUnit.MILLISECONDS);
-        DigitalTwinStateRelationship<String> containsRelationship = (DigitalTwinStateRelationship<String>) lifeCycleListener.getDigitalTwinState().getRelationship(RelationshipPhysicalAdapter.RELATIONSHIP_CONTAINS_NAME).get();
-        DigitalTwinStateRelationship<String> operatorRelationship = (DigitalTwinStateRelationship<String>) lifeCycleListener.getDigitalTwinState().getRelationship(RelationshipPhysicalAdapter.RELATIONSHIP_OPERATOR_NAME).get();
-        assertEquals(2, containsRelationship.getInstances().size());
-        assertEquals(1, operatorRelationship.getInstances().size());
+        List<DigitalTwinStateRelationshipInstance<?>> containsInstances = digitalAdapter.awaitRelationshipInstances(RelationshipPhysicalAdapter.RELATIONSHIP_CONTAINS_NAME, 2, 5000);
+        List<DigitalTwinStateRelationshipInstance<?>> operatorInstances = digitalAdapter.awaitRelationshipInstances(RelationshipPhysicalAdapter.RELATIONSHIP_OPERATOR_NAME, 1, 5000);
+        assertNotNull(containsInstances);
+        assertNotNull(operatorInstances);
+        assertEquals(2, containsInstances.size());
+        assertEquals(1, operatorInstances.size());
 
         digitalTwinEngine.stopDigitalTwin(DIGITAL_TWIN_ID);
     }

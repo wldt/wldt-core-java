@@ -26,8 +26,8 @@ import java.util.List;
 
 /**
  * Utility methods applying the filters defined in an {@link AugmentationFunctionContextRequest}:
- * the trigger filter (which state updates are notified) and the content filter (which part of the
- * Digital Twin State is delivered).
+ * the trigger filter (which state values updates are notified) and the content filter (which part of the
+ * Digital Twin State Values is delivered). The Digital Twin State Description is never filtered.
  */
 public final class DigitalTwinStateFilterUtils {
 
@@ -93,27 +93,28 @@ public final class DigitalTwinStateFilterUtils {
     }
 
     /**
-     * Applies the content filter to a state. Each category (properties, actions, events, relationships) is filtered
-     * independently: a null name list keeps the whole category, an empty list removes it.
-     * @param state the full state
+     * Applies the content filter of the context request to the values of the state. Each category (properties,
+     * relationships, actions, events) is filtered independently: a null name list keeps the whole category, an
+     * empty list removes it. The description is never filtered.
+     * @param values the complete values
      * @param contextRequest the context request of the function (null = no filter)
-     * @return the same instance if no content filter is defined, otherwise a new partial state
+     * @return the same instance if no content filter is defined, otherwise a new filtered values object
      */
-    public static DigitalTwinState filterState(DigitalTwinState state, AugmentationFunctionContextRequest contextRequest) {
-        if (state == null || contextRequest == null || !contextRequest.hasContentFilter())
-            return state;
+    public static DigitalTwinStateValues filterValues(DigitalTwinStateValues values, AugmentationFunctionContextRequest contextRequest) {
+        if (values == null || contextRequest == null || !contextRequest.hasContentFilter())
+            return values;
 
-        return applyFilter(state, contextRequest.toStateFilter());
+        return applyFilter(values, contextRequest.toStateFilter());
     }
 
     /**
-     * Applies a generic content filter to a state. Each category (properties, actions, events, relationships) is
-     * filtered independently: a null name list keeps the whole category, an empty list removes it.
-     * @param state the full state
+     * Applies a generic content filter to the values of the state. Each category (properties, relationships,
+     * actions, events) is filtered independently: a null name list keeps the whole category, an empty list removes it.
+     * @param values the complete values
      * @param filter the content filter (null = no filter)
-     * @return the same instance if no filter is active, otherwise a new partial state
+     * @return the same instance if no filter is active, otherwise a new filtered values object
      */
-    public static DigitalTwinState applyFilter(DigitalTwinState state, DigitalTwinStateFilter filter) {
-        return state == null ? null : state.filter(filter);
+    public static DigitalTwinStateValues applyFilter(DigitalTwinStateValues values, DigitalTwinStateFilter filter) {
+        return values == null ? null : values.filter(filter);
     }
 }

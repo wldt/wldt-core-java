@@ -34,13 +34,14 @@ The main module of the Storage Layer is the one associated to Storage Capabiliti
         * Augmentation Function Error, Request, Result, Registration and Unregistration storage;
         * Query execution on all the stored information through `execute(Query)`;
     * Each WldtStorage instance can be configured (using the right constructor method) to:
-        * Observe all Wldt events (`stateEvents`,  `physicalAssetEvents`,  `physicalAssetActionEvents`,  `physicalAssetDescriptionEvents`,  `digitalActionEvents`,  `lifeCycleEvents`, `augmentationFunctionEvents`)
+        * Observe all Wldt events (`stateEvents` -> description updates, values updates and event notifications,  `physicalAssetEvents`,  `physicalAssetActionEvents`,  `physicalAssetDescriptionEvents`,  `digitalActionEvents`,  `lifeCycleEvents`, `augmentationFunctionEvents`)
         * Filter only for specific class of events
         * Once the WldtStorage has been properly configured to receive target events the `StorageManager` automatically save information of interest for that specific storage. For example we can have a `StorageA` (e.g, REDIS) configured to receive all the generated events and a `StorageB` (e.g., MongoDB) in charge of saving only DT's state variation over time.
     * The default implementation of the `WldtStorage` is the class `DefaultWldtStorage`. This class provides a simple storage solution for digital twin states,  digital twin state changes, physical asset events, and digital twin events. The class provides **ONLY** a memory based approach: every type of information is kept, in arrival order, in a thread-safe list together with its storage timestamp (so several events generated in the same millisecond are **all** stored), and queries are evaluated in memory by the `InMemoryQueryEvaluator`. More advanced solutions should be implemented for production oriented Digital Twins, for example using external storage and memorization solutions (see [Implementing a Custom Storage](#implementing-a-custom-storage)).
     * Methods available and implemented by WldtStorage implementations are the following grouped by categories:
-        * **Digital Twin State**:
-            * `saveDigitalTwinState(DigitalTwinState digitalTwinState, List<DigitalTwinStateChange> digitalTwinStateChangeList)`: Save a new computed instance of the DT State in the Storage together with the list of the changes with respect  to the previous state
+        * **Digital Twin State** (description and values are saved separately):
+            * `saveDigitalTwinStateDescription(DigitalTwinStateDescription digitalTwinStateDescription, List<DigitalTwinStateChange> digitalTwinStateChangeList)`: Save a new complete Digital Twin State Description (the structure of the state, with its unique id) together with the list of the changes that altered the structure
+            * `saveDigitalTwinStateValues(DigitalTwinStateValues digitalTwinStateValues, DigitalTwinStateValues digitalTwinStateValuesDelta, List<DigitalTwinStateChange> digitalTwinStateChangeList)`: Save a new snapshot of the **complete** Digital Twin State Values, associated to the id of the description they belong to. The method receives also the **delta** (only the values that changed with the update, `null` when the save follows a description update that removes a resource, since a removal has no values update) and the list of the changes, so the implementation chooses what and how to save; `DefaultWldtStorage` saves the complete snapshot and the changes and does not store the delta
         * **Digital Twin State Event Notification**:
             * `saveDigitalTwinStateEventNotification(DigitalTwinStateEventNotification<?> digitalTwinStateEventNotification)`: Save the Digital Twin State Event Notification
         * **Life Cycle State Variation**:
@@ -191,7 +192,7 @@ it.wldt.storage.query
 │                  FilterOperator, FilterVisitor, FilterFactory
 ├── aggregation/   Aggregation, AggregationGroupBy, AggregationMetric,
 │                  AggregationFunction, AggregationPart, AggregationFactory
-└── inmemory/      InMemoryQueryEvaluator
+└── inmemory/      InMemoryQueryEvaluator, InMemoryDigitalTwinStateQuery
 ```
 
 The main classes associated to the Query System are the following:
@@ -205,7 +206,9 @@ The main classes associated to the Query System are the following:
 | `PHYSICAL_ASSET_EVENT_NOTIFICATION` | `PhysicalAssetEventNotificationRecord` |
 | `PHYSICAL_ACTION_REQUEST` | `PhysicalAssetActionRequestRecord` |
 | `DIGITAL_ACTION_REQUEST` | `DigitalActionRequestRecord` |
-| `DIGITAL_TWIN_STATE` | `DigitalTwinStateRecord` |
+| `DIGITAL_TWIN_STATE_DESCRIPTION` | `DigitalTwinStateDescriptionRecord` |
+| `DIGITAL_TWIN_STATE_VALUES` | `DigitalTwinStateValuesRecord` |
+| `DIGITAL_TWIN_STATE` (complete state) | `DigitalTwinStateHistoryRecord` (a single record that maps every description to the values associated to it) |
 | `DIGITAL_TWIN_STATE_EVENT_NOTIFICATION` | `DigitalTwinStateEventNotificationRecord` |
 | `NEW_PAD_NOTIFICATION`, `UPDATED_PAD_NOTIFICATION` | `PhysicalAssetDescriptionNotificationRecord` |
 | `PHYSICAL_RELATIONSHIP_INSTANCE_CREATED_NOTIFICATION`, `PHYSICAL_RELATIONSHIP_INSTANCE_DELETED_NOTIFICATION` | `PhysicalRelationshipInstanceVariationRecord` |
@@ -283,7 +286,9 @@ Main fields available for each resource:
 | `PHYSICAL_ASSET_PROPERTY_VARIATION` | `timestamp`, `propertykey`, `body`, `variationMetadata` |
 | `PHYSICAL_ASSET_EVENT_NOTIFICATION` | `timestamp`, `eventkey`, `body`, `metadata` |
 | `PHYSICAL_ACTION_REQUEST`, `DIGITAL_ACTION_REQUEST` | `timestamp`, `requestTimestamp`, `actionkey`, `requestBody`, `requestMetadata` |
-| `DIGITAL_TWIN_STATE` | `timestamp`, `currentState`, `stateChangeList` |
+| `DIGITAL_TWIN_STATE_DESCRIPTION` | `timestamp`, `descriptionId`, `description` (e.g., `description.evaluationInstant`), `stateChangeList` |
+| `DIGITAL_TWIN_STATE_VALUES` | `timestamp`, `descriptionId`, `values` (e.g., `values.propertyValues.temperature`, `values.evaluationInstant`), `stateChangeList` |
+| `DIGITAL_TWIN_STATE` | `timestamp`, `descriptionId`, `description` (and its fields), `descriptionChangeList`, `values` (and its fields), `stateChangeList` |
 | `DIGITAL_TWIN_STATE_EVENT_NOTIFICATION` | `timestamp`, `eventKey`, `body` |
 | `NEW_PAD_NOTIFICATION`, `UPDATED_PAD_NOTIFICATION` | `timestamp`, `notificationTimestamp`, `adapterId`, `physicalAssetDescription` |
 | `PHYSICAL_RELATIONSHIP_INSTANCE_*_NOTIFICATION` | `timestamp`, `variationTimestamp`, `instanceKey`, `instanceTargetId`, `relationshipName`, `relationshipType`, `metadata` |
@@ -360,7 +365,11 @@ Query query = Query.on(QueryResourceType.DIGITAL_TWIN_STATE)
 
 // Synchronous: waits for the result
 QueryResult<?> queryResult = queryExecutor.syncQueryExecute(query);
-DigitalTwinStateRecord lastState = queryResult.as(DigitalTwinStateRecord.class).first();
+// The most recent values together with the description they are associated to
+DigitalTwinStateHistoryRecord lastState = queryResult.as(DigitalTwinStateHistoryRecord.class).first();
+DigitalTwinStateHistoryEntry entry = lastState.getEntries().values().iterator().next();
+DigitalTwinStateDescription description = entry.getDescription();
+DigitalTwinStateValues values = entry.getValuesList().get(0).getValues();
 ```
 
 Following the same approach an asynchronous query can be executed as follows:
@@ -403,8 +412,8 @@ public <T> void invokeAction(String actionKey, T body){
         // Send the Query to the Storage Manager for the target DT
         QueryResult<?> queryResult = this.queryExecutor.syncQueryExecute(query);
 
-        if(queryResult.isSuccessful() && queryResult.first() instanceof DigitalTwinStateRecord)
-            logger.info("LAST DT STATE: {}", ((DigitalTwinStateRecord) queryResult.first()).getCurrentState());
+        if(queryResult.isSuccessful() && queryResult.first() instanceof DigitalTwinStateHistoryRecord)
+            logger.info("LAST DT STATE: {}", ((DigitalTwinStateHistoryRecord) queryResult.first()).getEntries());
         else
             logger.error("QUERY FAILED OR INVALID RESULT: {}", queryResult.getErrorMessage());
 
@@ -438,16 +447,59 @@ last.getBody();               // 21.5
 last.getVariationMetadata();  // {unit=C}
 ```
 
-**Time range**: all the DT states stored between two instants, oldest first (`DigitalTwinStateRecord`):
+**Time range**: the complete DT state stored between two instants, oldest first. The result is always a **single** `DigitalTwinStateHistoryRecord` that maps the id of every description to a `DigitalTwinStateHistoryEntry` (the description, the changes that altered the structure and the values stored for it in the interval). If the structure of the twin changed in the interval there is one entry for each description. The map is keyed by the description id, not by the description: two descriptions with the same structure but different ids stay distinct. `limit`, `offset` and `total` count the values (rows) before they are grouped by description; the record is empty if nothing is selected:
 
 ```java
 Query query = Query.on(QueryResourceType.DIGITAL_TWIN_STATE)
         .where(and(gte(QueryFieldNames.TIMESTAMP, from), lt(QueryFieldNames.TIMESTAMP, to)))
         .build();
 
-List<DigitalTwinStateRecord> states = queryExecutor.syncQueryExecute(query)
-        .as(DigitalTwinStateRecord.class).getItems();
+DigitalTwinStateHistoryRecord history = queryExecutor.syncQueryExecute(query)
+        .as(DigitalTwinStateHistoryRecord.class).first();
+
+for (DigitalTwinStateHistoryEntry entry : history.getEntries().values()) {
+    entry.getDescriptionId();                  // e.g., "1731240000000_3"
+    entry.getDescription();                    // the DigitalTwinStateDescription
+    for (DigitalTwinStateValuesRecord valuesRecord : entry.getValuesList())
+        valuesRecord.getValues();              // the complete DigitalTwinStateValues, in the order of the query
+}
+
+history.getValuesList("1731240000000_3");      // the values of one description
 ```
+
+**Description or values only**: the stored descriptions (`DigitalTwinStateDescriptionRecord`) and the stored values (`DigitalTwinStateValuesRecord`) can also be queried alone. The values carry the id of their description:
+
+```java
+// All the descriptions of the twin (every change of its structure)
+List<DigitalTwinStateDescriptionRecord> descriptions = queryExecutor.syncQueryExecute(
+        Query.on(QueryResourceType.DIGITAL_TWIN_STATE_DESCRIPTION).build())
+        .as(DigitalTwinStateDescriptionRecord.class).getItems();
+
+// The values stored for one description, most recent first
+List<DigitalTwinStateValuesRecord> values = queryExecutor.syncQueryExecute(
+        Query.on(QueryResourceType.DIGITAL_TWIN_STATE_VALUES)
+                .where(eq(QueryFieldNames.DESCRIPTION_ID, descriptions.get(0).getDescriptionId()))
+                .orderBy(QueryFieldNames.TIMESTAMP, SortCriterion.Direction.DESC)
+                .build())
+        .as(DigitalTwinStateValuesRecord.class).getItems();
+```
+
+**Filters, sorting and aggregations on the complete state**: a query on `DIGITAL_TWIN_STATE` is evaluated on the *rows* made of one stored values joined with its description, so the fields of **both** can be used
+(`QueryFieldNames.DESCRIPTION_ID`, `values.propertyValues.<key>`, `values.evaluationInstant`, `description.<field>`, ...). The result of a plain query is grouped by description; the `limit`, `offset` and `total` refer to the rows (values). An aggregation returns aggregation records:
+
+```java
+// The values with a temperature of at least 25 and their description
+Query hot = Query.on(QueryResourceType.DIGITAL_TWIN_STATE)
+        .where(gte("values.propertyValues.temperature", 25))
+        .build();
+
+// The number of stored values and the average temperature for each description
+Query stats = Query.on(QueryResourceType.DIGITAL_TWIN_STATE)
+        .aggregate(groupBy(QueryFieldNames.DESCRIPTION_ID), count().as("count"), avg("values.propertyValues.temperature").as("avgTemperature"))
+        .build();
+```
+
+A description that has no stored values yet is part of the complete state with an empty list of values.
 
 **Key, time range, sorting and limit**: the 100 most recent `temperature` variations in a time window. The filter is applied by the storage, so only 100 records are returned:
 
@@ -604,7 +656,7 @@ A new storage (e.g., based on Redis, MySQL or MongoDB) is created extending `Wld
     - if `withTotal()` has been requested, the total number of matches (ignoring `limit` and `offset`) is added to the result;
     - problems must be reported with `QueryResult.failure(query, message)` instead of throwing exceptions.
 
-A storage that does not have a query engine can simply delegate to the `InMemoryQueryEvaluator` (this is what `DefaultWldtStorage` does), passing the list of `(timestamp, record)` entries of the queried resource:
+A storage that does not have a query engine can simply delegate to the `InMemoryQueryEvaluator` (this is what `DefaultWldtStorage` does), passing the list of `(timestamp, record)` entries of the queried resource. For `DIGITAL_TWIN_STATE`, that is stored as two lists (descriptions and values), `InMemoryDigitalTwinStateQuery.evaluate(query, descriptions, values)` joins them, evaluates the query on one values record at a time and returns the single `DigitalTwinStateHistoryRecord`:
 
 ```java
 @Override

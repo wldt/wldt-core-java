@@ -6,13 +6,14 @@ import it.wldt.core.relationship.utils.RelationshipDigitalAdapter;
 import it.wldt.core.relationship.utils.RelationshipDigitalTwinModel;
 import it.wldt.core.relationship.utils.RelationshipPhysicalAdapter;
 import it.wldt.core.relationship.utils.RelationshipsLifeCycleListener;
-import it.wldt.core.state.DigitalTwinStateRelationship;
+import it.wldt.core.state.DigitalTwinStateRelationshipInstance;
 import it.wldt.exception.*;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.junit.jupiter.api.parallel.Isolated;
 
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -83,6 +84,9 @@ public class PhysicalAdapterRelationshipsDeletionTester {
 
         digitalTwinEngine.addDigitalTwin(dt, true);
 
+        // The start of the Digital Twin does not wait for the adapters anymore: wait for bind and sync
+        Thread.sleep(2000);
+
         physicalAdapter.simulateRelationshipInstanceEvent(RelationshipPhysicalAdapter.RELATIONSHIP_CONTAINS_NAME, DT_TARGET1_NAME, true);
 
         Thread.sleep(3000);
@@ -90,9 +94,10 @@ public class PhysicalAdapterRelationshipsDeletionTester {
         physicalAdapter.simulateRelationshipInstanceEvent(RelationshipPhysicalAdapter.RELATIONSHIP_CONTAINS_NAME, DT_TARGET1_NAME, false);
         relationshipLatch.await(3000, TimeUnit.MILLISECONDS);
 
-        DigitalTwinStateRelationship<String> containsRelationship = (DigitalTwinStateRelationship<String>) lifeCycleListener.getDigitalTwinState().getRelationship(RelationshipPhysicalAdapter.RELATIONSHIP_CONTAINS_NAME).get();
+        List<DigitalTwinStateRelationshipInstance<?>> containsInstances = digitalAdapter.awaitRelationshipInstances(RelationshipPhysicalAdapter.RELATIONSHIP_CONTAINS_NAME, 0, 5000);
 
-        assertEquals(0, containsRelationship.getInstances().size());
+        assertNotNull(containsInstances);
+        assertEquals(0, containsInstances.size());
 
         digitalTwinEngine.stopDigitalTwin(DIGITAL_TWIN_ID);
     }

@@ -188,15 +188,15 @@ public class TypeAndContentTypeTester {
         manager.enableAction(new DigitalTwinStateAction("setRate", "iot.demo.set-sampling-rate", "application/json"));
         manager.commitStateTransaction();
 
-        DigitalTwinStateProperty<?> created = manager.getDigitalTwinState().getProperty(KEY).get();
+        DigitalTwinStateProperty<?> created = StateManagerTestAccess.state(manager).getProperty(KEY).get();
         assertEquals(SEMANTIC_TYPE, created.getType());
         assertEquals(CONTENT_TYPE, created.getContentType());
 
-        DigitalTwinStateEvent event = manager.getDigitalTwinState().getEvent("overheating").get();
+        DigitalTwinStateEvent event = StateManagerTestAccess.state(manager).getEvent("overheating").get();
         assertEquals("iot.demo.overheating", event.getType());
         assertEquals("application/json", event.getContentType());
 
-        DigitalTwinStateAction action = manager.getDigitalTwinState().getAction("setRate").get();
+        DigitalTwinStateAction action = StateManagerTestAccess.state(manager).getAction("setRate").get();
         assertEquals("iot.demo.set-sampling-rate", action.getType());
         assertEquals("application/json", action.getContentType());
 
@@ -205,7 +205,7 @@ public class TypeAndContentTypeTester {
         manager.updatePropertyValue(new DigitalTwinStateProperty<>(KEY, "4,5,6"));
         manager.commitStateTransaction();
 
-        DigitalTwinStateProperty<?> updated = manager.getDigitalTwinState().getProperty(KEY).get();
+        DigitalTwinStateProperty<?> updated = StateManagerTestAccess.state(manager).getProperty(KEY).get();
         assertEquals("4,5,6", updated.getValue());
         assertEquals(SEMANTIC_TYPE, updated.getType());
         assertEquals(CONTENT_TYPE, updated.getContentType());
@@ -215,12 +215,12 @@ public class TypeAndContentTypeTester {
         manager.updateProperty(new DigitalTwinStateProperty<>(KEY, "7", "iot.demo.accelerometer.v2", "application/json"));
         manager.commitStateTransaction();
 
-        DigitalTwinStateProperty<?> replaced = manager.getDigitalTwinState().getProperty(KEY).get();
+        DigitalTwinStateProperty<?> replaced = StateManagerTestAccess.state(manager).getProperty(KEY).get();
         assertEquals("iot.demo.accelerometer.v2", replaced.getType());
         assertEquals("application/json", replaced.getContentType());
 
         // a copy of the state (e.g., the one sent to the observers) keeps both fields
-        DigitalTwinState copy = new DigitalTwinState(manager.getDigitalTwinState());
+        DigitalTwinState copy = new DigitalTwinState(StateManagerTestAccess.state(manager));
         assertEquals("iot.demo.accelerometer.v2", copy.getProperty(KEY).get().getType());
         assertEquals("application/json", copy.getProperty(KEY).get().getContentType());
         assertEquals("application/json", copy.getEvent("overheating").get().getContentType());

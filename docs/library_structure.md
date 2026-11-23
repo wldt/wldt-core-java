@@ -86,8 +86,8 @@ Each of this core components has the following main characteristics:
   The Digital Twin Model
   selects the components of the various PADs that it is interested in managing.
 - **Digital Adapter**: It provides the set of callbacks that each specific implementation can use
-  to be notified of changes in the DT state (`onStateUpdate`, `onStateDescriptionUpdate` and `onStateValuesUpdate`),
-  optionally limited to the resources selected with a `DigitalTwinStateFilter`.
+  to be notified of changes in the DT state (`onStateDescriptionUpdate` for the structure and `onStateValuesUpdate` for the values),
+  with the values optionally limited by a `DigitalTwinStateFilter` and a `DigitalTwinStateChangeFilter` (the description is never filtered).
   Symmetrically to what happens with Physical Adapters, a Digital Twin can define
   multiple Digital Adapters to expose its state and functionality through different protocols.
 

@@ -131,7 +131,8 @@ public class DemoProcessTester {
         assertNotNull(SharedTestMetrics.getInstance().getDigitalAdapterStateUpdateList(TEST_DIGITAL_TWIN_ID));
 
         //Check Correct Digital Twin State Property Update Events have been received on the Digital Adapter through DT State Updates
-        assertEquals(DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES, SharedTestMetrics.getInstance().getDigitalAdapterStateUpdateList(TEST_DIGITAL_TWIN_ID).size());
+        // One values update for each property update plus one for each event notified (its last notification is a value of the state)
+        assertEquals(DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES + DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_EVENT_UPDATES, SharedTestMetrics.getInstance().getDigitalAdapterStateUpdateList(TEST_DIGITAL_TWIN_ID).size());
 
         //Check DT Event Notification not null
         assertNotNull(SharedTestMetrics.getInstance().getDigitalAdapterEventNotificationMap().get(TEST_DIGITAL_TWIN_ID));

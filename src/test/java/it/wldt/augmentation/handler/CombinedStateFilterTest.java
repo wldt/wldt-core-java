@@ -41,7 +41,7 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 public class CombinedStateFilterTest {
 
-    private final List<DigitalTwinState> receivedStates = new ArrayList<>();
+    private final List<DigitalTwinStateValues> receivedStates = new ArrayList<>();
 
     @BeforeEach
     public void reset() {
@@ -54,7 +54,7 @@ public class CombinedStateFilterTest {
         }
 
         void state(StatefulAugmentationFunction f, DigitalTwinState state, ArrayList<DigitalTwinStateChange> changes) {
-            onStateUpdate(new ArrayList<>(Collections.singletonList(f)), state, null, changes);
+            notifyStateValuesUpdate(new ArrayList<>(Collections.singletonList(f)), state.getValues(), changes);
         }
     }
 
@@ -62,7 +62,8 @@ public class CombinedStateFilterTest {
         return new StatefulAugmentationFunction("fn", "fn", "test", "1.0.0", request) {
             @Override protected void start(AugmentationFunctionRequest r) {}
             @Override protected void stop(AugmentationFunctionRequest r) {}
-            @Override public void onStateUpdate(DigitalTwinState s) { receivedStates.add(s); }
+            @Override public void onStateDescriptionUpdate(DigitalTwinStateDescription d) {}
+            @Override public void onStateValuesUpdate(DigitalTwinStateValues v) { receivedStates.add(v); }
             @Override public void onQueryResultRefresh(Query q, QueryResult<?> r) {}
             @Override public void onEventNotificationReceived(DigitalTwinStateEventNotification<?> n) {}
         };
@@ -108,7 +109,7 @@ public class CombinedStateFilterTest {
 
         handler.state(f, state, changes(valueChange("press")));
         assertEquals(1, receivedStates.size());
-        assertSame(state, receivedStates.get(0));
+        assertEquals(3, receivedStates.get(0).getPropertyValues().size());
     }
 
     @Test
@@ -121,8 +122,8 @@ public class CombinedStateFilterTest {
 
         handler.state(f, fullState(), changes(valueChange("hum")));
         assertEquals(1, receivedStates.size());
-        assertEquals(2, receivedStates.get(0).getPropertyList().get().size());
-        assertFalse(receivedStates.get(0).containsProperty("press"));
+        assertEquals(2, receivedStates.get(0).getPropertyValues().size());
+        assertFalse(receivedStates.get(0).getPropertyValues().containsKey("press"));
     }
 
     @Test
@@ -168,7 +169,7 @@ public class CombinedStateFilterTest {
         // Properties are not filtered, so the property change triggers and the whole state is delivered
         handler.state(f, fullState(), changes(valueChange("press")));
         assertEquals(1, receivedStates.size());
-        assertEquals(3, receivedStates.get(0).getPropertyList().get().size());
+        assertEquals(3, receivedStates.get(0).getPropertyValues().size());
     }
 
     @Test

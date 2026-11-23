@@ -64,7 +64,17 @@ public class WldtEventTypes {
     public static final String ALL_DIGITAL_ACTION_EVENT_TYPE = String.format("%s.%s", DIGITAL_ACTION_EVENT_BASE_TYPE, MULTI_LEVEL_WILDCARD_VALUE);
 
     /* State Events */
-    public static final String DT_STATE_UPDATE_MESSAGE_EVENT_TYPE = "dt.state.update";
+    /**
+     * Event published when the structure (description) of the Digital Twin State really changes.
+     * Body: the complete new DigitalTwinStateDescription.
+     */
+    public static final String DT_STATE_DESCRIPTION_UPDATE_MESSAGE_EVENT_TYPE = "dt.state.description.update";
+
+    /**
+     * Event published when the values of the Digital Twin State change.
+     * Body: a DigitalTwinStateValues delta with only the changed values.
+     */
+    public static final String DT_STATE_VALUES_UPDATE_MESSAGE_EVENT_TYPE = "dt.state.values.update";
 
     public static final String DT_STATE_EVENT_NOTIFICATION_EVENT_BASE_TYPE = "dt.state.event.notification";
 

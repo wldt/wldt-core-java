@@ -56,10 +56,10 @@ public class DigitalAdapterRelationshipsEventTester {
 
         syncLatch.await(3000, TimeUnit.MILLISECONDS);
 
-        assertTrue(digitalAdapter.getDigitalTwinState().getRelationshipList().isPresent());
-        assertEquals(2, digitalAdapter.getDigitalTwinState().getRelationshipList().get().size());
-        assertTrue(digitalAdapter.getDigitalTwinState().getRelationship(RelationshipPhysicalAdapter.RELATIONSHIP_OPERATOR_NAME).isPresent());
-        assertTrue(digitalAdapter.getDigitalTwinState().getRelationship(RelationshipPhysicalAdapter.RELATIONSHIP_CONTAINS_NAME).isPresent());
+        assertNotNull(digitalAdapter.getCurrentDescription());
+        assertEquals(2, digitalAdapter.getCurrentDescription().getRelationships().size());
+        assertTrue(digitalAdapter.getCurrentDescription().getRelationships().stream().anyMatch(r -> r.getName().equals(RelationshipPhysicalAdapter.RELATIONSHIP_OPERATOR_NAME)));
+        assertTrue(digitalAdapter.getCurrentDescription().getRelationships().stream().anyMatch(r -> r.getName().equals(RelationshipPhysicalAdapter.RELATIONSHIP_CONTAINS_NAME)));
 
         digitalTwinEngine.stopDigitalTwin(DIGITAL_TWIN_ID);
     }
@@ -87,6 +87,9 @@ public class DigitalAdapterRelationshipsEventTester {
 
         digitalTwinEngine.addDigitalTwin(dt, true);
 
+        // The start of the Digital Twin does not wait for the adapters anymore: wait for bind and sync
+        Thread.sleep(2000);
+
         physicalAdapter.simulateRelationshipInstanceEvent(RelationshipPhysicalAdapter.RELATIONSHIP_OPERATOR_NAME, "dt-human", true);
 
         relationshipLatch.await(3000, TimeUnit.MILLISECONDS);
@@ -95,6 +98,10 @@ public class DigitalAdapterRelationshipsEventTester {
         assertEquals(1, instances.size());
         assertTrue(instances.stream().map(DigitalTwinStateRelationshipInstance::getRelationshipName).collect(Collectors.toList()).contains(RelationshipPhysicalAdapter.RELATIONSHIP_OPERATOR_NAME));
         physicalAdapter.simulateRelationshipInstanceEvent(RelationshipPhysicalAdapter.RELATIONSHIP_OPERATOR_NAME, "dt-human", false);
+
+        // The removal reaches the adapter asynchronously through the event bus
+        for (int i = 0; i < 100 && !instances.isEmpty(); i++)
+            Thread.sleep(50);
 
         assertTrue(instances.isEmpty());
 

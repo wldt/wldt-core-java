@@ -28,7 +28,8 @@ import it.wldt.augmentation.function.AugmentationFunctionType;
 import it.wldt.augmentation.request.AugmentationFunctionRequest;
 import it.wldt.augmentation.result.AugmentationFunctionResult;
 import it.wldt.core.engine.LifeCycleStateVariation;
-import it.wldt.core.state.DigitalTwinState;
+import it.wldt.core.state.DigitalTwinStateDescription;
+import it.wldt.core.state.DigitalTwinStateValues;
 import it.wldt.core.state.DigitalTwinStateChange;
 import it.wldt.core.state.DigitalTwinStateEventNotification;
 import it.wldt.exception.StorageException;
@@ -46,7 +47,6 @@ import it.wldt.storage.model.digital.DigitalActionRequestRecord;
 import it.wldt.storage.model.lifecycle.LifeCycleVariationRecord;
 import it.wldt.storage.model.physical.*;
 import it.wldt.storage.model.state.DigitalTwinStateEventNotificationRecord;
-import it.wldt.storage.model.state.DigitalTwinStateRecord;
 
 import java.util.HashMap;
 import java.util.List;
@@ -240,6 +240,9 @@ public abstract class WldtStorage {
         final Map<String, Object> metadata = new HashMap<String, Object>() {{
             put(METRIC_METADATA_STORAGE_ID_KEY, getStorageId());
         }};
+        this.monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.STORAGE_WRITE_DIGITAL_TWIN_STATE_DESCRIPTION_SUCCESS_COUNT, WldtMetricComponent.STORAGE, metadata).withInstanceId(metricsInstanceId));
+        this.monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.STORAGE_WRITE_DIGITAL_TWIN_STATE_DESCRIPTION_ERROR_COUNT, WldtMetricComponent.STORAGE, metadata).withInstanceId(metricsInstanceId));
+        this.monitoringInterface.registerMetric(new WldtTimer(digitalTwinId, metricsNamespace, CoreMonitoringUtils.STORAGE_WRITE_DIGITAL_TWIN_STATE_DESCRIPTION_EXEC_TIME, WldtMetricComponent.STORAGE, metadata).withInstanceId(metricsInstanceId));
         this.monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.STORAGE_WRITE_DIGITAL_TWIN_STATE_SUCCESS_COUNT, WldtMetricComponent.STORAGE, metadata).withInstanceId(metricsInstanceId));
         this.monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.STORAGE_WRITE_DIGITAL_TWIN_STATE_ERROR_COUNT, WldtMetricComponent.STORAGE, metadata).withInstanceId(metricsInstanceId));
         this.monitoringInterface.registerMetric(new WldtTimer(digitalTwinId, metricsNamespace, CoreMonitoringUtils.STORAGE_WRITE_DIGITAL_TWIN_STATE_EXEC_TIME, WldtMetricComponent.STORAGE, metadata).withInstanceId(metricsInstanceId));
@@ -275,13 +278,32 @@ public abstract class WldtStorage {
     }
 
     /**
-     * Save a new computed instance of the DT State in the Storage together with the list of the changes with respect
-     * to the previous state
-     * @param digitalTwinState associated to the new computed Digital State to be stored
-     * @param digitalTwinStateChangeList the list of state changes associated to the new Digital State that has to be stored
-     * @throws IllegalArgumentException  if digitalTwinState is null
+     * Save a new Digital Twin State Description (structure) in the Storage together with the list of the changes
+     * that altered it with respect to the previous description. The description is always saved in its entirety
+     * and is never filtered. Its id (see {@link DigitalTwinStateDescription#getId()}) is the one stored in the values
+     * associated to it.
+     * @param digitalTwinStateDescription the new complete Digital Twin State Description to be stored
+     * @param digitalTwinStateChangeList the list of state changes that altered the structure
+     * @throws IllegalArgumentException if digitalTwinStateDescription is null
      */
-    public abstract void saveDigitalTwinState(DigitalTwinState digitalTwinState, List<DigitalTwinStateChange> digitalTwinStateChangeList) throws StorageException, IllegalArgumentException;
+    public abstract void saveDigitalTwinStateDescription(DigitalTwinStateDescription digitalTwinStateDescription, List<DigitalTwinStateChange> digitalTwinStateChangeList) throws StorageException, IllegalArgumentException;
+
+    /**
+     * Save a new snapshot of the complete Digital Twin State Values in the Storage. The method receives both the
+     * complete values after the update and the values that changed with it, so the implementation chooses what and
+     * how to save (for example the whole snapshot, or only the changed values). The values must be saved together
+     * with the id of the description they are associated to (see {@link DigitalTwinStateValues#getDescriptionId()}):
+     * it allows to retrieve the whole state (a description and the list of its values) with a single query.
+     * @param digitalTwinStateValues the new complete Digital Twin State Values (never filtered)
+     * @param digitalTwinStateValuesDelta only the values that changed with the update, as carried by the values update
+     * event. It is {@code null} when the save is not caused by a values update event: after a description update
+     * that removes a resource (no values update exists for a removal) the complete values have only been aligned to
+     * the new description. Relationship instances removals and similar cannot be expressed by value: read the change
+     * list for them
+     * @param digitalTwinStateChangeList the list of state changes that altered the state
+     * @throws IllegalArgumentException if digitalTwinStateValues is null
+     */
+    public abstract void saveDigitalTwinStateValues(DigitalTwinStateValues digitalTwinStateValues, DigitalTwinStateValues digitalTwinStateValuesDelta, List<DigitalTwinStateChange> digitalTwinStateChangeList) throws StorageException, IllegalArgumentException;
 
     /**
      * Save the Digital Twin State Event Notification

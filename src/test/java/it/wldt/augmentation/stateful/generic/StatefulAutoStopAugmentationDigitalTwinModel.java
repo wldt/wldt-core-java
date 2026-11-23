@@ -101,7 +101,7 @@ public class StatefulAutoStopAugmentationDigitalTwinModel extends DigitalTwinMod
         try {
             if (physicalPropertyEventMessage != null
                     && physicalPropertyEventMessage.getPhysicalPropertyId() != null
-                    && this.digitalTwinStateManager.getDigitalTwinState().containsProperty(physicalPropertyEventMessage.getPhysicalPropertyId())) {
+                    && digitalTwinStateManager.getDigitalTwinStateDescription().getProperties().stream().anyMatch(p -> p.getKey().equals(physicalPropertyEventMessage.getPhysicalPropertyId()))) {
                 this.digitalTwinStateManager.startStateTransaction();
                 this.digitalTwinStateManager.updateProperty(new DigitalTwinStateProperty<>(
                         physicalPropertyEventMessage.getPhysicalPropertyId(),

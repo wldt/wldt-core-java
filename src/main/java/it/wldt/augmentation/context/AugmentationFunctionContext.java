@@ -21,22 +21,33 @@
 package it.wldt.augmentation.context;
 
 import it.wldt.augmentation.function.AugmentationFunction;
-import it.wldt.core.state.DigitalTwinState;
+import it.wldt.core.state.DigitalTwinStateDescription;
+import it.wldt.core.state.DigitalTwinStateValues;
 import it.wldt.storage.query.Query;
 import it.wldt.storage.query.QueryResult;
 
 /**
  * This class represents the context of an Augmentation Function execution, providing access to the Digital Twin State
- * and the results of any associated query.
+ * (its description and its values) and the results of any associated query.
  * It encapsulates the state of the Digital Twin at the time of the function's execution and the results of a query
  * performed on the Digital Twin's storage, allowing augmentation functions to operate with the most current data available.
+ * <p>
+ * The description (structure) is always complete, while the values are restricted by the content filters of the
+ * {@link AugmentationFunctionContextRequest}, if any.
  */
 public class AugmentationFunctionContext {
 
     /**
-     * The Digital Twin State at the time of the augmentation function execution.
+     * The description (structure) of the Digital Twin State at the time of the augmentation function execution.
+     * It is never filtered.
      */
-    private DigitalTwinState digitalTwinState;
+    private DigitalTwinStateDescription digitalTwinStateDescription;
+
+    /**
+     * The values of the Digital Twin State at the time of the augmentation function execution, restricted by the
+     * content filters of the {@link AugmentationFunctionContextRequest}, if any.
+     */
+    private DigitalTwinStateValues digitalTwinStateValues;
 
     /**
      * The results of the query on the Digital Twin's storage associated to the {@link Query}
@@ -51,30 +62,45 @@ public class AugmentationFunctionContext {
     }
 
     /**
-     * Constructor for AugmentationFunctionContext with both Digital Twin State and Query Result.
-     * @param digitalTwinState The Digital Twin State at the time of the augmentation function execution.
+     * Constructor for AugmentationFunctionContext with Digital Twin State (description and values) and Query Result.
+     * @param digitalTwinStateDescription The Digital Twin State Description at the time of the augmentation function execution.
+     * @param digitalTwinStateValues The Digital Twin State Values at the time of the augmentation function execution.
      * @param queryResult The results of the query on the Digital Twin's storage associated to the {@link Query}
      * defined in the {@link AugmentationFunctionContextRequest} of the {@link AugmentationFunction}
      */
-    public AugmentationFunctionContext(DigitalTwinState digitalTwinState, QueryResult<?> queryResult) {
-        this.digitalTwinState = digitalTwinState;
+    public AugmentationFunctionContext(DigitalTwinStateDescription digitalTwinStateDescription,
+                                       DigitalTwinStateValues digitalTwinStateValues,
+                                       QueryResult<?> queryResult) {
+        this.digitalTwinStateDescription = digitalTwinStateDescription;
+        this.digitalTwinStateValues = digitalTwinStateValues;
         this.queryResult = queryResult;
     }
 
     /**
      * Constructor for AugmentationFunctionContext only with Digital Twin State, for cases where no query result is needed.
-     * @param digitalTwinState The Digital Twin State at the time of the augmentation function execution.
+     * @param digitalTwinStateDescription The Digital Twin State Description at the time of the augmentation function execution.
+     * @param digitalTwinStateValues The Digital Twin State Values at the time of the augmentation function execution.
      */
-    public AugmentationFunctionContext(DigitalTwinState digitalTwinState) {
-        this(digitalTwinState, null);
+    public AugmentationFunctionContext(DigitalTwinStateDescription digitalTwinStateDescription,
+                                       DigitalTwinStateValues digitalTwinStateValues) {
+        this(digitalTwinStateDescription, digitalTwinStateValues, null);
     }
 
     /**
-     * Gets the Digital Twin State at the time of the augmentation function execution.
-     * @return The Digital Twin State at the time of the augmentation function execution.
+     * Gets the Digital Twin State Description (complete, never filtered) at the time of the augmentation function execution.
+     * @return The Digital Twin State Description at the time of the augmentation function execution.
      */
-    public DigitalTwinState getDigitalTwinState() {
-        return digitalTwinState;
+    public DigitalTwinStateDescription getDigitalTwinStateDescription() {
+        return digitalTwinStateDescription;
+    }
+
+    /**
+     * Gets the Digital Twin State Values at the time of the augmentation function execution, restricted by the
+     * content filters of the context request, if any.
+     * @return The Digital Twin State Values at the time of the augmentation function execution.
+     */
+    public DigitalTwinStateValues getDigitalTwinStateValues() {
+        return digitalTwinStateValues;
     }
 
     /**
@@ -87,11 +113,19 @@ public class AugmentationFunctionContext {
     }
 
     /**
-     * Sets the Digital Twin State at the time of the augmentation function execution.
-     * @param digitalTwinState The Digital Twin State to set for the context.
+     * Sets the Digital Twin State Description at the time of the augmentation function execution.
+     * @param digitalTwinStateDescription The Digital Twin State Description to set for the context.
      */
-    public void setDigitalTwinState(DigitalTwinState digitalTwinState) {
-        this.digitalTwinState = digitalTwinState;
+    public void setDigitalTwinStateDescription(DigitalTwinStateDescription digitalTwinStateDescription) {
+        this.digitalTwinStateDescription = digitalTwinStateDescription;
+    }
+
+    /**
+     * Sets the Digital Twin State Values at the time of the augmentation function execution.
+     * @param digitalTwinStateValues The Digital Twin State Values to set for the context.
+     */
+    public void setDigitalTwinStateValues(DigitalTwinStateValues digitalTwinStateValues) {
+        this.digitalTwinStateValues = digitalTwinStateValues;
     }
 
     /**
@@ -106,7 +140,8 @@ public class AugmentationFunctionContext {
     @Override
     public String toString() {
         final StringBuffer sb = new StringBuffer("AugmentationFunctionContext{");
-        sb.append("digitalTwinState=").append(digitalTwinState);
+        sb.append("digitalTwinStateDescription=").append(digitalTwinStateDescription);
+        sb.append(", digitalTwinStateValues=").append(digitalTwinStateValues);
         sb.append(", queryResult=").append(queryResult);
         sb.append('}');
         return sb.toString();

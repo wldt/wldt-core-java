@@ -398,8 +398,11 @@ public class DigitalTwinProcessMetricsTests {
         // 10 DEFAULT_TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES Property Variations
         // 2 Relationship Instance Created
         // 2 Relationship Instance Deleted
+        // 2 DEFAULT_TARGET_PHYSICAL_ASSET_EVENT_UPDATES Event Notifications (each one is a committed transaction that
+        //   updates the last notification of the event)
 
-        int totalTargetStateCount = 1 + DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES + 2 + 2;
+        int totalTargetStateCount = 1 + DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES + 2 + 2
+                + DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_EVENT_UPDATES;
 
         //Check the number of execution is equals to the number of generated PA Property Variation Events
         assertEquals(totalTargetStateCount, metricExecutionTime.size());
@@ -673,8 +676,10 @@ public class DigitalTwinProcessMetricsTests {
         // 10 DEFAULT_TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES Property Variations
         // 2 Relationship Instance Created
         // 2 Relationship Instance Deleted
+        // 2 Event Notifications (the last notification of the event is a value of the state)
 
-        int totalTargetStateCount = DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES + 2 + 2;
+        int totalTargetStateCount = DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES + 2 + 2
+                + DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_EVENT_UPDATES;
 
         //Check the number of execution is equals to the number of generated PA Property Variation Events
         assertEquals(totalTargetStateCount, metricExecutionTime.size());
@@ -1719,9 +1724,11 @@ public class DigitalTwinProcessMetricsTests {
             List<WldtMetric> updatedMetrics = SharedTestMetrics.getInstance().getMonitoringUpdatedMetricList(STORAGE_DT_ID);
             assertNotNull(updatedMetrics);
 
-            // 1 initial commit (onDigitalTwinBound) + N property variations + R_CREATE rel instances + R_DELETE rel instances
+            // 1 initial commit (onDigitalTwinBound) + N property variations + E event notifications (last notification
+            // of the event) + R_CREATE rel instances + R_DELETE rel instances
             int expectedStateWrites = 1
                     + DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_PROPERTY_UPDATE_MESSAGES
+                    + DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_EVENT_UPDATES
                     + DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_REL_INSTANCE_CREATE
                     + DemoPhysicalAdapter.DEFAULT_TARGET_PHYSICAL_ASSET_REL_INSTANCE_DELETE;
             List<WldtMetric> stateSuccess = updatedMetrics.stream()
@@ -2183,8 +2190,15 @@ public class DigitalTwinProcessMetricsTests {
         public void testStorageQueryErrorMetrics() throws InterruptedException {
             Thread.sleep(DemoPhysicalAdapter.DEFAULT_MESSAGE_SLEEP_PERIOD_MS * 2);
 
-            // Null requestType → NullPointerException in handleStateQuery → caught → isSuccessful()=false
-            Query queryRequest = Query.on(QueryResourceType.DIGITAL_TWIN_STATE).build();
+            // A filter that throws while being evaluated makes the storage return a failed QueryResult
+            // (DefaultWldtStorage.execute catches it) → isSuccessful()=false → error counter incremented
+            it.wldt.storage.query.filter.Filter failingFilter = new it.wldt.storage.query.filter.Filter() {
+                @Override
+                public <R> R accept(it.wldt.storage.query.filter.FilterVisitor<R> visitor) {
+                    throw new IllegalStateException("Forced failure to test the query error metrics");
+                }
+            };
+            Query queryRequest = Query.on(QueryResourceType.DIGITAL_TWIN_STATE).where(failingFilter).build();
             EventManager.publishStorageQueryRequest(STORAGE_DT_ID, "test-storage-error-publisher", queryRequest);
 
             Thread.sleep(500);

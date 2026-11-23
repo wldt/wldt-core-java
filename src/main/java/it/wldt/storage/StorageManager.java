@@ -39,10 +39,12 @@ import it.wldt.core.event.WldtEventBus;
 import it.wldt.core.event.WldtEventTypes;
 import it.wldt.core.event.observer.IWldtEventObserverListener;
 import it.wldt.core.event.observer.WldtEventObserver;
-import it.wldt.core.state.DigitalTwinState;
 import it.wldt.core.state.DigitalTwinStateChange;
+import it.wldt.core.state.DigitalTwinStateDescription;
 import it.wldt.core.state.DigitalTwinStateEventNotification;
 import it.wldt.core.state.DigitalTwinStateManager;
+import it.wldt.core.state.DigitalTwinStateReplica;
+import it.wldt.core.state.DigitalTwinStateValues;
 import it.wldt.exception.StorageException;
 import it.wldt.exception.WldtRuntimeException;
 import it.wldt.adapter.physical.PhysicalAssetPropertyVariation;
@@ -84,6 +86,23 @@ public class StorageManager extends DigitalTwinWorker implements IWldtEventObser
     private WldtEventObserver wldtEventObserver;
 
     private MonitoringInterface monitoringInterface;
+
+    // Local, complete and unfiltered copy of the Digital Twin State (description and values), kept up to date with the
+    // events of the event bus. The values saved in the storages are always taken from this copy.
+    private final DigitalTwinStateReplica stateReplica = new DigitalTwinStateReplica();
+
+    /**
+     * Initializes the local copy of the Digital Twin State with the current description and values. It is called by
+     * the Digital Twin when the manager is created, before any state event is published: from then on the copy follows
+     * the state events published on the event bus.
+     * @param digitalTwinStateDescription the current complete description
+     * @param digitalTwinStateValues the current complete values
+     */
+    public void seedDigitalTwinState(DigitalTwinStateDescription digitalTwinStateDescription, DigitalTwinStateValues digitalTwinStateValues) {
+        synchronized (this.stateReplica) {
+            this.stateReplica.seed(digitalTwinStateDescription, digitalTwinStateValues);
+        }
+    }
 
     /**
      * Default constructor for the StorageManager class
@@ -226,55 +245,109 @@ public class StorageManager extends DigitalTwinWorker implements IWldtEventObser
         logger.info("Storage Manager - Unsubscribed from the event type: {}", eventType);
     }
 
+    /**
+     * A description update event: it is applied to the local copy of the state and the complete new description is
+     * saved in every storage that observes the state events. If the description removes a resource (a removal has no
+     * values update) the complete aligned values are saved too, with the id of the new description.
+     * @param wldtEvent the description update event
+     */
     @Override
-    public void onStateEvent(WldtEvent<?> wldtEvent) {
+    public void onStateDescriptionEvent(WldtEvent<?> wldtEvent) {
+        try {
+            synchronized (this.stateReplica) {
+
+                if (this.stateReplica.applyDescriptionEvent(wldtEvent)) {
+                    saveDescriptionUpdate(this.stateReplica.getDescription(), this.stateReplica.getValues(), DigitalTwinStateManager.getDescriptionChanges(wldtEvent));
+
+                    // Values events that were waiting for this description, one at a time, in arrival order
+                    WldtEvent<?> pendingEvent;
+                    while ((pendingEvent = this.stateReplica.applyNextPendingValues()) != null)
+                        saveValues(this.stateReplica.getValues(), (DigitalTwinStateValues) pendingEvent.getBody(), DigitalTwinStateManager.getValuesChanges(pendingEvent));
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Error saving the DigitalTwinStateDescription ! Error: {}", e.getLocalizedMessage());
+        }
+    }
+
+    /**
+     * A values update event: it is applied to the local copy of the state and the complete values (taken from the
+     * local copy, not the delta carried by the event) are saved in every storage that observes the state events.
+     * @param wldtEvent the values update event
+     */
+    @Override
+    public void onStateValuesEvent(WldtEvent<?> wldtEvent) {
+        try {
+            synchronized (this.stateReplica) {
+
+                if (this.stateReplica.applyValuesEvent(wldtEvent))
+                    saveValues(this.stateReplica.getValues(), (DigitalTwinStateValues) wldtEvent.getBody(), DigitalTwinStateManager.getValuesChanges(wldtEvent));
+            }
+        } catch (Exception e) {
+            logger.error("Error saving the DigitalTwinStateValues ! Error: {}", e.getLocalizedMessage());
+        }
+    }
+
+    /**
+     * Saves the complete description in every storage that observes the state events. If it contains a
+     * {@code OPERATION_REMOVE} the local values have been aligned (the value of the removed resource is dropped) and
+     * the aligned complete values are saved too, with the removals as changes (no values update is published for a
+     * removal).
+     */
+    private void saveDescriptionUpdate(DigitalTwinStateDescription newDescription, DigitalTwinStateValues newValues, List<DigitalTwinStateChange> changes) {
+
+        for (Map.Entry<String, WldtStorage> entry : storageMap.entrySet()) {
+            WldtStorage storage = entry.getValue();
+            if (storage != null && storage.isObserveStateEvents()) {
+                long startMs = System.currentTimeMillis();
+                try {
+                    storage.saveDigitalTwinStateDescription(newDescription, changes);
+                    storage.notifyWriteSuccess(CoreMonitoringUtils.STORAGE_WRITE_DIGITAL_TWIN_STATE_DESCRIPTION_SUCCESS_COUNT, CoreMonitoringUtils.STORAGE_WRITE_DIGITAL_TWIN_STATE_DESCRIPTION_EXEC_TIME, startMs);
+                } catch (StorageException e) {
+                    storage.notifyWriteError(CoreMonitoringUtils.STORAGE_WRITE_DIGITAL_TWIN_STATE_DESCRIPTION_ERROR_COUNT, CoreMonitoringUtils.STORAGE_WRITE_DIGITAL_TWIN_STATE_DESCRIPTION_EXEC_TIME, startMs);
+                    logger.error("Error saving DigitalTwinStateDescription to storage {}: {}", entry.getKey(), e.getLocalizedMessage());
+                }
+            }
+        }
+
+        // The removal of a resource has no values update: the local values have been aligned to the new description
+        List<DigitalTwinStateChange> removals = new ArrayList<>();
+        for (DigitalTwinStateChange change : changes)
+            if (DigitalTwinStateChange.Operation.OPERATION_REMOVE.equals(change.getOperation()))
+                removals.add(change);
+
+        if (!removals.isEmpty())
+            saveValues(newValues, null, removals);
+    }
+
+    /**
+     * Saves the complete values of the local copy (never the delta) in every storage that observes the state events
+     */
+    private void saveValues(DigitalTwinStateValues values, DigitalTwinStateValues valuesDelta, List<DigitalTwinStateChange> changes) {
+        for (Map.Entry<String, WldtStorage> entry : storageMap.entrySet()) {
+            WldtStorage storage = entry.getValue();
+            if (storage != null && storage.isObserveStateEvents()) {
+                long startMs = System.currentTimeMillis();
+                try {
+                    storage.saveDigitalTwinStateValues(values, valuesDelta, changes);
+                    storage.notifyWriteSuccess(CoreMonitoringUtils.STORAGE_WRITE_DIGITAL_TWIN_STATE_SUCCESS_COUNT, CoreMonitoringUtils.STORAGE_WRITE_DIGITAL_TWIN_STATE_EXEC_TIME, startMs);
+                } catch (StorageException e) {
+                    storage.notifyWriteError(CoreMonitoringUtils.STORAGE_WRITE_DIGITAL_TWIN_STATE_ERROR_COUNT, CoreMonitoringUtils.STORAGE_WRITE_DIGITAL_TWIN_STATE_EXEC_TIME, startMs);
+                    logger.error("Error saving DigitalTwinStateValues to storage {}: {}", entry.getKey(), e.getLocalizedMessage());
+                }
+            }
+        }
+    }
+
+    /**
+     * A Digital Twin State Event notification: it is saved in every storage that observes the state events.
+     * @param wldtEvent the event notification event
+     */
+    @Override
+    public void onStateEventNotification(WldtEvent<?> wldtEvent) {
 
         try{
-            // Check if the event is a DigitalTwinState
-            if(wldtEvent != null && wldtEvent.getBody() != null && wldtEvent.getBody() instanceof DigitalTwinState){
-
-                DigitalTwinState currentState = (DigitalTwinState)wldtEvent.getBody();
-                DigitalTwinState previousState = null;
-                List<DigitalTwinStateChange> stateChangeList = null;
-
-                // Check if the previous state is present in the event metadata
-                if(wldtEvent.getMetadata() != null
-                        && wldtEvent.getMetadata(DigitalTwinStateManager.DT_STATE_UPDATE_METADATA_PREVIOUS_STATE).isPresent()
-                        && wldtEvent.getMetadata(DigitalTwinStateManager.DT_STATE_UPDATE_METADATA_PREVIOUS_STATE).get() instanceof DigitalTwinState)
-                    previousState = (DigitalTwinState) wldtEvent.getMetadata(DigitalTwinStateManager.DT_STATE_UPDATE_METADATA_PREVIOUS_STATE).get();
-
-                // Check if the state change list is present in the event metadata
-                if(wldtEvent.getMetadata() != null
-                        && wldtEvent.getMetadata(DigitalTwinStateManager.DT_STATE_UPDATE_METADATA_CHANGE_LIST).isPresent()
-                        && wldtEvent.getMetadata(DigitalTwinStateManager.DT_STATE_UPDATE_METADATA_CHANGE_LIST).get() instanceof List<?>) {
-
-                    List<?> list = (List<?>) wldtEvent.getMetadata(DigitalTwinStateManager.DT_STATE_UPDATE_METADATA_CHANGE_LIST).get();
-
-                    boolean allElementsAreDigitalTwinStateChange = list.stream().allMatch(element -> element instanceof DigitalTwinStateChange);
-
-                    if (allElementsAreDigitalTwinStateChange)
-                        stateChangeList = (List<DigitalTwinStateChange>) list;
-                    else
-                        logger.error("Warning saving the DigitalTwinState ! The state change list is not a list of DigitalTwinStateChange !");
-                }
-
-                // Find Storage interested to the target event
-                for (Map.Entry<String, WldtStorage> entry : storageMap.entrySet()) {
-                    WldtStorage storage = entry.getValue();
-                    if(storage != null && storage.isObserveStateEvents()) {
-                        long startMs = System.currentTimeMillis();
-                        try {
-                            storage.saveDigitalTwinState(currentState, stateChangeList);
-                            storage.notifyWriteSuccess(CoreMonitoringUtils.STORAGE_WRITE_DIGITAL_TWIN_STATE_SUCCESS_COUNT, CoreMonitoringUtils.STORAGE_WRITE_DIGITAL_TWIN_STATE_EXEC_TIME, startMs);
-                        } catch (StorageException e) {
-                            storage.notifyWriteError(CoreMonitoringUtils.STORAGE_WRITE_DIGITAL_TWIN_STATE_ERROR_COUNT, CoreMonitoringUtils.STORAGE_WRITE_DIGITAL_TWIN_STATE_EXEC_TIME, startMs);
-                            logger.error("Error saving DigitalTwinState to storage {}: {}", entry.getKey(), e.getLocalizedMessage());
-                        }
-                    }
-                }
-
-            }
-            else if(wldtEvent != null && wldtEvent.getBody() != null && wldtEvent.getBody() instanceof DigitalTwinStateEventNotification){
+            if(wldtEvent != null && wldtEvent.getBody() != null && wldtEvent.getBody() instanceof DigitalTwinStateEventNotification){
                 DigitalTwinStateEventNotification<?> eventNotification = (DigitalTwinStateEventNotification<?>) wldtEvent.getBody();
 
                 // Find Storage interested to the target event
@@ -293,9 +366,9 @@ public class StorageManager extends DigitalTwinWorker implements IWldtEventObser
                 }
             }
             else
-                logger.error("Error saving the DigitalTwinState ! The event is not a DigitalTwinState !");
+                logger.error("Error saving the DigitalTwinStateEventNotification ! The event body is not a DigitalTwinStateEventNotification !");
         }catch (Exception e){
-            logger.error("Error saving the DigitalTwinState ! Error: {}", e.getLocalizedMessage());
+            logger.error("Error saving the DigitalTwinStateEventNotification ! Error: {}", e.getLocalizedMessage());
         }
 
     }

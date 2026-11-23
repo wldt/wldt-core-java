@@ -32,7 +32,28 @@ public interface IWldtEventObserverListener {
 
     public void onEventUnSubscribed(String eventType);
 
-    public void onStateEvent(WldtEvent<?> wldtEvent);
+    /**
+     * Called when the description (structure) of the Digital Twin State changes.
+     * The body of the event is the complete new {@code DigitalTwinStateDescription}; the metadata contain the previous
+     * description and the list of the {@code DigitalTwinStateChange} that altered the structure.
+     * @param wldtEvent the description update event
+     */
+    public void onStateDescriptionEvent(WldtEvent<?> wldtEvent);
+
+    /**
+     * Called when the values of the Digital Twin State change.
+     * The body of the event is a {@code DigitalTwinStateValues} delta with only the values that changed, associated to
+     * the id of the current description; the metadata contain the previous values of the same resources and the list
+     * of the {@code DigitalTwinStateChange} that altered the values.
+     * @param wldtEvent the values update event
+     */
+    public void onStateValuesEvent(WldtEvent<?> wldtEvent);
+
+    /**
+     * Called when a Digital Twin State Event is notified. The body of the event is a {@code DigitalTwinStateEventNotification}.
+     * @param wldtEvent the event notification event
+     */
+    public void onStateEventNotification(WldtEvent<?> wldtEvent);
 
     public void onPhysicalAssetEvent(WldtEvent<?> wldtEvent);
 

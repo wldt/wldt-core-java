@@ -24,32 +24,50 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Immutable snapshot of the <b>structure</b> of a {@link DigitalTwinState}: which properties, actions, events and
  * relationships are defined and how (key/name, type, content type, access flags), without any value.
  * <p>
- * Use {@link DigitalTwinState#getDescription()} or {@link DigitalTwinState#getDescription(DigitalTwinStateFilter)}
- * to obtain it. The values are available through {@link DigitalTwinStateValues}.
+ * Each description has a unique id (see {@link #getId()}). On the event bus the description travels in its entirety
+ * and only when the structure of the state really changes; it is never filtered.
+ * <p>
+ * Use {@link DigitalTwinStateManager#getDigitalTwinStateDescription()} to obtain the current one. The values are
+ * available through {@link DigitalTwinStateValues}.
  */
 public final class DigitalTwinStateDescription {
 
+    private final String id;
     private final Instant evaluationInstant;
     private final List<PropertyDescription> properties;
     private final List<ActionDescription> actions;
     private final List<EventDescription> events;
     private final List<RelationshipDescription> relationships;
 
-    DigitalTwinStateDescription(Instant evaluationInstant,
+    DigitalTwinStateDescription(String id,
+                                Instant evaluationInstant,
                                 List<PropertyDescription> properties,
                                 List<ActionDescription> actions,
                                 List<EventDescription> events,
                                 List<RelationshipDescription> relationships) {
+        this.id = id;
         this.evaluationInstant = evaluationInstant;
         this.properties = Collections.unmodifiableList(new ArrayList<>(properties));
         this.actions = Collections.unmodifiableList(new ArrayList<>(actions));
         this.events = Collections.unmodifiableList(new ArrayList<>(events));
         this.relationships = Collections.unmodifiableList(new ArrayList<>(relationships));
+    }
+
+    /**
+     * The unique id of this description, in the form {@code <digitalTwinCreationTimestamp>_<numSeq>}:
+     * the creation timestamp (epoch milliseconds) of the Digital Twin State Manager followed by a sequence number
+     * that grows every time the structure of the state really changes (it starts from 0). The
+     * {@link DigitalTwinStateValues} are always associated to the id of the description they refer to.
+     * @return the id of the description
+     */
+    public String getId() {
+        return id;
     }
 
     /**
@@ -94,9 +112,37 @@ public final class DigitalTwinStateDescription {
         return properties.isEmpty() && actions.isEmpty() && events.isEmpty() && relationships.isEmpty();
     }
 
+    /**
+     * Compares the structure of two descriptions ignoring the id and the evaluation instant.
+     * @param other the other description
+     * @return true if both descriptions define exactly the same properties, actions, events and relationships
+     */
+    public boolean isSameStructureAs(DigitalTwinStateDescription other) {
+        return other != null
+                && properties.equals(other.properties)
+                && actions.equals(other.actions)
+                && events.equals(other.events)
+                && relationships.equals(other.relationships);
+    }
+
+    /**
+     * Two descriptions are equal if they have the same structure, the id and the evaluation instant are ignored.
+     */
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof DigitalTwinStateDescription)) return false;
+        return isSameStructureAs((DigitalTwinStateDescription) o);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(properties, actions, events, relationships);
+    }
+
     @Override
     public String toString() {
-        return "DigitalTwinStateDescription{properties=" + properties + ", actions=" + actions +
+        return "DigitalTwinStateDescription{id='" + id + "', properties=" + properties + ", actions=" + actions +
                 ", events=" + events + ", relationships=" + relationships +
                 ", evaluationInstant=" + evaluationInstant + '}';
     }
@@ -135,6 +181,21 @@ public final class DigitalTwinStateDescription {
         public boolean isExposed() { return exposed; }
 
         @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof PropertyDescription)) return false;
+            PropertyDescription that = (PropertyDescription) o;
+            return readable == that.readable && writable == that.writable && exposed == that.exposed
+                    && Objects.equals(key, that.key) && Objects.equals(type, that.type)
+                    && Objects.equals(contentType, that.contentType);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(key, type, contentType, readable, writable, exposed);
+        }
+
+        @Override
         public String toString() {
             return "PropertyDescription{key='" + key + "', type='" + type + "', contentType='" + contentType +
                     "', readable=" + readable + ", writable=" + writable + ", exposed=" + exposed + '}';
@@ -167,6 +228,20 @@ public final class DigitalTwinStateDescription {
         public boolean isExposed() { return exposed; }
 
         @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof ActionDescription)) return false;
+            ActionDescription that = (ActionDescription) o;
+            return exposed == that.exposed && Objects.equals(key, that.key)
+                    && Objects.equals(type, that.type) && Objects.equals(contentType, that.contentType);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(key, type, contentType, exposed);
+        }
+
+        @Override
         public String toString() {
             return "ActionDescription{key='" + key + "', type='" + type + "', contentType='" + contentType +
                     "', exposed=" + exposed + '}';
@@ -195,6 +270,20 @@ public final class DigitalTwinStateDescription {
         public String getContentType() { return contentType; }
 
         @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof EventDescription)) return false;
+            EventDescription that = (EventDescription) o;
+            return Objects.equals(key, that.key) && Objects.equals(type, that.type)
+                    && Objects.equals(contentType, that.contentType);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(key, type, contentType);
+        }
+
+        @Override
         public String toString() {
             return "EventDescription{key='" + key + "', type='" + type + "', contentType='" + contentType + "'}";
         }
@@ -216,6 +305,19 @@ public final class DigitalTwinStateDescription {
         public String getName() { return name; }
         /** @return the relationship type */
         public String getType() { return type; }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof RelationshipDescription)) return false;
+            RelationshipDescription that = (RelationshipDescription) o;
+            return Objects.equals(name, that.name) && Objects.equals(type, that.type);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(name, type);
+        }
 
         @Override
         public String toString() {

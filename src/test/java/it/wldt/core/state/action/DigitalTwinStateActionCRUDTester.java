@@ -1,5 +1,6 @@
 package it.wldt.core.state.action;
 
+import it.wldt.core.state.StateManagerTestAccess;
 import it.wldt.core.state.DigitalTwinStateManager;
 import it.wldt.core.state.DigitalTwinStateAction;
 import it.wldt.exception.WldtDigitalTwinStateActionException;
@@ -42,11 +43,11 @@ public class DigitalTwinStateActionCRUDTester {
         digitalTwinStateManager.enableAction(action);
         digitalTwinStateManager.commitStateTransaction();
 
-        assertTrue(digitalTwinStateManager.getDigitalTwinState().containsAction(ACTION_KEY_1));
-        assertTrue(digitalTwinStateManager.getDigitalTwinState().getAction(ACTION_KEY_1).isPresent());
-        assertEquals(ACTION_TYPE, digitalTwinStateManager.getDigitalTwinState().getAction(ACTION_KEY_1).get().getType());
-        assertTrue(digitalTwinStateManager.getDigitalTwinState().getActionList().isPresent());
-        assertEquals(1, digitalTwinStateManager.getDigitalTwinState().getActionList().get().size());
+        assertTrue(StateManagerTestAccess.state(digitalTwinStateManager).containsAction(ACTION_KEY_1));
+        assertTrue(StateManagerTestAccess.state(digitalTwinStateManager).getAction(ACTION_KEY_1).isPresent());
+        assertEquals(ACTION_TYPE, StateManagerTestAccess.state(digitalTwinStateManager).getAction(ACTION_KEY_1).get().getType());
+        assertTrue(StateManagerTestAccess.state(digitalTwinStateManager).getActionList().isPresent());
+        assertEquals(1, StateManagerTestAccess.state(digitalTwinStateManager).getActionList().get().size());
     }
 
     @Test
@@ -60,20 +61,20 @@ public class DigitalTwinStateActionCRUDTester {
         digitalTwinStateManager.enableAction(action);
         digitalTwinStateManager.commitStateTransaction();
 
-        assertTrue(digitalTwinStateManager.getDigitalTwinState().containsAction(ACTION_KEY_1));
-        assertTrue(digitalTwinStateManager.getDigitalTwinState().getAction(ACTION_KEY_1).isPresent());
-        assertEquals(ACTION_TYPE, digitalTwinStateManager.getDigitalTwinState().getAction(ACTION_KEY_1).get().getType());
-        assertTrue(digitalTwinStateManager.getDigitalTwinState().getActionList().isPresent());
-        assertEquals(1, digitalTwinStateManager.getDigitalTwinState().getActionList().get().size());
+        assertTrue(StateManagerTestAccess.state(digitalTwinStateManager).containsAction(ACTION_KEY_1));
+        assertTrue(StateManagerTestAccess.state(digitalTwinStateManager).getAction(ACTION_KEY_1).isPresent());
+        assertEquals(ACTION_TYPE, StateManagerTestAccess.state(digitalTwinStateManager).getAction(ACTION_KEY_1).get().getType());
+        assertTrue(StateManagerTestAccess.state(digitalTwinStateManager).getActionList().isPresent());
+        assertEquals(1, StateManagerTestAccess.state(digitalTwinStateManager).getActionList().get().size());
 
-        assertTrue(digitalTwinStateManager.getDigitalTwinState().getAction(ACTION_KEY_1).isPresent());
-        assertEquals(ACTION_CONTENT_TYPE, digitalTwinStateManager.getDigitalTwinState().getAction(ACTION_KEY_1).get().getContentType());
+        assertTrue(StateManagerTestAccess.state(digitalTwinStateManager).getAction(ACTION_KEY_1).isPresent());
+        assertEquals(ACTION_CONTENT_TYPE, StateManagerTestAccess.state(digitalTwinStateManager).getAction(ACTION_KEY_1).get().getContentType());
 
         digitalTwinStateManager.startStateTransaction();
         digitalTwinStateManager.updateAction(new DigitalTwinStateAction(ACTION_KEY_1, ACTION_TYPE, ACTION_CONTENT_TYPE_UPDATED));
         digitalTwinStateManager.commitStateTransaction();
 
-        assertEquals(ACTION_CONTENT_TYPE_UPDATED, digitalTwinStateManager.getDigitalTwinState().getAction(ACTION_KEY_1).get().getContentType());
+        assertEquals(ACTION_CONTENT_TYPE_UPDATED, StateManagerTestAccess.state(digitalTwinStateManager).getAction(ACTION_KEY_1).get().getContentType());
     }
 
     @Test
@@ -87,19 +88,19 @@ public class DigitalTwinStateActionCRUDTester {
         digitalTwinStateManager.enableAction(action);
         digitalTwinStateManager.commitStateTransaction();
 
-        assertTrue(digitalTwinStateManager.getDigitalTwinState().containsAction(ACTION_KEY_1));
-        assertTrue(digitalTwinStateManager.getDigitalTwinState().getAction(ACTION_KEY_1).isPresent());
-        assertEquals(ACTION_TYPE, digitalTwinStateManager.getDigitalTwinState().getAction(ACTION_KEY_1).get().getType());
-        assertTrue(digitalTwinStateManager.getDigitalTwinState().getActionList().isPresent());
-        assertEquals(1, digitalTwinStateManager.getDigitalTwinState().getActionList().get().size());
+        assertTrue(StateManagerTestAccess.state(digitalTwinStateManager).containsAction(ACTION_KEY_1));
+        assertTrue(StateManagerTestAccess.state(digitalTwinStateManager).getAction(ACTION_KEY_1).isPresent());
+        assertEquals(ACTION_TYPE, StateManagerTestAccess.state(digitalTwinStateManager).getAction(ACTION_KEY_1).get().getType());
+        assertTrue(StateManagerTestAccess.state(digitalTwinStateManager).getActionList().isPresent());
+        assertEquals(1, StateManagerTestAccess.state(digitalTwinStateManager).getActionList().get().size());
 
         digitalTwinStateManager.startStateTransaction();
         digitalTwinStateManager.disableAction(ACTION_KEY_1);
         digitalTwinStateManager.commitStateTransaction();
 
-        assertFalse(digitalTwinStateManager.getDigitalTwinState().containsAction(ACTION_KEY_1));
-        assertFalse(digitalTwinStateManager.getDigitalTwinState().getAction(ACTION_KEY_1).isPresent());
-        assertFalse(digitalTwinStateManager.getDigitalTwinState().getActionList().isPresent());
+        assertFalse(StateManagerTestAccess.state(digitalTwinStateManager).containsAction(ACTION_KEY_1));
+        assertFalse(StateManagerTestAccess.state(digitalTwinStateManager).getAction(ACTION_KEY_1).isPresent());
+        assertFalse(StateManagerTestAccess.state(digitalTwinStateManager).getActionList().isPresent());
     }
 
     @Test
@@ -113,44 +114,44 @@ public class DigitalTwinStateActionCRUDTester {
         digitalTwinStateManager.enableAction(action);
         digitalTwinStateManager.commitStateTransaction();
 
-        assertTrue(digitalTwinStateManager.getDigitalTwinState().containsAction(ACTION_KEY_1));
-        assertTrue(digitalTwinStateManager.getDigitalTwinState().getAction(ACTION_KEY_1).isPresent());
-        assertEquals(ACTION_TYPE, digitalTwinStateManager.getDigitalTwinState().getAction(ACTION_KEY_1).get().getType());
-        assertTrue(digitalTwinStateManager.getDigitalTwinState().getActionList().isPresent());
-        assertEquals(1, digitalTwinStateManager.getDigitalTwinState().getActionList().get().size());
+        assertTrue(StateManagerTestAccess.state(digitalTwinStateManager).containsAction(ACTION_KEY_1));
+        assertTrue(StateManagerTestAccess.state(digitalTwinStateManager).getAction(ACTION_KEY_1).isPresent());
+        assertEquals(ACTION_TYPE, StateManagerTestAccess.state(digitalTwinStateManager).getAction(ACTION_KEY_1).get().getType());
+        assertTrue(StateManagerTestAccess.state(digitalTwinStateManager).getActionList().isPresent());
+        assertEquals(1, StateManagerTestAccess.state(digitalTwinStateManager).getActionList().get().size());
 
         digitalTwinStateManager.startStateTransaction();
         digitalTwinStateManager.enableAction(new DigitalTwinStateAction(ACTION_KEY_2, ACTION_TYPE, ACTION_CONTENT_TYPE));
         digitalTwinStateManager.commitStateTransaction();
 
-        assertTrue(digitalTwinStateManager.getDigitalTwinState().containsAction(ACTION_KEY_1));
-        assertTrue(digitalTwinStateManager.getDigitalTwinState().containsAction(ACTION_KEY_2));
-        assertTrue(digitalTwinStateManager.getDigitalTwinState().getActionList().isPresent());
-        assertEquals(2, digitalTwinStateManager.getDigitalTwinState().getActionList().get().size());
+        assertTrue(StateManagerTestAccess.state(digitalTwinStateManager).containsAction(ACTION_KEY_1));
+        assertTrue(StateManagerTestAccess.state(digitalTwinStateManager).containsAction(ACTION_KEY_2));
+        assertTrue(StateManagerTestAccess.state(digitalTwinStateManager).getActionList().isPresent());
+        assertEquals(2, StateManagerTestAccess.state(digitalTwinStateManager).getActionList().get().size());
 
         digitalTwinStateManager.startStateTransaction();
         digitalTwinStateManager.updateAction(new DigitalTwinStateAction(ACTION_KEY_2, ACTION_TYPE, ACTION_CONTENT_TYPE_UPDATED));
         digitalTwinStateManager.commitStateTransaction();
 
-        assertTrue(digitalTwinStateManager.getDigitalTwinState().containsAction(ACTION_KEY_2));
-        assertTrue(digitalTwinStateManager.getDigitalTwinState().getAction(ACTION_KEY_2).isPresent());
-        assertEquals(ACTION_CONTENT_TYPE_UPDATED, digitalTwinStateManager.getDigitalTwinState().getAction(ACTION_KEY_2).get().getContentType());
-        assertEquals(ACTION_CONTENT_TYPE, digitalTwinStateManager.getDigitalTwinState().getAction(ACTION_KEY_1).get().getContentType());
-        assertEquals(2, digitalTwinStateManager.getDigitalTwinState().getActionList().get().size());
+        assertTrue(StateManagerTestAccess.state(digitalTwinStateManager).containsAction(ACTION_KEY_2));
+        assertTrue(StateManagerTestAccess.state(digitalTwinStateManager).getAction(ACTION_KEY_2).isPresent());
+        assertEquals(ACTION_CONTENT_TYPE_UPDATED, StateManagerTestAccess.state(digitalTwinStateManager).getAction(ACTION_KEY_2).get().getContentType());
+        assertEquals(ACTION_CONTENT_TYPE, StateManagerTestAccess.state(digitalTwinStateManager).getAction(ACTION_KEY_1).get().getContentType());
+        assertEquals(2, StateManagerTestAccess.state(digitalTwinStateManager).getActionList().get().size());
 
         digitalTwinStateManager.startStateTransaction();
         digitalTwinStateManager.disableAction(ACTION_KEY_2);
         digitalTwinStateManager.commitStateTransaction();
 
-        assertFalse(digitalTwinStateManager.getDigitalTwinState().containsAction(ACTION_KEY_2));
-        assertTrue(digitalTwinStateManager.getDigitalTwinState().getActionList().isPresent());
-        assertEquals(1, digitalTwinStateManager.getDigitalTwinState().getActionList().get().size());
+        assertFalse(StateManagerTestAccess.state(digitalTwinStateManager).containsAction(ACTION_KEY_2));
+        assertTrue(StateManagerTestAccess.state(digitalTwinStateManager).getActionList().isPresent());
+        assertEquals(1, StateManagerTestAccess.state(digitalTwinStateManager).getActionList().get().size());
 
         digitalTwinStateManager.startStateTransaction();
         digitalTwinStateManager.disableAction(ACTION_KEY_1);
         digitalTwinStateManager.commitStateTransaction();
 
-        assertFalse(digitalTwinStateManager.getDigitalTwinState().getActionList().isPresent());
-        assertEquals(Optional.empty(), digitalTwinStateManager.getDigitalTwinState().getAction(ACTION_KEY_1));
+        assertFalse(StateManagerTestAccess.state(digitalTwinStateManager).getActionList().isPresent());
+        assertEquals(Optional.empty(), StateManagerTestAccess.state(digitalTwinStateManager).getAction(ACTION_KEY_1));
     }
 }

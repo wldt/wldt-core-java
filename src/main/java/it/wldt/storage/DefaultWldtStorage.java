@@ -27,7 +27,8 @@ import it.wldt.augmentation.function.AugmentationFunctionType;
 import it.wldt.augmentation.request.AugmentationFunctionRequest;
 import it.wldt.augmentation.result.AugmentationFunctionResult;
 import it.wldt.core.engine.LifeCycleStateVariation;
-import it.wldt.core.state.DigitalTwinState;
+import it.wldt.core.state.DigitalTwinStateDescription;
+import it.wldt.core.state.DigitalTwinStateValues;
 import it.wldt.core.state.DigitalTwinStateChange;
 import it.wldt.core.state.DigitalTwinStateEventNotification;
 import it.wldt.exception.StorageException;
@@ -42,7 +43,10 @@ import it.wldt.storage.model.digital.DigitalActionRequestRecord;
 import it.wldt.storage.model.lifecycle.LifeCycleVariationRecord;
 import it.wldt.storage.model.physical.*;
 import it.wldt.storage.model.state.DigitalTwinStateEventNotificationRecord;
-import it.wldt.storage.model.state.DigitalTwinStateRecord;
+import it.wldt.storage.model.state.DigitalTwinStateDescriptionRecord;
+import it.wldt.storage.model.state.DigitalTwinStateHistoryRecord;
+import it.wldt.storage.model.state.DigitalTwinStateValuesRecord;
+import it.wldt.storage.query.inmemory.InMemoryDigitalTwinStateQuery;
 import it.wldt.storage.query.inmemory.InMemoryQueryEvaluator;
 import it.wldt.storage.query.Query;
 import it.wldt.storage.query.QueryResult;
@@ -62,7 +66,8 @@ public class DefaultWldtStorage extends WldtStorage {
     private static final WldtLogger logger = WldtLoggerProvider.getLogger(StorageManager.class);
 
     // Instance variables for storing digital twin states, state changes, physical asset events, and digital twin events
-    private final List<Map.Entry<Long, DigitalTwinStateRecord>> digitalTwinStateList = Collections.synchronizedList(new ArrayList<>());
+    private final List<Map.Entry<Long, DigitalTwinStateDescriptionRecord>> digitalTwinStateDescriptionList = Collections.synchronizedList(new ArrayList<>());
+    private final List<Map.Entry<Long, DigitalTwinStateValuesRecord>> digitalTwinStateValuesList = Collections.synchronizedList(new ArrayList<>());
     private final List<Map.Entry<Long, DigitalTwinStateEventNotificationRecord>> digitalStateEventNotificationList = Collections.synchronizedList(new ArrayList<>());
     private final List<Map.Entry<Long, PhysicalAssetActionRequestRecord>> physicalActionRequestList = Collections.synchronizedList(new ArrayList<>());
     private final List<Map.Entry<Long, PhysicalAssetEventNotificationRecord>> physicalEventNotificationsList = Collections.synchronizedList(new ArrayList<>());
@@ -149,21 +154,6 @@ public class DefaultWldtStorage extends WldtStorage {
 
         logger.info("Initializing Default WLDT Storage...");
 
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
     }
 
     /**
@@ -174,7 +164,8 @@ public class DefaultWldtStorage extends WldtStorage {
 
         logger.info("Clearing Default WLDT Storage...");
 
-        this.digitalTwinStateList.clear();
+        this.digitalTwinStateDescriptionList.clear();
+        this.digitalTwinStateValuesList.clear();
         this.digitalStateEventNotificationList.clear();
         this.physicalActionRequestList.clear();
         this.physicalEventNotificationsList.clear();
@@ -193,18 +184,35 @@ public class DefaultWldtStorage extends WldtStorage {
     }
 
     /**
-     * Save a new computed instance of the DT State in the Storage together with the list of the changes with respect
-     * to the previous state
-     * @param digitalTwinState associated to the new computed Digital State to be stored
-     * @param digitalTwinStateChangeList the list of state changes associated to the new Digital State that has to be stored
-     * @throws IllegalArgumentException  if digitalTwinState is null
+     * Save a new Digital Twin State Description in the Storage together with the list of the changes
+     * that altered the structure
+     * @param digitalTwinStateDescription the complete new description to be stored
+     * @param digitalTwinStateChangeList the list of state changes that altered the structure
+     * @throws IllegalArgumentException if digitalTwinStateDescription is null
      */
     @Override
-    public void saveDigitalTwinState(DigitalTwinState digitalTwinState, List<DigitalTwinStateChange> digitalTwinStateChangeList) throws StorageException, IllegalArgumentException {
-        if (digitalTwinState == null) {
-            throw new IllegalArgumentException("Digital twin state cannot be null.");
+    public void saveDigitalTwinStateDescription(DigitalTwinStateDescription digitalTwinStateDescription, List<DigitalTwinStateChange> digitalTwinStateChangeList) throws StorageException, IllegalArgumentException {
+        if (digitalTwinStateDescription == null) {
+            throw new IllegalArgumentException("Digital twin state description cannot be null.");
         }
-        add(digitalTwinStateList, digitalTwinState.getEvaluationInstant().toEpochMilli(), new DigitalTwinStateRecord(digitalTwinState, digitalTwinStateChangeList));
+        add(digitalTwinStateDescriptionList, digitalTwinStateDescription.getEvaluationInstant().toEpochMilli(), new DigitalTwinStateDescriptionRecord(digitalTwinStateDescription, digitalTwinStateChangeList));
+    }
+
+    /**
+     * Save a new snapshot of the complete Digital Twin State Values in the Storage together with the id of the
+     * description they are associated to and the list of the changes that altered them. The delta of the values is
+     * not stored by the default storage: it keeps the complete snapshots.
+     * @param digitalTwinStateValues the complete new values to be stored
+     * @param digitalTwinStateValuesDelta the values that changed with the update (null after a description removal), not stored
+     * @param digitalTwinStateChangeList the list of state changes that altered the values
+     * @throws IllegalArgumentException if digitalTwinStateValues is null
+     */
+    @Override
+    public void saveDigitalTwinStateValues(DigitalTwinStateValues digitalTwinStateValues, DigitalTwinStateValues digitalTwinStateValuesDelta, List<DigitalTwinStateChange> digitalTwinStateChangeList) throws StorageException, IllegalArgumentException {
+        if (digitalTwinStateValues == null) {
+            throw new IllegalArgumentException("Digital twin state values cannot be null.");
+        }
+        add(digitalTwinStateValuesList, digitalTwinStateValues.getEvaluationInstant().toEpochMilli(), new DigitalTwinStateValuesRecord(digitalTwinStateValues, digitalTwinStateChangeList));
     }
 
     /**
@@ -522,6 +530,25 @@ public class DefaultWldtStorage extends WldtStorage {
     }
 
     /**
+     * Executes a query on the complete Digital Twin State: takes a consistent snapshot of the stored descriptions
+     * and values (under their locks) and delegates the join, the evaluation and the grouping to the
+     * {@link InMemoryDigitalTwinStateQuery}.
+     */
+    private QueryResult<?> executeDigitalTwinStateQuery(Query query) {
+
+        List<Map.Entry<Long, DigitalTwinStateDescriptionRecord>> descriptions;
+        synchronized (digitalTwinStateDescriptionList) {
+            descriptions = new ArrayList<>(digitalTwinStateDescriptionList);
+        }
+        List<Map.Entry<Long, DigitalTwinStateValuesRecord>> values;
+        synchronized (digitalTwinStateValuesList) {
+            values = new ArrayList<>(digitalTwinStateValuesList);
+        }
+
+        return InMemoryDigitalTwinStateQuery.evaluate(query, descriptions, values);
+    }
+
+    /**
      * Execute the query over the in-memory records through the {@link InMemoryQueryEvaluator}
      * @param query the query to execute
      * @return the query result
@@ -532,8 +559,12 @@ public class DefaultWldtStorage extends WldtStorage {
         try {
 
             switch (query.getResource()) {
+                case DIGITAL_TWIN_STATE_DESCRIPTION:
+                    return InMemoryQueryEvaluator.evaluate(query, digitalTwinStateDescriptionList);
+                case DIGITAL_TWIN_STATE_VALUES:
+                    return InMemoryQueryEvaluator.evaluate(query, digitalTwinStateValuesList);
                 case DIGITAL_TWIN_STATE:
-                    return InMemoryQueryEvaluator.evaluate(query, digitalTwinStateList);
+                    return executeDigitalTwinStateQuery(query);
                 case DIGITAL_TWIN_STATE_EVENT_NOTIFICATION:
                     return InMemoryQueryEvaluator.evaluate(query, digitalStateEventNotificationList);
                 case PHYSICAL_ASSET_PROPERTY_VARIATION:
@@ -586,7 +617,8 @@ public class DefaultWldtStorage extends WldtStorage {
         try {
             // Set the StorageStateRecords in the final class
             StorageStats storageStats = new StorageStats();
-            storageStats.setStateVariationStats(getStorageStatsFromList(digitalTwinStateList));
+            storageStats.setStateValuesVariationStats(getStorageStatsFromList(digitalTwinStateValuesList));
+            storageStats.setStateDescriptionVariationStats(getStorageStatsFromList(digitalTwinStateDescriptionList));
             storageStats.setLifeCycleVariationStats(getStorageStatsFromList(lifeCycleStateList));
             storageStats.setPhysicalAssetPropertyVariationStats(getStorageStatsFromList(physicalAssetPropertyVariationList));
             storageStats.setPhysicalAssetEventNotificationStats(getStorageStatsFromList(physicalEventNotificationsList));

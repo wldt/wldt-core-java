@@ -1,5 +1,6 @@
 package it.wldt.core.state.property;
 
+import it.wldt.core.state.StateManagerTestAccess;
 import it.wldt.core.state.DigitalTwinStateManager;
 import it.wldt.core.state.DigitalTwinStateProperty;
 
@@ -53,11 +54,11 @@ public class DigitalTwinStatePropertyCRUDTester {
         digitalTwinStateManager.createProperty(testProperty1);
         digitalTwinStateManager.commitStateTransaction();
 
-        assertTrue(digitalTwinStateManager.getDigitalTwinState().getPropertyList().isPresent());
-        assertEquals(1, digitalTwinStateManager.getDigitalTwinState().getPropertyList().get().size());
-        assertTrue(digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).isPresent());
-        assertEquals(testProperty1, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).get());
-        assertEquals(TEST_VALUE_0001, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).get().getValue());
+        assertTrue(StateManagerTestAccess.state(digitalTwinStateManager).getPropertyList().isPresent());
+        assertEquals(1, StateManagerTestAccess.state(digitalTwinStateManager).getPropertyList().get().size());
+        assertTrue(StateManagerTestAccess.state(digitalTwinStateManager).readProperty(TEST_KEY_0001).isPresent());
+        assertEquals(testProperty1, StateManagerTestAccess.state(digitalTwinStateManager).readProperty(TEST_KEY_0001).get());
+        assertEquals(TEST_VALUE_0001, StateManagerTestAccess.state(digitalTwinStateManager).readProperty(TEST_KEY_0001).get().getValue());
     }
 
     @Test
@@ -81,14 +82,14 @@ public class DigitalTwinStatePropertyCRUDTester {
         digitalTwinStateManager.createProperty(testProperty2);
         digitalTwinStateManager.commitStateTransaction();
 
-        assertTrue(digitalTwinStateManager.getDigitalTwinState().getPropertyList().isPresent());
-        assertEquals(2, digitalTwinStateManager.getDigitalTwinState().getPropertyList().get().size());
-        assertTrue(digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).isPresent());
-        assertTrue(digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0002).isPresent());
-        assertEquals(testProperty1, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).get());
-        assertEquals(TEST_VALUE_0001, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).get().getValue());
-        assertEquals(testProperty2, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0002).get());
-        assertEquals(TEST_VALUE_0002, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0002).get().getValue());
+        assertTrue(StateManagerTestAccess.state(digitalTwinStateManager).getPropertyList().isPresent());
+        assertEquals(2, StateManagerTestAccess.state(digitalTwinStateManager).getPropertyList().get().size());
+        assertTrue(StateManagerTestAccess.state(digitalTwinStateManager).readProperty(TEST_KEY_0001).isPresent());
+        assertTrue(StateManagerTestAccess.state(digitalTwinStateManager).readProperty(TEST_KEY_0002).isPresent());
+        assertEquals(testProperty1, StateManagerTestAccess.state(digitalTwinStateManager).readProperty(TEST_KEY_0001).get());
+        assertEquals(TEST_VALUE_0001, StateManagerTestAccess.state(digitalTwinStateManager).readProperty(TEST_KEY_0001).get().getValue());
+        assertEquals(testProperty2, StateManagerTestAccess.state(digitalTwinStateManager).readProperty(TEST_KEY_0002).get());
+        assertEquals(TEST_VALUE_0002, StateManagerTestAccess.state(digitalTwinStateManager).readProperty(TEST_KEY_0002).get().getValue());
     }
 
     @Test
@@ -115,14 +116,14 @@ public class DigitalTwinStatePropertyCRUDTester {
         digitalTwinStateManager.createProperty(testProperty2);
         digitalTwinStateManager.commitStateTransaction();
 
-        assertTrue(digitalTwinStateManager.getDigitalTwinState().getPropertyList().isPresent());
-        assertEquals(2, digitalTwinStateManager.getDigitalTwinState().getPropertyList().get().size());
-        assertTrue(digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).isPresent());
-        assertTrue(digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0002).isPresent());
-        assertEquals(testProperty1, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).get());
-        assertEquals(TEST_VALUE_0001, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).get().getValue());
-        assertEquals(testProperty2, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0002).get());
-        assertEquals(TEST_VALUE_0002, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0002).get().getValue());
+        assertTrue(StateManagerTestAccess.state(digitalTwinStateManager).getPropertyList().isPresent());
+        assertEquals(2, StateManagerTestAccess.state(digitalTwinStateManager).getPropertyList().get().size());
+        assertTrue(StateManagerTestAccess.state(digitalTwinStateManager).readProperty(TEST_KEY_0001).isPresent());
+        assertTrue(StateManagerTestAccess.state(digitalTwinStateManager).readProperty(TEST_KEY_0002).isPresent());
+        assertEquals(testProperty1, StateManagerTestAccess.state(digitalTwinStateManager).readProperty(TEST_KEY_0001).get());
+        assertEquals(TEST_VALUE_0001, StateManagerTestAccess.state(digitalTwinStateManager).readProperty(TEST_KEY_0001).get().getValue());
+        assertEquals(testProperty2, StateManagerTestAccess.state(digitalTwinStateManager).readProperty(TEST_KEY_0002).get());
+        assertEquals(TEST_VALUE_0002, StateManagerTestAccess.state(digitalTwinStateManager).readProperty(TEST_KEY_0002).get().getValue());
     }
 
     @Test
@@ -133,9 +134,9 @@ public class DigitalTwinStatePropertyCRUDTester {
 
         createProperty();
 
-        assertTrue(digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).isPresent());
-        assertEquals(testProperty1, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).get());
-        assertEquals(TEST_VALUE_0001, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).get().getValue());
+        assertTrue(StateManagerTestAccess.state(digitalTwinStateManager).readProperty(TEST_KEY_0001).isPresent());
+        assertEquals(testProperty1, StateManagerTestAccess.state(digitalTwinStateManager).readProperty(TEST_KEY_0001).get());
+        assertEquals(TEST_VALUE_0001, StateManagerTestAccess.state(digitalTwinStateManager).readProperty(TEST_KEY_0001).get().getValue());
     }
 
     @Test
@@ -152,11 +153,11 @@ public class DigitalTwinStatePropertyCRUDTester {
         digitalTwinStateManager.updateProperty(updatedProperty);
         digitalTwinStateManager.commitStateTransaction();
 
-        assertTrue(digitalTwinStateManager.getDigitalTwinState().getPropertyList().isPresent());
-        assertEquals(1, digitalTwinStateManager.getDigitalTwinState().getPropertyList().get().size());
-        assertTrue(digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).isPresent());
-        assertEquals(updatedProperty, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).get());
-        assertEquals(TEST_VALUE_0001_UPDATED, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).get().getValue());
+        assertTrue(StateManagerTestAccess.state(digitalTwinStateManager).getPropertyList().isPresent());
+        assertEquals(1, StateManagerTestAccess.state(digitalTwinStateManager).getPropertyList().get().size());
+        assertTrue(StateManagerTestAccess.state(digitalTwinStateManager).readProperty(TEST_KEY_0001).isPresent());
+        assertEquals(updatedProperty, StateManagerTestAccess.state(digitalTwinStateManager).readProperty(TEST_KEY_0001).get());
+        assertEquals(TEST_VALUE_0001_UPDATED, StateManagerTestAccess.state(digitalTwinStateManager).readProperty(TEST_KEY_0001).get().getValue());
     }
 
     @Test
@@ -173,11 +174,11 @@ public class DigitalTwinStatePropertyCRUDTester {
         digitalTwinStateManager.updatePropertyValue(updatedProperty);
         digitalTwinStateManager.commitStateTransaction();
 
-        assertTrue(digitalTwinStateManager.getDigitalTwinState().getPropertyList().isPresent());
-        assertEquals(1, digitalTwinStateManager.getDigitalTwinState().getPropertyList().get().size());
-        assertTrue(digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).isPresent());
-        assertEquals(updatedProperty, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).get());
-        assertEquals(TEST_VALUE_0001_UPDATED, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).get().getValue());
+        assertTrue(StateManagerTestAccess.state(digitalTwinStateManager).getPropertyList().isPresent());
+        assertEquals(1, StateManagerTestAccess.state(digitalTwinStateManager).getPropertyList().get().size());
+        assertTrue(StateManagerTestAccess.state(digitalTwinStateManager).readProperty(TEST_KEY_0001).isPresent());
+        assertEquals(updatedProperty, StateManagerTestAccess.state(digitalTwinStateManager).readProperty(TEST_KEY_0001).get());
+        assertEquals(TEST_VALUE_0001_UPDATED, StateManagerTestAccess.state(digitalTwinStateManager).readProperty(TEST_KEY_0001).get().getValue());
     }
 
     @Test
@@ -193,7 +194,7 @@ public class DigitalTwinStatePropertyCRUDTester {
         digitalTwinStateManager.deleteProperty(TEST_KEY_0001);
         digitalTwinStateManager.commitStateTransaction();
 
-        assertFalse(digitalTwinStateManager.getDigitalTwinState().getPropertyList().isPresent());
+        assertFalse(StateManagerTestAccess.state(digitalTwinStateManager).getPropertyList().isPresent());
     }
 
     @Test
@@ -214,10 +215,10 @@ public class DigitalTwinStatePropertyCRUDTester {
         digitalTwinStateManager.createProperty(testProperty1);
         digitalTwinStateManager.commitStateTransaction();
 
-        assertTrue(digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).isPresent());
-        assertEquals(testProperty1, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).get());
-        assertEquals(TEST_VALUE_0001, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).get().getValue());
-        assertEquals(TEST_PROPERTY_TYPE, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).get().getType());
+        assertTrue(StateManagerTestAccess.state(digitalTwinStateManager).readProperty(TEST_KEY_0001).isPresent());
+        assertEquals(testProperty1, StateManagerTestAccess.state(digitalTwinStateManager).readProperty(TEST_KEY_0001).get());
+        assertEquals(TEST_VALUE_0001, StateManagerTestAccess.state(digitalTwinStateManager).readProperty(TEST_KEY_0001).get().getValue());
+        assertEquals(TEST_PROPERTY_TYPE, StateManagerTestAccess.state(digitalTwinStateManager).readProperty(TEST_KEY_0001).get().getType());
 
     }
 
@@ -236,11 +237,11 @@ public class DigitalTwinStatePropertyCRUDTester {
         digitalTwinStateManager.createProperty(testProperty1);
         digitalTwinStateManager.commitStateTransaction();
 
-        assertTrue(digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).isPresent());
-        assertEquals(testProperty1, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).get());
-        assertEquals(TEST_VALUE_0001, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).get().getValue());
-        assertEquals(TEST_PROPERTY_TYPE, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).get().getType());
-        assertEquals(TEST_PROPERTY_CONTENT_TYPE, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).get().getContentType());
+        assertTrue(StateManagerTestAccess.state(digitalTwinStateManager).readProperty(TEST_KEY_0001).isPresent());
+        assertEquals(testProperty1, StateManagerTestAccess.state(digitalTwinStateManager).readProperty(TEST_KEY_0001).get());
+        assertEquals(TEST_VALUE_0001, StateManagerTestAccess.state(digitalTwinStateManager).readProperty(TEST_KEY_0001).get().getValue());
+        assertEquals(TEST_PROPERTY_TYPE, StateManagerTestAccess.state(digitalTwinStateManager).readProperty(TEST_KEY_0001).get().getType());
+        assertEquals(TEST_PROPERTY_CONTENT_TYPE, StateManagerTestAccess.state(digitalTwinStateManager).readProperty(TEST_KEY_0001).get().getContentType());
 
     }
 
@@ -263,10 +264,10 @@ public class DigitalTwinStatePropertyCRUDTester {
         digitalTwinStateManager.createProperty(testProperty1);
         digitalTwinStateManager.commitStateTransaction();
 
-        assertTrue(digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).isPresent());
-        assertEquals(testProperty1, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).get());
-        assertEquals(TEST_PROPERTY_TYPE, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).get().getType());
-        assertEquals(TEST_PROPERTY_TYPE, digitalTwinStateManager.getDigitalTwinState().readProperty(TEST_KEY_0001).get().getContentType());
+        assertTrue(StateManagerTestAccess.state(digitalTwinStateManager).readProperty(TEST_KEY_0001).isPresent());
+        assertEquals(testProperty1, StateManagerTestAccess.state(digitalTwinStateManager).readProperty(TEST_KEY_0001).get());
+        assertEquals(TEST_PROPERTY_TYPE, StateManagerTestAccess.state(digitalTwinStateManager).readProperty(TEST_KEY_0001).get().getType());
+        assertEquals(TEST_PROPERTY_TYPE, StateManagerTestAccess.state(digitalTwinStateManager).readProperty(TEST_KEY_0001).get().getContentType());
 
     }
 

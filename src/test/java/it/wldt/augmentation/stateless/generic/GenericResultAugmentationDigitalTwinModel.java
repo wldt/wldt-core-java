@@ -216,11 +216,13 @@ public class GenericResultAugmentationDigitalTwinModel extends DigitalTwinModel 
             SharedTestMetrics.getInstance().addShadowingFunctionEventNotification(this.digitalTwinStateManager.getDigitalTwinId(), physicalAssetEventWldtEvent);
 
             //Handle the received physical event notification and map into a digital notification for digital adapters
+            this.digitalTwinStateManager.startStateTransaction();
             this.digitalTwinStateManager.notifyDigitalTwinStateEvent(
                     new DigitalTwinStateEventNotification<String>(
                             physicalAssetEventWldtEvent.getPhysicalEventKey(),
                             (String)physicalAssetEventWldtEvent.getBody(),
                             System.currentTimeMillis()));
+            this.digitalTwinStateManager.commitStateTransaction();
 
         }catch (Exception e){
             e.printStackTrace();

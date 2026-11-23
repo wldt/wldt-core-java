@@ -13,7 +13,10 @@ import it.wldt.storage.model.digital.DigitalActionRequestRecord;
 import it.wldt.storage.model.lifecycle.LifeCycleVariationRecord;
 import it.wldt.storage.model.physical.*;
 import it.wldt.storage.model.state.DigitalTwinStateEventNotificationRecord;
-import it.wldt.storage.model.state.DigitalTwinStateRecord;
+import it.wldt.storage.model.state.DigitalTwinStateDescriptionRecord;
+import it.wldt.storage.model.state.DigitalTwinStateHistoryEntry;
+import it.wldt.storage.model.state.DigitalTwinStateHistoryRecord;
+import it.wldt.storage.model.state.DigitalTwinStateValuesRecord;
 import org.junit.jupiter.api.*;
 
 import java.util.*;
@@ -30,7 +33,6 @@ public class DefaultStorageTest {
 
     private DigitalTwinStateManager digitalTwinStateManager;
     private WldtStorage wldtStorage;
-    private DigitalTwinState digitalTwinState;
     private ArrayList<DigitalTwinStateChange> currentChangeList;
 
     private void addStateProperty(String propertyKey, String propertyValue) throws  WldtDigitalTwinStateException {
@@ -65,19 +67,17 @@ public class DefaultStorageTest {
         digitalTwinStateManager.commitStateTransaction();
     }
 
-    private void testStatesStructure(DigitalTwinState referenceDigitalTwinState, DigitalTwinStateRecord targetdigitalTwinStateRecord) throws WldtDigitalTwinStatePropertyException {
-
-        assertTrue(referenceDigitalTwinState.getPropertyList().isPresent());
-        assertTrue(targetdigitalTwinStateRecord.getCurrentState().getPropertyList().isPresent());
-        assertEquals(referenceDigitalTwinState.getPropertyList().get().size(), targetdigitalTwinStateRecord.getCurrentState().getPropertyList().get().size());
-
+    private void saveCurrentDescription(List<DigitalTwinStateChange> changes) throws StorageException {
+        wldtStorage.saveDigitalTwinStateDescription(digitalTwinStateManager.getDigitalTwinStateDescription(), changes);
     }
 
-    private void testStateProperty(DigitalTwinStateRecord digitalTwinStateRecord, String propertyKey, Object propertyValue) throws WldtDigitalTwinStatePropertyException, WldtDigitalTwinStatePropertyBadRequestException, WldtDigitalTwinStatePropertyNotFoundException {
+    private void saveCurrentValues(List<DigitalTwinStateChange> changes) throws StorageException {
+        wldtStorage.saveDigitalTwinStateValues(digitalTwinStateManager.getDigitalTwinStateValues(), null, changes);
+    }
 
-        assertTrue(digitalTwinStateRecord.getCurrentState().readProperty(propertyKey).isPresent());
-        assertEquals(propertyValue, digitalTwinStateRecord.getCurrentState().readProperty(propertyKey).get().getValue());
-
+    private void testStateProperty(DigitalTwinStateValuesRecord valuesRecord, String propertyKey, Object propertyValue) {
+        assertTrue(valuesRecord.getValues().getPropertyValues().containsKey(propertyKey));
+        assertEquals(propertyValue, valuesRecord.getValues().getPropertyValue(propertyKey));
     }
 
     @BeforeEach
@@ -92,67 +92,66 @@ public class DefaultStorageTest {
         digitalTwinStateManager = null;
         wldtStorage.clear();
         wldtStorage = null;
-        digitalTwinState = null;
         currentChangeList = null;
     }
 
     @Test
     @Order(1)
-    public void saveDigitalTwinStateNoChangeList() throws WldtDigitalTwinStateException, StorageException, WldtDigitalTwinStatePropertyException, WldtDigitalTwinStatePropertyBadRequestException, WldtDigitalTwinStatePropertyNotFoundException {
+    public void saveDigitalTwinStateNoChangeList() throws WldtDigitalTwinStateException, StorageException {
 
         //Create Property
         addStateProperty(TEST_KEY_0001, TEST_VALUE_0001);
 
-        // Read the current DT State
-        digitalTwinState = digitalTwinStateManager.getDigitalTwinState();
+        // Save the current description and values
+        saveCurrentDescription(null);
+        saveCurrentValues(null);
 
-        wldtStorage.saveDigitalTwinState(digitalTwinState, null);
+        DigitalTwinStateDescriptionRecord lastDescriptionRecord = StorageTestUtils.<DigitalTwinStateDescriptionRecord>last(wldtStorage, QueryResourceType.DIGITAL_TWIN_STATE_DESCRIPTION);
+        DigitalTwinStateValuesRecord lastValuesRecord = StorageTestUtils.<DigitalTwinStateValuesRecord>last(wldtStorage, QueryResourceType.DIGITAL_TWIN_STATE_VALUES);
 
-        Optional<DigitalTwinStateRecord> lastDigitalTwinStateOptional = Optional.ofNullable(StorageTestUtils.<DigitalTwinStateRecord>last(wldtStorage, QueryResourceType.DIGITAL_TWIN_STATE));
+        //Check if the Last description and values are available in the Storage
+        assertNotNull(lastDescriptionRecord);
+        assertNotNull(lastValuesRecord);
 
-        //Check if the Last DT State is available in the Storage
-        assertTrue(lastDigitalTwinStateOptional.isPresent());
+        // Test the description and its id
+        assertEquals(digitalTwinStateManager.getDigitalTwinStateDescription().getId(), lastDescriptionRecord.getDescriptionId());
+        assertEquals(1, lastDescriptionRecord.getDescription().getProperties().size());
+        assertEquals(TEST_KEY_0001, lastDescriptionRecord.getDescription().getProperties().get(0).getKey());
 
-        // Load the last DT State in the Storage
-        DigitalTwinStateRecord lastDigitalTwinStateRecord = lastDigitalTwinStateOptional.get();
-
-        // Test DT State Validity
-        testStatesStructure(digitalTwinState, lastDigitalTwinStateRecord);
-        testStateProperty(lastDigitalTwinStateRecord, TEST_KEY_0001, TEST_VALUE_0001);
-        testStateProperty(lastDigitalTwinStateRecord, TEST_KEY_0001, TEST_VALUE_0001);
+        // The values are saved together with the id of the associated description
+        assertEquals(lastDescriptionRecord.getDescriptionId(), lastValuesRecord.getDescriptionId());
+        assertEquals(lastDescriptionRecord.getDescriptionId(), lastValuesRecord.getValues().getDescriptionId());
+        testStateProperty(lastValuesRecord, TEST_KEY_0001, TEST_VALUE_0001);
     }
 
     @Test
     @Order(2)
-    public void saveDigitalTwinStateWithChangeList() throws StorageException, WldtDigitalTwinStatePropertyException, WldtDigitalTwinStatePropertyBadRequestException, WldtDigitalTwinStatePropertyNotFoundException, WldtDigitalTwinStateException {
+    public void saveDigitalTwinStateWithChangeList() throws StorageException, WldtDigitalTwinStateException {
 
         //Create Property
         addStateProperty(TEST_KEY_0001, TEST_VALUE_0001);
 
-        // Read the current DT State
-        digitalTwinState = digitalTwinStateManager.getDigitalTwinState();
-        wldtStorage.saveDigitalTwinState(digitalTwinState, currentChangeList);
+        saveCurrentDescription(currentChangeList);
+        saveCurrentValues(currentChangeList);
 
-        Optional<DigitalTwinStateRecord> lastDigitalTwinStateOptional = Optional.ofNullable(StorageTestUtils.<DigitalTwinStateRecord>last(wldtStorage, QueryResourceType.DIGITAL_TWIN_STATE));
+        DigitalTwinStateDescriptionRecord lastDescriptionRecord = StorageTestUtils.<DigitalTwinStateDescriptionRecord>last(wldtStorage, QueryResourceType.DIGITAL_TWIN_STATE_DESCRIPTION);
+        DigitalTwinStateValuesRecord lastValuesRecord = StorageTestUtils.<DigitalTwinStateValuesRecord>last(wldtStorage, QueryResourceType.DIGITAL_TWIN_STATE_VALUES);
 
-        //Check if the Last DT State is available in the Storage
-        assertTrue(lastDigitalTwinStateOptional.isPresent());
+        assertNotNull(lastDescriptionRecord);
+        assertNotNull(lastValuesRecord);
+        testStateProperty(lastValuesRecord, TEST_KEY_0001, TEST_VALUE_0001);
 
-        // Load the last DT State in the Storage
-        DigitalTwinStateRecord lastDigitalTwinState = lastDigitalTwinStateOptional.get();
-
-        // Test DT State Validity
-        testStatesStructure(digitalTwinState, lastDigitalTwinState);
-        testStateProperty(lastDigitalTwinState, TEST_KEY_0001, TEST_VALUE_0001);
-
-        // Check Digital Twin State Change List associated to our State
-        List<DigitalTwinStateChange> storedChangeList = lastDigitalTwinState.getStateChangeList();
+        // Check Digital Twin State Change List associated to our description and values
         assertNotNull(currentChangeList);
         assertFalse(currentChangeList.isEmpty());
-        assertNotNull(storedChangeList);
-        assertFalse(storedChangeList.isEmpty());
-        assertEquals(currentChangeList.size(), storedChangeList.size());
 
+        List<DigitalTwinStateChange> storedDescriptionChangeList = lastDescriptionRecord.getStateChangeList();
+        assertNotNull(storedDescriptionChangeList);
+        assertEquals(currentChangeList.size(), storedDescriptionChangeList.size());
+
+        List<DigitalTwinStateChange> storedValuesChangeList = lastValuesRecord.getStateChangeList();
+        assertNotNull(storedValuesChangeList);
+        assertEquals(currentChangeList.size(), storedValuesChangeList.size());
     }
 
     @Test
@@ -162,19 +161,20 @@ public class DefaultStorageTest {
         //Create Property
         addStateProperty(TEST_KEY_0001, TEST_VALUE_0001);
 
-        // Save Initial Digital Twin State
-        wldtStorage.saveDigitalTwinState(digitalTwinStateManager.getDigitalTwinState(), null);
+        // Save Initial Digital Twin State (description and values)
+        saveCurrentDescription(null);
+        saveCurrentValues(null);
 
         int TARGET_STATE_UPDATE_COUNT = 10;
 
         Thread.sleep(100);
 
         for(int i=0; i<TARGET_STATE_UPDATE_COUNT; i++){
-            // Create Property
+            // Update the property
             updateStateProperty(TEST_KEY_0001, String.format("%s-checkDigitalTwinStateCount-r1-%d", TEST_VALUE_0002, i));
 
-            // Save the new DT State
-            wldtStorage.saveDigitalTwinState(digitalTwinStateManager.getDigitalTwinState(), null);
+            // Save the new values (the structure is the same)
+            saveCurrentValues(null);
 
             Thread.sleep(100);
         }
@@ -183,9 +183,16 @@ public class DefaultStorageTest {
 
         int targetUpdateCount = TARGET_STATE_UPDATE_COUNT+1;
 
-        System.out.println(digitalTwinStateManager.getDigitalTwinState());
+        assertEquals(targetUpdateCount, StorageTestUtils.count(wldtStorage, QueryResourceType.DIGITAL_TWIN_STATE_VALUES));
+        assertEquals(1, StorageTestUtils.count(wldtStorage, QueryResourceType.DIGITAL_TWIN_STATE_DESCRIPTION));
 
-        assertEquals(targetUpdateCount, StorageTestUtils.count(wldtStorage, QueryResourceType.DIGITAL_TWIN_STATE));
+        // The complete state is a single history record with one description and all its values
+        List<DigitalTwinStateHistoryRecord> history = StorageTestUtils.inTimeRange(wldtStorage, QueryResourceType.DIGITAL_TWIN_STATE, 0, System.currentTimeMillis());
+        assertEquals(1, history.size());
+        assertEquals(1, history.get(0).size());
+        DigitalTwinStateHistoryEntry entry = history.get(0).getEntries().values().iterator().next();
+        assertEquals(targetUpdateCount, entry.getValuesList().size());
+        assertEquals(1, entry.getDescription().getProperties().size());
     }
 
     @Test
@@ -198,17 +205,16 @@ public class DefaultStorageTest {
         addStateProperty(TEST_KEY_0001, TEST_VALUE_0001);
 
         // Save Initial Digital Twin State
-        wldtStorage.saveDigitalTwinState(digitalTwinStateManager.getDigitalTwinState(), null);
+        saveCurrentDescription(null);
+        saveCurrentValues(null);
 
         int TARGET_STATE_UPDATE_COUNT = 10;
 
         Thread.sleep(100);
 
         for(int i=0; i<TARGET_STATE_UPDATE_COUNT; i++){
-            // Create Property
             updateStateProperty(TEST_KEY_0001, String.format("%s-getDigitalTwinStateInTimeRanger1-%d", TEST_VALUE_0002, i));
-            // Save the new DT State
-            wldtStorage.saveDigitalTwinState(digitalTwinStateManager.getDigitalTwinState(), null);
+            saveCurrentValues(null);
             Thread.sleep(100);
         }
 
@@ -217,10 +223,8 @@ public class DefaultStorageTest {
         Thread.sleep(100);
 
         for(int i=0; i<TARGET_STATE_UPDATE_COUNT; i++){
-            // Create Property
             updateStateProperty(TEST_KEY_0001, String.format("%s-getDigitalTwinStateInTimeRanger2-%d", TEST_VALUE_0002, i));
-            // Save the new DT State
-            wldtStorage.saveDigitalTwinState(digitalTwinStateManager.getDigitalTwinState(), null);
+            saveCurrentValues(null);
             Thread.sleep(100);
         }
 
@@ -230,25 +234,31 @@ public class DefaultStorageTest {
 
         int TOTAL_TARGET_UPDATE_COUNT = 2*TARGET_STATE_UPDATE_COUNT+1;
 
-        assertEquals(TOTAL_TARGET_UPDATE_COUNT, StorageTestUtils.count(wldtStorage, QueryResourceType.DIGITAL_TWIN_STATE));
+        assertEquals(TOTAL_TARGET_UPDATE_COUNT, StorageTestUtils.count(wldtStorage, QueryResourceType.DIGITAL_TWIN_STATE_VALUES));
 
         // Check Complete Range
-        List<DigitalTwinStateRecord> digitalTwinStateList = StorageTestUtils.inTimeRange(wldtStorage, QueryResourceType.DIGITAL_TWIN_STATE, startTimeStamp, endTimeStamp);
-        assertNotNull(digitalTwinStateList);
-        assertFalse(digitalTwinStateList.isEmpty());
-        assertEquals(TOTAL_TARGET_UPDATE_COUNT, digitalTwinStateList.size());
+        List<DigitalTwinStateValuesRecord> valuesList = StorageTestUtils.inTimeRange(wldtStorage, QueryResourceType.DIGITAL_TWIN_STATE_VALUES, startTimeStamp, endTimeStamp);
+        assertNotNull(valuesList);
+        assertFalse(valuesList.isEmpty());
+        assertEquals(TOTAL_TARGET_UPDATE_COUNT, valuesList.size());
 
         // Check First Block Range
-        digitalTwinStateList = StorageTestUtils.inTimeRange(wldtStorage, QueryResourceType.DIGITAL_TWIN_STATE, startTimeStamp, middleTimeStamp);
-        assertNotNull(digitalTwinStateList);
-        assertFalse(digitalTwinStateList.isEmpty());
-        assertEquals(TARGET_STATE_UPDATE_COUNT+1, digitalTwinStateList.size());
+        valuesList = StorageTestUtils.inTimeRange(wldtStorage, QueryResourceType.DIGITAL_TWIN_STATE_VALUES, startTimeStamp, middleTimeStamp);
+        assertNotNull(valuesList);
+        assertFalse(valuesList.isEmpty());
+        assertEquals(TARGET_STATE_UPDATE_COUNT+1, valuesList.size());
 
         // Check Final Block Range
-        digitalTwinStateList = StorageTestUtils.inTimeRange(wldtStorage, QueryResourceType.DIGITAL_TWIN_STATE, middleTimeStamp, endTimeStamp);
-        assertNotNull(digitalTwinStateList);
-        assertFalse(digitalTwinStateList.isEmpty());
-        assertEquals(TARGET_STATE_UPDATE_COUNT, digitalTwinStateList.size());
+        valuesList = StorageTestUtils.inTimeRange(wldtStorage, QueryResourceType.DIGITAL_TWIN_STATE_VALUES, middleTimeStamp, endTimeStamp);
+        assertNotNull(valuesList);
+        assertFalse(valuesList.isEmpty());
+        assertEquals(TARGET_STATE_UPDATE_COUNT, valuesList.size());
+
+        // The complete state in the interval: one description with the values of the interval
+        List<DigitalTwinStateHistoryRecord> history = StorageTestUtils.inTimeRange(wldtStorage, QueryResourceType.DIGITAL_TWIN_STATE, middleTimeStamp, endTimeStamp);
+        assertEquals(1, history.size());
+        assertEquals(1, history.get(0).size());
+        assertEquals(TARGET_STATE_UPDATE_COUNT, history.get(0).getEntries().values().iterator().next().getValuesList().size());
     }
 
     @Test
@@ -259,27 +269,24 @@ public class DefaultStorageTest {
         addStateProperty(TEST_KEY_0001, TEST_VALUE_0001);
 
         // Save Initial Digital Twin State
-        wldtStorage.saveDigitalTwinState(digitalTwinStateManager.getDigitalTwinState(), null);
+        saveCurrentDescription(null);
+        saveCurrentValues(null);
 
         int TARGET_STATE_UPDATE_COUNT = 10;
 
         Thread.sleep(100);
 
         for(int i=0; i<TARGET_STATE_UPDATE_COUNT; i++){
-            // Create Property
             updateStateProperty(TEST_KEY_0001, String.format("%s-getDigitalTwinStateInRanger1-%d", TEST_VALUE_0002, i));
-            // Save the new DT State
-            wldtStorage.saveDigitalTwinState(digitalTwinStateManager.getDigitalTwinState(), null);
+            saveCurrentValues(null);
             Thread.sleep(100);
         }
 
         Thread.sleep(100);
 
         for(int i=0; i<TARGET_STATE_UPDATE_COUNT; i++){
-            // Create Property
             updateStateProperty(TEST_KEY_0001, String.format("%s-getDigitalTwinStateInRanger2-%d", TEST_VALUE_0002, i));
-            // Save the new DT State
-            wldtStorage.saveDigitalTwinState(digitalTwinStateManager.getDigitalTwinState(), null);
+            saveCurrentValues(null);
             Thread.sleep(100);
         }
 
@@ -287,25 +294,61 @@ public class DefaultStorageTest {
 
         int TOTAL_TARGET_UPDATE_COUNT = 2*TARGET_STATE_UPDATE_COUNT+1;
 
-        assertEquals(TOTAL_TARGET_UPDATE_COUNT, StorageTestUtils.count(wldtStorage, QueryResourceType.DIGITAL_TWIN_STATE));
+        assertEquals(TOTAL_TARGET_UPDATE_COUNT, StorageTestUtils.count(wldtStorage, QueryResourceType.DIGITAL_TWIN_STATE_VALUES));
 
         // Check Complete Range
-        List<DigitalTwinStateRecord> digitalTwinStateList = StorageTestUtils.inRange(wldtStorage, QueryResourceType.DIGITAL_TWIN_STATE, 0, TOTAL_TARGET_UPDATE_COUNT-1);
-        assertNotNull(digitalTwinStateList);
-        assertFalse(digitalTwinStateList.isEmpty());
-        assertEquals(TOTAL_TARGET_UPDATE_COUNT, digitalTwinStateList.size());
+        List<DigitalTwinStateValuesRecord> valuesList = StorageTestUtils.inRange(wldtStorage, QueryResourceType.DIGITAL_TWIN_STATE_VALUES, 0, TOTAL_TARGET_UPDATE_COUNT-1);
+        assertNotNull(valuesList);
+        assertFalse(valuesList.isEmpty());
+        assertEquals(TOTAL_TARGET_UPDATE_COUNT, valuesList.size());
 
         // Check First Block Range
-        digitalTwinStateList = StorageTestUtils.inRange(wldtStorage, QueryResourceType.DIGITAL_TWIN_STATE, 0, 5);
-        assertNotNull(digitalTwinStateList);
-        assertFalse(digitalTwinStateList.isEmpty());
-        assertEquals(6, digitalTwinStateList.size());
+        valuesList = StorageTestUtils.inRange(wldtStorage, QueryResourceType.DIGITAL_TWIN_STATE_VALUES, 0, 5);
+        assertNotNull(valuesList);
+        assertFalse(valuesList.isEmpty());
+        assertEquals(6, valuesList.size());
 
         // Check Final Block Range
-        digitalTwinStateList = StorageTestUtils.inRange(wldtStorage, QueryResourceType.DIGITAL_TWIN_STATE, 5, TOTAL_TARGET_UPDATE_COUNT-1);
-        assertNotNull(digitalTwinStateList);
-        assertFalse(digitalTwinStateList.isEmpty());
-        assertEquals(16, digitalTwinStateList.size());
+        valuesList = StorageTestUtils.inRange(wldtStorage, QueryResourceType.DIGITAL_TWIN_STATE_VALUES, 5, TOTAL_TARGET_UPDATE_COUNT-1);
+        assertNotNull(valuesList);
+        assertFalse(valuesList.isEmpty());
+        assertEquals(16, valuesList.size());
+    }
+
+    @Test
+    @Order(5)
+    public void completeStateQueryGroupsTheValuesByDescription() throws WldtDigitalTwinStateException, InterruptedException, StorageException {
+
+        // First description: one property
+        addStateProperty(TEST_KEY_0001, TEST_VALUE_0001);
+        saveCurrentDescription(null);
+        saveCurrentValues(null);
+        String firstDescriptionId = digitalTwinStateManager.getDigitalTwinStateDescription().getId();
+
+        Thread.sleep(20);
+        updateStateProperty(TEST_KEY_0001, TEST_VALUE_0002);
+        saveCurrentValues(null);
+
+        // The structure changes: a new property creates a new description
+        Thread.sleep(20);
+        addStateProperty("testKey0002", "second");
+        saveCurrentDescription(null);
+        saveCurrentValues(null);
+        String secondDescriptionId = digitalTwinStateManager.getDigitalTwinStateDescription().getId();
+        assertNotEquals(firstDescriptionId, secondDescriptionId);
+
+        List<DigitalTwinStateHistoryRecord> history = StorageTestUtils.inTimeRange(wldtStorage, QueryResourceType.DIGITAL_TWIN_STATE, 0, System.currentTimeMillis() + 1000);
+
+        // A single history record with one entry for each description, each one with its own values
+        assertEquals(1, history.size());
+        DigitalTwinStateHistoryRecord record = history.get(0);
+        assertEquals(2, record.size());
+        assertEquals(Arrays.asList(firstDescriptionId, secondDescriptionId), new ArrayList<>(record.getEntries().keySet()));
+        assertEquals(1, record.getEntry(firstDescriptionId).getDescription().getProperties().size());
+        assertEquals(2, record.getValuesList(firstDescriptionId).size());
+        assertEquals(2, record.getEntry(secondDescriptionId).getDescription().getProperties().size());
+        assertEquals(1, record.getValuesList(secondDescriptionId).size());
+        assertEquals(2, record.getValuesList(secondDescriptionId).get(0).getValues().getPropertyValues().size());
     }
 
     @Test

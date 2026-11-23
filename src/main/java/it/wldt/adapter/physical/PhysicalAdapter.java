@@ -23,7 +23,8 @@ package it.wldt.adapter.physical;
 import it.wldt.core.engine.LifeCycleListener;
 import it.wldt.core.event.*;
 import it.wldt.core.engine.DigitalTwinWorker;
-import it.wldt.core.state.DigitalTwinState;
+import it.wldt.core.state.DigitalTwinStateDescription;
+import it.wldt.core.state.DigitalTwinStateValues;
 import it.wldt.exception.EventBusException;
 import it.wldt.exception.PhysicalAdapterException;
 import it.wldt.exception.WldtRuntimeException;
@@ -632,13 +633,13 @@ public abstract class PhysicalAdapter extends DigitalTwinWorker implements WldtE
     }
 
     @Override
-    public void onSync(DigitalTwinState digitalTwinState) {
+    public void onSync(DigitalTwinStateDescription digitalTwinStateDescription, DigitalTwinStateValues digitalTwinStateValues) {
         // Invoke the specialized method for Physical Adapters
         onDigitalTwinSync();
     }
 
     @Override
-    public void onUnSync(DigitalTwinState digitalTwinState) {
+    public void onUnSync(DigitalTwinStateDescription digitalTwinStateDescription, DigitalTwinStateValues digitalTwinStateValues) {
         // Invoke the specialized method for Physical Adapters
         onDigitalTwinUnSync();
     }

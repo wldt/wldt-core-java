@@ -4,6 +4,8 @@ import it.wldt.augmentation.context.AugmentationFunctionContextRequest;
 import it.wldt.augmentation.function.StatefulAugmentationFunction;
 import it.wldt.augmentation.request.AugmentationFunctionRequest;
 import it.wldt.core.state.DigitalTwinState;
+import it.wldt.core.state.DigitalTwinStateDescription;
+import it.wldt.core.state.DigitalTwinStateValues;
 import it.wldt.core.state.DigitalTwinStateEventNotification;
 import it.wldt.exception.AugmentationFunctionException;
 import it.wldt.storage.query.Query;
@@ -36,7 +38,7 @@ public class RefreshQueryOnStateUpdateTest {
         }
 
         void notifyStateUpdate(StatefulAugmentationFunction function) {
-            onStateUpdate(new ArrayList<>(Collections.singletonList(function)), new DigitalTwinState(), null, null);
+            notifyStateValuesUpdate(new ArrayList<>(Collections.singletonList(function)), new DigitalTwinState().getValues(), null);
         }
     }
 
@@ -49,7 +51,11 @@ public class RefreshQueryOnStateUpdateTest {
             protected void stop(AugmentationFunctionRequest request) {}
 
             @Override
-            public void onStateUpdate(DigitalTwinState digitalTwinState) {
+            public void onStateDescriptionUpdate(DigitalTwinStateDescription digitalTwinStateDescription) {
+            }
+
+            @Override
+            public void onStateValuesUpdate(DigitalTwinStateValues digitalTwinStateValues) {
                 events.add("state");
             }
 

@@ -9,6 +9,7 @@ import it.wldt.adapter.physical.event.PhysicalAssetRelationshipInstanceDeletedWl
 import it.wldt.core.model.DigitalTwinModel;
 import it.wldt.core.state.*;
 import it.wldt.exception.EventBusException;
+import it.wldt.exception.WldtDigitalTwinStateException;
 import it.wldt.log.WldtLogger;
 import it.wldt.log.WldtLoggerProvider;
 import it.wldt.augmentation.error.AugmentationFunctionError;
@@ -208,11 +209,13 @@ public class DemoDigitalTwinModel extends DigitalTwinModel {
             SharedTestMetrics.getInstance().addShadowingFunctionEventNotification(this.digitalTwinStateManager.getDigitalTwinId(), physicalAssetEventWldtEvent);
 
             //Handle the received physical event notification and map into a digital notification for digital adapters
+            this.digitalTwinStateManager.startStateTransaction();
             this.digitalTwinStateManager.notifyDigitalTwinStateEvent(
                     new DigitalTwinStateEventNotification<String>(
                             physicalAssetEventWldtEvent.getPhysicalEventKey(),
                             (String)physicalAssetEventWldtEvent.getBody(),
                             System.currentTimeMillis()));
+            this.digitalTwinStateManager.commitStateTransaction();
 
         }catch (Exception e){
             e.printStackTrace();
@@ -289,7 +292,10 @@ public class DemoDigitalTwinModel extends DigitalTwinModel {
             logger.info("DigitalTwinModel onDigitalActionEvent - Event Received: {}", digitalActionWldtEvent);
             //A basic Shadowing Function simply convert each DigitalActionWldtEvent in a PhysicalAssetActionWldtEvent
             this.publishPhysicalAssetActionWldtEvent(digitalActionWldtEvent.getActionKey(), digitalActionWldtEvent.getBody());
-        } catch (EventBusException e) {
+            this.digitalTwinStateManager.startStateTransaction();
+            this.digitalTwinStateManager.notifyActionExecuted(digitalActionWldtEvent.getActionKey());
+            this.digitalTwinStateManager.commitStateTransaction();
+        } catch (EventBusException | WldtDigitalTwinStateException e) {
             e.printStackTrace();
         }
     }
