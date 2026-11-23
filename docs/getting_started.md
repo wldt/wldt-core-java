@@ -1011,21 +1011,8 @@ protected void onStateValuesUpdate(DigitalTwinStateValues values, List<DigitalTw
 The filters restrict when ```onStateValuesUpdate``` is called and which values it receives. The **content filter** (```DigitalTwinStateFilter```) lists, for each category
 (properties, actions, events and relationships), the names of the accepted resources: an unset category accepts everything, an empty list accepts nothing.
 The optional **trigger filter** (```DigitalTwinStateChangeFilter```) accepts only the changes with the given operation, resource type and/or resource name.
-They can be passed to the constructor of the adapter:
-
-```java
-public class TestDigitalAdapter extends DigitalAdapter<Void> {
-
-    public TestDigitalAdapter(String id) {
-        super(id,
-              DigitalTwinStateFilter.all().withPropertyNames("temperature"),                 // content filter
-              DigitalTwinStateChangeFilter.onPropertyValueUpdate("temperature"));            // trigger filter (null = none)
-    }
-    // ...
-}
-```
-
-or set at any time (for example in ```onDigitalTwinSync```, before the automatic observation starts); a new call replaces the previous filters:
+They are set with ```observeDigitalTwinState(filter[, changeFilter])```, typically in ```onDigitalTwinSync```: the description of the state is available there and the filters are active from the first update (the automatic observation starts right after the callback).
+They can be changed at any time; a new call replaces the previous filters:
 
 ```java
 @Override

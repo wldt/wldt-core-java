@@ -61,11 +61,6 @@ public class DigitalAdapterStateFilterTest {
             setDigitalTwinId("state-filter-test-dt");
         }
 
-        RecordingAdapter(DigitalTwinStateFilter filter, DigitalTwinStateChangeFilter changeFilter) throws Exception {
-            super("recording-adapter", filter, changeFilter);
-            setDigitalTwinId("state-filter-test-dt");
-        }
-
         void observe(DigitalTwinStateFilter filter) throws Exception {
             observeDigitalTwinState(filter);
         }
@@ -319,26 +314,6 @@ public class DigitalAdapterStateFilterTest {
         assertEquals(1, adapter.values.size());
         // Complete values even with a trigger filter
         assertEquals(2, adapter.values.get(0).getPropertyValues().size());
-    }
-
-    @Test
-    public void filtersCanBeProvidedAtConstruction() throws Exception {
-        RecordingAdapter filtered = new RecordingAdapter(DigitalTwinStateFilter.all().withPropertyNames("temp"),
-                DigitalTwinStateChangeFilter.onPropertyValueUpdate("temp"));
-        try {
-            sync(filtered);
-
-            DigitalTwinState updated = newState(DESCRIPTION_ID_0, 30, false);
-            filtered.deliverValues(delta(updated, "hum"), valueChange("hum"));
-            assertEquals(0, filtered.values.size());
-
-            filtered.deliverValues(delta(updated, "temp"), valueChange("temp"));
-            assertEquals(1, filtered.values.size());
-            assertEquals(1, filtered.values.get(0).getPropertyValues().size());
-            assertEquals(30, filtered.values.get(0).getPropertyValue("temp"));
-        } finally {
-            filtered.stopObserving();
-        }
     }
 
     @Test

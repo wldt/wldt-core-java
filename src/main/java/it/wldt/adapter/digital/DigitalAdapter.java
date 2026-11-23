@@ -139,35 +139,6 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
     }
 
     /**
-     * Creates a Digital Adapter that observes the Digital Twin State values through a content filter and a trigger filter.
-     * The filters never apply to the description of the state, that is always delivered in its entirety.
-     * @param id the id of the adapter
-     * @param configuration the configuration of the adapter
-     * @param stateFilter the content filter on the state values (null = no filter)
-     * @param stateChangeFilter the trigger filter: the values update is notified only if at least one change that
-     *                          passes the content filter also matches this filter (null = no trigger filter)
-     */
-    public DigitalAdapter(String id, C configuration, DigitalTwinStateFilter stateFilter, DigitalTwinStateChangeFilter stateChangeFilter) {
-        this(id, configuration);
-        this.stateFilter = stateFilter != null ? stateFilter : DigitalTwinStateFilter.all();
-        this.stateChangeFilter = stateChangeFilter;
-    }
-
-    /**
-     * Creates a Digital Adapter that observes the Digital Twin State values through a content filter and a trigger filter.
-     * The filters never apply to the description of the state, that is always delivered in its entirety.
-     * @param id the id of the adapter
-     * @param stateFilter the content filter on the state values (null = no filter)
-     * @param stateChangeFilter the trigger filter: the values update is notified only if at least one change that
-     *                          passes the content filter also matches this filter (null = no trigger filter)
-     */
-    public DigitalAdapter(String id, DigitalTwinStateFilter stateFilter, DigitalTwinStateChangeFilter stateChangeFilter) {
-        this(id);
-        this.stateFilter = stateFilter != null ? stateFilter : DigitalTwinStateFilter.all();
-        this.stateChangeFilter = stateChangeFilter;
-    }
-
-    /**
      * This method allows to handle the registration of the Metrics related to the Digital Adapter component in the Monitoring Interface.
      */
     private void handleMetricsRegistration() {
@@ -275,6 +246,8 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
      * </ul>
      * If the adapter is already observing the state (e.g. automatically after the DT synchronization) no additional
      * subscription is created: only the filter is replaced. A new call replaces the previous filter.
+     * The natural place to call it is {@link #onDigitalTwinSync(DigitalTwinStateDescription, DigitalTwinStateValues)},
+     * where the description of the state is available: the filter is then active from the first update.
      * @param filter the filter, null is equivalent to {@link DigitalTwinStateFilter#all()}
      * @throws EventBusException Thrown if there is an error in the EventBus subscription
      */
