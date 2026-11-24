@@ -39,7 +39,8 @@ import java.util.Optional;
  * This class represents the Query Manager responsible to handle the query request and manage the query execution.
  * It selects the target storage and delegates the execution of the {@link Query} to it
  * (see {@link WldtStorage#execute(Query)}).
- * This class is designed to be extended by the user to implement a different storage selection logic.
+ * This class is designed to be extended by the user to implement a different storage selection logic (override
+ * {@link #getTargetStorage(Query, Map)}). It also updates the monitoring metrics (STORAGE_QUERY_*) around every query.
  */
 public class QueryManager {
 
@@ -92,13 +93,34 @@ public class QueryManager {
     }
 
     /**
-     * Handle a Query allowing its execution on the target storage selected from the storage map
+     * Handle a Query allowing its execution on the target storage selected from the storage map (see
+     * {@link #getTargetStorage(Query, Map)}). The monitoring metrics (STORAGE_QUERY_*) are updated here, so every
+     * query manager that extends this class gets them without any additional code: a custom manager only overrides
+     * {@link #getTargetStorage(Query, Map)}.
      *
      * @param query Query Object
      * @param storageMap Storage Map containing the storage objects to be used for the query management
      * @return the query result, a failed result if the query cannot be executed
      */
     public QueryResult<?> handleQuery(Query query, Map<String, WldtStorage> storageMap) {
+
+        boolean monitored = monitoringInterface != null && monitoringInterface.isActive(WldtMetricComponent.STORAGE) && metricsNamespace != null;
+        long startMs = System.currentTimeMillis();
+
+        QueryResult<?> result = executeQuery(query, storageMap);
+
+        if (monitored) {
+            monitoringInterface.updateTimerSince(metricsNamespace, CoreMonitoringUtils.STORAGE_QUERY_EXEC_TIME, startMs);
+            if (result != null && result.isSuccessful())
+                monitoringInterface.increaseCounter(metricsNamespace, CoreMonitoringUtils.STORAGE_QUERY_SUCCESS_COUNT);
+            else
+                monitoringInterface.increaseCounter(metricsNamespace, CoreMonitoringUtils.STORAGE_QUERY_ERROR_COUNT);
+        }
+
+        return result;
+    }
+
+    private QueryResult<?> executeQuery(Query query, Map<String, WldtStorage> storageMap) {
 
         try {
 

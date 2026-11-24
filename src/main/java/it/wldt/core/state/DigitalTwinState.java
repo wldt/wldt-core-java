@@ -26,6 +26,7 @@ import it.wldt.log.WldtLoggerProvider;
 
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Represents the state of a digital twin, including properties, actions, events, and relationships.
@@ -64,8 +65,8 @@ public class DigitalTwinState {
         this.actions = new HashMap<>();
         this.events = new HashMap<>();
         this.relationships = new HashMap<>();
-        this.lastActionInvocations = new java.util.concurrent.ConcurrentHashMap<>();
-        this.lastEventNotifications = new java.util.concurrent.ConcurrentHashMap<>();
+        this.lastActionInvocations = new ConcurrentHashMap<>();
+        this.lastEventNotifications = new ConcurrentHashMap<>();
         this.evaluationInstant = Instant.now();
         this.descriptionId = null;
     }
@@ -86,8 +87,8 @@ public class DigitalTwinState {
         this.actions = actions;
         this.events = events;
         this.relationships = relationships;
-        this.lastActionInvocations = new java.util.concurrent.ConcurrentHashMap<>();
-        this.lastEventNotifications = new java.util.concurrent.ConcurrentHashMap<>();
+        this.lastActionInvocations = new ConcurrentHashMap<>();
+        this.lastEventNotifications = new ConcurrentHashMap<>();
         this.evaluationInstant = Instant.now();
     }
 
@@ -593,111 +594,35 @@ public class DigitalTwinState {
     }
 
     /**
-     * Builds a partial state limited to the resources accepted by the filter. Each category (properties, actions,
-     * events, relationships) is filtered independently: a null name list keeps the whole category, an empty list
-     * removes it. The resources are shared with this state (not copied). The partial state keeps the evaluation
-     * instant and the last action invocations / event notifications of this state.
-     * @param filter the content filter (null = no filter)
-     * @return this same instance if no filter is active, otherwise a new partial state
-     */
-    public DigitalTwinState filter(DigitalTwinStateFilter filter) {
-
-        if (filter == null || !filter.isActive())
-            return this;
-
-        Map<String, DigitalTwinStateProperty<?>> filteredProperties = new HashMap<>();
-        for (DigitalTwinStateProperty<?> p : safe(this.properties))
-            if (filter.acceptsProperty(p.getKey()))
-                filteredProperties.put(p.getKey(), p);
-
-        Map<String, DigitalTwinStateAction> filteredActions = new HashMap<>();
-        for (DigitalTwinStateAction a : safe(this.actions))
-            if (filter.acceptsAction(a.getKey()))
-                filteredActions.put(a.getKey(), a);
-
-        Map<String, DigitalTwinStateEvent> filteredEvents = new HashMap<>();
-        for (DigitalTwinStateEvent e : safe(this.events))
-            if (filter.acceptsEvent(e.getKey()))
-                filteredEvents.put(e.getKey(), e);
-
-        Map<String, DigitalTwinStateRelationship<?>> filteredRelationships = new HashMap<>();
-        for (DigitalTwinStateRelationship<?> r : safe(this.relationships))
-            if (filter.acceptsRelationship(r.getName()))
-                filteredRelationships.put(r.getName(), r);
-
-        DigitalTwinState filtered = new DigitalTwinState(filteredProperties, filteredActions, filteredEvents, filteredRelationships);
-        filtered.lastActionInvocations = this.lastActionInvocations;
-        filtered.lastEventNotifications = this.lastEventNotifications;
-        filtered.evaluationInstant = this.evaluationInstant;
-        filtered.descriptionId = this.descriptionId;
-        return filtered;
-    }
-
-    /**
-     * Extracts the structure (no values) of the complete state.
+     * Extracts the structure (no values) of the complete state. The description is never filtered.
      * @return the description of the state
      */
     public DigitalTwinStateDescription getDescription() {
-        return getDescription(DigitalTwinStateFilter.all());
-    }
-
-    /**
-     * Extracts the structure (no values) of the resources accepted by the filter.
-     * @param filter the content filter (null = no filter)
-     * @return the description of the state
-     */
-    public DigitalTwinStateDescription getDescription(DigitalTwinStateFilter filter) {
-
-        DigitalTwinStateFilter f = filter != null ? filter : DigitalTwinStateFilter.all();
 
         List<DigitalTwinStateDescription.PropertyDescription> propertyDescriptions = new ArrayList<>();
         for (DigitalTwinStateProperty<?> p : safe(this.properties))
-            if (f.acceptsProperty(p.getKey()))
-                propertyDescriptions.add(new DigitalTwinStateDescription.PropertyDescription(
-                        p.getKey(), p.getType(), p.getContentType(), p.isReadable(), p.isWritable(), p.isExposed()));
+            propertyDescriptions.add(new DigitalTwinStateDescription.PropertyDescription(
+                    p.getKey(), p.getType(), p.getContentType(), p.isReadable(), p.isWritable(), p.isExposed()));
 
         List<DigitalTwinStateDescription.ActionDescription> actionDescriptions = new ArrayList<>();
         for (DigitalTwinStateAction a : safe(this.actions))
-            if (f.acceptsAction(a.getKey()))
-                actionDescriptions.add(new DigitalTwinStateDescription.ActionDescription(
-                        a.getKey(), a.getType(), a.getContentType(), a.isExposed()));
+            actionDescriptions.add(new DigitalTwinStateDescription.ActionDescription(
+                    a.getKey(), a.getType(), a.getContentType(), a.isExposed()));
 
         List<DigitalTwinStateDescription.EventDescription> eventDescriptions = new ArrayList<>();
         for (DigitalTwinStateEvent e : safe(this.events))
-            if (f.acceptsEvent(e.getKey()))
-                eventDescriptions.add(new DigitalTwinStateDescription.EventDescription(
-                        e.getKey(), e.getType(), e.getContentType()));
+            eventDescriptions.add(new DigitalTwinStateDescription.EventDescription(
+                    e.getKey(), e.getType(), e.getContentType()));
 
         List<DigitalTwinStateDescription.RelationshipDescription> relationshipDescriptions = new ArrayList<>();
         for (DigitalTwinStateRelationship<?> r : safe(this.relationships))
-            if (f.acceptsRelationship(r.getName()))
-                relationshipDescriptions.add(new DigitalTwinStateDescription.RelationshipDescription(r.getName(), r.getType()));
+            relationshipDescriptions.add(new DigitalTwinStateDescription.RelationshipDescription(r.getName(), r.getType()));
 
         // Deterministic order, needed to compare two descriptions structurally
-        Collections.sort(propertyDescriptions, new Comparator<DigitalTwinStateDescription.PropertyDescription>() {
-            @Override
-            public int compare(DigitalTwinStateDescription.PropertyDescription a, DigitalTwinStateDescription.PropertyDescription b) {
-                return a.getKey().compareTo(b.getKey());
-            }
-        });
-        Collections.sort(actionDescriptions, new Comparator<DigitalTwinStateDescription.ActionDescription>() {
-            @Override
-            public int compare(DigitalTwinStateDescription.ActionDescription a, DigitalTwinStateDescription.ActionDescription b) {
-                return a.getKey().compareTo(b.getKey());
-            }
-        });
-        Collections.sort(eventDescriptions, new Comparator<DigitalTwinStateDescription.EventDescription>() {
-            @Override
-            public int compare(DigitalTwinStateDescription.EventDescription a, DigitalTwinStateDescription.EventDescription b) {
-                return a.getKey().compareTo(b.getKey());
-            }
-        });
-        Collections.sort(relationshipDescriptions, new Comparator<DigitalTwinStateDescription.RelationshipDescription>() {
-            @Override
-            public int compare(DigitalTwinStateDescription.RelationshipDescription a, DigitalTwinStateDescription.RelationshipDescription b) {
-                return a.getName().compareTo(b.getName());
-            }
-        });
+        propertyDescriptions.sort((a, b) -> a.getKey().compareTo(b.getKey()));
+        actionDescriptions.sort((a, b) -> a.getKey().compareTo(b.getKey()));
+        eventDescriptions.sort((a, b) -> a.getKey().compareTo(b.getKey()));
+        relationshipDescriptions.sort((a, b) -> a.getName().compareTo(b.getName()));
 
         return new DigitalTwinStateDescription(this.descriptionId, this.evaluationInstant,
                 propertyDescriptions, actionDescriptions, eventDescriptions, relationshipDescriptions);

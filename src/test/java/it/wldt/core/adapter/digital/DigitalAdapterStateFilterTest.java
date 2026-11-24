@@ -22,6 +22,7 @@ package it.wldt.core.adapter.digital;
 
 import it.wldt.adapter.digital.DigitalAdapter;
 import it.wldt.core.event.WldtEvent;
+import it.wldt.core.event.WldtEventBus;
 import it.wldt.core.state.*;
 import it.wldt.exception.WldtRuntimeException;
 import org.junit.jupiter.api.AfterEach;
@@ -55,6 +56,7 @@ public class DigitalAdapterStateFilterTest {
         final List<DigitalTwinStateValues> values = new ArrayList<>();
         final List<List<DigitalTwinStateChange>> valueChanges = new ArrayList<>();
         final List<String> callbacksOrder = new ArrayList<>();
+        final List<String> notifications = new ArrayList<>();
 
         RecordingAdapter() throws Exception {
             super("recording-adapter");
@@ -99,6 +101,12 @@ public class DigitalAdapterStateFilterTest {
             onEvent(event);
         }
 
+        void deliverNotification(String eventKey) throws Exception {
+            WldtEvent<DigitalTwinStateEventNotification<?>> event = new WldtEvent<>(DigitalTwinStateManager.getEventNotificationWldtEventMessageType(eventKey));
+            event.setBody(new DigitalTwinStateEventNotification<>(eventKey, "body", 0L));
+            onEvent(event);
+        }
+
         void deliverValuesWithoutChanges(DigitalTwinStateValues delta) throws Exception {
             WldtEvent<DigitalTwinStateValues> event = new WldtEvent<>(DigitalTwinStateManager.getStateValuesUpdateWldtEventMessageType());
             event.setBody(delta);
@@ -107,7 +115,7 @@ public class DigitalAdapterStateFilterTest {
 
         @Override protected void onStateDescriptionUpdate(DigitalTwinStateDescription d, List<DigitalTwinStateChange> c) { descriptions.add(d); descriptionChanges.add(c); callbacksOrder.add("description"); }
         @Override protected void onStateValuesUpdate(DigitalTwinStateValues v, List<DigitalTwinStateChange> c) { values.add(v); valueChanges.add(c); callbacksOrder.add("values"); }
-        @Override protected void onEventNotificationReceived(DigitalTwinStateEventNotification<?> n) {}
+        @Override protected void onEventNotificationReceived(DigitalTwinStateEventNotification<?> n) { notifications.add(n.getDigitalEventKey()); }
         @Override public void onAdapterStart() {}
         @Override public void onAdapterStop() {}
         @Override public void onDigitalTwinSync(DigitalTwinStateDescription d, DigitalTwinStateValues v) {}
@@ -337,5 +345,68 @@ public class DigitalAdapterStateFilterTest {
         assertEquals(0, adapter.descriptions.size());
         // The local copy is updated anyway
         assertEquals(30, adapter.currentValues().getPropertyValue("temp"));
+    }
+
+    @Test
+    public void eventNamesOfTheFilterSelectTheEventNotifications() throws Exception {
+        adapter.observe(DigitalTwinStateFilter.all().withEventNames("alarm"));
+
+        adapter.deliverNotification("info");
+        adapter.deliverNotification("alarm");
+
+        assertEquals(Arrays.asList("alarm"), adapter.notifications);
+    }
+
+    @Test
+    public void withoutEventFilterEveryEventNotificationIsDelivered() throws Exception {
+        adapter.deliverNotification("info");
+        adapter.deliverNotification("alarm");
+
+        assertEquals(Arrays.asList("info", "alarm"), adapter.notifications);
+    }
+
+    @Test
+    public void unSyncReleasesTheSubscriptionAndTheNextSyncSubscribesAgain() throws Exception {
+
+        // Real event bus: the values events are published and delivered to the adapter only while it is synchronized
+        DigitalTwinState updated = newState(DESCRIPTION_ID_0, 30, false);
+        adapter.onUnSync(adapter.currentDescription(), adapter.currentValues());
+        assertNull(adapter.currentValues());
+
+        sync(adapter);   // subscribes again and seeds the local copy again
+        assertNotNull(adapter.currentValues());
+
+        publishValues(delta(newState(DESCRIPTION_ID_0, 31, false), "temp"));
+        awaitValuesCallbacks(1);
+        assertEquals(31, adapter.values.get(0).getPropertyValue("temp"));
+
+        // Un-synchronized: no more events, the local copy is dropped
+        adapter.onUnSync(adapter.currentDescription(), adapter.currentValues());
+        publishValues(delta(updated, "temp"));
+        Thread.sleep(300);
+        assertEquals(1, adapter.values.size());
+        assertNull(adapter.currentValues());
+
+        // Synchronized again: the events are delivered again, once
+        sync(adapter);
+        publishValues(delta(newState(DESCRIPTION_ID_0, 32, false), "temp"));
+        awaitValuesCallbacks(2);
+        Thread.sleep(200);
+        assertEquals(2, adapter.values.size());
+        assertEquals(32, adapter.values.get(1).getPropertyValue("temp"));
+    }
+
+    private void publishValues(DigitalTwinStateValues delta) throws Exception {
+        WldtEvent<DigitalTwinStateValues> event = new WldtEvent<>(DigitalTwinStateManager.getStateValuesUpdateWldtEventMessageType());
+        event.setBody(delta);
+        event.putMetadata(DigitalTwinStateManager.DT_STATE_VALUES_UPDATE_METADATA_CHANGE_LIST, new ArrayList<>(Arrays.asList(valueChange("temp"))));
+        WldtEventBus.getInstance().publishEvent("state-filter-test-dt", "test-publisher", event);
+    }
+
+    private void awaitValuesCallbacks(int expected) throws Exception {
+        long deadline = System.currentTimeMillis() + 3000;
+        while (adapter.values.size() < expected && System.currentTimeMillis() < deadline)
+            Thread.sleep(10);
+        assertTrue(adapter.values.size() >= expected, "values callbacks received: " + adapter.values.size());
     }
 }

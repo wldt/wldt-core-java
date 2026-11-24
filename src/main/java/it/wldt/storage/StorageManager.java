@@ -60,6 +60,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 /**
  *
@@ -84,6 +86,9 @@ public class StorageManager extends DigitalTwinWorker implements IWldtEventObser
 
     // The WldtEventObserver instance
     private WldtEventObserver wldtEventObserver;
+
+    // Released when the worker has finished subscribing to the event bus (also if the subscription failed)
+    private final CountDownLatch observerReadyLatch = new CountDownLatch(1);
 
     private MonitoringInterface monitoringInterface;
 
@@ -119,6 +124,21 @@ public class StorageManager extends DigitalTwinWorker implements IWldtEventObser
         this.queryManager = new DefaultQueryManager(this.digitalTwinId);
 
         logger.info("StorageManager created for the DigitalTwin with id: {}", digitalTwinId);
+    }
+
+    /**
+     * Waits until the storage manager worker has subscribed to the event bus. The worker runs in its own thread:
+     * the events published before the subscription (e.g. the CREATED life cycle event) would not reach the storage manager.
+     * @param timeoutMs the maximum time to wait
+     * @return true if the storage manager is listening, false if the timeout expired or the thread was interrupted
+     */
+    public boolean awaitObserverReady(long timeoutMs) {
+        try {
+            return observerReadyLatch.await(timeoutMs, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return false;
+        }
     }
 
     public void setMonitoringInterface(MonitoringInterface monitoringInterface) {
@@ -197,6 +217,8 @@ public class StorageManager extends DigitalTwinWorker implements IWldtEventObser
 
         }catch (Exception e){
             logger.error("Error initializing the StorageManager WldtEventObserver ! Error: {}", e.getLocalizedMessage());
+        } finally {
+            observerReadyLatch.countDown();
         }
     }
 
@@ -742,6 +764,11 @@ public class StorageManager extends DigitalTwinWorker implements IWldtEventObser
     /**
      * Method to be implemented by subclasses.
      * Defines the logic to be executed when a Query is received.
+     * <p>
+     * <b>Threading:</b> the Storage Manager has a single subscription (and so a single event bus thread) for all the
+     * events it observes: the queries run on the same thread that saves the state updates and the other events.
+     * A slow query delays the saving of the events that arrive in the meantime (they are queued, nothing is lost),
+     * and a slow save delays the queries.
      *
      * @param wldtEvent The Query event received by the observer.
      */

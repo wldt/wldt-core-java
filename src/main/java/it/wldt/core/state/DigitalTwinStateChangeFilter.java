@@ -28,14 +28,29 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Immutable rule used as a <b>trigger filter</b> on the Digital Twin State changes: a stateful augmentation function
- * is notified of a state update only if at least one {@link DigitalTwinStateChange} of the update matches
- * one of its rules.
+ * Immutable rule used as a <b>trigger filter</b> on the Digital Twin State changes: a Digital Adapter or a stateful
+ * augmentation function is notified of a values update only if at least one {@link DigitalTwinStateChange} of the
+ * update matches the rule (an augmentation function can define several rules: it is notified if one of them matches).
  * <p>
- * A rule is made of three optional criteria (operations, resource types, resource names). An empty criterion is a
- * wildcard, and all the non-empty criteria must be satisfied by the change (AND). For example
+ * A rule is made of three optional criteria (operations, resource types, resource names):
+ * <ul>
+ *     <li>inside a criterion the values are alternatives (<b>OR</b>): {@code {ADD, UPDATE}} accepts both operations;</li>
+ *     <li>an empty criterion is a wildcard;</li>
+ *     <li>all the non-empty criteria must be satisfied by the change (<b>AND</b> between the criteria).</li>
+ * </ul>
+ * The rule is therefore a cross product: {@code {OPERATION_UPDATE_VALUE, OPERATION_ADD} x {PROPERTY_VALUE, EVENT} x {"temperature", "alarm"}}
+ * accepts any combination of the three sets. The names are not tied to a resource type: the example above also
+ * accepts an event called "temperature" or a property called "alarm", if they exist. To pair a type with a name
+ * exactly, use several rules (where several rules are supported).
+ * <p>
+ * For example
  * {@code DigitalTwinStateChangeFilter.builder().operations(OPERATION_UPDATE_VALUE).resourceTypes(PROPERTY_VALUE).resourceNames("temperature").build()}
  * matches only value updates of the property "temperature".
+ * <p>
+ * <b>Not to be confused with</b> the other filters of the library, that have different purposes: the
+ * {@link DigitalTwinStateFilter} (content filter, by name, of the values delivered to a component), the
+ * {@link it.wldt.core.event.WldtEventFilter} (event types of an event bus subscription) and the
+ * {@link it.wldt.storage.query.filter.Filter} (conditions of a storage query).
  */
 public final class DigitalTwinStateChangeFilter {
 

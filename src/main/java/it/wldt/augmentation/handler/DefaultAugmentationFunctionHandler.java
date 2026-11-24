@@ -32,7 +32,6 @@ import it.wldt.exception.AugmentationFunctionException;
 import it.wldt.log.WldtLogger;
 import it.wldt.log.WldtLoggerProvider;
 import it.wldt.augmentation.context.AugmentationFunctionContextRequest;
-import it.wldt.augmentation.context.DigitalTwinStateFilterUtils;
 import it.wldt.storage.query.Query;
 import it.wldt.storage.query.QueryResult;
 
@@ -198,18 +197,13 @@ public class DefaultAugmentationFunctionHandler extends AugmentationFunctionHand
      */
     @Override
     protected void onEventNotificationReceived(ArrayList<StatefulAugmentationFunction> statefulAugmentationFunctions, DigitalTwinStateEventNotification<?> digitalTwinStateEventNotification) {
-        // The handler should notify active Stateful Augmentation Function about the State Event Notification update,
+        // The list already contains only the functions that observe the event notifications and accept this event
+        // (the filters are applied by the base class): the handler delivers the notification to each of them,
         // so that they can update their internal state and generate new results if needed
         for(StatefulAugmentationFunction statefulAugmentationFunction : statefulAugmentationFunctions) {
             try {
-                AugmentationFunctionContextRequest contextRequest = statefulAugmentationFunction.getContextRequest();
-                if (contextRequest != null && !contextRequest.isObserveEventNotifications())
-                    continue;
-                if (!DigitalTwinStateFilterUtils.shouldDeliverEventNotification(contextRequest, digitalTwinStateEventNotification))
-                    continue;
-
                 statefulAugmentationFunction.onEventNotificationReceived(digitalTwinStateEventNotification);
-            } catch (AugmentationFunctionException e) {
+            } catch (Exception e) {
                 // Log the error and continue with the next augmentation function
                 logger.error(String.format("Error while notifying event notification to augmentation function with id %s: %s", statefulAugmentationFunction.getId(), e.getMessage()));
             }

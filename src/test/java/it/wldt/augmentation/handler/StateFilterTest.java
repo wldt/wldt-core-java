@@ -21,7 +21,6 @@
 package it.wldt.augmentation.handler;
 
 import it.wldt.augmentation.context.AugmentationFunctionContextRequest;
-import it.wldt.augmentation.context.DigitalTwinStateFilterUtils;
 import it.wldt.augmentation.function.StatefulAugmentationFunction;
 import it.wldt.augmentation.request.AugmentationFunctionRequest;
 import it.wldt.core.state.*;
@@ -67,7 +66,7 @@ public class StateFilterTest {
         }
 
         void notification(StatefulAugmentationFunction f, String key) {
-            onEventNotificationReceived(new ArrayList<>(Collections.singletonList(f)),
+            notifyEventNotification(new ArrayList<>(Collections.singletonList(f)),
                     new DigitalTwinStateEventNotification<>(key, "body", 0L));
         }
     }
@@ -168,10 +167,7 @@ public class StateFilterTest {
     @Test
     public void contentFilterSelectsPerCategory() throws Exception {
         TestHandler handler = new TestHandler();
-        StatefulAugmentationFunction f = function(new AugmentationFunctionContextRequest()
-                .withPropertyNameFilter("temp")
-                .withActionNameFilter()
-                .withRelationshipNameFilter("near", "inside"));
+        StatefulAugmentationFunction f = function(new AugmentationFunctionContextRequest().withStateFilter(DigitalTwinStateFilter.all().withPropertyNames("temp").withActionNames().withRelationshipNames("near", "inside")));
 
         handler.state(f, fullState().getValues(), null);
 
@@ -186,10 +182,9 @@ public class StateFilterTest {
     @Test
     public void contentFilterOnStatelessContextHelper() throws Exception {
         DigitalTwinStateValues values = fullState().getValues();
-        assertSame(values, DigitalTwinStateFilterUtils.filterValues(values, new AugmentationFunctionContextRequest()));
-        assertSame(values, DigitalTwinStateFilterUtils.filterValues(values, null));
-
-        DigitalTwinStateValues filtered = DigitalTwinStateFilterUtils.filterValues(values, new AugmentationFunctionContextRequest().withEventNameFilter("alarm"));
+        assertSame(values, new AugmentationFunctionContextRequest().filterValues(values));
+        
+        DigitalTwinStateValues filtered = new AugmentationFunctionContextRequest().withStateFilter(DigitalTwinStateFilter.all().withEventNames("alarm")).filterValues(values);
         assertEquals(1, filtered.getLastEventNotifications().size());
         assertEquals(2, filtered.getPropertyValues().size());
         assertEquals("1_0", filtered.getDescriptionId());
@@ -201,9 +196,7 @@ public class StateFilterTest {
         DigitalTwinStateDescription description = fullState().getDescription();
 
         // Content and trigger filters apply only to the values: the complete description is always delivered
-        StatefulAugmentationFunction filtered = function(new AugmentationFunctionContextRequest()
-                .withPropertyNameFilter("temp")
-                .withActionNameFilter()
+        StatefulAugmentationFunction filtered = function(new AugmentationFunctionContextRequest().withStateFilter(DigitalTwinStateFilter.all().withPropertyNames("temp").withActionNames())
                 .withStateChangeFilters(DigitalTwinStateChangeFilter.onPropertyValueUpdate("temp")));
 
         handler.description(filtered, description, changes(new DigitalTwinStateChange(OPERATION_ADD, PROPERTY, new DigitalTwinStateProperty<>("hum", 2))));
@@ -218,7 +211,7 @@ public class StateFilterTest {
     @Test
     public void eventNotificationsFilteredByName() {
         TestHandler handler = new TestHandler();
-        StatefulAugmentationFunction f = function(new AugmentationFunctionContextRequest().withEventNameFilter("alarm"));
+        StatefulAugmentationFunction f = function(new AugmentationFunctionContextRequest().withStateFilter(DigitalTwinStateFilter.all().withEventNames("alarm")));
 
         handler.notification(f, "info");
         handler.notification(f, "alarm");

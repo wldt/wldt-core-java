@@ -39,8 +39,8 @@ public class DigitalTwinStateChangeClassificationTest {
                               boolean description,
                               boolean values) throws Exception {
         DigitalTwinStateChange c = change(operation, type);
-        assertEquals(description, DigitalTwinStateFilter.isDescriptionChange(c), "isDescriptionChange " + operation + " " + type);
-        assertEquals(values, DigitalTwinStateFilter.isValueChange(c), "isValueChange " + operation + " " + type);
+        assertEquals(description, c.isDescriptionChange(), "isDescriptionChange " + operation + " " + type);
+        assertEquals(values, c.isValueChange(), "isValueChange " + operation + " " + type);
     }
 
     @Test
@@ -68,7 +68,7 @@ public class DigitalTwinStateChangeClassificationTest {
     @Test
     public void updateValueIsNeverADescriptionChange() throws Exception {
         for (DigitalTwinStateChange.ResourceType type : DigitalTwinStateChange.ResourceType.values())
-            assertFalse(DigitalTwinStateFilter.isDescriptionChange(change(OPERATION_UPDATE_VALUE, type)), "UPDATE_VALUE " + type);
+            assertFalse(change(OPERATION_UPDATE_VALUE, type).isDescriptionChange(), "UPDATE_VALUE " + type);
 
         check(OPERATION_UPDATE_VALUE, PROPERTY_VALUE, false, true);
         check(OPERATION_UPDATE_VALUE, PROPERTY, false, true);
@@ -81,8 +81,15 @@ public class DigitalTwinStateChangeClassificationTest {
     }
 
     @Test
-    public void nullChangeIsNeither() {
-        assertFalse(DigitalTwinStateFilter.isDescriptionChange(null));
-        assertFalse(DigitalTwinStateFilter.isValueChange(null));
+    public void changeListHelpersKeepOrderAndHandleNull() throws Exception {
+        DigitalTwinStateChange add = change(OPERATION_ADD, PROPERTY);                 // description + value
+        DigitalTwinStateChange remove = change(OPERATION_REMOVE, PROPERTY);           // description only
+        DigitalTwinStateChange update = change(OPERATION_UPDATE_VALUE, PROPERTY_VALUE); // value only
+        java.util.List<DigitalTwinStateChange> all = java.util.Arrays.asList(add, remove, update);
+
+        assertEquals(java.util.Arrays.asList(add, remove), DigitalTwinStateChange.descriptionChanges(all));
+        assertEquals(java.util.Arrays.asList(add, update), DigitalTwinStateChange.valueChanges(all));
+        assertTrue(DigitalTwinStateChange.descriptionChanges(null).isEmpty());
+        assertTrue(DigitalTwinStateChange.valueChanges(null).isEmpty());
     }
 }

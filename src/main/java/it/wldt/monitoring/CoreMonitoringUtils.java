@@ -198,7 +198,15 @@ public class CoreMonitoringUtils {
 
     public static final String AF_HANDLER_REGISTERED_STATEFUL_COUNT = "af_handler_registered_stateful_count";
 
-    // Augmentation Function - Handler Level - State Update Dispatch
+    // Augmentation Function - Handler Level - State Description Update Dispatch (structure of the state)
+    public static final String AF_FUNCTION_STATE_DESCRIPTION_UPDATE_EXEC_TIME = "af_function_state_description_update_exec_time";
+
+    public static final String AF_FUNCTION_STATE_DESCRIPTION_UPDATE_SUCCESS_COUNT = "af_function_state_description_update_success_count";
+
+    public static final String AF_FUNCTION_STATE_DESCRIPTION_UPDATE_ERROR_COUNT = "af_function_state_description_update_error_count";
+
+    // Augmentation Function - Handler Level - State Values Update Dispatch (the metrics that in the previous
+    // versions counted the state updates: from 0.9.0 they count the values updates)
     public static final String AF_FUNCTION_STATE_UPDATE_EXEC_TIME = "af_function_state_update_exec_time";
 
     public static final String AF_FUNCTION_STATE_UPDATE_SUCCESS_COUNT = "af_function_state_update_success_count";

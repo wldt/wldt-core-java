@@ -149,6 +149,11 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
     private Thread modelEngineThread = null;
 
     /**
+     * Maximum time to wait for the Storage Manager to subscribe to the event bus when it is executed
+     */
+    private static final long STORAGE_MANAGER_READY_TIMEOUT_MS = 5000;
+
+    /**
      * Thread for the Storage Manager Execution
      */
     private Thread storageManagerThread = null;
@@ -338,6 +343,11 @@ public class DigitalTwin implements ShadowingModelListener, PhysicalAdapterListe
         storageManagerThread = new Thread(this.storageManager);
         storageManagerThread.setName(String.format("%s-storage-manager", this.getId()));
         storageManagerThread.start();
+
+        // The worker subscribes to the event bus in its own thread: wait for it, so that the storage manager is listening
+        // before the first life cycle event (CREATED) is published
+        if (!this.storageManager.awaitObserverReady(STORAGE_MANAGER_READY_TIMEOUT_MS))
+            logger.warn("[WLDT-DigitalTwin] The Storage Manager is not listening to the event bus yet, the first events could not be stored");
     }
 
     /**

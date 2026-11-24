@@ -24,6 +24,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -43,7 +44,7 @@ import java.util.Set;
  * {@link #getDescriptionId()}.
  * <p>
  * On the event bus the values travel as a <b>delta</b>: only the values changed by a state update are present.
- * Components that keep a local copy of the values merge the delta with {@link #applyUpdate(DigitalTwinStateValues, List)}.
+ * Components that keep a local copy of the values merge the delta with {@link #applyUpdate(DigitalTwinStateValues)}.
  * <p>
  * Use {@link DigitalTwinStateManager#getDigitalTwinStateValues()} to obtain the current complete values.
  * The structure is available through {@link DigitalTwinStateDescription}.
@@ -183,10 +184,9 @@ public final class DigitalTwinStateValues {
      * The removal of a property, relationship, action or event is not carried by a values update: it is applied by
      * {@link #alignTo(DigitalTwinStateDescription)} when the new description is received.
      * @param delta the delta carried by the values update event
-     * @param changes the changes of the state update (not used to merge the delta, kept for symmetry with the event, may be null)
      * @return the new complete values
      */
-    public DigitalTwinStateValues applyUpdate(DigitalTwinStateValues delta, List<DigitalTwinStateChange> changes) {
+    public DigitalTwinStateValues applyUpdate(DigitalTwinStateValues delta) {
 
         if (delta == null)
             return this;
@@ -208,7 +208,8 @@ public final class DigitalTwinStateValues {
     /**
      * Aligns these values to a new description: the values of the resources that are not defined anymore by the
      * description (removed properties, relationships, actions and events) are dropped and the description id is
-     * replaced with the one of the description.
+     * replaced with the one of the description. The evaluation instant becomes the one of the description (the
+     * moment of the structural change) if it is later than the instant of these values.
      * @param description the new description
      * @return the aligned values (a new object)
      */
@@ -217,19 +218,19 @@ public final class DigitalTwinStateValues {
         if (description == null)
             return this;
 
-        Set<String> propertyKeys = new java.util.HashSet<>();
+        Set<String> propertyKeys = new HashSet<>();
         for (DigitalTwinStateDescription.PropertyDescription p : description.getProperties())
             propertyKeys.add(p.getKey());
 
-        Set<String> relationshipNames = new java.util.HashSet<>();
+        Set<String> relationshipNames = new HashSet<>();
         for (DigitalTwinStateDescription.RelationshipDescription r : description.getRelationships())
             relationshipNames.add(r.getName());
 
-        Set<String> actionKeys = new java.util.HashSet<>();
+        Set<String> actionKeys = new HashSet<>();
         for (DigitalTwinStateDescription.ActionDescription a : description.getActions())
             actionKeys.add(a.getKey());
 
-        Set<String> eventKeys = new java.util.HashSet<>();
+        Set<String> eventKeys = new HashSet<>();
         for (DigitalTwinStateDescription.EventDescription e : description.getEvents())
             eventKeys.add(e.getKey());
 
@@ -245,7 +246,14 @@ public final class DigitalTwinStateValues {
         Map<String, Instant> events = new HashMap<>(this.lastEventNotifications);
         events.keySet().retainAll(eventKeys);
 
-        return new DigitalTwinStateValues(description.getId(), this.evaluationInstant,
+        // The aligned values are valid from the structural change that produced the description: they take its
+        // evaluation instant (never an instant earlier than the one of these values)
+        Instant alignedInstant = this.evaluationInstant;
+        if (description.getEvaluationInstant() != null
+                && (alignedInstant == null || description.getEvaluationInstant().isAfter(alignedInstant)))
+            alignedInstant = description.getEvaluationInstant();
+
+        return new DigitalTwinStateValues(description.getId(), alignedInstant,
                 properties, relationships, actions, events);
     }
 

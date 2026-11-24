@@ -242,7 +242,11 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
      *   <li>{@link #onStateValuesUpdate(DigitalTwinStateValues, List)} receives the values of the accepted resources,
      *   if at least one accepted value changed;</li>
      *   <li>{@link #onStateDescriptionUpdate(DigitalTwinStateDescription, List)} is <b>never</b> filtered: it receives the
-     *   complete description every time the structure of the state changes.</li>
+     *   complete description every time the structure of the state changes;</li>
+     *   <li>the event names of the filter also select the event notifications delivered to
+     *   {@link #onEventNotificationReceived(DigitalTwinStateEventNotification)}: the notifications of the events that
+     *   the filter does not accept are discarded (the subscription to the notifications is still defined with the
+     *   {@code observe*EventNotification(s)} methods).</li>
      * </ul>
      * If the adapter is already observing the state (e.g. automatically after the DT synchronization) no additional
      * subscription is created: only the filter is replaced. A new call replaces the previous filter.
@@ -292,9 +296,6 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
         WldtEventFilter wldtEventFilter = new WldtEventFilter();
         wldtEventFilter.add(DigitalTwinStateManager.getStateDescriptionUpdateWldtEventMessageType());
         wldtEventFilter.add(DigitalTwinStateManager.getStateValuesUpdateWldtEventMessageType());
-
-        //Save the adopted EventFilter
-        this.statePropertiesWldtEventFilter = wldtEventFilter;
 
         WldtEventBus.getInstance().unSubscribe(this.digitalTwinId, this.id, wldtEventFilter, this);
         this.stateObserved = false;
@@ -534,6 +535,11 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
      * event or relationship has been added, updated or removed. It is never filtered, neither for the triggering nor
      * for the content: the adapter always receives the complete new description, even if filters are configured on
      * the values.
+     * <p>
+     * <b>Threading:</b> the callback runs on the event bus thread of the adapter while holding the monitor of the
+     * local copy of the state. A callback that takes long, or that keeps a lock needed by other threads, blocks the
+     * delivery of the following state events (and the access to {@link #getDigitalTwinStateValues()}).
+     * Failures are logged and counted in the monitoring metrics, and do not stop the following callbacks.
      * @param description the complete current description of the state (it has a unique id)
      * @param descriptionChanges the changes of the update that altered the description
      */
@@ -547,6 +553,11 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
      * description. If a content filter ({@link DigitalTwinStateFilter}) and/or a trigger filter
      * ({@link DigitalTwinStateChangeFilter}) is configured, only the changes that pass them trigger the method and
      * the values are limited to the accepted resources.
+     * <p>
+     * <b>Threading:</b> the callback runs on the event bus thread of the adapter while holding the monitor of the
+     * local copy of the state. A callback that takes long, or that keeps a lock needed by other threads, blocks the
+     * delivery of the following state events (and the access to {@link #getDigitalTwinStateValues()}).
+     * Failures are logged and counted in the monitoring metrics, and do not stop the following callbacks.
      * @param values the current values (limited to the accepted resources if a filter is configured)
      * @param relevantChanges the changes of the update that altered the values (and pass the configured filters)
      */
@@ -607,6 +618,10 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
             if(getDigitalAdapterListener() != null)
                 getDigitalAdapterListener().onDigitalAdapterUnBound(getId(), e.getLocalizedMessage());
             throw new WldtRuntimeException(e.getLocalizedMessage());
+        } finally {
+            // Release the subscription of the Query Executor to the event bus
+            if(this.queryExecutor != null)
+                this.queryExecutor.close();
         }
     }
 
@@ -692,11 +707,13 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
             long startMs = System.currentTimeMillis();
             try {
 
-                // Call the actual function to handle the event (implemented by the developer)
-                processDigitalTwinStateUpdateEvent(wldtEvent);
+                // Call the actual function to handle the event (the callbacks implemented by the developer are
+                // notified inside: their failures are already counted as errors there)
+                boolean allCallbacksSucceeded = processDigitalTwinStateUpdateEvent(wldtEvent);
 
                 // Increase Success Counter
-                this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.DIGITAL_ADAPTER_STATE_UPDATE_SUCCESS_COUNT, metricsInstanceId);
+                if(allCallbacksSucceeded)
+                    this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.DIGITAL_ADAPTER_STATE_UPDATE_SUCCESS_COUNT, metricsInstanceId);
             }
             catch (Exception e){
                 String errorMessage = String.format("handleDigitalTwinStateEvent Error Processing DT State Update Event: %s", e.getLocalizedMessage());
@@ -721,6 +738,10 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
      *                                         the notification associated to the Digital Twin State Event to be processed
      */
     private void handleEventNotification(DigitalTwinStateEventNotification<?> digitalTwinStateEventNotification){
+
+        // The event names of the content filter select the notifications delivered to the adapter
+        if(!this.stateFilter.acceptsEvent(digitalTwinStateEventNotification.getDigitalEventKey()))
+            return;
 
         // Check if the Monitoring Interface is configured and has the handler configured
         if(this.monitoringInterface == null || !this.monitoringInterface.isActive(WldtMetricComponent.DIGITAL_ADAPTER)){
@@ -764,8 +785,11 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
      * description and values callbacks, in order. The description is never filtered, the values are limited by the
      * configured filters. A failure in one callback does not prevent the following ones from being notified.
      * @param wldtEvent the description update event or the values update event
+     * @return true if every notified callback completed without errors
      */
-    private void processDigitalTwinStateUpdateEvent(WldtEvent<?> wldtEvent){
+    private boolean processDigitalTwinStateUpdateEvent(WldtEvent<?> wldtEvent){
+
+        boolean allCallbacksSucceeded = true;
 
         // The monitor of the replica keeps the callbacks ordered even if the events are delivered by different threads
         synchronized (this.stateReplica) {
@@ -773,30 +797,44 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
             if(wldtEvent.getBody() instanceof DigitalTwinStateDescription) {
 
                 if(this.stateReplica.applyDescriptionEvent(wldtEvent)) {
-                    notifyDescriptionUpdate(this.stateReplica.getDescription(), DigitalTwinStateManager.getDescriptionChanges(wldtEvent));
+                    allCallbacksSucceeded &= notifyDescriptionUpdate(this.stateReplica.getDescription(), DigitalTwinStateManager.getDescriptionChanges(wldtEvent));
 
                     // Values events that were waiting for this description, one at a time, in arrival order
                     WldtEvent<?> pendingEvent;
                     while((pendingEvent = this.stateReplica.applyNextPendingValues()) != null)
-                        notifyValuesUpdate(this.stateReplica.getValues(), DigitalTwinStateManager.getValuesChanges(pendingEvent));
+                        allCallbacksSucceeded &= notifyValuesUpdate(this.stateReplica.getValues(), DigitalTwinStateManager.getValuesChanges(pendingEvent));
                 }
 
             } else if(this.stateReplica.applyValuesEvent(wldtEvent)) {
-                notifyValuesUpdate(this.stateReplica.getValues(), DigitalTwinStateManager.getValuesChanges(wldtEvent));
+                allCallbacksSucceeded &= notifyValuesUpdate(this.stateReplica.getValues(), DigitalTwinStateManager.getValuesChanges(wldtEvent));
             }
         }
+
+        return allCallbacksSucceeded;
+    }
+
+    /**
+     * Counts a failure of a state callback in the monitoring metrics (if the monitoring is active)
+     */
+    private void increaseStateUpdateErrorCount() {
+        if(this.monitoringInterface != null && this.monitoringInterface.isActive(WldtMetricComponent.DIGITAL_ADAPTER))
+            this.monitoringInterface.increaseCounter(this.metricsNamespace, CoreMonitoringUtils.DIGITAL_ADAPTER_STATE_UPDATE_ERROR_COUNT, metricsInstanceId);
     }
 
     /**
      * Notifies the description callback (the description is never filtered)
      * @param newDescription the complete description after the update
      * @param changes the description changes
+     * @return true if the callback completed without errors
      */
-    private void notifyDescriptionUpdate(DigitalTwinStateDescription newDescription, List<DigitalTwinStateChange> changes) {
+    private boolean notifyDescriptionUpdate(DigitalTwinStateDescription newDescription, List<DigitalTwinStateChange> changes) {
         try {
             onStateDescriptionUpdate(newDescription, changes);
+            return true;
         } catch (Exception e) {
             logger.error("Digital Adapter ({}) -> Error in onStateDescriptionUpdate: {}", this.id, e.getLocalizedMessage());
+            increaseStateUpdateErrorCount();
+            return false;
         }
     }
 
@@ -804,15 +842,16 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
      * Notifies the values callback if at least one change passes the content and trigger filters
      * @param newValues the complete (unfiltered) values after the update
      * @param changes the changes of the update
+     * @return true if the callback completed without errors (or was not notified)
      */
-    private void notifyValuesUpdate(DigitalTwinStateValues newValues, List<DigitalTwinStateChange> changes) {
+    private boolean notifyValuesUpdate(DigitalTwinStateValues newValues, List<DigitalTwinStateChange> changes) {
 
         DigitalTwinStateFilter filter = this.stateFilter;
         DigitalTwinStateChangeFilter changeFilter = this.stateChangeFilter;
 
         List<DigitalTwinStateChange> relevantChanges = new ArrayList<>();
         for(DigitalTwinStateChange change : changes)
-            if(DigitalTwinStateFilter.isValueChange(change)
+            if(change.isValueChange()
                     && filter.accepts(change)
                     && (changeFilter == null || changeFilter.matches(change)))
                 relevantChanges.add(change);
@@ -822,8 +861,12 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
                 onStateValuesUpdate(newValues.filter(filter), relevantChanges);
             } catch (Exception e) {
                 logger.error("Digital Adapter ({}) -> Error in onStateValuesUpdate: {}", this.id, e.getLocalizedMessage());
+                increaseStateUpdateErrorCount();
+                return false;
             }
         }
+
+        return true;
     }
 
     @Override
@@ -881,7 +924,18 @@ public abstract class DigitalAdapter<C> extends DigitalTwinWorker implements Wld
     public void onUnSync(DigitalTwinStateDescription digitalTwinStateDescription, DigitalTwinStateValues digitalTwinStateValues) {
         logger.debug("Digital Adapter ({}) Received DT unSync callback ...", this.id);
         onDigitalTwinUnSync(digitalTwinStateDescription, digitalTwinStateValues);
-        this.stateReplica.clear();
+
+        // While the DT is not synchronized the adapter does not follow the state: the subscription to the state topics
+        // is released and the local copy dropped. The next sync seeds the copy again and subscribes again.
+        try {
+            unObserveDigitalTwinState();
+        } catch (Exception e) {
+            logger.error("Digital Adapter ({}) -> Error unobserving the DT State at unSync: {}", this.id, e.getLocalizedMessage());
+        }
+
+        synchronized (this.stateReplica) {
+            this.stateReplica.clear();
+        }
     }
 
     @Override

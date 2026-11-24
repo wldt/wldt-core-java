@@ -21,6 +21,7 @@
 package it.wldt.storage.model.state;
 
 import it.wldt.core.state.DigitalTwinStateDescription;
+import it.wldt.storage.model.StorageRecord;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -40,7 +41,7 @@ import java.util.Map;
  * the selected rows. A description without selected values is present with an empty values list only when it has
  * no stored values at all.
  */
-public class DigitalTwinStateHistoryRecord extends it.wldt.storage.model.StorageRecord {
+public class DigitalTwinStateHistoryRecord extends StorageRecord {
 
     // Entries by description id, in the order of the selected rows
     private final Map<String, DigitalTwinStateHistoryEntry> entries = new LinkedHashMap<>();

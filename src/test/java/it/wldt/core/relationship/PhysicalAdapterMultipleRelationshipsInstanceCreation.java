@@ -18,6 +18,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -84,6 +85,9 @@ public class PhysicalAdapterMultipleRelationshipsInstanceCreation {
         DigitalTwinEngine digitalTwinEngine = new DigitalTwinEngine();
 
         digitalTwinEngine.addDigitalTwin(dt, true);
+
+        // The start of the Digital Twin does not wait for the adapters anymore: wait for the synchronization
+        assertTrue(syncLatch.await(5000, TimeUnit.MILLISECONDS), "The Digital Twin has not been synchronized in time");
 
         physicalAdapter.simulateRelationshipInstanceEvent(RelationshipPhysicalAdapter.RELATIONSHIP_CONTAINS_NAME, DT_TARGET1_NAME, true);
         physicalAdapter.simulateRelationshipInstanceEvent(RelationshipPhysicalAdapter.RELATIONSHIP_CONTAINS_NAME, DT_TARGET2_NAME, true);

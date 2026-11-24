@@ -820,7 +820,7 @@ Available callbacks can be summarized as follows:
       The current description and values of the state are passed as parameters to allow the Digital Adapter to know the current state and consequently
       implement its behaviour
     - ```onDigitalTwinUnSync(DigitalTwinStateDescription digitalTwinStateDescription, DigitalTwinStateValues digitalTwinStateValues)```: The DT is not synchronized anymore with its physical counterpart.
-      The last known description and values are passed as parameters
+      The last known description and values are passed as parameters. While the DT is not synchronized the adapter does not follow the state: it is unsubscribed from the state topics and its local copy is dropped, and at the next synchronization the copy is initialized again and the subscription is renewed
     - ```onDigitalTwinStop()```: The DT is stopped
     - ```onDigitalTwinDestroy()```: The DT has been destroyed and the application stopped
 - Digital Twin State Variation (see [Observing the Digital Twin State](#observing-the-digital-twin-state)):
@@ -988,6 +988,8 @@ the adapter applies each of them to its local, complete copy of the state and th
 
 The adapter receives the complete values at every call, even if the event carries only the changed ones: the delta is merged with its local copy, that is always updated even when the callback is filtered out.
 
+> **Threading:** the state callbacks run on the event bus thread of the adapter, one at a time and in order, while holding the monitor of the local copy of the state. A callback that takes long, or that keeps a lock needed by other threads, blocks the arrival of the following state events (and the access to `getDigitalTwinStateValues()`). An exception thrown by a callback is logged and counted in the monitoring metrics (`da_state_update_processing_exec_error_count`) and does not stop the following callbacks.
+
 ```java
 @Override
 protected void onStateDescriptionUpdate(DigitalTwinStateDescription description, List<DigitalTwinStateChange> descriptionChanges) {
@@ -1043,6 +1045,12 @@ With the first filter of the example above:
 - ```onStateDescriptionUpdate``` is not affected by the filters.
 
 ```clearStateFilter()``` removes both filters.
+
+The event names of the content filter also select the **event notifications** delivered to ```onEventNotificationReceived```: the notifications of the events that the filter does not accept are discarded (the notifications to receive are still chosen with the ```observe*EventNotification(s)``` methods).
+
+A ```DigitalTwinStateChangeFilter``` rule is a cross product: inside each criterion (operations, resource types, names) the values are alternatives (OR), and the criteria are AND-ed. For example ```{OPERATION_UPDATE_VALUE} x {PROPERTY_VALUE, EVENT} x {"temperature", "alarm"}``` accepts any combination of the three sets (the names are not tied to a resource type). An adapter has one content filter and one trigger rule; the filters can be composed by listing several names and types in them.
+
+The library has four unrelated "filters": ```DigitalTwinStateFilter``` (which values), ```DigitalTwinStateChangeFilter``` (which changes trigger the callback), ```WldtEventFilter``` (event types of an event bus subscription) and the ```Filter``` of the storage queries.
 
 #### Description and values of the DT's State
 

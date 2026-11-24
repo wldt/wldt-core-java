@@ -584,10 +584,7 @@ to prepare the appropriate context.
 public class AugmentationFunctionContextRequest {
     private boolean observeState;
     private boolean observeEventNotifications;
-    private List<String> propertyNameFilter;        // content filter, null = all
-    private List<String> actionNameFilter;          // content filter, null = all
-    private List<String> eventNameFilter;           // content filter, null = all
-    private List<String> relationshipNameFilter;    // content filter, null = all
+    private DigitalTwinStateFilter stateFilter;     // content filter, default = accepts everything
     private List<DigitalTwinStateChangeFilter> stateChangeFilters;   // trigger filter, null/empty = every update
     private Query query;
     private boolean refreshQueryOnStateUpdate;   // default false
@@ -600,10 +597,7 @@ public class AugmentationFunctionContextRequest {
 |-------|------|---------|-------------|
 | `observeState` | `boolean` | `true` | Whether the function wants to observe DT state changes |
 | `observeEventNotifications` | `boolean` | `true` | Whether the function wants to observe DT event notifications |
-| `propertyNameFilter` | `List<String>` | `null` | Content filter: properties delivered to the function (null = all, empty = none) |
-| `actionNameFilter` | `List<String>` | `null` | Content filter: actions delivered to the function (null = all, empty = none) |
-| `eventNameFilter` | `List<String>` | `null` | Content filter: events in the state **and** event notifications delivered (null = all, empty = none) |
-| `relationshipNameFilter` | `List<String>` | `null` | Content filter: relationships delivered to the function (null = all, empty = none) |
+| `stateFilter` | `DigitalTwinStateFilter` | `DigitalTwinStateFilter.all()` | Content filter by name (properties, actions, events, relationships; per category null = all, empty = none). The event names also select the event notifications delivered |
 | `stateChangeFilters` | `List<DigitalTwinStateChangeFilter>` | `null` | Trigger filter (stateful only): a state update is pushed only if one of its changes matches one of the rules (null/empty = every update) |
 | `query` | `Query` | `null` | Query to execute on DT storage for historical data (see [Storage & Query System](storage_query_system.md#query-system)) |
 | `refreshQueryOnStateUpdate` | `boolean` | `false` | If `true` the query is executed and its result delivered to the function before every state update (stateful functions only, see [below](#query-refresh-on-every-state-update-opt-in)) |
@@ -621,10 +615,9 @@ and a stateful function is notified of every change of the description.
 Each `DigitalTwinStateChangeFilter` rule has optional criteria on operation, resource type and resource name (empty criterion =
 wildcard, non-empty criteria are AND-ed). The update is pushed if **any** change of the update matches **any** rule (and, if a content filter is also defined, concerns an accepted resource, see below).
 
-**2. Content filter** (`propertyNameFilter`, `actionNameFilter`, `eventNameFilter`, `relationshipNameFilter`,
-stateful and stateless) — decides *what* is delivered. The function receives the `DigitalTwinStateValues`
+**2. Content filter** (`stateFilter`, a `DigitalTwinStateFilter`, stateful and stateless) — decides *what* is delivered. The function receives the `DigitalTwinStateValues`
 containing only the listed resources (`onStateValuesUpdate(DigitalTwinStateValues)` and the context of start / stop / execute).
-Each category is independent: `null` keeps it all, an empty list removes it. `eventNameFilter` also drops the event notifications
+Each category is independent: `null` keeps it all, an empty list removes it. The event names of the filter also drop the event notifications
 whose name is not listed.
 
 ```java
@@ -637,8 +630,9 @@ AugmentationFunctionContextRequest request = new AugmentationFunctionContextRequ
                         .resourceTypes(DigitalTwinStateChange.ResourceType.RELATIONSHIP_INSTANCE)
                         .build())
         // ...and receive only those two properties and no action
-        .withPropertyNameFilter("temperature", "humidity")
-        .withActionNameFilter();
+        .withStateFilter(DigitalTwinStateFilter.all()
+                .withPropertyNames("temperature", "humidity")
+                .withActionNames());
 ```
 
 **The content filter has a double role.** Besides selecting what is delivered, for stateful functions it also
@@ -650,17 +644,22 @@ trigger filter plus another one matching only the content filter do not push the
 |---|---|
 | none | every state update |
 | trigger only (`OPERATION_UPDATE_VALUE` on property values) | any property value update, complete values delivered |
-| content only (`withPropertyNameFilter("temperature", "humidity")`) | a change concerns `temperature`, `humidity` or any other category left unset (unset = accepts all) |
+| content only (`withStateFilter(DigitalTwinStateFilter.all().withPropertyNames("temperature", "humidity"))`) | a change concerns `temperature`, `humidity` or any other category left unset (unset = accepts all) |
 | both | a value update on `temperature` **or** on `humidity` (each one alone is enough) |
 
 Without change information (null/empty change list) the update is pushed only if no trigger filter is defined.
 Stateless functions are request-driven, so for them the content filter only restricts the state in the context.
 
-The content filter is the generic `DigitalTwinStateFilter` (package `it.wldt.core.state`), also used by the
-Digital Adapter and by `DigitalTwinStateValues.filter(filter)`:
-`request.toStateFilter()` returns it. `DigitalTwinStateChangeFilter` lives in the same package. The delivered filtered
+The content filter is the generic `DigitalTwinStateFilter` (package `it.wldt.core.state`), the same class used by the
+Digital Adapter and by `DigitalTwinStateValues.filter(filter)`: `request.getStateFilter()` returns it. `DigitalTwinStateChangeFilter` lives in the same package.
+A `DigitalTwinStateChangeFilter` rule is a cross product: inside each criterion (operations, resource types, names) the values are alternatives (OR) and the criteria are AND-ed,
+so `{OPERATION_UPDATE_VALUE} x {PROPERTY_VALUE, EVENT} x {"temperature", "alarm"}` accepts any combination of the three sets (names are not tied to a resource type);
+use several rules to pair a type with a name exactly. The delivered filtered
 values keep the `evaluationInstant` and the description id of the complete values. The trigger filter does not apply to event notifications
-(use `eventNameFilter`).
+(use the event names of the content filter).
+
+The two filters, together with the `WldtEventFilter` (event types of an event bus subscription) and the query `Filter` (conditions of a storage query),
+are four unrelated concepts that share the word "filter".
 
 A function that needs the structure of the state receives it, always complete, in `onStateDescriptionUpdate(DigitalTwinStateDescription)`
 and in the context (`getDigitalTwinStateDescription()`); the values are in `onStateValuesUpdate(DigitalTwinStateValues)` and in the context
@@ -669,6 +668,8 @@ and in the context (`getDigitalTwinStateDescription()`); the values are in `onSt
 The handler keeps a complete, never filtered, local copy of the description and of the values, updated with the description and values events of the
 event bus (see [Digital Twin State events on the event bus](getting_started.md#digital-twin-state-events-on-the-event-bus)): the filters are applied for each function only when the function is notified.
 A function **without filters** receives, at every values update, the complete values (not just the delta carried by the event) and, at every description update, the complete new description.
+
+The handler also applies the event notification filters (`observeEventNotifications` and the event names of the content filter) before calling the handler hook `onEventNotificationReceived(functions, notification)`, which receives only the functions that must be notified: a custom handler does not need to repeat them. The state hooks run on the event bus thread of the handler while holding the monitor of the local copy of the state, so a slow hook, or one that keeps a lock needed by other threads, blocks the arrival of the following state events.
 
 #### Constructors
 
@@ -685,9 +686,9 @@ public AugmentationFunctionContextRequest(boolean observeState,
                                          Query query)
 ```
 
-Filters are set with the fluent methods `withStateChangeFilters(...)`, `withPropertyNameFilter(...)`,
-`withActionNameFilter(...)`, `withEventNameFilter(...)` and `withRelationshipNameFilter(...)`, and can be
-inspected with `hasTriggerFilter()` / `hasContentFilter()`.
+Filters are set with the fluent methods `withStateChangeFilters(...)` and `withStateFilter(...)`, and can be
+inspected with `hasTriggerFilter()` / `hasContentFilter()`. The request offers also the methods the handler uses to apply them:
+`shouldTrigger(changes)`, `acceptsEventNotification(notification)` and `filterValues(values)`.
 
 #### Usage in Function Constructors
 
@@ -1084,7 +1085,7 @@ directly to `refreshQueryResult(Query)` when the query parameters need to change
 | **Context Source** | Built fresh each execution | Initial + push notifications or polling requests |
 | **Context Request** | Defines single execution needs | Defines initial setup + observation preferences |
 | **State Observation** | Initial/execution context contains the state if `observeState = true` (optionally narrowed by content filters) | Via `onStateDescriptionUpdate()` (always the complete description) and `onStateValuesUpdate()` if `observeState = true`; the values update only for updates with at least one change matching the trigger filter (if any) and concerning a resource accepted by the content filters (if any), with the values narrowed by the content filters |
-| **Event Observation** | Not applicable (no lifecycle) | Via `onEventNotificationReceived()` if `observeEventNotifications = true`, only for events listed in `eventNameFilter` (if set) |
+| **Event Observation** | Not applicable (no lifecycle) | Via `onEventNotificationReceived()` if `observeEventNotifications = true`, only for events accepted by the event names of the `stateFilter` (if set) |
 | **Context Updates** | Not possible (stateless) | Automatic (push) or explicit (polling) |
 | **Query Execution** | Once per execution | Initial + can be refreshed on request |
 

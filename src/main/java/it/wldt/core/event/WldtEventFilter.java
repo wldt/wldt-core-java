@@ -34,6 +34,11 @@ import java.util.ArrayList;
  * This method allows the creation of a new Filter with the list of event types used by a subscriber to
  * specify which events should be received. It can be used also to cancel a subscription and remove events types
  * that have been previously monitored.
+ * <p>
+ * It selects the <b>types of the events</b> of an event bus subscription. Not to be confused with the other filters of
+ * the library: {@link it.wldt.core.state.DigitalTwinStateFilter} (content filter of the state values),
+ * {@link it.wldt.core.state.DigitalTwinStateChangeFilter} (trigger rule on the state changes) and
+ * {@link it.wldt.storage.query.filter.Filter} (conditions of a storage query).
  */
 public class WldtEventFilter extends ArrayList<String> {
 

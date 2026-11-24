@@ -148,6 +148,47 @@ public final class DigitalTwinStateDescription {
     }
 
     /**
+     * @param a a description id ({@code <timestamp>_<numSeq>})
+     * @param b another description id
+     * @return true if both ids have the same creation timestamp (they are produced by the same state manager),
+     * or if one of them cannot be interpreted
+     */
+    static boolean sameLineage(String a, String b) {
+        if (a == null || b == null)
+            return true;
+        int ia = a.lastIndexOf('_');
+        int ib = b.lastIndexOf('_');
+        if (ia < 0 || ib < 0)
+            return true;
+        return a.substring(0, ia).equals(b.substring(0, ib));
+    }
+
+    /**
+     * Compares two description ids ({@code <timestamp>_<numSeq>}).
+     * @param a a description id
+     * @param b another description id
+     * @return a negative number if a precedes b, 0 if they are equal, a positive number if a follows b. Ids that
+     * cannot be parsed or that belong to different timestamps are considered newer than the other
+     */
+    static int compareIds(String a, String b) {
+        if (a == null || b == null)
+            return a == null && b == null ? 0 : 1;
+        if (a.equals(b))
+            return 0;
+        try {
+            int ia = a.lastIndexOf('_');
+            int ib = b.lastIndexOf('_');
+            if (ia < 0 || ib < 0 || !a.substring(0, ia).equals(b.substring(0, ib)))
+                return 1;
+            long seqA = Long.parseLong(a.substring(ia + 1));
+            long seqB = Long.parseLong(b.substring(ib + 1));
+            return Long.compare(seqA, seqB);
+        } catch (NumberFormatException e) {
+            return 1;
+        }
+    }
+
+    /**
      * Description of a Digital Twin State property (no value).
      */
     public static final class PropertyDescription {

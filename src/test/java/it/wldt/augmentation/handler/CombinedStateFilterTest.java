@@ -115,7 +115,7 @@ public class CombinedStateFilterTest {
     @Test
     public void contentFilterAloneTriggersOnlyOnAcceptedResources() throws Exception {
         TestHandler handler = new TestHandler();
-        StatefulAugmentationFunction f = function(new AugmentationFunctionContextRequest().withPropertyNameFilter("temp", "hum"));
+        StatefulAugmentationFunction f = function(new AugmentationFunctionContextRequest().withStateFilter(DigitalTwinStateFilter.all().withPropertyNames("temp", "hum")));
 
         handler.state(f, fullState(), changes(valueChange("press")));
         assertTrue(receivedStates.isEmpty());
@@ -129,8 +129,7 @@ public class CombinedStateFilterTest {
     @Test
     public void bothFiltersRequireTheSameChangeToMatch() throws Exception {
         TestHandler handler = new TestHandler();
-        StatefulAugmentationFunction f = function(new AugmentationFunctionContextRequest()
-                .withPropertyNameFilter("temp", "hum")
+        StatefulAugmentationFunction f = function(new AugmentationFunctionContextRequest().withStateFilter(DigitalTwinStateFilter.all().withPropertyNames("temp", "hum"))
                 .withStateChangeFilters(valueUpdates()));
 
         // Value update on one of the filtered properties: triggers (each property alone is enough)
@@ -153,7 +152,7 @@ public class CombinedStateFilterTest {
     public void missingChangeListDependsOnTheTriggerFilter() throws Exception {
         TestHandler handler = new TestHandler();
 
-        handler.state(function(new AugmentationFunctionContextRequest().withPropertyNameFilter("temp")), fullState(), null);
+        handler.state(function(new AugmentationFunctionContextRequest().withStateFilter(DigitalTwinStateFilter.all().withPropertyNames("temp"))), fullState(), null);
         assertEquals(1, receivedStates.size());
 
         receivedStates.clear();
@@ -164,23 +163,11 @@ public class CombinedStateFilterTest {
     @Test
     public void unsetCategoriesAcceptEverything() throws Exception {
         TestHandler handler = new TestHandler();
-        StatefulAugmentationFunction f = function(new AugmentationFunctionContextRequest().withEventNameFilter("alarm"));
+        StatefulAugmentationFunction f = function(new AugmentationFunctionContextRequest().withStateFilter(DigitalTwinStateFilter.all().withEventNames("alarm")));
 
         // Properties are not filtered, so the property change triggers and the whole state is delivered
         handler.state(f, fullState(), changes(valueChange("press")));
         assertEquals(1, receivedStates.size());
         assertEquals(3, receivedStates.get(0).getPropertyValues().size());
-    }
-
-    @Test
-    public void filteredStateKeepsEvaluationInstantAndValuesViews() throws Exception {
-        DigitalTwinState state = fullState();
-        DigitalTwinState filtered = state.filter(DigitalTwinStateFilter.all().withPropertyNames("temp"));
-
-        assertEquals(state.getEvaluationInstant(), filtered.getEvaluationInstant());
-        assertEquals(Collections.singleton("temp"), filtered.getValues().getPropertyValues().keySet());
-        assertEquals(1, filtered.getDescription().getProperties().size());
-        assertSame(state, state.filter(null));
-        assertSame(state, state.filter(DigitalTwinStateFilter.all()));
     }
 }

@@ -57,7 +57,7 @@ import java.util.List;
  * different manager: they do not describe the state it follows (for example a stale publisher of another instance
  * of a Digital Twin with the same id) and could never be matched with a known description.
  */
-//TODO: valutare di cambiare il nome in cache o snapshot
+//TODO: evaluate renaming the class to "cache" or "snapshot"
 public class DigitalTwinStateReplica {
 
     private static final WldtLogger logger = WldtLoggerProvider.getLogger(DigitalTwinStateReplica.class);
@@ -142,13 +142,13 @@ public class DigitalTwinStateReplica {
         DigitalTwinStateDescription newDescription = (DigitalTwinStateDescription) event.getBody();
 
         // Description of a different state manager
-        if (description != null && !sameLineage(newDescription.getId(), description.getId())) {
+        if (description != null && !DigitalTwinStateDescription.sameLineage(newDescription.getId(), description.getId())) {
             logger.debug("Skipping description {} that does not belong to the followed state (current: {})", newDescription.getId(), description.getId());
             return false;
         }
 
         // A description that is not newer than the current one has already been received (it precedes the seeding)
-        if (description != null && compareIds(newDescription.getId(), description.getId()) <= 0) {
+        if (description != null && DigitalTwinStateDescription.compareIds(newDescription.getId(), description.getId()) <= 0) {
             logger.debug("Skipping description {} (current: {})", newDescription.getId(), description.getId());
             return false;
         }
@@ -174,14 +174,14 @@ public class DigitalTwinStateReplica {
         DigitalTwinStateValues delta = (DigitalTwinStateValues) event.getBody();
 
         // Values of a different state manager
-        if (description != null && !sameLineage(delta.getDescriptionId(), description.getId())) {
+        if (description != null && !DigitalTwinStateDescription.sameLineage(delta.getDescriptionId(), description.getId())) {
             logger.debug("Skipping values update of description {} that does not belong to the followed state (current: {})", delta.getDescriptionId(), description.getId());
             return false;
         }
 
         // Events already included in the seeded values
         if (seedInstant != null && delta.getEvaluationInstant() != null && !delta.getEvaluationInstant().isAfter(seedInstant)
-                && description != null && compareIds(delta.getDescriptionId(), description.getId()) <= 0) {
+                && description != null && DigitalTwinStateDescription.compareIds(delta.getDescriptionId(), description.getId()) <= 0) {
             logger.debug("Skipping values update (instant {}) already included in the seeded values", delta.getEvaluationInstant());
             return false;
         }
@@ -193,7 +193,7 @@ public class DigitalTwinStateReplica {
             return false;
         }
 
-        apply(delta, event);
+        apply(delta);
         return true;
     }
 
@@ -210,7 +210,7 @@ public class DigitalTwinStateReplica {
             DigitalTwinStateValues delta = (DigitalTwinStateValues) event.getBody();
             if (canApply(delta)) {
                 iterator.remove();
-                apply(delta, event);
+                apply(delta);
                 return event;
             }
         }
@@ -218,11 +218,11 @@ public class DigitalTwinStateReplica {
     }
 
     private boolean canApply(DigitalTwinStateValues delta) {
-        return description != null && values != null && compareIds(delta.getDescriptionId(), description.getId()) <= 0;
+        return description != null && values != null && DigitalTwinStateDescription.compareIds(delta.getDescriptionId(), description.getId()) <= 0;
     }
 
-    private void apply(DigitalTwinStateValues delta, WldtEvent<?> event) {
-        this.values = this.values.applyUpdate(delta, DigitalTwinStateManager.getValuesChanges(event));
+    private void apply(DigitalTwinStateValues delta) {
+        this.values = this.values.applyUpdate(delta);
         // The complete values always refer to the current description
         if (!description.getId().equals(this.values.getDescriptionId()))
             this.values = this.values.alignTo(description);
@@ -239,42 +239,5 @@ public class DigitalTwinStateReplica {
                         ((DigitalTwinStateValues) event.getBody()).getDescriptionId(), PENDING_WARN_TIMEOUT_MS, description != null ? description.getId() : null);
                 return;
             }
-    }
-
-    /**
-     * @return true if both ids have the same creation timestamp (they are produced by the same state manager),
-     * or if one of them cannot be interpreted
-     */
-    static boolean sameLineage(String a, String b) {
-        if (a == null || b == null)
-            return true;
-        int ia = a.lastIndexOf('_');
-        int ib = b.lastIndexOf('_');
-        if (ia < 0 || ib < 0)
-            return true;
-        return a.substring(0, ia).equals(b.substring(0, ib));
-    }
-
-    /**
-     * Compares two description ids ({@code <timestamp>_<numSeq>}).
-     * @return a negative number if a precedes b, 0 if they are equal, a positive number if a follows b. Ids that
-     * cannot be parsed or that belong to different timestamps are considered newer than the other
-     */
-    static int compareIds(String a, String b) {
-        if (a == null || b == null)
-            return a == null && b == null ? 0 : 1;
-        if (a.equals(b))
-            return 0;
-        try {
-            int ia = a.lastIndexOf('_');
-            int ib = b.lastIndexOf('_');
-            if (ia < 0 || ib < 0 || !a.substring(0, ia).equals(b.substring(0, ib)))
-                return 1;
-            long seqA = Long.parseLong(a.substring(ia + 1));
-            long seqB = Long.parseLong(b.substring(ib + 1));
-            return Long.compare(seqA, seqB);
-        } catch (NumberFormatException e) {
-            return 1;
-        }
     }
 }

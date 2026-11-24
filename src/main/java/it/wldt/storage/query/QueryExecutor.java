@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -56,6 +57,14 @@ public class QueryExecutor implements WldtEventListener {
         return thread;
     });
 
+    // Pool running the listeners of the asynchronous queries: they must not run on the event bus thread of the
+    // executor (it would delay the delivery of the other results) nor on the shared timeout thread
+    private static final ExecutorService LISTENER_EXECUTOR = Executors.newCachedThreadPool(runnable -> {
+        Thread thread = new Thread(runnable, "wldt-query-listener");
+        thread.setDaemon(true);
+        return thread;
+    });
+
     // Digital Twin Id
     private final String digitalTwinId;
 
@@ -68,6 +77,9 @@ public class QueryExecutor implements WldtEventListener {
 
     // Pending queries: request id -> future completed when the result arrives (or the timeout expires)
     private final Map<String, CompletableFuture<QueryResult<?>>> pendingQueries = new ConcurrentHashMap<>();
+
+    // The queries of the pending requests (request id -> query), needed to fail them when the executor is closed
+    private final Map<String, Query> pendingRequests = new ConcurrentHashMap<>();
 
     private boolean subscribed = false;
 
@@ -108,6 +120,34 @@ public class QueryExecutor implements WldtEventListener {
     }
 
     /**
+     * Releases the subscription of the executor to the event bus and fails the queries still waiting for a result.
+     * It is called when the owner of the executor (Digital Adapter, Augmentation Function Handler) stops.
+     * The executor can still be used afterwards: the next query subscribes again.
+     */
+    public synchronized void close() {
+
+        if (!subscribed)
+            return;
+
+        try {
+            WldtEventFilter filter = new WldtEventFilter();
+            filter.add(WldtEventTypes.ALL_STORAGE_QUERY_RESULT_EVENT_TYPE);
+            WldtEventBus.getInstance().unSubscribe(this.digitalTwinId, this.queryExecutorId, filter, this);
+        } catch (Exception e) {
+            logger.error("QueryExecutor - Error unsubscribing the Query Executor ! Error: {}", e.getMessage());
+        }
+
+        subscribed = false;
+
+        // Fail the pending queries (their cleanup callback removes them from the maps)
+        for (Map.Entry<String, CompletableFuture<QueryResult<?>>> pending : pendingQueries.entrySet()) {
+            Query query = pendingRequests.get(pending.getKey());
+            if (query != null)
+                pending.getValue().complete(QueryResult.failure(query, "Query Executor closed"));
+        }
+    }
+
+    /**
      * Send the query and return the future that completes with its result. The future always completes normally:
      * errors and timeouts are reported as failed query results.
      */
@@ -122,6 +162,7 @@ public class QueryExecutor implements WldtEventListener {
             ensureSubscribed();
 
             pendingQueries.put(query.getRequestId(), future);
+            pendingRequests.put(query.getRequestId(), query);
 
             ScheduledFuture<?> timeout = TIMEOUT_SCHEDULER.schedule(
                     () -> future.complete(QueryResult.failure(query, "Timeout waiting for the query result")),
@@ -130,6 +171,7 @@ public class QueryExecutor implements WldtEventListener {
 
             future.whenComplete((result, error) -> {
                 pendingQueries.remove(query.getRequestId());
+                pendingRequests.remove(query.getRequestId());
                 timeout.cancel(false);
             });
 
@@ -144,7 +186,9 @@ public class QueryExecutor implements WldtEventListener {
     }
 
     /**
-     * Synchronous Query Execution
+     * Synchronous Query Execution. The calling thread is <b>blocked</b> until the result arrives (or the timeout
+     * expires). Called inside a callback of a Digital Adapter or of an Augmentation Function it blocks the event
+     * bus thread of that component, so the following events are delivered with a delay until the query ends.
      * @param query Query Object
      * @return Query Result Object containing the query result, a failed result in case of error or timeout
      */
@@ -153,13 +197,21 @@ public class QueryExecutor implements WldtEventListener {
     }
 
     /**
-     * Asynchronous Query Execution
+     * Asynchronous Query Execution. The calling thread is not blocked. The listener is invoked on a thread of
+     * the library pool dedicated to the query listeners (never on the calling thread), so it can run other queries,
+     * synchronous ones too. An exception thrown by the listener is logged.
      * @param query Query Object
      * @param queryResultListener Query Result Listener to be used to receive the query result, a failed result
      *                            is notified in case of error or timeout
      */
     public void asyncQueryExecute(Query query, IQueryResultListener queryResultListener) {
-        submit(query).thenAccept(queryResultListener::onQueryResult);
+        submit(query).thenAcceptAsync(result -> {
+            try {
+                queryResultListener.onQueryResult(result);
+            } catch (Exception e) {
+                logger.error("QueryExecutor - Error in the Query Result Listener ! Error: {}", e.getLocalizedMessage());
+            }
+        }, LISTENER_EXECUTOR);
     }
 
     @Override

@@ -654,8 +654,8 @@ Requires `withDigitalAdapterMonitoring()` in the configuration.
 | `da_action_event_pub_success_count` | `WldtCounter` | Digital action events published successfully |
 | `da_action_event_pub_error_count` | `WldtCounter` | Digital action event publication failures |
 | `da_state_update_processing_exec_time` | `WldtTimer` | Time to process each incoming DT state event (description update or values update) |
-| `da_state_update_processing_exec_success_count` | `WldtCounter` | Successfully processed DT state events (description and values updates) |
-| `da_state_update_processing_exec_error_count` | `WldtCounter` | Failed DT state events (description and values updates) |
+| `da_state_update_processing_exec_success_count` | `WldtCounter` | DT state events (description and values updates) processed with all the notified callbacks completed without errors |
+| `da_state_update_processing_exec_error_count` | `WldtCounter` | Failures of the state callbacks (`onStateDescriptionUpdate`, `onStateValuesUpdate`: an exception thrown by the callback is counted) and errors applying the event to the local copy of the state |
 | `da_event_notification_processing_exec_time` | `WldtTimer` | Time to process incoming DT event notifications |
 | `da_event_notification_processing_exec_success_count` | `WldtCounter` | Successful event notification processing |
 | `da_event_notification_processing_exec_error_count` | `WldtCounter` | Failed event notification processing |
@@ -697,16 +697,19 @@ Requires `withAugmentationMonitoring()` in the configuration.
 | `af_function_query_exec_time` | `WldtTimer` | Time taken by storage queries issued from a function |
 | `af_function_query_exec_success_count` | `WldtCounter` | Successful storage queries from a function |
 | `af_function_query_exec_error_count` | `WldtCounter` | Failed storage queries from a function |
-| `af_function_state_update_exec_time` | `WldtTimer` | Time to dispatch a DT state update to a stateful function |
-| `af_function_state_update_success_count` | `WldtCounter` | Successful state update dispatches to functions |
-| `af_function_state_update_error_count` | `WldtCounter` | Failed state update dispatches to functions |
+| `af_function_state_description_update_exec_time` | `WldtTimer` | Time to dispatch a DT state **description** update (structure) to a stateful function |
+| `af_function_state_description_update_success_count` | `WldtCounter` | Successful description update dispatches to functions |
+| `af_function_state_description_update_error_count` | `WldtCounter` | Failed description update dispatches to functions |
+| `af_function_state_update_exec_time` | `WldtTimer` | Time to dispatch a DT state **values** update to a stateful function (in the previous versions: the state update) |
+| `af_function_state_update_success_count` | `WldtCounter` | Successful values update dispatches to functions |
+| `af_function_state_update_error_count` | `WldtCounter` | Failed values update dispatches to functions |
 | `dt_lifecycle_value` | `WldtUpDownCounter` | Current DT lifecycle state as numeric ordinal |
 
 > **Per-instance tracking:** handler-level metrics (`af_handler_registered_*`, `af_handler_stateful_running_count`) are tracked per handler, keyed by the handler ID. Use `AugmentationFunctionHandler.METRIC_METADATA_AF_HANDLER_ID_KEY` (`"af_handler_id"`) in handler callbacks to identify the source handler, and `getMetric(fullName, handlerId)` for direct lookup. Function-level metrics (`af_function_*`) are tracked per function instance using the function ID — use `AugmentationFunction.METRIC_METADATA_AF_FUNCTION_ID_KEY` (`"af_function_id"`) and `getMetric(fullName, functionId)` accordingly.
 
 #### STORAGE metrics
 
-Requires `withStorageMonitoring()` in the configuration. `StorageManager`, `WldtStorage`, and `DefaultQueryManager` are all instrumented automatically — no developer action required.
+Requires `withStorageMonitoring()` in the configuration. `StorageManager`, `WldtStorage`, and the `QueryManager` (the query metrics are updated by the base class, so a custom query manager gets them too) are all instrumented automatically — no developer action required.
 
 | Metric name | Type | Tracks |
 |---|---|---|

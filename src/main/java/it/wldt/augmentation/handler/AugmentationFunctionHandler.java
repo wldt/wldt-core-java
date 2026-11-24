@@ -36,7 +36,6 @@ import it.wldt.core.engine.DigitalTwinWorker;
 import it.wldt.core.event.*;
 import it.wldt.core.state.*;
 import it.wldt.augmentation.context.AugmentationFunctionContextRequest;
-import it.wldt.augmentation.context.DigitalTwinStateFilterUtils;
 import it.wldt.exception.AugmentationFunctionException;
 import it.wldt.exception.EventBusException;
 import it.wldt.exception.WldtDigitalTwinStateEventException;
@@ -328,9 +327,6 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
         WldtEventFilter wldtEventFilter = new WldtEventFilter();
         wldtEventFilter.add(DigitalTwinStateManager.getStateDescriptionUpdateWldtEventMessageType());
         wldtEventFilter.add(DigitalTwinStateManager.getStateValuesUpdateWldtEventMessageType());
-
-        //Save the adopted EventFilter
-        this.stateVariationWldtEventFilter = wldtEventFilter;
 
         WldtEventBus.getInstance().unSubscribe(this.digitalTwinId, this.id, wldtEventFilter, this);
     }
@@ -901,6 +897,10 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
      * implementation of the Handler. It is called by the library every time a description update event is received,
      * after the local copy of the state has been updated, once for each running function that observes the state.
      * The description is never filtered.
+     * <p>
+     * <b>Threading:</b> the method runs on the event bus thread of the handler while holding the monitor of the local
+     * copy of the state. A slow implementation, or one that keeps a lock needed by other threads, blocks the delivery
+     * of the following state events.
      * @param statefulAugmentationFunction the running Stateful Augmentation Function to notify
      * @param newDigitalTwinStateDescription the complete new description of the Digital Twin State
      * @param digitalTwinStateChangeList the list of the changes that altered the description, encapsulated in a list of {@link DigitalTwinStateChange}
@@ -914,6 +914,10 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
      * updated, once for each running function that observes the state and whose trigger filter accepts at least one
      * of the changes. The filters are applied by the library: the values passed to the method are already limited
      * by the content filter of the function.
+     * <p>
+     * <b>Threading:</b> the method runs on the event bus thread of the handler while holding the monitor of the local
+     * copy of the state. A slow implementation, or one that keeps a lock needed by other threads, blocks the delivery
+     * of the following state events.
      * @param statefulAugmentationFunction the running Stateful Augmentation Function to notify
      * @param filteredDigitalTwinStateValues the new values of the Digital Twin State limited by the content filter of the function, associated to the id of the current description
      * @param digitalTwinStateChangeList the list of the changes that altered the values, encapsulated in a list of {@link DigitalTwinStateChange}
@@ -942,6 +946,8 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
      * of the Digital Twin that can be different for each concrete implementation of the Handler. It is called within
      * the onEvent method when there is an event related to the state of the Digital Twin, allowing to implement any
      * specific logic for the notification of the event related to the state of the Digital Twin.
+     * The filters of the context request of each function (observation of the event notifications and event names)
+     * are applied by the library: the list contains only the functions that must receive the notification.
      * @param statefulAugmentationFunctions the list of the Stateful Augmentation Functions that need to be notified about the event related to the state of the Digital Twin, encapsulated in an instance of {@link StatefulAugmentationFunction}
      * @param digitalTwinStateEventNotification the event related to the state of the Digital Twin that needs to be notified, encapsulated in an instance of {@link DigitalTwinStateEventNotification}
      */
@@ -1060,6 +1066,10 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
             if(getDigitalAdapterListener() != null)
                 getDigitalAdapterListener().onDigitalAdapterUnBound(getId(), e.getLocalizedMessage());
             throw new WldtRuntimeException(e.getLocalizedMessage());
+        } finally {
+            // Release the subscription of the Query Executor to the event bus
+            if(this.queryExecutor != null)
+                this.queryExecutor.close();
         }
     }
 
@@ -1209,13 +1219,41 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
                 // The function may not observe the state, or may be interested only in specific state changes
                 if(contextRequest != null && !contextRequest.isObserveState())
                     continue;
-                if(!DigitalTwinStateFilterUtils.shouldTrigger(contextRequest, changes))
+                if(contextRequest != null && !contextRequest.shouldTrigger(changes))
                     continue;
 
-                onStateValuesUpdate(function, DigitalTwinStateFilterUtils.filterValues(values, contextRequest), changes);
+                onStateValuesUpdate(function, contextRequest != null ? contextRequest.filterValues(values) : values, changes);
             } catch (Exception e) {
                 logger.error("Augmentation Manager ({}) -> Error notifying the state values update to function {}: {}", this.id, function.getId(), e.getLocalizedMessage());
             }
+        }
+    }
+
+    /**
+     * Notifies the event notification to the Stateful Augmentation Functions that observe the event notifications and
+     * whose event name filter accepts it: the functions that do not are removed from the list before calling
+     * {@link #onEventNotificationReceived(ArrayList, DigitalTwinStateEventNotification)}.
+     * @param functions the running Stateful Augmentation Functions
+     * @param notification the event notification
+     */
+    void notifyEventNotification(List<StatefulAugmentationFunction> functions, DigitalTwinStateEventNotification<?> notification) {
+
+        ArrayList<StatefulAugmentationFunction> interested = new ArrayList<>();
+
+        for(StatefulAugmentationFunction function : functions) {
+            AugmentationFunctionContextRequest contextRequest = function.getContextRequest();
+            if(contextRequest != null && (!contextRequest.isObserveEventNotifications() || !contextRequest.acceptsEventNotification(notification)))
+                continue;
+            interested.add(function);
+        }
+
+        if(interested.isEmpty())
+            return;
+
+        try {
+            onEventNotificationReceived(interested, notification);
+        } catch (Exception e) {
+            logger.error("Augmentation Manager ({}) -> Error notifying the event notification: {}", this.id, e.getLocalizedMessage());
         }
     }
 
@@ -1269,7 +1307,7 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
                     .map(augmentationFunction -> (StatefulAugmentationFunction) augmentationFunction)
                     .collect(Collectors.toCollection(ArrayList::new));
 
-            onEventNotificationReceived(statefulAugmentationFunctions, digitalTwinStateEventNotification);
+            notifyEventNotification(statefulAugmentationFunctions, digitalTwinStateEventNotification);
         }
 
         ////////// STATELESS AUGMENTATION FUNCTION EXECUTION EVENTS MANAGEMENT ///////////
@@ -1614,7 +1652,18 @@ public abstract class AugmentationFunctionHandler extends DigitalTwinWorker impl
     public void onUnSync(DigitalTwinStateDescription digitalTwinStateDescription, DigitalTwinStateValues digitalTwinStateValues) {
         logger.debug("Augmentation Manager ({}) Received DT unSync callback ...", this.id);
         onDigitalTwinLifeCycleUnSync(digitalTwinStateDescription, digitalTwinStateValues);
-        this.stateReplica.clear();
+
+        // While the DT is not synchronized the handler does not follow the state: the subscription to the state topics
+        // is released and the local copy dropped. The next sync seeds the copy again and subscribes again.
+        try {
+            unObserveDigitalTwinState();
+        } catch (Exception e) {
+            logger.error("Augmentation Manager ({}) -> Error unobserving the DT State at unSync: {}", this.id, e.getLocalizedMessage());
+        }
+
+        synchronized (this.stateReplica) {
+            this.stateReplica.clear();
+        }
     }
 
     /**

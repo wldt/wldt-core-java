@@ -72,29 +72,21 @@ public class DigitalTwinStateViewsTest {
     }
 
     @Test
-    public void descriptionFilterSemantics() throws Exception {
+    public void descriptionIsNeverFiltered() throws Exception {
         DigitalTwinState state = buildState();
 
-        // null = whole category, empty = none, list = only listed names
-        DigitalTwinStateFilter filter = DigitalTwinStateFilter.all()
-                .withPropertyNames("temp")
-                .withActionNames()
-                .withEventNames("alarm", "missing");
+        DigitalTwinStateDescription d = state.getDescription();
 
-        DigitalTwinStateDescription d = state.getDescription(filter);
-
-        assertEquals(1, d.getProperties().size());
-        assertEquals("temp", d.getProperties().get(0).getKey());
-        assertTrue(d.getActions().isEmpty());
-        assertEquals(1, d.getEvents().size());
+        assertEquals(2, d.getProperties().size());
+        assertEquals(2, d.getActions().size());
+        assertEquals(2, d.getEvents().size());
         assertEquals(2, d.getRelationships().size());
     }
 
     @Test
-    public void nullFilterIsEquivalentToNoFilter() throws Exception {
+    public void nullValuesFilterIsEquivalentToNoFilter() throws Exception {
         DigitalTwinState state = buildState();
 
-        assertEquals(2, state.getDescription(null).getProperties().size());
         assertEquals(2, state.getValues(null).getPropertyValues().size());
     }
 
@@ -176,35 +168,5 @@ public class DigitalTwinStateViewsTest {
         DigitalTwinState state = new DigitalTwinState();
         assertTrue(state.getDescription().isEmpty());
         assertTrue(state.getValues().isEmpty());
-    }
-
-    @Test
-    public void filterKeepsEvaluationInstantAndLastTriggered() throws Exception {
-        DigitalTwinState state = buildState();
-        Instant now = Instant.now();
-        state.recordActionInvocation("on", now);
-        state.recordEventNotification("alarm", now);
-
-        DigitalTwinState filtered = state.filter(DigitalTwinStateFilter.all().withPropertyNames("temp"));
-
-        assertNotSame(state, filtered);
-        assertEquals(state.getEvaluationInstant(), filtered.getEvaluationInstant());
-        assertEquals(1, filtered.getPropertyList().get().size());
-        assertEquals(now, filtered.getLastActionInvocation("on").get());
-        assertEquals(now, filtered.getValues().getLastEventNotifications().get("alarm"));
-        assertSame(state, state.filter(null));
-        assertSame(state, state.filter(DigitalTwinStateFilter.all()));
-    }
-
-    @Test
-    public void acceptedChangesKeepsOnlyAcceptedResources() throws Exception {
-        DigitalTwinStateFilter filter = DigitalTwinStateFilter.all().withPropertyNames("temp");
-        DigitalTwinStateChange temp = new DigitalTwinStateChange(DigitalTwinStateChange.Operation.OPERATION_UPDATE_VALUE,
-                DigitalTwinStateChange.ResourceType.PROPERTY_VALUE, new DigitalTwinStateProperty<>("temp", 1));
-        DigitalTwinStateChange hum = new DigitalTwinStateChange(DigitalTwinStateChange.Operation.OPERATION_UPDATE_VALUE,
-                DigitalTwinStateChange.ResourceType.PROPERTY_VALUE, new DigitalTwinStateProperty<>("hum", 1));
-
-        assertEquals(Arrays.asList(temp), filter.acceptedChanges(Arrays.asList(temp, hum)));
-        assertTrue(filter.acceptedChanges(null).isEmpty());
     }
 }

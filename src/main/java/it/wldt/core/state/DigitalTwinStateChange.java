@@ -23,6 +23,8 @@ package it.wldt.core.state;
 import it.wldt.exception.WldtDigitalTwinStateException;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -156,6 +158,101 @@ public class DigitalTwinStateChange {
      */
     public Instant getValueInstant() {
         return valueInstant;
+    }
+
+    /**
+     * Checks if this change alters the <b>structure</b> of the state (see {@link DigitalTwinStateDescription}).
+     * The decision is taken on the operation first: only {@code OPERATION_ADD}, {@code OPERATION_UPDATE} and
+     * {@code OPERATION_REMOVE} on the definition of a property, relationship, action or event are description
+     * changes. {@code OPERATION_UPDATE_VALUE} (property value updates, last invocation of an action, last
+     * notification of an event) and the changes on relationship instances never alter the structure.
+     * @return true if the change alters the description of the state
+     */
+    public boolean isDescriptionChange() {
+        if (operation == null || resourceType == null)
+            return false;
+
+        switch (operation) {
+            case OPERATION_ADD:
+            case OPERATION_UPDATE:
+            case OPERATION_REMOVE:
+                switch (resourceType) {
+                    case PROPERTY:
+                    case RELATIONSHIP:
+                    case ACTION:
+                    case EVENT:
+                        return true;
+                    default:
+                        return false;
+                }
+            default:
+                return false;
+        }
+    }
+
+    /**
+     * Checks if this change must produce a <b>values</b> update (see {@link DigitalTwinStateValues}):
+     * <ul>
+     *     <li>{@code OPERATION_UPDATE_VALUE}: property value, last invocation of an action, last notification of an event;</li>
+     *     <li>{@code OPERATION_ADD} and {@code OPERATION_UPDATE} of a property or of a relationship (they carry a value
+     *     / the instances);</li>
+     *     <li>{@code OPERATION_ADD} and {@code OPERATION_REMOVE} of a relationship instance (the structure does not change).</li>
+     * </ul>
+     * The {@code OPERATION_REMOVE} of a property, relationship, action or event is <b>not</b> a values change: it is
+     * only a description change and every component that keeps a local copy of the values drops the value of the
+     * removed resource when it applies the new description. The same holds for the addition or update of the
+     * definition of an action or of an event, that carry no value.
+     * @return true if the change produces a values update
+     */
+    public boolean isValueChange() {
+        if (operation == null || resourceType == null)
+            return false;
+
+        switch (operation) {
+            case OPERATION_UPDATE_VALUE:
+                return true;
+            case OPERATION_ADD:
+            case OPERATION_UPDATE:
+                switch (resourceType) {
+                    case PROPERTY:
+                    case PROPERTY_VALUE:
+                    case RELATIONSHIP:
+                    case RELATIONSHIP_INSTANCE:
+                        return true;
+                    default:
+                        return false;
+                }
+            case OPERATION_REMOVE:
+                return ResourceType.RELATIONSHIP_INSTANCE.equals(resourceType);
+            default:
+                return false;
+        }
+    }
+
+    /**
+     * @param changes the changes of a state update (may be null)
+     * @return the changes that alter the structure of the state, in the same order (empty if changes is null)
+     */
+    public static List<DigitalTwinStateChange> descriptionChanges(List<DigitalTwinStateChange> changes) {
+        List<DigitalTwinStateChange> result = new ArrayList<>();
+        if (changes != null)
+            for (DigitalTwinStateChange change : changes)
+                if (change != null && change.isDescriptionChange())
+                    result.add(change);
+        return result;
+    }
+
+    /**
+     * @param changes the changes of a state update (may be null)
+     * @return the changes that alter the values of the state, in the same order (empty if changes is null)
+     */
+    public static List<DigitalTwinStateChange> valueChanges(List<DigitalTwinStateChange> changes) {
+        List<DigitalTwinStateChange> result = new ArrayList<>();
+        if (changes != null)
+            for (DigitalTwinStateChange change : changes)
+                if (change != null && change.isValueChange())
+                    result.add(change);
+        return result;
     }
 
     public Operation getOperation() {

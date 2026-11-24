@@ -135,6 +135,9 @@ public abstract class StatefulAugmentationFunction extends AugmentationFunction{
         monitoringInterface.registerMetric(new WldtTimer(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATEFUL_STOP_EXEC_TIME, WldtMetricComponent.AUGMENTATION, metadata).withInstanceId(metricsInstanceId));
         monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATEFUL_STOP_SUCCESS_COUNT, WldtMetricComponent.AUGMENTATION, metadata).withInstanceId(metricsInstanceId));
         monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATEFUL_STOP_ERROR_COUNT, WldtMetricComponent.AUGMENTATION, metadata).withInstanceId(metricsInstanceId));
+        monitoringInterface.registerMetric(new WldtTimer(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATE_DESCRIPTION_UPDATE_EXEC_TIME, WldtMetricComponent.AUGMENTATION, metadata).withInstanceId(metricsInstanceId));
+        monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATE_DESCRIPTION_UPDATE_SUCCESS_COUNT, WldtMetricComponent.AUGMENTATION, metadata).withInstanceId(metricsInstanceId));
+        monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATE_DESCRIPTION_UPDATE_ERROR_COUNT, WldtMetricComponent.AUGMENTATION, metadata).withInstanceId(metricsInstanceId));
         monitoringInterface.registerMetric(new WldtTimer(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATE_UPDATE_EXEC_TIME, WldtMetricComponent.AUGMENTATION, metadata).withInstanceId(metricsInstanceId));
         monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATE_UPDATE_SUCCESS_COUNT, WldtMetricComponent.AUGMENTATION, metadata).withInstanceId(metricsInstanceId));
         monitoringInterface.registerMetric(new WldtCounter(digitalTwinId, metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATE_UPDATE_ERROR_COUNT, WldtMetricComponent.AUGMENTATION, metadata).withInstanceId(metricsInstanceId));
@@ -221,7 +224,7 @@ public abstract class StatefulAugmentationFunction extends AugmentationFunction{
 
     /**
      * Framework entry point for the dispatch of a Digital Twin State Description update. Instruments the call with
-     * metrics and delegates to the abstract {@link #onStateDescriptionUpdate(DigitalTwinStateDescription)}.
+     * metrics (description update metrics) and delegates to the abstract {@link #onStateDescriptionUpdate(DigitalTwinStateDescription)}.
      * Called by the handler — do not call directly.
      * @param digitalTwinStateDescription the complete new description of the digital twin state (never filtered)
      * @throws AugmentationFunctionException if any error occurs during state update handling
@@ -231,20 +234,20 @@ public abstract class StatefulAugmentationFunction extends AugmentationFunction{
         try {
             onStateDescriptionUpdate(digitalTwinStateDescription);
             if (monitoringInterface != null && monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION))
-                monitoringInterface.increaseCounter(metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATE_UPDATE_SUCCESS_COUNT, metricsInstanceId);
+                monitoringInterface.increaseCounter(metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATE_DESCRIPTION_UPDATE_SUCCESS_COUNT, metricsInstanceId);
         } catch (Exception e) {
             if (monitoringInterface != null && monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION))
-                monitoringInterface.increaseCounter(metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATE_UPDATE_ERROR_COUNT, metricsInstanceId);
+                monitoringInterface.increaseCounter(metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATE_DESCRIPTION_UPDATE_ERROR_COUNT, metricsInstanceId);
             throw e;
         } finally {
             if (monitoringInterface != null && monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION))
-                monitoringInterface.updateTimerSince(metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATE_UPDATE_EXEC_TIME, startMs, metricsInstanceId);
+                monitoringInterface.updateTimerSince(metricsNamespace, CoreMonitoringUtils.AF_FUNCTION_STATE_DESCRIPTION_UPDATE_EXEC_TIME, startMs, metricsInstanceId);
         }
     }
 
     /**
      * Framework entry point for the dispatch of a Digital Twin State Values update. Instruments the call with
-     * metrics and delegates to the abstract {@link #onStateValuesUpdate(DigitalTwinStateValues)}.
+     * metrics (state update metrics) and delegates to the abstract {@link #onStateValuesUpdate(DigitalTwinStateValues)}.
      * Called by the handler — do not call directly.
      * @param digitalTwinStateValues the complete new values of the digital twin state, limited by the content filter
      *                               of the context request of the function, if any

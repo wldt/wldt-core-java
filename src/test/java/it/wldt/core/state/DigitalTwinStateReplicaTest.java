@@ -190,12 +190,12 @@ public class DigitalTwinStateReplicaTest {
 
     @Test
     public void descriptionIdsAreCompared() {
-        assertEquals(0, DigitalTwinStateReplica.compareIds("10_3", "10_3"));
-        assertTrue(DigitalTwinStateReplica.compareIds("10_2", "10_3") < 0);
-        assertTrue(DigitalTwinStateReplica.compareIds("10_11", "10_3") > 0);
+        assertEquals(0, DigitalTwinStateDescription.compareIds("10_3", "10_3"));
+        assertTrue(DigitalTwinStateDescription.compareIds("10_2", "10_3") < 0);
+        assertTrue(DigitalTwinStateDescription.compareIds("10_11", "10_3") > 0);
         // Different creation timestamps or unparsable ids are considered newer
-        assertTrue(DigitalTwinStateReplica.compareIds("11_0", "10_3") > 0);
-        assertTrue(DigitalTwinStateReplica.compareIds("abc", "10_3") > 0);
+        assertTrue(DigitalTwinStateDescription.compareIds("11_0", "10_3") > 0);
+        assertTrue(DigitalTwinStateDescription.compareIds("abc", "10_3") > 0);
     }
 
     @Test
@@ -211,8 +211,8 @@ public class DigitalTwinStateReplicaTest {
         assertFalse(replica.applyDescriptionEvent(descriptionEvent(foreignNewer.getDescription())));
         assertEquals("10_0", replica.getDescription().getId());
 
-        assertTrue(DigitalTwinStateReplica.sameLineage("10_1", "10_9"));
-        assertFalse(DigitalTwinStateReplica.sameLineage("10_1", "11_1"));
+        assertTrue(DigitalTwinStateDescription.sameLineage("10_1", "10_9"));
+        assertFalse(DigitalTwinStateDescription.sameLineage("10_1", "11_1"));
     }
 
     @Test

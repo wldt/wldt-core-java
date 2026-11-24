@@ -20,19 +20,15 @@
  */
 package it.wldt.storage.query;
 
-import it.wldt.monitoring.CoreMonitoringUtils;
-import it.wldt.monitoring.metrics.WldtMetricComponent;
-import it.wldt.storage.WldtStorage;
-import java.util.Map;
-import java.util.Optional;
-
 /**
  * Authors:
  *          Marco Picone, Ph.D. (picone.m@gmail.com)
  * Date: 25/07/2024
  * Default Query Manager Class
  * This class is responsible to manage the query received by the Query Engine.
- * It extends the QueryManager class adding the monitoring metrics (STORAGE_QUERY_*) around the query execution.
+ * It uses the behaviour of the {@link QueryManager} as is: the target storage is the first storage available and the
+ * monitoring metrics (STORAGE_QUERY_*) are updated by the base class. A custom query manager extends
+ * {@link QueryManager} and overrides {@code getTargetStorage}.
  */
 public class DefaultQueryManager extends QueryManager{
 
@@ -42,40 +38,5 @@ public class DefaultQueryManager extends QueryManager{
 
     public DefaultQueryManager(String digitalTwinId) {
         super(digitalTwinId);
-    }
-
-    /**
-     * The method has been designed to return the desired storage object from the storage map to be used for the query management.
-     * Recall the default implementation of the method for the query manager.
-     * In the default implementation, the method returns the first storage object available in the storage map.
-     *
-     * The behavior can be changed by overriding the method in the custom query manager implementation.
-     * In the custom implementation, the method can be used to select different storage according to the query.
-     *
-     * @param query Query Object, that can be used to select different storage according to the query
-     * @param storageMap   Storage Map containing the storage objects
-     * @return Desired Storage Object to be used for the query management
-     */
-    @Override
-    public Optional<WldtStorage> getTargetStorage(Query query, Map<String, WldtStorage> storageMap) {
-        return super.getTargetStorage(query, storageMap);
-    }
-
-    /**
-     * Override of handleQuery to add monitoring metrics (STORAGE_QUERY_*).
-     * Delegates actual execution to the parent implementation.
-     */
-    @Override
-    public QueryResult<?> handleQuery(Query query, Map<String, WldtStorage> storageMap) {
-        if (monitoringInterface == null || !monitoringInterface.isActive(WldtMetricComponent.STORAGE))
-            return super.handleQuery(query, storageMap);
-        long startMs = System.currentTimeMillis();
-        QueryResult<?> result = super.handleQuery(query, storageMap);
-        monitoringInterface.updateTimerSince(metricsNamespace, CoreMonitoringUtils.STORAGE_QUERY_EXEC_TIME, startMs);
-        if (result != null && result.isSuccessful())
-            monitoringInterface.increaseCounter(metricsNamespace, CoreMonitoringUtils.STORAGE_QUERY_SUCCESS_COUNT);
-        else
-            monitoringInterface.increaseCounter(metricsNamespace, CoreMonitoringUtils.STORAGE_QUERY_ERROR_COUNT);
-        return result;
     }
 }

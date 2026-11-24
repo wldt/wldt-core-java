@@ -20,8 +20,11 @@
  */
 package it.wldt.augmentation.context;
 
+import it.wldt.core.state.DigitalTwinStateChange;
 import it.wldt.core.state.DigitalTwinStateChangeFilter;
+import it.wldt.core.state.DigitalTwinStateEventNotification;
 import it.wldt.core.state.DigitalTwinStateFilter;
+import it.wldt.core.state.DigitalTwinStateValues;
 import it.wldt.storage.query.Query;
 
 import java.util.ArrayList;
@@ -32,11 +35,21 @@ import java.util.List;
 /**
  * This class represents the request for the context of an Augmentation Function execution, allowing the specification
  * of observation preferences and query requests.
- * It provides options to observe the state of the system and event notifications, as well as filters for properties,
- * events, and relationships. Additionally, it allows the inclusion of a Query to retrieve necessary data from
+ * It provides options to observe the state of the system and event notifications, as well as the filters that select
+ * which part of the Digital Twin State is delivered to the function and which state updates are notified.
+ * Additionally, it allows the inclusion of a Query to retrieve necessary data from
  * the storage system during the execution of the augmentation function.
  * The class is designed to be flexible, enabling augmentation functions to customize their context based on their
  * specific needs and requirements.
+ * <p>
+ * <b>Filters:</b> two different, unrelated filters can be set (the Digital Twin State Description is never filtered):
+ * <ul>
+ *     <li>the <i>content filter</i> ({@link DigitalTwinStateFilter}, set with {@link #withStateFilter(DigitalTwinStateFilter)}):
+ *     selects, by name, which properties, actions, events and relationships are delivered to the function. It is the same
+ *     class used by the Digital Adapters;</li>
+ *     <li>the <i>trigger filter</i> (one or more {@link DigitalTwinStateChangeFilter} rules, set with
+ *     {@link #withStateChangeFilters(DigitalTwinStateChangeFilter...)}): selects which changes of the state notify the function.</li>
+ * </ul>
  */
 public class AugmentationFunctionContextRequest {
 
@@ -54,29 +67,11 @@ public class AugmentationFunctionContextRequest {
     */
     private boolean observeEventNotifications;
 
-    // Content filters: select which part of the Digital Twin State is delivered to the function.
-    // For each category null = no filter (everything is delivered), an empty list = nothing is delivered.
-
     /**
-     * Names of the properties delivered to the function. Null (default) = all the properties.
+     * Content filter: selects which part of the Digital Twin State values is delivered to the function (and, through
+     * its event names, which event notifications). The default accepts everything.
      */
-    private List<String> propertyNameFilter = null;
-
-    /**
-     * Names of the actions delivered to the function. Null (default) = all the actions.
-     */
-    private List<String> actionNameFilter = null;
-
-    /**
-     * Names of the events delivered to the function, both in the state and as event notifications.
-     * Null (default) = all the events and notifications.
-     */
-    private List<String> eventNameFilter = null;
-
-    /**
-     * Names of the relationships delivered to the function. Null (default) = all the relationships.
-     */
-    private List<String> relationshipNameFilter = null;
+    private DigitalTwinStateFilter stateFilter = DigitalTwinStateFilter.all();
 
     /**
      * Trigger filter (stateful functions only): a state update is notified to the function only if at least one of
@@ -109,31 +104,7 @@ public class AugmentationFunctionContextRequest {
      * not query the storage system during the execution.
      */
     public AugmentationFunctionContextRequest(){
-        this(true, true, null, null, null, null);
-    }
-
-    /**
-     * Constructor of the AugmentationFunctionContextRequest class with the possibility to specify the observation
-     * configuration and query request management.
-     * @param observeState Boolean flag to specify if the augmentation function want to observe the state of the system during the execution.
-     * @param observeEventNotifications Boolean flag to specify if the augmentation function want to observe the event notifications during the execution.
-     * @param propertyNameFilter List of property names to filter the observed state of the system. If the list is empty or null, all the properties are observed.
-     * @param eventNameFilter List of event notifications names to filter the observed event notifications. If the list is empty or null, all the event notifications are observed.
-     * @param relationshipNameFilter List of relationship names to filter the observed relationships. If the list is empty or null, all the relationships are observed.
-     * @param query The Query associate to the augmentation function context, it can be used by the augmentation function to query the storage system and retrieve the data needed for the execution of the augmentation function.
-     */
-    private AugmentationFunctionContextRequest(boolean observeState,
-                                              boolean observeEventNotifications,
-                                              List<String> propertyNameFilter,
-                                              List<String> eventNameFilter,
-                                              List<String> relationshipNameFilter,
-                                              Query query){
-        this.observeState = observeState;
-        this.observeEventNotifications = observeEventNotifications;
-        this.propertyNameFilter = propertyNameFilter;
-        this.eventNameFilter = eventNameFilter;
-        this.relationshipNameFilter = relationshipNameFilter;
-        this.query = query;
+        this(true, true, null);
     }
 
     /**
@@ -145,7 +116,7 @@ public class AugmentationFunctionContextRequest {
      * @param query The Query associate to the augmentation function context.
      */
     public AugmentationFunctionContextRequest(Query query){
-        this(true, true, null, null, null, query);
+        this(true, true, query);
     }
 
     /**
@@ -160,7 +131,9 @@ public class AugmentationFunctionContextRequest {
     public AugmentationFunctionContextRequest(boolean observeState,
                                               boolean observeEventNotifications,
                                               Query query){
-        this(observeState, observeEventNotifications, null, null, null, query);
+        this.observeState = observeState;
+        this.observeEventNotifications = observeEventNotifications;
+        this.query = query;
     }
 
     /**
@@ -229,31 +202,38 @@ public class AugmentationFunctionContextRequest {
     }
 
     /**
+     * @return the content filter of this request (never null, it accepts everything if no filter has been set)
+     */
+    public DigitalTwinStateFilter getStateFilter() {
+        return stateFilter;
+    }
+
+    /**
      * @return the names of the properties delivered to the function (null = all)
      */
     public List<String> getPropertyNameFilter() {
-        return propertyNameFilter;
+        return stateFilter.getPropertyNames();
     }
 
     /**
      * @return the names of the actions delivered to the function (null = all)
      */
     public List<String> getActionNameFilter() {
-        return actionNameFilter;
+        return stateFilter.getActionNames();
     }
 
     /**
      * @return the names of the events / event notifications delivered to the function (null = all)
      */
     public List<String> getEventNameFilter() {
-        return eventNameFilter;
+        return stateFilter.getEventNames();
     }
 
     /**
      * @return the names of the relationships delivered to the function (null = all)
      */
     public List<String> getRelationshipNameFilter() {
-        return relationshipNameFilter;
+        return stateFilter.getRelationshipNames();
     }
 
     /**
@@ -264,54 +244,17 @@ public class AugmentationFunctionContextRequest {
     }
 
     /**
-     * Restrict the properties delivered to the function.
-     * The filter has a double role: it selects the content delivered to the function and, for
+     * Set the content filter: it selects which properties, actions, events and relationships (by name) are delivered
+     * to the function. It has a double role: it selects the content delivered to the function and, for
      * stateful functions, a state update is notified only if at least one of its changes concerns an accepted resource
-     * (when a trigger filter is also defined, the same change must satisfy both).
-     * @param propertyNames the property names, null to remove the filter, empty to deliver no property
+     * (when a trigger filter is also defined, the same change must satisfy both). The names of the events also select the
+     * event notifications delivered to the function. The Digital Twin State Description is never filtered.
+     * A new call replaces the previous filter.
+     * @param stateFilter the content filter, null is equivalent to {@link DigitalTwinStateFilter#all()}
      * @return this request
      */
-    public AugmentationFunctionContextRequest withPropertyNameFilter(String... propertyNames) {
-        this.propertyNameFilter = copyNames(propertyNames);
-        return this;
-    }
-
-    /**
-     * Restrict the actions delivered to the function.
-     * The filter has a double role: it selects the content delivered to the function and, for
-     * stateful functions, a state update is notified only if at least one of its changes concerns an accepted resource
-     * (when a trigger filter is also defined, the same change must satisfy both).
-     * @param actionNames the action names, null to remove the filter, empty to deliver no action
-     * @return this request
-     */
-    public AugmentationFunctionContextRequest withActionNameFilter(String... actionNames) {
-        this.actionNameFilter = copyNames(actionNames);
-        return this;
-    }
-
-    /**
-     * Restrict the events (and the event notifications) delivered to the function.
-     * The filter has a double role: it selects the content delivered to the function and, for
-     * stateful functions, a state update is notified only if at least one of its changes concerns an accepted resource
-     * (when a trigger filter is also defined, the same change must satisfy both).
-     * @param eventNames the event names, null to remove the filter, empty to deliver no event
-     * @return this request
-     */
-    public AugmentationFunctionContextRequest withEventNameFilter(String... eventNames) {
-        this.eventNameFilter = copyNames(eventNames);
-        return this;
-    }
-
-    /**
-     * Restrict the relationships delivered to the function.
-     * The filter has a double role: it selects the content delivered to the function and, for
-     * stateful functions, a state update is notified only if at least one of its changes concerns an accepted resource
-     * (when a trigger filter is also defined, the same change must satisfy both).
-     * @param relationshipNames the relationship names, null to remove the filter, empty to deliver no relationship
-     * @return this request
-     */
-    public AugmentationFunctionContextRequest withRelationshipNameFilter(String... relationshipNames) {
-        this.relationshipNameFilter = copyNames(relationshipNames);
+    public AugmentationFunctionContextRequest withStateFilter(DigitalTwinStateFilter stateFilter) {
+        this.stateFilter = stateFilter != null ? stateFilter : DigitalTwinStateFilter.all();
         return this;
     }
 
@@ -328,11 +271,10 @@ public class AugmentationFunctionContextRequest {
     }
 
     /**
-     * @return true if at least one content filter (property, action, event, relationship names) is defined
+     * @return true if the content filter restricts at least one category (properties, actions, events, relationships)
      */
     public boolean hasContentFilter() {
-        return propertyNameFilter != null || actionNameFilter != null
-                || eventNameFilter != null || relationshipNameFilter != null;
+        return stateFilter.isActive();
     }
 
     /**
@@ -343,25 +285,74 @@ public class AugmentationFunctionContextRequest {
     }
 
     /**
-     * @return the content filter of this request (property, action, event, relationship names) as a generic
-     * {@link DigitalTwinStateFilter}, accepting everything if no content filter is defined
+     * Checks if a state values update must be notified to the function according to the filters of this request.
+     * The trigger filter ({@link DigitalTwinStateChangeFilter} rules) and the content filter ({@link DigitalTwinStateFilter}) are
+     * evaluated on each single change: the update is notified if at least one change satisfies both
+     * (a missing filter accepts every change). Two different changes, one matching only the trigger filter and the
+     * other only the content filter, do not trigger the update.
+     * <p>
+     * Without change information (null or empty list) the update is not notified if a trigger filter is defined,
+     * and it is notified otherwise (the relevance for the content filter cannot be evaluated).
+     * @param changeList the changes of the state update (may be null)
+     * @return true if the update must be notified
      */
-    public DigitalTwinStateFilter toStateFilter() {
-        return DigitalTwinStateFilter.of(propertyNameFilter, actionNameFilter, eventNameFilter, relationshipNameFilter);
+    public boolean shouldTrigger(List<DigitalTwinStateChange> changeList) {
+
+        boolean triggerFilter = hasTriggerFilter();
+        boolean contentFilter = hasContentFilter();
+
+        if (!triggerFilter && !contentFilter)
+            return true;
+
+        if (changeList == null || changeList.isEmpty())
+            return !triggerFilter;
+
+        for (DigitalTwinStateChange change : changeList) {
+            if (contentFilter && !stateFilter.accepts(change))
+                continue;
+            if (!triggerFilter || matchesAnyRule(change))
+                return true;
+        }
+
+        return false;
     }
 
-    private static List<String> copyNames(String[] names) {
-        return names == null ? null : Collections.unmodifiableList(new ArrayList<>(Arrays.asList(names)));
+    private boolean matchesAnyRule(DigitalTwinStateChange change) {
+        for (DigitalTwinStateChangeFilter rule : stateChangeFilters)
+            if (rule.matches(change))
+                return true;
+        return false;
+    }
+
+    /**
+     * Checks if an event notification must be delivered to the function according to the event names of the
+     * content filter.
+     * @param notification the notification
+     * @return true if the content filter does not restrict the events or the event key is listed
+     */
+    public boolean acceptsEventNotification(DigitalTwinStateEventNotification<?> notification) {
+        if (stateFilter.getEventNames() == null)
+            return true;
+
+        return notification != null && stateFilter.acceptsEvent(notification.getDigitalEventKey());
+    }
+
+    /**
+     * Applies the content filter of this request to the complete values of the state. Each category (properties,
+     * relationships, actions, events) is filtered independently: a null name list keeps the whole category, an
+     * empty list removes it. The description is never filtered.
+     * @param values the complete values
+     * @return the same instance if no content filter is defined, otherwise a new filtered values object
+     */
+    public DigitalTwinStateValues filterValues(DigitalTwinStateValues values) {
+        return values == null ? null : values.filter(stateFilter);
     }
 
     @Override
     public String toString() {
         return "AugmentationFunctionContextRequest{" + "observeState=" + observeState +
                 ", observeEventNotifications=" + observeEventNotifications +
-                ", propertyNameFilter=" + propertyNameFilter +
-                ", actionNameFilter=" + actionNameFilter +
-                ", eventNameFilter=" + eventNameFilter +
-                ", relationshipNameFilter=" + relationshipNameFilter +
+                ", stateFilter=" + stateFilter +
                 ", stateChangeFilters=" + stateChangeFilters +
                 ", query=" + query +
                 ", refreshQueryOnStateUpdate=" + refreshQueryOnStateUpdate +

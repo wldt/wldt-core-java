@@ -37,6 +37,11 @@ import java.util.List;
  * </ul>
  * The filter is include-only: there are no wildcards, patterns or exclusion lists.
  * Instances are immutable, every {@code with*} method returns a new filter.
+ * <p>
+ * <b>Not to be confused with</b> the other filters of the library, that have different purposes: the
+ * {@link DigitalTwinStateChangeFilter} (trigger rule on the changes of the state), the
+ * {@link it.wldt.core.event.WldtEventFilter} (event types of an event bus subscription) and the
+ * {@link it.wldt.storage.query.filter.Filter} (conditions of a storage query).
  */
 public final class DigitalTwinStateFilter {
 
@@ -208,116 +213,6 @@ public final class DigitalTwinStateFilter {
             default:
                 return false;
         }
-    }
-
-    /**
-     * Checks if a change alters the <b>structure</b> of the state (see {@link DigitalTwinStateDescription}).
-     * The decision is taken on the operation first: only {@code OPERATION_ADD}, {@code OPERATION_UPDATE} and
-     * {@code OPERATION_REMOVE} on the definition of a property, relationship, action or event are description
-     * changes. {@code OPERATION_UPDATE_VALUE} (property value updates, last invocation of an action, last
-     * notification of an event) and the changes on relationship instances never alter the structure.
-     * @param change the state change
-     * @return true if the change alters the description of the state
-     */
-    public static boolean isDescriptionChange(DigitalTwinStateChange change) {
-        if (change == null || change.getOperation() == null || change.getResourceType() == null)
-            return false;
-
-        switch (change.getOperation()) {
-            case OPERATION_ADD:
-            case OPERATION_UPDATE:
-            case OPERATION_REMOVE:
-                switch (change.getResourceType()) {
-                    case PROPERTY:
-                    case RELATIONSHIP:
-                    case ACTION:
-                    case EVENT:
-                        return true;
-                    default:
-                        return false;
-                }
-            default:
-                return false;
-        }
-    }
-
-    /**
-     * Checks if a change must produce a <b>values</b> update (see {@link DigitalTwinStateValues}):
-     * <ul>
-     *     <li>{@code OPERATION_UPDATE_VALUE}: property value, last invocation of an action, last notification of an event;</li>
-     *     <li>{@code OPERATION_ADD} and {@code OPERATION_UPDATE} of a property or of a relationship (they carry a value
-     *     / the instances);</li>
-     *     <li>{@code OPERATION_ADD} and {@code OPERATION_REMOVE} of a relationship instance (the structure does not change).</li>
-     * </ul>
-     * The {@code OPERATION_REMOVE} of a property, relationship, action or event is <b>not</b> a values change: it is
-     * only a description change and every component that keeps a local copy of the values drops the value of the
-     * removed resource when it applies the new description. The same holds for the addition or update of the
-     * definition of an action or of an event, that carry no value.
-     * @param change the state change
-     * @return true if the change produces a values update
-     */
-    public static boolean isValueChange(DigitalTwinStateChange change) {
-        if (change == null || change.getOperation() == null || change.getResourceType() == null)
-            return false;
-
-        switch (change.getOperation()) {
-            case OPERATION_UPDATE_VALUE:
-                return true;
-            case OPERATION_ADD:
-            case OPERATION_UPDATE:
-                switch (change.getResourceType()) {
-                    case PROPERTY:
-                    case PROPERTY_VALUE:
-                    case RELATIONSHIP:
-                    case RELATIONSHIP_INSTANCE:
-                        return true;
-                    default:
-                        return false;
-                }
-            case OPERATION_REMOVE:
-                return DigitalTwinStateChange.ResourceType.RELATIONSHIP_INSTANCE.equals(change.getResourceType());
-            default:
-                return false;
-        }
-    }
-
-    /**
-     * @param changes the changes of a state update (may be null)
-     * @return the changes concerning resources accepted by this filter (empty if changes is null)
-     */
-    public List<DigitalTwinStateChange> acceptedChanges(List<DigitalTwinStateChange> changes) {
-        List<DigitalTwinStateChange> result = new ArrayList<>();
-        if (changes != null)
-            for (DigitalTwinStateChange change : changes)
-                if (accepts(change))
-                    result.add(change);
-        return result;
-    }
-
-    /**
-     * @param changes the changes of a state update (may be null)
-     * @return the changes that alter the structure of the state and concern resources accepted by this filter
-     */
-    public List<DigitalTwinStateChange> descriptionChanges(List<DigitalTwinStateChange> changes) {
-        List<DigitalTwinStateChange> result = new ArrayList<>();
-        if (changes != null)
-            for (DigitalTwinStateChange change : changes)
-                if (isDescriptionChange(change) && accepts(change))
-                    result.add(change);
-        return result;
-    }
-
-    /**
-     * @param changes the changes of a state update (may be null)
-     * @return the changes that alter the values of the state and concern resources accepted by this filter
-     */
-    public List<DigitalTwinStateChange> valueChanges(List<DigitalTwinStateChange> changes) {
-        List<DigitalTwinStateChange> result = new ArrayList<>();
-        if (changes != null)
-            for (DigitalTwinStateChange change : changes)
-                if (isValueChange(change) && accepts(change))
-                    result.add(change);
-        return result;
     }
 
     private static List<String> copy(String[] names) {

@@ -46,6 +46,15 @@ import java.util.*;
  * Default implementation of the DigitalTwinState as implementation of the reference Interface IDigitalTwinStateManager.
  * Developers can use this class or customize the implemented behaviours through their implementation of the
  * target IDigitalTwinStateManager interface.
+ * <p>
+ * <b>Threading contract:</b> the manager is meant to be used from a single thread at a time (the thread of the
+ * Shadowing Function / Digital Twin Model). A commit is not atomic: the new state replaces the previous one and the
+ * description sequence is increased before the events are published, so if the publication fails the state is
+ * already committed. The state is not published to other threads atomically either:
+ * {@link #getDigitalTwinStateDescription()} and {@link #getDigitalTwinStateValues()} are two separate reads, and a
+ * commit between them can return a description and values with different description ids. Components that need a
+ * consistent copy of the state follow it through the events published on the event bus
+ * (see {@link DigitalTwinStateReplica}).
  */
 public class DigitalTwinStateManager {
 
@@ -272,7 +281,7 @@ public class DigitalTwinStateManager {
             // DESCRIPTION UPDATE
             if(descriptionChanged) {
 
-                List<DigitalTwinStateChange> descriptionChanges = DigitalTwinStateFilter.all().descriptionChanges(changes);
+                List<DigitalTwinStateChange> descriptionChanges = DigitalTwinStateChange.descriptionChanges(changes);
 
                 WldtEvent<DigitalTwinStateDescription> descriptionEvent = new WldtEvent<>(getStateDescriptionUpdateWldtEventMessageType());
                 descriptionEvent.setBody(endState.getDescription());
@@ -283,7 +292,7 @@ public class DigitalTwinStateManager {
             }
 
             // VALUES UPDATE
-            List<DigitalTwinStateChange> valueChanges = DigitalTwinStateFilter.all().valueChanges(changes);
+            List<DigitalTwinStateChange> valueChanges = DigitalTwinStateChange.valueChanges(changes);
 
             if(!valueChanges.isEmpty()) {
 
@@ -316,7 +325,7 @@ public class DigitalTwinStateManager {
                                                       List<DigitalTwinStateChange> valueChanges) throws Exception {
 
         // The removal of a property, relationship, action or event is not a values change (see
-        // DigitalTwinStateFilter.isValueChange): it is carried only by the description update
+        // DigitalTwinStateChange#isValueChange): it is carried only by the description update
         Set<String> touchedProperties = new LinkedHashSet<>();
         Set<String> touchedRelationships = new LinkedHashSet<>();
         Set<String> triggeredActions = new LinkedHashSet<>();

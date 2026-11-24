@@ -23,6 +23,11 @@ package it.wldt.storage.query.filter;
 /**
  * Backend-neutral filter tree: {@link ComparisonFilter} leaves combined with {@link AndFilter}, {@link OrFilter}
  * and {@link NotFilter}. Instances are immutable. Use {@link FilterFactory} to build them.
+ * <p>
+ * It expresses the <b>conditions of a storage query</b>. Not to be confused with the other filters of the library:
+ * {@link it.wldt.core.state.DigitalTwinStateFilter} (content filter of the state values),
+ * {@link it.wldt.core.state.DigitalTwinStateChangeFilter} (trigger rule on the state changes) and
+ * {@link it.wldt.core.event.WldtEventFilter} (event types of an event bus subscription).
  */
 public interface Filter {
 

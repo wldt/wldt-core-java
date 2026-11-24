@@ -384,6 +384,8 @@ queryExecutor.asyncQueryExecute(query, new IQueryResultListener() {
 });
 ```
 
+**Threads**: `syncQueryExecute` **blocks the calling thread** until the result arrives. Called inside a callback of a Digital Adapter or of an Augmentation Function, it blocks the event thread of that component, so its next events are delivered with a delay until the query ends. `asyncQueryExecute` does not block the caller: the listener runs on a thread of a library pool dedicated to the query listeners (not on the caller thread), so it can run other queries, synchronous ones too; an exception thrown by the listener is logged. When the owner of an executor stops (Digital Adapter, Augmentation Function Handler) the library calls `QueryExecutor.close()`, which releases the subscription to the event bus and fails the queries still waiting; an executor created by the developer should be closed by the developer.
+
 **Timeout**: the caller waits for the result for **5 seconds** by default (`QueryExecutor.DEFAULT_QUERY_TIMEOUT_MS`); after that a failed result (with a timeout error message) is returned. Heavy queries can use a longer timeout, either for all the queries of an executor or for a single query:
 
 ```java
@@ -631,11 +633,11 @@ Before the introduction of the `Query` object, queries were described by a reque
 
 ### Query Manager
 
-The `QueryManager` is in charge of choosing the storage that executes a query among the ones available in the `StorageManager`. The default implementation (`DefaultQueryManager`) uses the **first available storage** and adds the monitoring metrics of the executed queries. The behavior can be changed by extending the class and overriding `getTargetStorage(Query query, Map<String, WldtStorage> storageMap)`, for example to send the queries on the state variations to a storage and the others to a different one, and by setting it with `StorageManager.setQueryManager(...)`.
+The `QueryManager` is in charge of choosing the storage that executes a query among the ones available in the `StorageManager`. The base class selects the **first available storage** (`DefaultQueryManager` uses it as is) and updates the monitoring metrics of the executed queries in `handleQuery`, so every query manager gets the metrics. The behavior can be changed by extending the class `QueryManager` and overriding `getTargetStorage(Query query, Map<String, WldtStorage> storageMap)`, for example to send the queries on the state variations to a storage and the others to a different one, and by setting it with `StorageManager.setQueryManager(...)`.
 
 ### Threading and performance
 
-The `StorageManager` receives all the events and the queries of a Digital Twin on **a single event thread**, and calls the `save*` methods and `execute(Query)` of the storages one after the other. This keeps the order of the data, but means that a long query delays the storing of the data that arrive in the meantime. Some suggestions to keep queries cheap:
+The `StorageManager` receives all the events and the queries of a Digital Twin on **a single event thread**, and calls the `save*` methods and `execute(Query)` of the storages one after the other. This keeps the order of the data, but means that a long query delays the storing of the data that arrive in the meantime (the events are queued, nothing is lost), and a slow `save*` delays the queries. Some suggestions to keep queries cheap:
 
 - Filter as much as possible (by key and by time) and use `limit`, so the storage returns only what is needed.
 - Prefer an aggregation (`count`, `avg`, `groupBy`, ...) to reading many records to compute a value.
@@ -720,7 +722,7 @@ public class SqlWhereBuilder implements FilterVisitor<String> {
 
 ## Storage Monitoring Integration
 
-When `withStorageMonitoring()` is included in `MonitoringInterfaceConfiguration`, `StorageManager`, `WldtStorage`, and `DefaultQueryManager` are instrumented automatically. No developer action is required beyond the configuration step.
+When `withStorageMonitoring()` is included in `MonitoringInterfaceConfiguration`, `StorageManager`, `WldtStorage`, and the `QueryManager` are instrumented automatically. No developer action is required beyond the configuration step.
 
 ```java
 MonitoringInterfaceConfiguration config = new MonitoringInterfaceConfiguration.Builder()
@@ -735,7 +737,7 @@ digitalTwin.getMonitoringInterface().setHandler(new MyMonitoringHandler());
 
 21 metrics are registered under the `"core"` namespace, covering:
 
-- **Query operations** — success count, error count, and execution time for every query handled by `DefaultQueryManager`
+- **Query operations** — success count, error count, and execution time for every query handled by the `QueryManager`
 - **Write operations** — success count, error count, and write time for each entity type: DT state description, DT state values, Physical Asset Description, augmentation function results, digital events, physical events, and lifecycle events
 
 For the full list of metric names and types, see [STORAGE metrics](monitoring.md#storage-metrics) in the monitoring documentation.
