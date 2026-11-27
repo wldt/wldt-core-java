@@ -22,7 +22,7 @@ differentiate between the concept of a relationship and that of an instance of a
 In the first case, we refer to a semantic concept where each relationship,
 through its ```name``` and the semantic ```type``` of its target,
 determines the different type of link that the DT can establish.
-On the other hand, an ```instanc``` of a relationship represents the concrete
+On the other hand, an ```instance``` of a relationship represents the concrete
 link present between the DT that establishes it and the target DT.
 For instance, in the case of a Smart Home,
 the Bedroom DT may have two relationships in its model: one named ```is_room_of``` and another called ```has_device```.
@@ -41,13 +41,14 @@ Then we can update the code as follows:
 private PhysicalAssetRelationship<String> insideInRelationship = null;
 
 @Override
-public void onIncomingPhysicalAction(PhysicalAssetActionWldtEvent<?> physicalAssetActionWldtEvent) {
+public void onAdapterStart() {
     try{
         
         [...]
         
         //Create Test Relationship to describe that the Physical Device is inside a building
-        this.insideInRelationship=new PhysicalAssetRelationship<>("insideId");
+        //(relationship name and semantic type of the target)
+        this.insideInRelationship = new PhysicalAssetRelationship<>("insideIn", "iot.demo.building");
         pad.getRelationships().add(insideInRelationship);
         
         [...]
@@ -105,7 +106,7 @@ protected void onDigitalTwinBound(Map<String, PhysicalAssetDescription> adapters
             pad.getRelationships().forEach(relationship -> {
                 try{
                     if(relationship != null && relationship.getName().equals("insideIn")){
-                        DigitalTwinStateRelationship<String> insideInDtStateRelationship = new DigitalTwinStateRelationship<>(relationship.getName(), relationship.getName());
+                        DigitalTwinStateRelationship<String> insideInDtStateRelationship = new DigitalTwinStateRelationship<>(relationship.getName(), relationship.getType());
                         this.digitalTwinStateManager.startStateTransaction();
                         this.digitalTwinStateManager.createRelationship(insideInDtStateRelationship);
                         this.digitalTwinStateManager.commitStateTransaction();

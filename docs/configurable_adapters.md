@@ -71,11 +71,11 @@ public class TestPhysicalAdapterConfiguration {
 }
 ```
 
-Now we can create or update our Physical Adapter extending ```ConfigurablePhysicalAdapter<DemoPhysicalAdapterConfiguration>```
+Now we can create or update our Physical Adapter extending ```ConfigurablePhysicalAdapter<TestPhysicalAdapterConfiguration>```
 as illustrated in the following snippet:
 
 ```java
-public class TestPhysicalAdapter extends ConfigurablePhysicalAdapter<DemoPhysicalAdapterConfiguration> { 
+public class TestPhysicalAdapter extends ConfigurablePhysicalAdapter<TestPhysicalAdapterConfiguration> { 
   [...]
 }
 ```
@@ -84,7 +84,7 @@ Extending this class also the constructor should be updated getting as a paramet
 Our constructor will be the following:
 
 ```java
-public TestConfPhysicalAdapter(String id, DemoPhysicalAdapterConfiguration configuration) {
+public TestPhysicalAdapter(String id, TestPhysicalAdapterConfiguration configuration) {
     super(id, configuration);
 }
 ```
@@ -254,7 +254,7 @@ private Runnable emulateIncomingDigitalAction(){
 ```
 
 When we have updated both adapters making them configurable we can update our ```main``` function in the process
-that we have previouly device using the updated adapters and passing the configurations:
+that we have previously defined using the updated adapters and passing the configurations:
 
 ````java
 public class TestDigitalTwin {
@@ -262,17 +262,15 @@ public class TestDigitalTwin {
     public static void main(String[] args)  {
         try{
 
-            WldtEngine digitalTwinEngine = new WldtEngine(new DemoShadowingFunction("test-shadowing-function"), "test-digital-twin");
-
-            //Default Physical and Digital Adapter
-            //digitalTwinEngine.addPhysicalAdapter(new TestPhysicalAdapter("test-physical-adapter"));
-            //digitalTwinEngine.addDigitalAdapter(new TestDigitalAdapter("test-digital-adapter"));
+            DigitalTwin digitalTwin = new DigitalTwin("test-digital-twin", new TestDigitalTwinModel("test-digital-twin-model"));
 
             //Physical and Digital Adapters with Configuration
-            digitalTwinEngine.addPhysicalAdapter(new TestConfPhysicalAdapter("test-physical-adapter", new TestPhysicalAdapterConfiguration()));
-            digitalTwinEngine.addDigitalAdapter(new TestConfDigitalAdapter("test-digital-adapter", new TestDigitalAdapterConfiguration()));
+            digitalTwin.addPhysicalAdapter(new TestPhysicalAdapter("test-physical-adapter", new TestPhysicalAdapterConfiguration()));
+            digitalTwin.addDigitalAdapter(new TestDigitalAdapter("test-digital-adapter", new TestDigitalAdapterConfiguration()));
 
-            digitalTwinEngine.startLifeCycle();
+            DigitalTwinEngine digitalTwinEngine = new DigitalTwinEngine();
+            digitalTwinEngine.addDigitalTwin(digitalTwin);
+            digitalTwinEngine.startDigitalTwin("test-digital-twin");
 
         }catch (Exception e){
             e.printStackTrace();

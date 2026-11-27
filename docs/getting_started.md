@@ -5,7 +5,8 @@ Following the steps described in this section, the developer will be able to cre
 The steps that we have to follow in order to create our first (and super simple) Digital Twin are the following:
 
 - [Physical Adapter](#physical-adapter)
-- [`DigitalTwinModel`](#shadowing-function)
+- [`DigitalTwinModel`](#digitaltwinmodel---handling-the-shadowing-process)
+- [Digital Twin State events on the event bus](#digital-twin-state-events-on-the-event-bus)
 - [Digital Adapter](#digital-adapter)
 - [Digital Twin Engine & Process](#digital-twin-process)
 - [Digital Action Management](#digital-action-management)
@@ -22,7 +23,7 @@ In general WLDT Physical Adapter extends the class ``PhysicalAdapter`` and it is
 - Handle action request coming from the Digital World through the DT `DigitalTwinModel` by implementing the method ``onIncomingPhysicalAction`` and processing events modeled through the class ``PhysicalAssetActionWldtEvent``
 
 Create a new class called ``TestPhysicalAdapter`` extending the library class ``PhysicalAdapter`` and implement the following methods:
-- ``onAdapterStart``: A callback method used to notify when the adapter has been effectively started withing the DT's life cycle
+- ``onAdapterStart``: A callback method used to notify when the adapter has been effectively started within the DT's life cycle
 - ``onAdapterStop``: A call method invoked when the adapter has been stopped and will be dismissed by the core
 - ``onIncomingPhysicalAction``: The callback method called when a new ``PhysicalAssetActionWldtEvent`` is sent by the `DigitalTwinModel` upon the receiving of a valid Digital Action through a Digital Adapter
 
@@ -73,7 +74,7 @@ In order to publish the PAD we can update the onAdapterStart method with the fol
 ```java
 private final static String TEMPERATURE_PROPERTY_KEY = "temperature-property-key";
 private final static String OVERHEATING_EVENT_KEY = "overheating-event-key";
-private final static String SET_TEMPERATURE_ACTION_KEY = "set-temperatura-action-key";
+private final static String SET_TEMPERATURE_ACTION_KEY = "set-temperature-action-key";
 
 @Override
 public void onAdapterStart() {
@@ -94,7 +95,7 @@ public void onAdapterStart() {
         
         //Declare the availability of a target action characterized by a Key, an action type
         // and the expected content type and the request body
-        PhysicalAssetAction setTemperatureAction = new PhysicalAssetAction(SET_TEMPERATURE_ACTION_KEY, "temperature.actuation", "text/plain");
+        PhysicalAssetAction setTemperatureAction = new PhysicalAssetAction(SET_TEMPERATURE_ACTION_KEY, "temperature.actuation", "java.lang.Double");
         pad.getActions().add(setTemperatureAction);
         
         //Notify the new PAD to the DT's `DigitalTwinModel`
@@ -173,7 +174,7 @@ public void onIncomingPhysicalAction(PhysicalAssetActionWldtEvent<?> physicalAss
 
         if(physicalAssetActionWldtEvent != null
                 && physicalAssetActionWldtEvent.getActionKey().equals(SET_TEMPERATURE_ACTION_KEY)
-                && physicalAssetActionWldtEvent.getBody() instanceof String) {
+                && physicalAssetActionWldtEvent.getBody() instanceof Double) {
             System.out.println("Received Action Request: " + physicalAssetActionWldtEvent.getActionKey()
                     + " with Body: " + physicalAssetActionWldtEvent.getBody());
         }
@@ -250,7 +251,7 @@ public class TestPhysicalAdapter extends PhysicalAdapter {
 
             //Declare the availability of a target action characterized by a Key, an action type
             // and the expected content type and the request body
-            PhysicalAssetAction setTemperatureAction = new PhysicalAssetAction(SET_TEMPERATURE_ACTION_KEY, "temperature.actuation", "text/plain");
+            PhysicalAssetAction setTemperatureAction = new PhysicalAssetAction(SET_TEMPERATURE_ACTION_KEY, "temperature.actuation", "java.lang.Double");
             pad.getActions().add(setTemperatureAction);
 
             //Notify the new PAD to the DT's `DigitalTwinModel`
@@ -310,7 +311,7 @@ public class TestPhysicalAdapter extends PhysicalAdapter {
 ```
 
 Both Physical Adapters and Digital Adapters can be defined natively with a custom configuration provided by the developer
-as illustrated in the dedicated Section: [Configurable Physical & Digital Adapters](#configurable-physical-and-digital-adapters).
+as illustrated in the dedicated page: [Configurable Physical & Digital Adapters](configurable_adapters.md).
 
 ## DigitalTwinModel - Handling the Shadowing Process
 
@@ -391,7 +392,11 @@ import it.wldt.adapter.physical.event.PhysicalAssetEventWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetPropertyWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetRelationshipInstanceCreatedWldtEvent;
 import it.wldt.adapter.physical.event.PhysicalAssetRelationshipInstanceDeletedWldtEvent;
+import it.wldt.augmentation.error.AugmentationFunctionError;
+import it.wldt.augmentation.function.AugmentationFunction;
+import it.wldt.augmentation.result.AugmentationFunctionResultList;
 import it.wldt.core.model.DigitalTwinModel;
+import java.util.List;
 import java.util.Map;
 
 public class TestDigitalTwinModel extends DigitalTwinModel {
@@ -466,14 +471,43 @@ public class TestDigitalTwinModel extends DigitalTwinModel {
     protected void onDigitalActionEvent(DigitalActionWldtEvent<?> digitalActionWldtEvent) {
 
     }
+
+    //// Augmentation Functions Callbacks (see the Augmentation Functions documentation) ////
+
+    @Override
+    protected void onAugmentationFunctionError(String handlerId, String functionId, AugmentationFunctionError augmentationFunctionError) {
+
+    }
+
+    @Override
+    protected void onAugmentationFunctionResultEvent(String augmentationFunctionHandlerId, String augmentationFunctionId, AugmentationFunctionResultList augmentationFunctionResults) {
+
+    }
+
+    @Override
+    protected void onAugmentationNewFunctionAvailable(String handlerId, AugmentationFunction augmentationFunction) {
+
+    }
+
+    @Override
+    protected void onAugmentationFunctionUnAvailable(String handlerId, AugmentationFunction augmentationFunction) {
+
+    }
+
+    @Override
+    protected void onAugmentationFunctionListAvailable(String handlerId, List<AugmentationFunction> augmentationFunctionList) {
+
+    }
 }
 ```
+
+The augmentation callbacks are not used in this tutorial and can be left empty: see [Augmentation Functions](augmentation_function.md).
 
 The methods ```onCreate()```, ```onStart()``` and ```onStop()``` are used to receive callbacks from the DT's core when the `DigitalTwinModel` has been effectively created within the twin, is started or stopped
 according to the evolution of its life cycle. In our initial implementation we are not implementing any of them but they can be useful to trigger specific behaviours according to the different phases.
 
 The first method that we have to implement in order to analyze received PAD and build the Digital Twin State in terms of properties, events, relationships and available actions is
-the ```onDigitalTwinBound(Map<String, PhysicalAssetDescription> map)``` method. In our initial implementation we just pass through all the received characteristics recevied from each connected
+the ```onDigitalTwinBound(Map<String, PhysicalAssetDescription> map)``` method. In our initial implementation we just pass through all the received characteristics received from each connected
 Physical Adapter mapping every physical entity into the DT's state without any change or adaptation (Of course complex behaviour can be implemented to customized the digitalization process).
 
 Through the following method we implement the following behaviour:
@@ -672,7 +706,7 @@ in order to update the value of an existing DT'State property (previously create
 To update the resource we directly use the received data on the ```PhysicalAssetPropertyWldtEvent``` without any additional check
 or change that might be instead needed in advanced examples.
 
-Following the same principle, a simplified digital mapping between physical and digital state upon the receving of a physical event variation can be the following:
+Following the same principle, a simplified digital mapping between physical and digital state upon the receiving of a physical event variation can be the following:
 
 ```java
 @Override
@@ -792,7 +826,7 @@ Filters are applied by each component **after** its local copy has been updated,
 
 ## Digital Adapter
 
-The las component that we have to implement to complete our first simple Digital Twin definition through the WLDT library is a
+The last component that we have to implement to complete our first simple Digital Twin definition through the WLDT library is a
 Digital Adapter in charge of:
 
 - Receiving event from the DT's Core related to the variation of properties, events, available actions and relationships
@@ -844,7 +878,7 @@ To control what is observed a Digital Adapter has the following methods:
       It is called automatically when the DT is synchronized, unless the adapter already enabled the observation.
     - ```observeDigitalTwinState(DigitalTwinStateFilter filter)``` and ```observeDigitalTwinState(DigitalTwinStateFilter filter, DigitalTwinStateChangeFilter changeFilter)```:
       Enable the observation applying a content filter (by name on properties, actions, events and relationships) and optionally a trigger filter on the values updates (see below).
-      A new call replaces the previous filters.
+      A new call replaces the previous filters, with one exception: the version with only the content filter keeps the trigger filter already set (pass ```null``` as ```changeFilter```, or call ```clearStateFilter()```, to remove it).
     - ```clearStateFilter()```: Remove the filters, the adapter receives again every values update, complete.
     - ```unObserveDigitalTwinState()```: Cancel the observation of the Digital Twin State variations.
 - Events notifications (the payload of an event, that is not part of the state updates):
@@ -1014,7 +1048,7 @@ The filters restrict when ```onStateValuesUpdate``` is called and which values i
 (properties, actions, events and relationships), the names of the accepted resources: an unset category accepts everything, an empty list accepts nothing.
 The optional **trigger filter** (```DigitalTwinStateChangeFilter```) accepts only the changes with the given operation, resource type and/or resource name.
 They are set with ```observeDigitalTwinState(filter[, changeFilter])```, typically in ```onDigitalTwinSync```: the description of the state is available there and the filters are active from the first update (the automatic observation starts right after the callback).
-They can be changed at any time; a new call replaces the previous filters:
+They can be changed at any time; a new call replaces the previous filters (but ```observeDigitalTwinState(filter)```, without a trigger filter, replaces only the content filter and keeps the trigger filter already set):
 
 ```java
 @Override
@@ -1134,27 +1168,31 @@ protected void onEventNotificationReceived(DigitalTwinStateEventNotification<?> 
 ```
 
 Both Physical Adapters and Digital Adapters can be defined natively with a custom configuration provided by the developer
-as illustrated in the dedicated Section: [Configurable Physical & Digital Adapters](#configurable-physical-and-digital-adapters).
+as illustrated in the dedicated page: [Configurable Physical & Digital Adapters](configurable_adapters.md).
 
 ## Digital Twin Process
 
-Now that we have created the main fundamental element of a DT (Physical Adapter, `DigitalTwinModel` and Digital Adapter) we can create Class file with a main to create the WLDT Engine
-with the created components and start the DT.
+Now that we have created the main fundamental element of a DT (Physical Adapter, `DigitalTwinModel` and Digital Adapter) we can create Class file with a main to create the Digital Twin
+with the created components, add it to the `DigitalTwinEngine` and start it.
 
 Create a new Java file called ```TestDigitalTwin``` adding the following code:
 
 ```java
 import it.wldt.core.engine.DigitalTwin;
+import it.wldt.core.engine.DigitalTwinEngine;
 
 public class TestDigitalTwin {
 
     public static void main(String[] args)  {
         try{
 
-            WldtEngine digitalTwinEngine = new WldtEngine(new TestDigitalTwinModel("test-digital-twin-model"), "test-digital-twin");
-            digitalTwinEngine.addPhysicalAdapter(new TestPhysicalAdapter("test-physical-adapter"));
-            digitalTwinEngine.addDigitalAdapter(new TestDigitalAdapter("test-digital-adapter"));
-            digitalTwinEngine.startLifeCycle();
+            DigitalTwin digitalTwin = new DigitalTwin("test-digital-twin", new TestDigitalTwinModel("test-digital-twin-model"));
+            digitalTwin.addPhysicalAdapter(new TestPhysicalAdapter("test-physical-adapter"));
+            digitalTwin.addDigitalAdapter(new TestDigitalAdapter("test-digital-adapter"));
+
+            DigitalTwinEngine digitalTwinEngine = new DigitalTwinEngine();
+            digitalTwinEngine.addDigitalTwin(digitalTwin);
+            digitalTwinEngine.startDigitalTwin("test-digital-twin");
 
         }catch (Exception e){
             e.printStackTrace();
@@ -1163,13 +1201,13 @@ public class TestDigitalTwin {
 }
 ```
 
-As a first step we create an instance of the ```WldtEngine``` passing our ```TestDigitalTwinModel``` and the Id of our DT (e.g., test-digital-twin).
-Then we can use the created ```digitalTwinEngine``` variable to call the following methods:
+As a first step we create an instance of the ```DigitalTwin``` passing the Id of our DT (e.g., test-digital-twin) and our ```TestDigitalTwinModel```.
+Then we can use the created ```digitalTwin``` variable to call the following methods:
 
-- ```addPhysicalAdapter(...)```: To add a new Physical Adapter to the engine. In our case, we use the class ```TestPhysicalAdapter``` previously created
-- ```addDigitalAdapter(...)```: To add a new Digital Adapter to the engine. In our case, we use the class ```TestDigitalAdapter``` previously created
+- ```addPhysicalAdapter(...)```: To add a new Physical Adapter to the Digital Twin. In our case, we use the class ```TestPhysicalAdapter``` previously created
+- ```addDigitalAdapter(...)```: To add a new Digital Adapter to the Digital Twin. In our case, we use the class ```TestDigitalAdapter``` previously created
 
-At the end we are ready to start the DT and we can call the method ```digitalTwinEngine.startLifeCycle()``` to start the engine together with all the defined and configured components.
+At the end we add the Digital Twin to a ```DigitalTwinEngine``` with ```addDigitalTwin(...)``` and we start it with ```startDigitalTwin(...)```, together with all the defined and configured components.
 
 ## Digital Action Management
 
@@ -1209,7 +1247,7 @@ This method uses the Digital Adapter internal function denoted as ```publishDigi
 to send a notification to the DT's Core (and consequently the `DigitalTwinModel`) about the arrival of a Digital Action with a specific ```key``` and ```body```.
 In our case the ```key``` is ```set-temperature-action-key``` as declared in the Physical Adapter and in the PAD and the resource is a simple Double with the new temperature resource.
 
-Then we call this method in the following way at the end ot the ```onDigitalTwinSync(DigitalTwinStateDescription, DigitalTwinStateValues)``` method.
+Then we call this method in the following way at the end of the ```onDigitalTwinSync(DigitalTwinStateDescription, DigitalTwinStateValues)``` method.
 
 ```java
 //Start Digital Action Emulation

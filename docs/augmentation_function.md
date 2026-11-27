@@ -29,13 +29,17 @@ The documentation is structured in the following subsections:
 - [Lifecycle & Registration Flow](#registering-and-unregistering-augmentation-functions): Event-driven registration and unregistration lifecycle, synchronization phases, and DTM discovery callbacks
 - [Registration API](#augmentation-function-registration-api): Programmatic API for obtaining the `AugmentationManager`, unregistering functions and handlers, and querying registered components
 - [Context & Context Request](#augmentation-function-context--context-request): Description of `AugmentationFunctionContext`, `AugmentationFunctionContextRequest`, `AugmentationFunctionRequest`, and `AugmentationFunctionRequestType`
-- [Discovery Callbacks](#augmentation-function-discovery): DTM callbacks for tracking function availability (`onAugmentationNewFunctionAvailable`, `onAugmentationFunctionUnAvailable`, `onAugmentationFunctionListAvailable`) and synchronization-state dependency
+- [Discovery Callbacks](#augmentation-function-discovery): DTM callbacks for tracking function availability (`onAugmentationNewFunctionAvailable`, `onAugmentationFunctionUnAvailable`, `onAugmentationFunctionListAvailable`) and when they are invoked
 - [Function Invocation](#augmentation-function-invocation): Methods for executing stateless functions and starting/stopping stateful functions from the Digital Twin Model, including all method overloads
 - [Result Structure](#augmentation-function-results): Format and types of augmentation function results, including `AugmentationFunctionResult`, `AugmentationFunctionResultType`, and `AugmentationFunctionResultMetrics`
 - [Error Handling](#augmentation-function-error-handling): How augmentation functions report errors using `AugmentationFunctionError` and `AugmentationFunctionErrorType`
 - [Implementation Guide](#augmentation-function-implementation): Base classes (`AugmentationFunction`, `AugmentationFunctionType`), abstract implementations, and practical examples for both stateless and stateful augmentation functions
 - [WLDT Event Bus Integration](#wldt-event-bus-integration): Internal event classes used by the framework for communication between the DTM, Augmentation Manager, and Handlers
 - [Monitoring Integration](#augmentation-function-monitoring-integration): How augmentation functions participate in the WLDT monitoring system — automatic injection, the `handleMetricsRegistration()` hook, and function-level custom metrics
+
+> **About the code examples**: they focus on the augmentation APIs. Where they use `logger`, the class declares its own
+> `private static final WldtLogger logger = WldtLoggerProvider.getLogger(MyClass.class);`.
+> Some of them use `Map.of(...)`, that requires Java 9 or later: with Java 8 build the map with a `HashMap`.
 
 ## Augmentation Function - Architecture & Components
 
@@ -263,6 +267,31 @@ protected abstract void onStateValuesUpdate(StatefulAugmentationFunction functio
     throws AugmentationFunctionException;
 ```
 
+The remaining abstract methods deliver the event notifications and the life cycle of the handler and of the Digital Twin:
+
+```java
+// Called with the running stateful functions that observe the event notifications and accept the event
+protected abstract void onEventNotificationReceived(ArrayList<StatefulAugmentationFunction> functions,
+                                                    DigitalTwinStateEventNotification<?> notification);
+
+// Handler start / stop
+public abstract void onManagerStart();
+public abstract void onManagerStop();
+
+// Digital Twin life cycle
+public abstract void onDigitalTwinLifeCycleCreate();
+public abstract void onDigitalTwinLifeCycleStart();
+public abstract void onDigitalTwinLifeCycleBound();
+public abstract void onDigitalTwinLifeCycleUnBound();
+public abstract void onDigitalTwinLifeCycleSync(DigitalTwinStateDescription description, DigitalTwinStateValues values);
+public abstract void onDigitalTwinLifeCycleUnSync(DigitalTwinStateDescription description, DigitalTwinStateValues values);
+public abstract void onDigitalTwinLifeCycleStop();
+public abstract void onDigitalTwinLifeCycleDestroy();
+```
+
+A custom handler can read the complete local copy of the state with the protected methods
+`getDigitalTwinStateDescription()` and `getDigitalTwinStateValues()`.
+
 > **Note**: For most use cases, `DefaultAugmentationFunctionHandler` is sufficient.
 > Extend `AugmentationFunctionHandler` only when you need custom execution logic,
 > instrumentation, filtering, or specialized lifecycle management.
@@ -300,7 +329,7 @@ methods needed.
 
 ### Handler Listener Interfaces
 
-The augmentation framework defines three listener interfaces that decouple augmentation functions from
+The augmentation framework defines two listener interfaces that decouple augmentation functions from
 their handlers, enabling a clean publish-subscribe communication pattern.
 
 #### AugmentationLifeCycleListener
@@ -355,9 +384,10 @@ public interface StatefulAugmentationListener {
 }
 ```
 
-> **Note**: Since v0.7.1, errors are embedded directly in `AugmentationFunctionResultList` rather than
-> delivered through a separate error callback. After receiving results, check `resultList.hasError()`
-> to detect error conditions. This interface is part of the internal communication channel between
+> **Note**: Since v0.7.1, functions report errors by embedding them in an `AugmentationFunctionResultList`,
+> so this listener has no separate error method. When a result list has an error, the handler publishes only
+> the error, that reaches the Digital Twin Model through `onAugmentationFunctionError()` (see
+> [Error Handling](#augmentation-function-error-handling)). This interface is part of the internal communication channel between
 > functions and their handlers — implemented by `AugmentationFunctionHandler` and set
 > automatically; developers do not typically implement it directly.
 
@@ -375,7 +405,8 @@ and is accessible via `DigitalTwin.getAugmentationManager()`.
 #### Key Methods
 
 ```java
-// Add a handler (before or after the DT is started)
+// Add a handler. Add it before the DT is started: the handlers are executed when the DT starts,
+// a handler added later is not executed
 public void addAugmentationFunctionHandler(AugmentationFunctionHandler handler)
     throws AugmentationFunctionException, WldtWorkerException
 
@@ -408,7 +439,7 @@ illustrated in the following sequence diagram:
 
 The procedure is designed around **loose coupling** and **event-driven reactivity**. 
 The Digital Twin Model never polls for changes; instead, it subscribes once to the Event Bus and reacts to 
-events as they occur. The catch-up mechanism at synchronization time guarantees consistency between the 
+events as they occur. The catch-up performed when the model starts guarantees consistency between the 
 DTM state and any registrations that happened before the Digital Twin was active.
 
 The main involved phases are:
@@ -419,16 +450,15 @@ Before the Digital Twin is started, the Developer retrieves an `AugmentationFunc
 registers the first Augmentation Function. The handler publishes a `RegistrationEvent` on the Event Bus, 
 but since no subscribers are active yet, the event is silently ignored.
 
-### Phase 2 — Digital Twin Initialization and Synchronization
+### Phase 2 — Digital Twin Start
 
-The Developer starts the Digital Twin, which initializes the `Digital Twin Model`. 
-During initialization, the DTM subscribes to `RegistrationEvent` and `UnregistrationEvent` 
+The Developer starts the Digital Twin, which starts the `Digital Twin Model`. 
+At its start, the DTM subscribes to `RegistrationEvent` and `UnregistrationEvent` 
 notifications on the Event Bus, making it ready to react to future changes.
 
-The DTM then evolves through its lifecycle until it reaches the **Synchronized** state. 
-At this point it performs a catch-up procedure: it queries the Augmentation Manager to 
+Right after its `onStart()` callback, the DTM performs a catch-up procedure: it queries the Augmentation Manager to 
 retrieve all registered handlers, then fetches the list of already-registered Augmentation Functions from each handler, 
-generating an internal notification for each one. This ensures that any functions registered before the 
+invoking `onAugmentationFunctionListAvailable()` once for each handler. This ensures that any functions registered before the 
 Digital Twin started are properly acknowledged.
 
 ### Phase 3 — Dynamic Registration by the Developer
@@ -899,6 +929,10 @@ For **stateless functions**, the context and context request are used **only onc
 ```java
 public class StatelessPredictionFunction extends StatelessAugmentationFunction {
     
+    public StatelessPredictionFunction() {
+        super("prediction-fn", "Prediction Function", "Predicts from state and history", "1.0.0");
+    }
+    
     @Override
     public AugmentationFunctionResultList run(AugmentationFunctionRequest request)
             throws AugmentationFunctionException {
@@ -935,6 +969,10 @@ public class StatefulAnomalyDetector extends StatefulAugmentationFunction {
     
     private List<Double> temperatureHistory = new ArrayList<>();
     
+    public StatefulAnomalyDetector() {
+        super("anomaly-detector", "Anomaly Detector", "Detects temperature anomalies", "1.0.0");
+    }
+    
     @Override
     public void start(AugmentationFunctionRequest request) throws AugmentationFunctionException {
         // Receive initial context at startup
@@ -944,7 +982,7 @@ public class StatefulAnomalyDetector extends StatefulAugmentationFunction {
         if (initialValues.getPropertyValues().containsKey("temperature"))
             temperatureHistory.add((Double) initialValues.getPropertyValue("temperature"));
         
-        logger.info("Started with initial temperature: {}", temperatureHistory.get(0));
+        logger.info("Started with initial temperature history: {}", temperatureHistory);
     }
     
     @Override
@@ -972,6 +1010,25 @@ public class StatefulAnomalyDetector extends StatefulAugmentationFunction {
     public void stop(AugmentationFunctionRequest request) throws AugmentationFunctionException {
         logger.info("Stopped after processing {} temperature readings", 
                     temperatureHistory.size());
+    }
+    
+    @Override
+    public void onEventNotificationReceived(DigitalTwinStateEventNotification<?> notification) {
+        // Not used by this function
+    }
+    
+    @Override
+    public void onQueryResultRefresh(Query query, QueryResult<?> queryResult) {
+        // This function does not use storage queries
+    }
+    
+    private boolean isAnomaly(double temperature) {
+        return temperature > 50.0;
+    }
+    
+    private AugmentationFunctionResultList createAnomalyResult(double temperature) {
+        return new AugmentationFunctionResultList(new AugmentationFunctionResult<>(
+                AugmentationFunctionResultType.EVENT_RESULT, "temperature_anomaly", temperature, null, null));
     }
 }
 ```
@@ -1073,7 +1130,8 @@ In polling mode the function drives its own data retrieval rhythm independently 
 `refreshQueryResult()` re-executes the `Query` defined in the `AugmentationFunctionContextRequest`
 and delivers the result to `onQueryResultRefresh()`. A custom `Query` can also be passed
 directly to `refreshQueryResult(Query)` when the query parameters need to change at runtime
-(e.g., to slide a time window, as in the example above).
+(e.g., to slide a time window, as in the example above). The new query **replaces** the one of the context request,
+so it is also the one executed by the following `refreshQueryResult()` calls.
 
 ---
 
@@ -1146,34 +1204,23 @@ This method is called once per Handler with its associated list of registered fu
 
 ---
 
-#### Synchronization State Dependency
+#### When the notifications are delivered
 
-Augmentation Function availability notifications are only possible 
-when the Digital Twin is in the **Sync state**. If the DT is not synchronized, 
-its state is inconsistent, making augmentation function execution unfeasible.
+The availability notifications do **not** depend on the synchronization state of the Digital Twin:
 
-**Behavior**:
-- **Functions registered at DT creation**: Notified step-by-step during the first Synchronization phase
-- **Functions registered after DT creation**: Immediately notified if DT is in Sync state, otherwise queued until next Synchronization phase
+- **Functions registered before the DT is started**: notified with `onAugmentationFunctionListAvailable()` when the Digital Twin Model starts, right after its `onStart()` callback
+- **Functions registered while the DT is running**: notified immediately with `onAugmentationNewFunctionAvailable()`
 
-#### Duplicate Notifications
-
-The Digital Twin Model should handle potential **duplicate callbacks** for the same Augmentation Function. 
-Since the DT lifecycle evolution is unpredictable, a function may be notified as available multiple times.
-
-**Example scenario**:
-1. Augmentation Function registered while DT is in Sync → notified as available
-2. DT goes out of sync, then returns to sync → function notified again as available
-
-This ensures the Model is always aware of available functions and can handle them accordingly.
+A notification does not mean that the state of the Digital Twin is already synchronized: if a function needs a
+synchronized state, execute or start it after `notifyShadowingSync()` has been called. Since the model can learn about a
+function in two different ways, it is good practice to handle possible duplicated notifications.
 
 ---
 
 ### Override Augmentation Function Discovery Methods
 
-All discovery callbacks provide **default implementations** that log the event but perform no action. 
-These methods are **not abstract**, allowing Digital Twin Models 
-to optionally override them based on specific requirements.
+All discovery callbacks are **abstract** methods of `DigitalTwinModel`: every model has to implement them,
+with an empty body if it is not interested in the availability of the functions.
 
 **Example override**:
 
@@ -1255,17 +1302,15 @@ operation. The function begins processing and producing results asynchronously.
 
 ```java
 // Search across all handlers for the function and return its running state
-protected boolean isStatefulAugmentationFunctionRunning(String augmentationFunctionId)
-    throws AugmentationFunctionException
+public boolean isStatefulAugmentationFunctionRunning(String augmentationFunctionId)
 
 // Target a specific handler explicitly
-protected boolean isStatefulAugmentationFunctionRunning(String augmentationFunctionHandlerId,
-                                                        String augmentationFunctionId)
-    throws AugmentationFunctionException
+public boolean isStatefulAugmentationFunctionRunning(String augmentationFunctionHandlerId,
+                                                     String augmentationFunctionId)
 ```
 
 Returns `true` if the specified stateful function has been started and not yet stopped.
-Throws `AugmentationFunctionException` if the function is not found or is not of type `STATEFUL`.
+Returns `false`, logging a warning, if the handler or the function is not found or the function is not of type `STATEFUL`.
 
 > **Note**: `startAugmentationFunction()` is a no-op if the target function is already running,
 > and `stopAugmentationFunction()` is a no-op if the target function is already stopped.
@@ -1457,18 +1502,20 @@ return new AugmentationFunctionResultList(
     new AugmentationFunctionError(AugmentationFunctionErrorType.ERROR, "computation failed")
 );
 
-// Checking for errors in the DTM callback
+// In the Digital Twin Model: the results...
 @Override
 protected void onAugmentationFunctionResultEvent(String handlerId, String functionId,
                                                  AugmentationFunctionResultList resultList) {
-    if (resultList.hasError()) {
-        logger.warn("Function {} reported error: {}", functionId,
-                    resultList.getAugmentationFunctionError().getMessage());
-        return;
-    }
     for (AugmentationFunctionResult<?> result : resultList) {
         // process result ...
     }
+}
+
+// ...and the errors are received by two different callbacks
+@Override
+protected void onAugmentationFunctionError(String handlerId, String functionId,
+                                           AugmentationFunctionError error) {
+    logger.warn("Function {} reported error: {}", functionId, error.getMessage());
 }
 ```
 
@@ -1638,7 +1685,7 @@ protected void onAugmentationFunctionResultEvent(String augmentationFunctionHand
 **Parameters**:
 - `augmentationFunctionHandlerId`: The ID of the handler managing the function
 - `augmentationFunctionId`: The ID of the function that produced the results
-- `augmentationFunctionResult`: `AugmentationFunctionResultList` produced by the function — call `hasError()` before iterating to check for embedded errors
+- `augmentationFunctionResult`: `AugmentationFunctionResultList` produced by the function. Result lists that carry an error are not delivered here: the error is received by `onAugmentationFunctionError()`
 
 ---
 
@@ -1649,15 +1696,6 @@ protected void onAugmentationFunctionResultEvent(String augmentationFunctionHand
 protected void onAugmentationFunctionResultEvent(String augmentationFunctionHandlerId,
                                                  String augmentationFunctionId,
                                                  AugmentationFunctionResultList augmentationFunctionResult) {
-
-    // Check for embedded errors before processing results
-    if (augmentationFunctionResult.hasError()) {
-        logger.warn("Function {} (handler: {}) reported error: {}",
-                    augmentationFunctionId,
-                    augmentationFunctionHandlerId,
-                    augmentationFunctionResult.getAugmentationFunctionError().getMessage());
-        return;
-    }
 
     logger.info("Received {} results from function: {} (handler: {})",
                 augmentationFunctionResult.size(),
@@ -1804,10 +1842,12 @@ AugmentationFunctionResult<Map<String, Object>> result = new AugmentationFunctio
 
 ## Augmentation Function Error Handling
 
-Augmentation functions can report errors to the Augmentation Manager and the Digital Twin Model through a
-dedicated notification mechanism. Errors are encapsulated in `AugmentationFunctionError` objects and
-categorized using `AugmentationFunctionErrorType`. Both `StatelessAugmentationFunction` and
-`StatefulAugmentationFunction` expose a protected `notifyError()` method for this purpose.
+Augmentation functions can report errors to the Augmentation Manager and the Digital Twin Model.
+Errors are encapsulated in `AugmentationFunctionError` objects and categorized using
+`AugmentationFunctionErrorType`. A function reports an error with an `AugmentationFunctionResultList` built from it:
+a stateless function **returns** that list from `run()`, a stateful function passes it to `notifyResult()`.
+The handler recognizes the error and publishes it (instead of a result), and the Digital Twin Model receives it
+in its `onAugmentationFunctionError(handlerId, functionId, augmentationFunctionError)` callback.
 
 ---
 
@@ -1857,7 +1897,7 @@ public class AugmentationFunctionError {
 |-------|------|-------------|
 | `errorId` | `String` | Auto-generated UUID uniquely identifying this error instance |
 | `timestamp` | `Long` | Milliseconds since epoch when the error occurred |
-| `augmentationFunctionRequestId` | `String` | ID of the request being processed when the error occurred (set automatically by `notifyError()`) |
+| `augmentationFunctionRequestId` | `String` | ID of the request being processed when the error occurred (set automatically by the framework when the result list is returned or notified) |
 | `errorType` | `AugmentationFunctionErrorType` | Severity level of the error |
 | `message` | `String` | Human-readable description of the error |
 | `metadata` | `HashMap<String, Object>` | Optional additional context (input parameters, state snapshot, etc.) |
@@ -1883,12 +1923,15 @@ public AugmentationFunctionError(AugmentationFunctionErrorType errorType,
 ### Reporting Errors from Stateless Functions
 
 Inside a `StatelessAugmentationFunction`, return an `AugmentationFunctionResultList` initialized with
-an `AugmentationFunctionError`. The `notifyError()` method is not available for stateless functions —
-errors are embedded in the result list and propagated to the DTM's `onAugmentationFunctionResultEvent`
-callback, where `hasError()` can be checked.
+an `AugmentationFunctionError`. The error is delivered to the `onAugmentationFunctionError` callback of the
+Digital Twin Model.
 
 ```java
 public class MyStatelessFunction extends StatelessAugmentationFunction {
+
+    public MyStatelessFunction() {
+        super("my-stateless-fn", "My Stateless Function", "Reports errors", "1.0.0");
+    }
 
     @Override
     protected AugmentationFunctionResultList run(AugmentationFunctionRequest request)
@@ -1914,11 +1957,15 @@ public class MyStatelessFunction extends StatelessAugmentationFunction {
 
 ### Reporting Errors from Stateful Functions
 
-Inside a `StatefulAugmentationFunction`, the same `notifyError()` method is available in `start()`,
-`stop()`, `onStateDescriptionUpdate()`, `onStateValuesUpdate()`, and `onEventNotificationReceived()`.
+A `StatefulAugmentationFunction` reports an error at any time by passing to `notifyResult()` a result list built
+from the error, for example inside `onStateValuesUpdate()` or from a timer.
 
 ```java
 public class MyStatefulFunction extends StatefulAugmentationFunction {
+
+    public MyStatefulFunction() {
+        super("my-stateful-fn", "My Stateful Function", "Reports errors", "1.0.0");
+    }
 
     @Override
     public void onStateValuesUpdate(DigitalTwinStateValues digitalTwinStateValues)
@@ -1931,16 +1978,16 @@ public class MyStatefulFunction extends StatefulAugmentationFunction {
             HashMap<String, Object> meta = new HashMap<>();
             meta.put("state_snapshot", digitalTwinStateValues.toString());
 
-            notifyError(new AugmentationFunctionError(
+            notifyResult(new AugmentationFunctionResultList(new AugmentationFunctionError(
                 AugmentationFunctionErrorType.CRITICAL,
                 "State processing failed: " + e.getMessage(),
                 System.currentTimeMillis(),
                 meta
-            ));
+            )));
         }
     }
 
-    // ...
+    // The other abstract methods are omitted
 }
 ```
 
@@ -2026,18 +2073,23 @@ The `StatelessAugmentationFunction` class is designed for functions that perform
 ```java
 public abstract class StatelessAugmentationFunction extends AugmentationFunction {
 
+    // Minimal constructor — description and version are null, default context request
+    public StatelessAugmentationFunction(String id, String name) {
+        super(id, name, null, null, AugmentationFunctionType.STATELESS, new AugmentationFunctionContextRequest());
+    }
+
     // Default constructor — uses a default context request (observes state and events, no query)
-    protected StatelessAugmentationFunction(String id,
-                                            String name,
-                                            String description,
-                                            String version) {
+    public StatelessAugmentationFunction(String id,
+                                         String name,
+                                         String description,
+                                         String version) {
         super(id, name, description, version, AugmentationFunctionType.STATELESS, new AugmentationFunctionContextRequest());
     }
 
     // Constructor with custom context request — use when the function needs a specific
     // AugmentationFunctionContextRequest (e.g. to include a storage Query or to
     // disable state/event observation)
-    protected StatelessAugmentationFunction(String id,
+    public StatelessAugmentationFunction(String id,
                                             String name,
                                             String description,
                                             String version,
@@ -2064,7 +2116,7 @@ public abstract class StatelessAugmentationFunction extends AugmentationFunction
 - **No Lifecycle**: No `start()` or `stop()` methods required
 - **Request Provided**: Receives `AugmentationFunctionRequest` containing the `AugmentationFunctionContext` (current DT state + optional query results) on each invocation
 - **Immediate Results**: Returns results synchronously via `AugmentationFunctionResultList`
-- **Error Reporting**: Return a `new AugmentationFunctionResultList(error)` to signal errors — `notifyError()` is not available for stateless functions
+- **Error Reporting**: Return a `new AugmentationFunctionResultList(error)` to signal errors
 - **Custom Context**: Use the 5-arg constructor (passing an `AugmentationFunctionContextRequest`) when the function needs a storage query or must disable state/event observation
 
 ---
@@ -2079,17 +2131,17 @@ The `StatefulAugmentationFunction` class is designed for functions that maintain
 public abstract class StatefulAugmentationFunction extends AugmentationFunction {
 
     // Default constructor — uses a default context request (observes state and events, no query)
-    protected StatefulAugmentationFunction(String id,
-                                           String name,
-                                           String description,
-                                           String version) {
+    public StatefulAugmentationFunction(String id,
+                                        String name,
+                                        String description,
+                                        String version) {
         super(id, name, description, version, AugmentationFunctionType.STATEFUL, new AugmentationFunctionContextRequest());
     }
 
     // Constructor with custom context request — use when the function needs a specific
     // AugmentationFunctionContextRequest (e.g. to include a storage Query or to
     // disable state/event observation)
-    protected StatefulAugmentationFunction(String id,
+    public StatefulAugmentationFunction(String id,
                                            String name,
                                            String description,
                                            String version,
@@ -2145,18 +2197,16 @@ public abstract class StatefulAugmentationFunction extends AugmentationFunction 
         throws AugmentationFunctionException;
 
     /**
-     * Called when a refreshed query result becomes available from the DT storage.
-     * Invoked only after the function has explicitly requested a refresh via refreshQueryResult().
-     * Override this method only when using the polling pattern; the default implementation is a no-op.
+     * Called when a refreshed query result becomes available from the DT storage, after a refresh has been
+     * requested (by the function, by the Digital Twin Model or by the refreshQueryOnStateUpdate option).
+     * It must be implemented by every function, with an empty body if it does not use queries.
      *
      * @param query The query whose result was refreshed
      * @param queryResult  The new query result
      * @throws AugmentationFunctionException if processing fails
      */
-    public void onQueryResultRefresh(Query query, QueryResult<?> queryResult)
-        throws AugmentationFunctionException {
-        // default no-op — override when using the polling pattern
-    }
+    public abstract void onQueryResultRefresh(Query query, QueryResult<?> queryResult)
+        throws AugmentationFunctionException;
 
     /**
      * Request a refresh of the query result from the DT storage.
@@ -2164,16 +2214,16 @@ public abstract class StatefulAugmentationFunction extends AugmentationFunction 
      * The refreshed result is delivered asynchronously via onQueryResultRefresh().
      * Provided by the framework — call this method from your implementation, do not override it.
      */
-    protected final void refreshQueryResult() { /* provided by the framework */ }
+    protected void refreshQueryResult() { /* provided by the framework */ }
 
     /**
-     * Request a refresh of the query result using a custom Query.
+     * Request a refresh of the query result using a custom Query, that replaces the one of the context request.
      * The refreshed result is delivered asynchronously via onQueryResultRefresh().
      * Provided by the framework — call this method from your implementation, do not override it.
      *
      * @param query The custom query to execute
      */
-    protected final void refreshQueryResult(Query query) { /* provided by the framework */ }
+    protected void refreshQueryResult(Query query) { /* provided by the framework */ }
 
     /**
      * Returns whether this stateful function is currently running.
@@ -2182,7 +2232,7 @@ public abstract class StatefulAugmentationFunction extends AugmentationFunction 
      *
      * @return true if the function has been started and not yet stopped
      */
-    public final boolean isRunning() { /* provided by the framework */ return false; }
+    public boolean isRunning() { /* provided by the framework */ return false; }
 
     /**
      * Notify results asynchronously to the Augmentation Manager.
@@ -2191,16 +2241,7 @@ public abstract class StatefulAugmentationFunction extends AugmentationFunction 
      *
      * @param results AugmentationFunctionResultList to publish
      */
-    protected final void notifyResult(AugmentationFunctionResultList results) { /* provided by the framework */ }
-
-    /**
-     * Notify an error to the Augmentation Manager.
-     * The current request ID is attached automatically.
-     * Provided by the framework — call this method from your implementation, do not override it.
-     *
-     * @param augmentationFunctionError The error to report
-     */
-    protected final void notifyError(AugmentationFunctionError augmentationFunctionError) { /* provided by the framework */ }
+    protected void notifyResult(AugmentationFunctionResultList results) { /* provided by the framework */ }
 }
 ```
 
@@ -2209,11 +2250,11 @@ public abstract class StatefulAugmentationFunction extends AugmentationFunction 
 - **Lifecycle Management**: Implements `start()` and `stop()` for initialization and cleanup
 - **Running State**: `isRunning()` reflects whether the function has been started. `startAugmentationFunction()` is a no-op if already running; `stopAugmentationFunction()` is a no-op if already stopped
 - **Push Notifications**: Receives automatic callbacks via `onStateDescriptionUpdate()`, `onStateValuesUpdate()` and `onEventNotificationReceived()`
-- **Polling Support**: Override `onQueryResultRefresh()` only when using the polling pattern; it has a default no-op implementation and does **not** need to be overridden in push-mode or timer-based functions
+- **Polling Support**: `onQueryResultRefresh()` receives the refreshed query results; it is abstract, so push-mode and timer-based functions implement it with an empty body
 - **Asynchronous Results**: Produces results by calling `notifyResult(AugmentationFunctionResultList)` at any time, not necessarily synchronized with notifications
-- **Error Reporting**: Call `notifyError()` to report errors asynchronously; errors in stateful functions are separate from `notifyResult()`
+- **Error Reporting**: Call `notifyResult(new AugmentationFunctionResultList(error))` to report errors asynchronously
 - **Internal State**: Can maintain history, timers, or any internal data structures
-- **Framework-provided methods**: `notifyResult()`, `notifyError()`, `refreshQueryResult()`, `isRunning()` are concrete methods provided by the framework — **call** them from your implementation, do not override them
+- **Framework-provided methods**: `notifyResult()`, `refreshQueryResult()`, `isRunning()` are concrete methods provided by the framework — **call** them from your implementation, do not override them
 
 ---
 
@@ -2434,8 +2475,10 @@ public class StatefulPeriodicRandomNumberAugmentationFunction extends StatefulAu
         // No action needed - timer handles result generation
     }
 
-    // onQueryResultRefresh is not needed in pure timer mode;
-    // the default no-op implementation from StatefulAugmentationFunction is inherited.
+    @Override
+    public void onQueryResultRefresh(Query query, QueryResult<?> queryResult) {
+        // Not used in pure timer mode
+    }
 }
 ```
 
@@ -2539,8 +2582,10 @@ public class StatefulStateDrivenRandomNumberAugmentationFunction extends Statefu
         // Could react to specific events if needed
     }
 
-    // onQueryResultRefresh is not needed in pure push mode;
-    // the default no-op implementation from StatefulAugmentationFunction is inherited.
+    @Override
+    public void onQueryResultRefresh(Query query, QueryResult<?> queryResult) {
+        // Not used in pure push mode
+    }
 }
 ```
 
@@ -2588,7 +2633,7 @@ All augmentation events extend the generic `WldtEvent<T>` class.
 | `AugmentationFunctionExecuteWldtEvent` | `AugmentationFunctionRequest` | DTM → Handler | Triggers the execution of a stateless function |
 | `AugmentationFunctionStartWldtEvent` | `AugmentationFunctionRequest` | DTM → Handler | Triggers the start of a stateful function |
 | `AugmentationFunctionStopWldtEvent` | `AugmentationFunctionRequest` | DTM → Handler | Triggers the stop of a stateful function |
-| `AugmentationFunctionResultWldtEvent` | `AugmentationFunctionResultList` | Handler → DTM | Carries results produced by a function execution (may embed an error) |
+| `AugmentationFunctionResultWldtEvent` | `AugmentationFunctionResultList` | Handler → DTM | Carries results produced by a function execution (a result list with an error is published as an error event instead) |
 | `AugmentationFunctionErrorWldtEvent` | `AugmentationFunctionError` | Handler → DTM | Carries error notifications from a function execution |
 
 ---
@@ -2651,7 +2696,8 @@ public class AugmentationFunctionStopWldtEvent extends WldtEvent<AugmentationFun
 Published by a handler when an augmentation function (stateless or stateful) produces results.
 The Digital Twin Model subscribes to this event to receive and process augmentation outputs
 via the `onAugmentationFunctionResultEvent()` callback. The payload is an `AugmentationFunctionResultList`
-which may carry either results or an embedded error — check `hasError()` before iterating.
+with the results: when a function returns or notifies a list with an error, the handler publishes an
+`AugmentationFunctionErrorWldtEvent` instead.
 
 ```java
 public class AugmentationFunctionResultWldtEvent
@@ -2663,7 +2709,8 @@ public class AugmentationFunctionResultWldtEvent
 
 #### AugmentationFunctionErrorWldtEvent
 
-Published by a handler when an augmentation function reports an error via `notifyError()`.
+Published by a handler when an augmentation function returns (stateless) or notifies (stateful) a result list with an error.
+The Digital Twin Model receives it through the `onAugmentationFunctionError()` callback.
 
 ```java
 public class AugmentationFunctionErrorWldtEvent extends WldtEvent<AugmentationFunctionError> {

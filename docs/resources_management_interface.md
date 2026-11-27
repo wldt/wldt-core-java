@@ -307,14 +307,15 @@ The demo interface will be as following:
 ```java
 import it.wldt.exception.WldtManagedResourceException;  
 import it.wldt.exception.WldtManagementInterfaceException;  
-import org.slf4j.Logger;  
-import org.slf4j.LoggerFactory;  
+import it.wldt.log.WldtLogger;  
+import it.wldt.log.WldtLoggerProvider;  
+import it.wldt.management.*;  
 import java.util.List;  
 import java.util.Optional;  
   
 public class DemoManagementInterface extends ManagementInterface {  
   
-    private static final Logger logger = LoggerFactory.getLogger(DemoManagementInterface.class);  
+    private static final WldtLogger logger = WldtLoggerProvider.getLogger(DemoManagementInterface.class);  
   
     // Flag to indicate if the management interface has been started  
     private boolean isStarted = false;  
@@ -344,18 +345,23 @@ public class DemoManagementInterface extends ManagementInterface {
     }  
   
     @Override  
-    protected void onResourceAdded(ManagedResource<?, ?, ?> resource) {  
-        logger.info("Resource added: {}", resource.getId());  
+    protected void onResourceAdded(String resourceId) {  
+        logger.info("Resource added: {}", resourceId);  
     }  
   
     @Override  
-    protected void onResourceUpdated(ManagedResource<?, ?, ?> resource) {  
-        logger.info("Resource updated: {}", resource.getId());  
+    protected void onResourceUpdated(String resourceId) {  
+        logger.info("Resource updated: {}", resourceId);  
     }  
   
     @Override  
-    protected void onResourceRemoved(ManagedResource<?, ?, ?> resource) {  
-        logger.info("Resource removed: {}", resource.getId());  
+    protected void onResourceRemoved(String resourceId) {  
+        logger.info("Resource removed: {}", resourceId);  
+    }  
+  
+    @Override  
+    protected void onResourceListCleared() {  
+        logger.info("Resource list cleared.");  
     }  
   
     /**  
@@ -461,9 +467,9 @@ public class DemoManagementInterface extends ManagementInterface {
 }
 ```
 
-At this point, only the read resource method has been implemented. However, we can define and add additional methods to the interface later. In the meantime, we can integrate the interface into the Digital Twin and test its core functionalities.
+The single method `emulateIncomingRequest` handles the read, create, update and delete requests. We can now integrate the interface into the Digital Twin and test its core functionalities.
 
-#### 3. Setup the Management Interface
+#### 4. Setup the Management Interface
 
 Now that we’ve defined and implemented our `ManagementInterface`—named `DemoManagementInterface`—we can initialize it, attach it to the Digital Twin, and then start the Twin within the Digital Twin Engine.
 
@@ -487,7 +493,7 @@ digitalTwinEngine.addDigitalTwin(digitalTwin);
 digitalTwinEngine.startDigitalTwin(TEST_DIGITAL_TWIN_ID);
 ```
 
-#### 4. Resource Request & Response
+#### 5. Resource Request & Response
 
 Now we can test the `DemoManagementInterface` that we have created to **read** a target resource (the `DictionaryManagedResource` instance) managed by the DT creating a  `ResourceRequest` and accessing the `ResourceResponse`.
 
@@ -514,7 +520,7 @@ Now we try the interaction with the defined `DemoManagementInterface` to access 
 ResourceRequest<String> resourceRequest = new ResourceRequest<>(RESOURCE_ID);  
   
 // Test reading a resource from the Management Interface  
-Optional<ResourceResponse<?>> resourceResponse = managementInterface.emulateReadResource(resourceRequest);
+Optional<ResourceResponse<?>> resourceResponse = managementInterface.emulateIncomingRequest(DemoManagementInterface.READ_REQUEST, resourceRequest);
 
 // Check if the Resource Response is present  
 if (resourceResponse.isPresent()) {  
@@ -533,7 +539,7 @@ To access the value of an individual sub-resource within a `DictionaryManagedRes
 ResourceRequest<String> resourceRequest = new ResourceRequest<>(RESOURCE_ID, PROPERTY_NAME_1);  
   
 // Test reading a resource from the Management Interface  
-Optional<ResourceResponse<?>> resourceResponse = managementInterface.emulateReadResource(resourceRequest);  
+Optional<ResourceResponse<?>> resourceResponse = managementInterface.emulateIncomingRequest(DemoManagementInterface.READ_REQUEST, resourceRequest);  
   
 // Check if the Resource Response is present  
 if (resourceResponse.isPresent()) {  
@@ -573,7 +579,7 @@ if (resourceResponseOptional.isPresent()) {
 
 The same approach can be applied to `Update` and `Delete` operations through the `DemoManagementInterface`. However, it's important to note that these actions only affect the dictionary values (i.e., the sub-resources), not the main resource (the dictionary) itself. This behavior reflects a design choice where the main resource is considered non-deletable via the management interface, representing a resource managed directly by the Digital Twin. Developers can implement alternative behaviors based on their specific requirements.
 
-#### 4. Resource Manager Observation
+#### 6. Resource Manager Observation
 
 The `ResourceManager` supports an observation mechanism that allows external components to be notified about *changes in the managed resources*. This is achieved through the `IResourceManagerObserver` interface and the observer management methods in the `ResourceManager` class.
 
@@ -617,7 +623,7 @@ digitalTwin.getResourceManager().addObserver(new IResourceManagerObserver() {
 ```
 
 > **Note:** This observation mechanism is internal to the Digital Twin and operates at the `ResourceManager` level, not on individual resource changes. Observations and callbacks for actions originating from the `ManagementInterface` directly on single `ManagedResource` are handled separately, as described in the next section.
-#### 5. Single Managed Resource Observation
+#### 7. Single Managed Resource Observation
 
 To monitor changes or actions on a specific `ManagedResource`, you can implement the `IResourceObserver` interface and use the `addObserver()` and `removeObserver()` methods available in the `ManagedResource` class. This enables you to receive notifications for create, read, update, and delete operations performed on that resource.
 
@@ -667,3 +673,4 @@ if (resourceOptional.isPresent() && resourceOptional.get() instanceof Dictionary
 }  
 else  
     logger.error("Resource is not of type DictionaryManagedResource");
+```

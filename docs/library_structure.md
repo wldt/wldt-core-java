@@ -54,7 +54,7 @@ Each of this core components has the following main characteristics:
   the execution of twins on the same Java process, however the same engine abstraction might be used to extend the framework to
   support distributed execution for example through different processes or microservices.
 - **Digital Twin**: Models a modular DT structure built through the combination of core functionalities together with physical
-  and digital adapter capabilities. This Layer includes the `Digital Twin State`  responsible to structure the state of the DT by defining the list of properties, events, and actions.
+  and digital adapter capabilities. This Layer includes the `Digital Twin State`  responsible to structure the state of the DT by defining the list of properties, events, actions, and relationships.
   The different instances included in the lists can correspond directly to elements of the physical asset
   or can derive from their combination, in any case, it is the `Digital Twin Model` and its management of the **Shadowing Process** that defines
   the mapping, following the model defined by the designer.
@@ -69,8 +69,8 @@ Each of this core components has the following main characteristics:
   the Digital Twin by interacting with the Digital Twin State.
   Specifically, it implements the shadowing process that allows keeping the
   DT synchronized with its physical entity.
-  This component is based on a specific implementation of a WLDT Worker called Model Engine,
-  in order to be executed by the WLDT Engine.
+  This component is executed by a specific implementation of a WLDT Worker called `DigitalTwinKernel`,
+  as part of the Digital Twin run by the `DigitalTwinEngine`.
   The Digital Twin Model is the fundamental component that must be extended by the DT designer
   to concretize its model.
   The model observes the life cycle of the Digital Twin to be notified of the different state changes.
@@ -93,10 +93,17 @@ Each of this core components has the following main characteristics:
   with the values optionally limited by a `DigitalTwinStateFilter` and a `DigitalTwinStateChangeFilter` (the description is never filtered).
   Symmetrically to what happens with Physical Adapters, a Digital Twin can define
   multiple Digital Adapters to expose its state and functionality through different protocols.
+- **Augmentation Functions**: Extend the behaviour of the Digital Twin with stateless (one-shot) or stateful (continuous)
+  functions, e.g., for analytics or AI, managed by the Augmentation Manager through its handlers
+  (see [Augmentation Functions](augmentation_function.md)).
+- **Storage & Query System**: Stores the data about the evolution of the Digital Twin in one or more storages and makes them
+  available to Digital Adapters and Augmentation Functions through queries (see [Storage & Query System](storage_query_system.md)).
+- **Resources & Management Interface**: Handle the resources of the Digital Twin that can be managed at runtime and expose
+  them to external applications (see [Resources & Management Interface](resources_management_interface.md)).
 
 Therefore, to create a Digital Twin using WLDT, it is necessary to define and instantiate a DT with its Digital Twin Model and
 at least one Physical Adapter and one Digital Adapter, in order to enable connection with the physical
 entity and allow the DT to be used by external applications. Once the 3 components are defined,
-it is possible to instantiate the WLDT Engine and, subsequently, start the lifecycle of the DT.
+the Digital Twin can be added to a `DigitalTwinEngine` that starts its lifecycle.
 In the following sections we will go through the fundamental steps to start working with the library and creating all
 the basic modules to design, develop and execute our first Java Digital Twin.

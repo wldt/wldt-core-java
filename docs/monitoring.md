@@ -2,7 +2,8 @@
 
 ## Event-Bus Monitoring
 
-...
+The architecture of the event bus, its dispatch strategies and their measured performance are described in
+[WLDT Event Bus — Architecture and Strategy Evaluation](event_bus_evaluation.md).
 
 ## Digital Twin Monitoring Interface
 
@@ -621,9 +622,25 @@ Requires `withDtModelMonitoring()` in the configuration.
 | `af_stateful_start_error_count` | `WldtCounter` | Failed stateful AF start requests |
 | `af_stateful_stop_success_count` | `WldtCounter` | Successful stateful AF stop requests |
 | `af_stateful_stop_error_count` | `WldtCounter` | Failed stateful AF stop requests |
+| `af_stateful_start_exec_time` | `WldtTimer` | Time taken to process a stateful AF start request |
+| `af_stateful_stop_exec_time` | `WldtTimer` | Time taken to process a stateful AF stop request |
+| `af_stateful_running_count` | `WldtUpDownCounter` | Current number of stateful AFs in the running state (manager-level) |
 | `af_list_registered_success_count` | `WldtCounter` | Successful AF list-registered calls |
 | `af_list_registered_error_count` | `WldtCounter` | Failed AF list-registered calls |
 | `af_list_registered_exec_time` | `WldtTimer` | Time taken to query registered AFs |
+| `af_result_success_count` | `WldtCounter` | Successful AF result dispatches |
+| `af_result_error_count` | `WldtCounter` | Failed AF result dispatches |
+| `af_result_exec_time` | `WldtTimer` | Time to dispatch AF results |
+| `af_error_success_count` | `WldtCounter` | Successful AF error dispatches |
+| `af_error_error_count` | `WldtCounter` | Failed AF error dispatches |
+| `af_error_exec_time` | `WldtTimer` | Time to dispatch AF errors |
+| `af_registered_success_count` | `WldtCounter` | Successful AF registration events |
+| `af_registered_error_count` | `WldtCounter` | Failed AF registration events |
+| `af_registered_exec_time` | `WldtTimer` | Time to process AF registration events |
+| `af_unregistered_success_count` | `WldtCounter` | Successful AF unregistration events |
+| `af_unregistered_error_count` | `WldtCounter` | Failed AF unregistration events |
+| `af_unregistered_exec_time` | `WldtTimer` | Time to process AF unregistration events |
+| `dt_lifecycle_value` | `WldtUpDownCounter` | Current DT lifecycle state as numeric ordinal |
 
 #### PHYSICAL_ADAPTER metrics
 
@@ -669,22 +686,9 @@ Requires `withAugmentationMonitoring()` in the configuration.
 | Metric name | Type | Tracks |
 |---|---|---|
 | `af_handler_count` | `WldtUpDownCounter` | Current number of registered `AugmentationFunctionHandler` instances |
-| `af_stateful_running_count` | `WldtUpDownCounter` | Current number of stateful AFs in the running state (manager-level) |
 | `af_handler_registered_stateless_count` | `WldtUpDownCounter` | Number of stateless functions registered in a handler |
 | `af_handler_registered_stateful_count` | `WldtUpDownCounter` | Number of stateful functions registered in a handler |
 | `af_handler_stateful_running_count` | `WldtUpDownCounter` | Number of stateful functions currently running in a handler |
-| `af_result_success_count` | `WldtCounter` | Successful AF result dispatches |
-| `af_result_error_count` | `WldtCounter` | Failed AF result dispatches |
-| `af_result_exec_time` | `WldtTimer` | Time to dispatch AF results |
-| `af_error_success_count` | `WldtCounter` | Successful AF error dispatches |
-| `af_error_error_count` | `WldtCounter` | Failed AF error dispatches |
-| `af_error_exec_time` | `WldtTimer` | Time to dispatch AF errors |
-| `af_registered_success_count` | `WldtCounter` | Successful AF registration events |
-| `af_registered_error_count` | `WldtCounter` | Failed AF registration events |
-| `af_registered_exec_time` | `WldtTimer` | Time to process AF registration events |
-| `af_unregistered_success_count` | `WldtCounter` | Successful AF unregistration events |
-| `af_unregistered_error_count` | `WldtCounter` | Failed AF unregistration events |
-| `af_unregistered_exec_time` | `WldtTimer` | Time to process AF unregistration events |
 | `af_function_stateless_exec_time` | `WldtTimer` | Execution time of a stateless function invocation |
 | `af_function_stateless_exec_success_count` | `WldtCounter` | Successful stateless function executions |
 | `af_function_stateless_exec_error_count` | `WldtCounter` | Failed stateless function executions |
@@ -703,7 +707,8 @@ Requires `withAugmentationMonitoring()` in the configuration.
 | `af_function_state_update_exec_time` | `WldtTimer` | Time to dispatch a DT state **values** update to a stateful function (in the previous versions: the state update) |
 | `af_function_state_update_success_count` | `WldtCounter` | Successful values update dispatches to functions |
 | `af_function_state_update_error_count` | `WldtCounter` | Failed values update dispatches to functions |
-| `dt_lifecycle_value` | `WldtUpDownCounter` | Current DT lifecycle state as numeric ordinal |
+
+> The metrics of the Digital Twin Model about augmentation (`af_result_*`, `af_error_*`, `af_registered_*`, `af_unregistered_*`, `af_stateful_running_count`, ...) belong to the `DT_MODEL` component and are listed in [DT_MODEL metrics](#dt_model-metrics-shadowing-function).
 
 > **Per-instance tracking:** handler-level metrics (`af_handler_registered_*`, `af_handler_stateful_running_count`) are tracked per handler, keyed by the handler ID. Use `AugmentationFunctionHandler.METRIC_METADATA_AF_HANDLER_ID_KEY` (`"af_handler_id"`) in handler callbacks to identify the source handler, and `getMetric(fullName, handlerId)` for direct lookup. Function-level metrics (`af_function_*`) are tracked per function instance using the function ID — use `AugmentationFunction.METRIC_METADATA_AF_FUNCTION_ID_KEY` (`"af_function_id"`) and `getMetric(fullName, functionId)` accordingly.
 
@@ -725,9 +730,9 @@ Requires `withStorageMonitoring()` in the configuration. `StorageManager`, `Wldt
 | `storage_write_dt_state_success_count` | `WldtCounter` | Successful DT state **values** write operations (`saveDigitalTwinStateValues`). Since 0.9.0 it counts the values only: the description has its own metrics |
 | `storage_write_dt_state_error_count` | `WldtCounter` | Failed DT state values write operations |
 | `storage_write_dt_state_exec_time` | `WldtTimer` | DT state values write time |
-| `storage_write_af_success_count` | `WldtCounter` | Successful augmentation function result write operations |
-| `storage_write_af_error_count` | `WldtCounter` | Failed augmentation function result write operations |
-| `storage_write_af_exec_time` | `WldtTimer` | Augmentation function result write time |
+| `storage_write_af_success_count` | `WldtCounter` | Successful augmentation function data (registration, request, result, error) write operations |
+| `storage_write_af_error_count` | `WldtCounter` | Failed augmentation function data write operations |
+| `storage_write_af_exec_time` | `WldtTimer` | Augmentation function data write time |
 | `storage_write_de_success_count` | `WldtCounter` | Successful digital event write operations |
 | `storage_write_de_error_count` | `WldtCounter` | Failed digital event write operations |
 | `storage_write_de_exec_time` | `WldtTimer` | Digital event write time |
@@ -768,7 +773,7 @@ public class MyStatelessFunction extends StatelessAugmentationFunction {
     private static final String MY_METRIC = "my_custom_exec_time";
 
     public MyStatelessFunction(String id) {
-        super(id, "MyFunction", AugmentationFunctionType.STATELESS);
+        super(id, "MyFunction");
     }
 
     @Override
@@ -783,12 +788,13 @@ public class MyStatelessFunction extends StatelessAugmentationFunction {
     }
 
     @Override
-    public AugmentationFunctionResult execute(AugmentationFunctionRequest request,
-                                              AugmentationFunctionContext context) {
+    protected AugmentationFunctionResultList run(AugmentationFunctionRequest request)
+            throws AugmentationFunctionException {
         long start = System.currentTimeMillis();
         // ... function logic ...
-        monitoringInterface.updateTimerSince(metricsNamespace, MY_METRIC, start);
-        return new AugmentationFunctionResult(...);
+        if (monitoringInterface != null && monitoringInterface.isActive(WldtMetricComponent.AUGMENTATION))
+            monitoringInterface.updateTimerSince(metricsNamespace, MY_METRIC, start);
+        return new AugmentationFunctionResultList();
     }
 }
 ```

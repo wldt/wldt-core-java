@@ -10,11 +10,12 @@ Events are scoped to a **Digital Twin ID**: a publisher announces which DT an ev
 
 ```java
 WldtEvent<T>
-  id          // unique event identifier
-  type        // topic string (e.g. "physical.property.update")
-  body        // typed payload T
-  metadata    // Map<String,String> — arbitrary key/value pairs
-  timestamp   // wall-clock time at creation
+  id                 // unique event identifier
+  type               // topic string (e.g. "dt.state.values.update")
+  contentType        // fully qualified class name of the body
+  body               // typed payload T
+  metadata           // Map<String,Object> — arbitrary key/value pairs
+  creationTimestamp  // wall-clock time at creation
 ```
 
 ### Main API Methods

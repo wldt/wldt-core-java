@@ -66,6 +66,8 @@ that led the design and development of the WLDT library.
 the management interface of the WLDT library and how to use it to handle the manageable DT's resource through its life cycle.
 - 📝 [Logging in WLDT](docs/wldt_logger.md): Describes the logging system of the WLDT library, including how to configure, customize and use it.
 - 🧠 [Augmentation Functions](docs/augmentation_function.md): Provides the details about the Augmentation Functions, which are used to enhance the capabilities of the Digital Twin by adding new stateless or stateful functionalities.
+- 📊 [Monitoring](docs/monitoring.md): Describes the monitoring interface of the library, the available metric types and the metrics tracked by the framework.
+- 🚌 [Event Bus Evaluation](docs/event_bus_evaluation.md): Describes the architecture of the internal event bus, its dispatch strategies and their performance evaluation.
 
 ---
 

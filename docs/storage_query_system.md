@@ -9,11 +9,11 @@ The storage layer is designed for easy extension, allowing developers to create 
 
 ## Storage Manager
 
-The main module of the Storage Layer is the one associated to Storage Capabilities and it is composed by two main classes: `StorageManager` and `WldStorage` with the following characteristics and main methods:
+The main module of the Storage Layer is the one associated to Storage Capabilities and it is composed by two main classes: `StorageManager` and `WldtStorage` with the following characteristics and main methods:
 
 **Note**: In the WLDT storage layer, event observation within the Digital Twin is linked not only to the asynchronous reception of data, but also to the actual persistence of that data within the target storage module.
 
-- `StorageManager`: The StorageManager class is a class that represents the storage manager for a DigitalTwin.  It is responsible for managing the storage of the data related to the DigitalTwin. It is an observer of the `WldtEventBus`, and it is able to save the data in the available storages. The class extends a `DigitalTwinWorker`, in order to allow the component to work in a structure and integrated way on a different thread that the core of a DT can coordinate starting and stopping it when required. The manager allow the usage of different storage systems at the same time in order to allow the developers to memorize the information accordingly to their need in the right storage system at the same time (e.g., REDIS for quick cached information and MongDB for historical data). Main associated methods are:
+- `StorageManager`: The StorageManager class is a class that represents the storage manager for a DigitalTwin.  It is responsible for managing the storage of the data related to the DigitalTwin. It is an observer of the `WldtEventBus`, and it is able to save the data in the available storages. The class extends a `DigitalTwinWorker`, in order to allow the component to work in a structure and integrated way on a different thread that the core of a DT can coordinate starting and stopping it when required. The manager allow the usage of different storage systems at the same time in order to allow the developers to memorize the information accordingly to their need in the right storage system at the same time (e.g., REDIS for quick cached information and MongoDB for historical data). Main associated methods are:
     - `putStorage(WldtStorage storage)`: Add a new WldtStorage to the StorageManager
     - `getStorageIdList()`: Returns the list of id of the WldtStorage in the StorageManager
     - `isStorageAvailable(String storageId)`: Checks if a target Storage Id is available in the Storage Manager
@@ -91,7 +91,7 @@ digitalAdapter = new DemoDigitalAdapter(...);
 digitalTwin.addDigitalAdapter(digitalAdapter);
 
 // Create a new WldtStorage instance using the default implementation and observing all the events  
-DefaultWldtStorage myStorage = new DefaultWldtStorage("test_storage", true)
+DefaultWldtStorage myStorage = new DefaultWldtStorage("test_storage", true);
 
 // Add the new Default Storage Instance to the Digital Twin Storage Manager 
 digitalTwin.getStorageManager().putStorage(myStorage);
@@ -103,7 +103,7 @@ digitalTwinEngine.addDigitalTwin(digitalTwin);
 digitalTwinEngine.startDigitalTwin(TEST_DIGITAL_TWIN_ID);
 ```
 
-Now let's **suppose** to have two additional implementation of the WldtStorage class supporting Redis and MongDB and called `RedisWldtStorage` and `MongoDbWldtStorage`.
+Now let's **suppose** to have two additional implementation of the WldtStorage class supporting Redis and MongoDB and called `RedisWldtStorage` and `MongoDbWldtStorage`.
 We would like to use Redis to *automatically* observe all the events and MongoDb only to store DT's state and life cycle variations.
 
 ```java
@@ -121,7 +121,7 @@ MongoDbWldtStorage myMongoDbStorage = new MongoDbWldtStorage("mongo_db_storage",
 myMongoDbStorage.setMongoDbConfiguration(myMongoDbConfiguration);
 
 // Add the new MongoDb Storage Instance to the Digital Twin Storage Manager 
-digitalTwin.getStorageManager().putStorage(myRedisStorage);
+digitalTwin.getStorageManager().putStorage(myMongoDbStorage);
 
 [...]
 ```
@@ -735,10 +735,10 @@ digitalTwin.getMonitoringInterface().setHandler(new MyMonitoringHandler());
 
 ### What is tracked
 
-21 metrics are registered under the `"core"` namespace, covering:
+The metrics are registered under the `"core"` namespace: 3 for the queries and 21 for the write operations of each storage. They cover:
 
 - **Query operations** — success count, error count, and execution time for every query handled by the `QueryManager`
-- **Write operations** — success count, error count, and write time for each entity type: DT state description, DT state values, Physical Asset Description, augmentation function results, digital events, physical events, and lifecycle events
+- **Write operations** — success count, error count, and write time for each of the 7 entity types: DT state description, DT state values, Physical Asset Description, augmentation function data, digital events, physical events, and lifecycle events
 
 For the full list of metric names and types, see [STORAGE metrics](monitoring.md#storage-metrics) in the monitoring documentation.
 
